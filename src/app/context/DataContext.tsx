@@ -15,6 +15,7 @@ import {
   KeyResult,
   Proyecto,
   RegistroAvance,
+  RegistroAvanceKR,
   VinculoOKRProyecto,
   ImpactoIA,
 } from "../data/mockData";
@@ -29,6 +30,7 @@ interface DataContextType {
   vinculos: VinculoOKRProyecto[];
   // Registros de avance reactivos (persisten en sesión, no se pierden al navegar)
   registrosAvance: RegistroAvance[];
+  registrosAvanceKR: RegistroAvanceKR[];
 
   addApuesta: (a: Omit<ApuestaEstrategica, "id" | "cumplimiento">) => string;
   updateApuesta: (id: string, changes: Partial<ApuestaEstrategica>) => void;
@@ -50,8 +52,10 @@ interface DataContextType {
   addKR: (okrId: string, kr: Omit<KeyResult, "id">) => string;
   updateKR: (okrId: string, krId: string, changes: Partial<KeyResult>) => void;
   removeKR: (okrId: string, krId: string) => void;
+  registrarAvanceKR: (okrId: string, krId: string, valorActual: number, registradoPor: string, comentario: string) => void;
+  getRegistrosByKR: (krId: string) => RegistroAvanceKR[];
 
-  addProyecto: (p: Omit<Proyecto, "id" | "avanceGlobal" | "ultimoRegistro" | "okrIds">) => string;
+  addProyecto: (p: Omit<Proyecto, "id" | "avanceGlobal" | "ultimoRegistro" | "okrIds"> & { okrIds?: string[] }) => string;
   updateProyecto: (id: string, changes: Partial<Proyecto>) => void;
   deleteProyecto: (id: string) => void;
 
@@ -76,12 +80,12 @@ interface DataContextType {
 // Valor por defecto con no-ops — evita crashes por HMR inestable cuando se
 // reedita este archivo y los hijos quedan momentáneamente fuera del nuevo Provider.
 const noopDefault: DataContextType = {
-  apuestas: [], metas: [], objetivosCP: [], okrs: [], proyectos: [], vinculos: [], registrosAvance: [],
+  apuestas: [], metas: [], objetivosCP: [], okrs: [], proyectos: [], vinculos: [], registrosAvance: [], registrosAvanceKR: [],
   addApuesta: () => "", updateApuesta: () => {}, deleteApuesta: () => {},
   addMeta: () => "", updateMeta: () => {}, deleteMeta: () => {},
   addOCP: () => "", updateOCP: () => {},
   addOKR: () => "", updateOKR: () => {}, deleteOKR: () => {},
-  addKR: () => "", updateKR: () => {}, removeKR: () => {},
+  addKR: () => "", updateKR: () => {}, removeKR: () => {}, registrarAvanceKR: () => {}, getRegistrosByKR: () => [],
   addProyecto: () => "", updateProyecto: () => {}, deleteProyecto: () => {},
   addRegistroAvance: () => {}, getRegistrosByProyecto: () => [],
   setProyectoKR: () => {},
@@ -95,6 +99,15 @@ const G = globalThis as unknown as { __SGP_DataContext?: React.Context<DataConte
 const DataContext: React.Context<DataContextType> =
   G.__SGP_DataContext ?? (G.__SGP_DataContext = createContext<DataContextType>(noopDefault));
 
+const calcCumplimientoOKR = (keyResults: KeyResult[]) => {
+  if (keyResults.length === 0) return 0;
+  const total = keyResults.reduce((sum, kr) => {
+    const span = Math.max(kr.valorObjetivo - kr.valorBase, 1);
+    return sum + Math.min(100, Math.max(0, Math.round(((kr.valorActual - kr.valorBase) / span) * 100)));
+  }, 0);
+  return Math.round(total / keyResults.length);
+};
+
 export function useData(): DataContextType {
   return useContext(DataContext);
 }
@@ -107,6 +120,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [proyectos, setProyectos] = useState<Proyecto[]>([...initialProyectos]);
   const [vinculos, setVinculos] = useState<VinculoOKRProyecto[]>([...vinculosIniciales]);
   const [registrosAvance, setRegistros] = useState<RegistroAvance[]>([...initialRegistros]);
+  const [registrosAvanceKR, setRegistrosKR] = useState<RegistroAvanceKR[]>([]);
 
   // ── Apuestas ──────────────────────────────────────────────────────────────────
   const addApuesta = (data: Omit<ApuestaEstrategica, "id" | "cumplimiento">) => {
@@ -147,7 +161,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // ── OKRs ──────────────────────────────────────────────────────────────────────
   const addOKR = (data: Omit<OKR, "id" | "cumplimiento" | "proyectoIds">) => {
     const id = `OKR${Date.now()}`;
-    setOKRs(prev => [...prev, { ...data, id, cumplimiento: 0, proyectoIds: [] }]);
+    setOKRs(prev => [...prev, { ...data, id, cumplimiento: calcCumplimientoOKR(data.keyResults), proyectoIds: [] }]);
     toast.success("Objetivo creado");
     return id;
   };
@@ -162,39 +176,86 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // ── KRs ───────────────────────────────────────────────────────────────────────
   const addKR = (okrId: string, kr: Omit<KeyResult, "id">) => {
     const krId = `KR-${Date.now()}`;
-    setOKRs(prev => prev.map(o => o.id === okrId
-      ? { ...o, keyResults: [...o.keyResults, { ...kr, id: krId }] }
-      : o));
+    setOKRs(prev => prev.map(o => {
+      if (o.id !== okrId) return o;
+      const keyResults = [...o.keyResults, { ...kr, id: krId }];
+      return { ...o, keyResults, cumplimiento: calcCumplimientoOKR(keyResults) };
+    }));
     toast.success("Resultado Clave agregado");
     return krId;
   };
   const updateKR = (okrId: string, krId: string, changes: Partial<KeyResult>) => {
-    setOKRs(prev => prev.map(o => o.id === okrId
-      ? { ...o, keyResults: o.keyResults.map(k => k.id === krId ? { ...k, ...changes } : k) }
-      : o));
+    setOKRs(prev => prev.map(o => {
+      if (o.id !== okrId) return o;
+      const keyResults = o.keyResults.map(k => k.id === krId ? { ...k, ...changes } : k);
+      return { ...o, keyResults, cumplimiento: calcCumplimientoOKR(keyResults) };
+    }));
     toast.success("KR actualizado");
   };
   const removeKR = (okrId: string, krId: string) => {
-    setOKRs(prev => prev.map(o => o.id === okrId
-      ? { ...o, keyResults: o.keyResults.filter(k => k.id !== krId) }
-      : o));
+    setOKRs(prev => prev.map(o => {
+      if (o.id !== okrId) return o;
+      const keyResults = o.keyResults.filter(k => k.id !== krId);
+      return { ...o, keyResults, cumplimiento: calcCumplimientoOKR(keyResults) };
+    }));
+    setRegistrosKR(prev => prev.filter(r => r.krId !== krId));
     toast.success("KR eliminado");
   };
 
+  const registrarAvanceKR = (okrId: string, krId: string, valorActual: number, registradoPor: string, comentario: string) => {
+    const okr = okrs.find(o => o.id === okrId);
+    const kr = okr?.keyResults.find(k => k.id === krId);
+    if (!okr || !kr) return;
+
+    setRegistrosKR(prev => [...prev, {
+      id: `RAKR-${krId}-${Date.now()}`,
+      okrId,
+      krId,
+      fecha: new Date().toISOString().split("T")[0],
+      valorAnterior: kr.valorActual,
+      valorActual,
+      registradoPor,
+      comentario,
+    }]);
+    setOKRs(prev => prev.map(o => {
+      if (o.id !== okrId) return o;
+      const keyResults = o.keyResults.map(k => k.id === krId
+        ? { ...k, valorActual, estado: valorActual > k.valorObjetivo ? "superado" as const : "normal" as const }
+        : k);
+      return { ...o, keyResults, cumplimiento: calcCumplimientoOKR(keyResults) };
+    }));
+    toast.success("Avance de KR registrado");
+  };
+
+  const getRegistrosByKR = (krId: string) =>
+    registrosAvanceKR.filter(r => r.krId === krId);
+
   // ── Proyectos ─────────────────────────────────────────────────────────────────
-  const addProyecto = (data: Omit<Proyecto, "id" | "avanceGlobal" | "ultimoRegistro" | "okrIds">) => {
+  const addProyecto = (data: Omit<Proyecto, "id" | "avanceGlobal" | "ultimoRegistro" | "okrIds"> & { okrIds?: string[] }) => {
     const id = `P${Date.now()}`;
     const hoy = new Date().toISOString().split("T")[0];
     const okrParent = okrs.find(o => o.keyResults.some(k => k.id === data.krId));
-    const proyecto: Proyecto = { ...data, id, avanceGlobal: 0, ultimoRegistro: hoy, okrIds: okrParent ? [okrParent.id] : [] };
+    const okrIds = data.okrIds?.length ? data.okrIds : (okrParent ? [okrParent.id] : []);
+    const proyecto: Proyecto = { ...data, id, avanceGlobal: 0, ultimoRegistro: hoy, okrIds };
     setProyectos(prev => [...prev, proyecto]);
-    if (proyecto.krId) {
-      setOKRs(prev => prev.map(o => ({
-        ...o,
-        keyResults: o.keyResults.map(k => k.id === proyecto.krId && !k.proyectoIds.includes(id)
-          ? { ...k, proyectoIds: [...k.proyectoIds, id] } : k),
-      })));
+    if (okrIds.length > 0) {
+      setVinculos(prev => [
+        ...prev.filter(v => !(v.proyectoId === id && okrIds.includes(v.okrId))),
+        ...okrIds.map((okrId) => ({
+          proyectoId: id,
+          okrId,
+          peso: proyecto.impactoKR?.porcentaje ?? 100,
+          contribucionTipo: proyecto.contribucionTipo,
+          creadoEn: hoy,
+        })),
+      ]);
     }
+    setOKRs(prev => prev.map(o => ({
+      ...o,
+      keyResults: o.keyResults.map(k => proyecto.krId && k.id === proyecto.krId && !k.proyectoIds.includes(id)
+        ? { ...k, proyectoIds: [...k.proyectoIds, id] } : k),
+      proyectoIds: okrIds.includes(o.id) && !o.proyectoIds.includes(id) ? [...o.proyectoIds, id] : o.proyectoIds,
+    })));
     toast.success("Proyecto creado");
     return id;
   };
@@ -225,6 +286,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // ── Proyecto ↔ KR ─────────────────────────────────────────────────────────────
   const setProyectoKR = (proyectoId: string, krId: string, impacto?: ImpactoIA) => {
+    const okrParent = okrs.find(o => o.keyResults.some(k => k.id === krId));
     setOKRs(prev => prev.map(o => ({
       ...o,
       keyResults: o.keyResults.map(k => {
@@ -234,8 +296,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }),
     })));
     setProyectos(prev => prev.map(p => p.id === proyectoId
-      ? { ...p, krId, ...(impacto ? { impactoKR: impacto } : {}) }
+      ? { ...p, krId, okrIds: okrParent && !p.okrIds.includes(okrParent.id) ? [...p.okrIds, okrParent.id] : p.okrIds, ...(impacto ? { impactoKR: impacto } : {}) }
       : p));
+    if (okrParent) {
+      setVinculos(prev => {
+        const exists = prev.some(v => v.proyectoId === proyectoId && v.okrId === okrParent.id);
+        return exists ? prev : [...prev, { proyectoId, okrId: okrParent.id, peso: impacto?.porcentaje ?? 100 }];
+      });
+    }
     toast.success("Proyecto vinculado al KR");
   };
 
@@ -262,9 +330,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (exists) return prev.map(x => x.proyectoId === v.proyectoId && x.okrId === v.okrId ? v : x);
       return [...prev, v];
     });
+    setProyectos(prev => prev.map(p => p.id === v.proyectoId && !p.okrIds.includes(v.okrId)
+      ? { ...p, okrIds: [...p.okrIds, v.okrId], contribucionTipo: v.contribucionTipo ?? p.contribucionTipo }
+      : p));
+    setOKRs(prev => prev.map(o => o.id === v.okrId && !o.proyectoIds.includes(v.proyectoId)
+      ? { ...o, proyectoIds: [...o.proyectoIds, v.proyectoId] }
+      : o));
   };
-  const removeVinculo = (proyectoId: string, okrId: string) =>
+  const removeVinculo = (proyectoId: string, okrId: string) => {
     setVinculos(prev => prev.filter(v => !(v.proyectoId === proyectoId && v.okrId === okrId)));
+    setProyectos(prev => prev.map(p => p.id === proyectoId ? { ...p, okrIds: p.okrIds.filter(id => id !== okrId) } : p));
+    setOKRs(prev => prev.map(o => o.id === okrId ? { ...o, proyectoIds: o.proyectoIds.filter(id => id !== proyectoId) } : o));
+  };
   const updateVinculoPeso = (proyectoId: string, okrId: string, peso: number) =>
     setVinculos(prev => prev.map(v => v.proyectoId === proyectoId && v.okrId === okrId ? { ...v, peso } : v));
   const getVinculo = (proyectoId: string, okrId: string) =>
@@ -274,12 +351,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DataContext.Provider value={{
-      apuestas, metas, objetivosCP, okrs, proyectos, vinculos, registrosAvance,
+      apuestas, metas, objetivosCP, okrs, proyectos, vinculos, registrosAvance, registrosAvanceKR,
       addApuesta, updateApuesta, deleteApuesta,
       addMeta, updateMeta, deleteMeta,
       addOCP, updateOCP,
       addOKR, updateOKR, deleteOKR,
-      addKR, updateKR, removeKR,
+      addKR, updateKR, removeKR, registrarAvanceKR, getRegistrosByKR,
       addProyecto, updateProyecto, deleteProyecto,
       addRegistroAvance, getRegistrosByProyecto,
       setProyectoKR, unlinkProjectFromKR,

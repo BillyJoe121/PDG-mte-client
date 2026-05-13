@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router";
 import {
   ArrowLeft, CheckCircle2, FileText, PauseCircle, Calendar,
-  Users, Target, TrendingUp, Plus, ChevronRight, Award,
+  Users, Target, TrendingUp, Plus, ChevronRight,
   AlertCircle, Download, Clock, Layers,
   Settings, Archive, CheckSquare, Edit2, Save,
 } from "lucide-react";
@@ -105,11 +105,12 @@ function EvolucionAvanceSVG({ data, color }: { data: { fecha: string; avance: nu
 }
 
 // ── Modal registrar avance ─────────────────────────────────────────────────────
-function RegistrarAvanceModal({ proyectoId, currentPct, userName, onClose, onSave }: {
-  proyectoId: string; currentPct: number; userName: string;
+function RegistrarAvanceModal({ proyectoId, currentPct, userName, indicadorNombre, onClose, onSave }: {
+  proyectoId: string; currentPct: number; userName: string; indicadorNombre?: string;
   onClose: () => void; onSave: (r: RegistroAvance) => void;
 }) {
   const [pct, setPct] = useState(currentPct);
+  const [fechaCorte, setFechaCorte] = useState(new Date().toISOString().split("T")[0]);
   const [comentario, setComentario] = useState("");
   const [hitoInput, setHitoInput] = useState("");
   const [hitos, setHitos] = useState<string[]>([]);
@@ -124,7 +125,12 @@ function RegistrarAvanceModal({ proyectoId, currentPct, userName, onClose, onSav
     onSave({
       id: `RA-${proyectoId}-${Date.now()}`,
       proyectoId, fecha: new Date().toISOString().split("T")[0],
-      porcentaje: pct, comentario: comentario.trim(),
+      fechaCorte,
+      porcentaje: pct,
+      indicadorNombre: indicadorNombre || "Avance global del proyecto",
+      valorActual: pct,
+      comentario: comentario.trim(),
+      observaciones: comentario.trim(),
       registradoPor: userName, hitos,
     });
   };
@@ -146,9 +152,21 @@ function RegistrarAvanceModal({ proyectoId, currentPct, userName, onClose, onSav
               <p style={{ fontSize: "12px", color: "#991B1B" }}>{error}</p>
             </div>
           )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6 }}>Fecha de corte</label>
+              <input type="date" value={fechaCorte} onChange={e => setFechaCorte(e.target.value)} style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", outline: "none" }} />
+            </div>
+            <div>
+              <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6 }}>Indicador</label>
+              <div style={{ minHeight: 36, padding: "8px 10px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: "12px", color: "#374151", backgroundColor: "#F9FAFB" }}>
+                {indicadorNombre || "Avance global del proyecto"}
+              </div>
+            </div>
+          </div>
           <div>
             <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 8 }}>
-              Porcentaje de avance: <span style={{ color: progColor, fontSize: "18px" }}>{pct}%</span>
+              Valor actual / porcentaje de avance: <span style={{ color: progColor, fontSize: "18px" }}>{pct}%</span>
               {diff !== 0 && <span style={{ fontSize: "12px", color: diff > 0 ? COLORS.green : COLORS.orange, marginLeft: 8 }}>({diff > 0 ? "+" : ""}{diff}%)</span>}
             </label>
             <div className="flex items-center gap-4">
@@ -214,6 +232,11 @@ function TimelineEntry({ registro, isLast, isFirst }: { registro: RegistroAvance
           </div>
         </div>
         <p style={{ fontSize: "11px", color: "#9CA3AF", marginBottom: 6 }}>Registrado por <strong style={{ color: "#374151" }}>{registro.registradoPor}</strong></p>
+        {(registro.fechaCorte || registro.indicadorNombre) && (
+          <p style={{ fontSize: "10px", color: "#717182", marginBottom: 6 }}>
+            {registro.indicadorNombre ?? "Indicador"}{registro.fechaCorte ? ` · Corte ${registro.fechaCorte}` : ""}{registro.valorActual != null ? ` · Valor ${registro.valorActual}%` : ""}
+          </p>
+        )}
         <p style={{ fontSize: "12px", color: "#374151", lineHeight: 1.6 }}>{registro.comentario}</p>
         {registro.hitos.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -253,12 +276,42 @@ export function FichaProyecto() {
     );
   }
 
+  const userFirstName = usuario?.nombre.split(" ")[0].toLowerCase() ?? "";
+  const canView =
+    usuario?.rol === "administrador" ||
+    usuario?.rol === "director" ||
+    (usuario?.rol === "jefe" && proyecto.departamento === usuario.departamento) ||
+    (usuario?.rol === "tutor" && proyecto.tutores.some(t => t.toLowerCase().includes(userFirstName)));
+
+  if (!canView) {
+    return (
+      <div className="p-8 text-center">
+        <AlertCircle size={32} color={COLORS.orange} className="mx-auto mb-3" />
+        <p style={{ fontSize: "16px", color: "#000", fontWeight: 700 }}>No tienes acceso a esta ficha.</p>
+        <p style={{ fontSize: "13px", color: "#9CA3AF", marginTop: 4 }}>Solo direcciÃ³n, jefaturas del departamento y tutores asignados pueden consultar el detalle.</p>
+        <button onClick={() => navigate("/proyectos")} className="mt-4" style={{ color: COLORS.blue, fontSize: "13px", fontWeight: 600 }}>Volver a proyectos</button>
+      </div>
+    );
+  }
+
   // Registros reactivos: provienen del DataContext (persisten entre navegaciones)
   const allRegistros = getRegistrosByProyecto(id!)
     .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
   const krProyecto = proyecto.krId ? findKRById(okrs, proyecto.krId) : undefined;
   const okrPadre = proyecto.krId ? findOKRByKR(okrs, proyecto.krId) : undefined;
+  const okrIdsProyecto = new Set<string>(proyecto.okrIds ?? []);
+  if (okrPadre) okrIdsProyecto.add(okrPadre.id);
+  const okrsProyecto = okrs.filter(o =>
+    okrIdsProyecto.has(o.id) ||
+    o.keyResults.some(kr => kr.proyectoIds.includes(proyecto.id))
+  );
+  const getKRsProyectoEnOKR = (okr: typeof okrs[number]) =>
+    okr.keyResults.filter(kr => kr.id === proyecto.krId || kr.proyectoIds.includes(proyecto.id));
+  const indicadoresProyecto = Array.from(new Set([
+    ...allRegistros.map(r => r.indicadorNombre).filter((v): v is string => Boolean(v)),
+    ...(krProyecto ? [krProyecto.metrica] : []),
+  ]));
   const dias = diasSinRegistro(proyecto.ultimoRegistro);
   const canRegister = proyecto.estado === "activo";
   const canManage = usuario?.rol === "director" || usuario?.rol === "jefe" || usuario?.rol === "administrador";
@@ -295,7 +348,7 @@ export function FichaProyecto() {
   const TABS = [
     { key: "resumen", label: "Resumen" },
     { key: "historial", label: `Historial (${allRegistros.length})` },
-    { key: "kr", label: krProyecto ? "KR & Impacto" : "Sin KR" },
+    { key: "kr", label: okrsProyecto.length > 0 ? `Estrategia (${okrsProyecto.length})` : "Sin OKR" },
   ];
 
   return (
@@ -340,6 +393,9 @@ export function FichaProyecto() {
                     <Plus size={12} /> Registrar avance
                   </button>
                 )}
+                <button className="flex items-center justify-center gap-1 hover:opacity-90 transition-opacity" style={{ padding: "8px 12px", backgroundColor: "#F3F4F6", color: "#374151", borderRadius: 6, fontSize: "11px", fontWeight: 700, border: "1px solid #E5E7EB" }}>
+                  <Download size={12} /> PDF
+                </button>
                 {canManage && (
                   <div className="relative">
                     <button
@@ -448,10 +504,10 @@ export function FichaProyecto() {
         <div className="space-y-5">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: "Impacto al KR", value: `${impactoPct}%`, color: COLORS.blue, icon: Target },
+              { label: "OKRs vinculados", value: okrsProyecto.length, color: COLORS.blue, icon: Layers },
+              { label: "Impacto evaluado", value: `${impactoPct}%`, color: "#7C3AED", icon: Target },
               { label: "Registros de avance", value: allRegistros.length, color: COLORS.green, icon: TrendingUp },
               { label: "Días sin registro", value: dias, color: dias > 28 ? COLORS.orange : COLORS.gray, icon: Clock },
-              { label: "Hitos documentados", value: allRegistros.reduce((s, r) => s + r.hitos.length, 0), color: "#7C3AED", icon: Award },
             ].map(kpi => (
               <div key={kpi.label} className="bg-white rounded-lg p-4" style={{ border: "1.5px solid #E5E7EB" }}>
                 <div className="flex items-center justify-between mb-2"><kpi.icon size={16} color={kpi.color} /><span style={{ fontSize: "24px", fontWeight: 800, color: kpi.color }}>{kpi.value}</span></div>
@@ -461,6 +517,48 @@ export function FichaProyecto() {
           </div>
 
           {/* Cadena de propagación visual (single KR) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="bg-white rounded-lg p-5" style={{ border: "1.5px solid #E5E7EB" }}>
+              <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#000", marginBottom: 12 }}>OKRs vinculados</h3>
+              {okrsProyecto.length === 0 ? (
+                <p style={{ fontSize: "12px", color: "#9CA3AF" }}>Este proyecto no tiene OKRs vinculados.</p>
+              ) : (
+                <div className="space-y-3">
+                  {okrsProyecto.map(okr => (
+                    <div key={okr.id} className="p-3 rounded-lg" style={{ backgroundColor: "#FAFAFA", border: "1px solid #E5E7EB" }}>
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <span style={{ fontSize: "10px", fontWeight: 800, color: COLORS.blue }}>{okr.id} - {okr.departamento}</span>
+                        <span style={{ fontSize: "10px", color: "#9CA3AF", fontWeight: 700 }}>{okr.periodo} - {okr.cumplimiento}%</span>
+                      </div>
+                      <p style={{ fontSize: "12px", color: "#000", fontWeight: 700, lineHeight: 1.4 }}>{okr.objetivo}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg p-5" style={{ border: "1.5px solid #E5E7EB" }}>
+              <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#000", marginBottom: 12 }}>Indicadores de contribucion</h3>
+              {indicadoresProyecto.length === 0 ? (
+                <p style={{ fontSize: "12px", color: "#9CA3AF" }}>Aun no hay indicadores reportados para esta ficha.</p>
+              ) : (
+                <div className="space-y-2">
+                  {indicadoresProyecto.map(indicador => {
+                    const ultimo = allRegistros.find(r => r.indicadorNombre === indicador);
+                    return (
+                      <div key={indicador} className="flex items-center justify-between gap-3 p-2 rounded" style={{ backgroundColor: "#FAFAFA" }}>
+                        <span style={{ fontSize: "12px", color: "#374151", fontWeight: 600 }}>{indicador}</span>
+                        <span style={{ fontSize: "11px", color: "#9CA3AF", fontWeight: 700 }}>
+                          {ultimo?.valorActual ?? krProyecto?.valorActual ?? currentPct}{krProyecto?.unidad ? ` ${krProyecto.unidad}` : "%"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
           {krProyecto && (
             <div className="bg-white rounded-lg p-5" style={{ border: "1.5px solid #E5E7EB" }}>
               <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#000", marginBottom: 4 }}>Cadena de Impacto Estimado</h3>
@@ -534,6 +632,62 @@ export function FichaProyecto() {
             </div>
           ) : (
             <>
+              <div className="bg-white rounded-lg overflow-hidden" style={{ border: "1.5px solid #E5E7EB" }}>
+                <div style={{ backgroundColor: "#000", padding: "14px 20px" }}>
+                  <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase" }}>
+                    Evaluacion de aporte estrategico
+                  </span>
+                  <p style={{ color: "#fff", fontSize: "14px", fontWeight: 700, marginTop: 4, lineHeight: 1.5 }}>
+                    {currentPct}% avance del proyecto x {impactoPct}% impacto evaluado = {aporteReal}% aporte real
+                  </p>
+                  <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "11px", marginTop: 6, lineHeight: 1.4 }}>
+                    Origen: {proyecto.impactoKR?.origen ?? "pendiente"}{proyecto.impactoKR?.calculadoEn ? ` - ${proyecto.impactoKR.calculadoEn}` : ""}
+                  </p>
+                </div>
+                <div className="p-4">
+                  <ProgressBar value={aporteReal} color={aporteReal >= 20 ? COLORS.green : aporteReal >= 10 ? COLORS.blue : COLORS.orange} />
+                  {proyecto.impactoKR?.justificacion && (
+                    <p style={{ fontSize: "12px", color: "#374151", lineHeight: 1.5, marginTop: 10 }}>{proyecto.impactoKR.justificacion}</p>
+                  )}
+                </div>
+              </div>
+
+              {okrsProyecto.map(okr => {
+                const krsVinculados = getKRsProyectoEnOKR(okr);
+                return (
+                  <div key={okr.id} className="bg-white rounded-lg overflow-hidden" style={{ border: "1.5px solid #E5E7EB" }}>
+                    <div style={{ backgroundColor: "#FAFAFA", padding: "14px 18px", borderBottom: "1px solid #E5E7EB" }}>
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <span style={{ fontSize: "10px", fontWeight: 800, color: COLORS.blue, textTransform: "uppercase" }}>
+                          {okr.id} - {okr.departamento} - {okr.periodo}
+                        </span>
+                        <span style={{ fontSize: "11px", color: "#000", fontWeight: 800 }}>{okr.cumplimiento}% cumplimiento</span>
+                      </div>
+                      <p style={{ fontSize: "14px", color: "#000", fontWeight: 800, lineHeight: 1.4, marginTop: 4 }}>{okr.objetivo}</p>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {(krsVinculados.length > 0 ? krsVinculados : okr.keyResults).map(kr => {
+                        const pct = Math.round(((kr.valorActual - kr.valorBase) / Math.max(kr.valorObjetivo - kr.valorBase, 1)) * 100);
+                        const krColor = kr.estado === "superado" ? COLORS.green : kr.estado === "en_riesgo" ? COLORS.orange : COLORS.blue;
+                        const principal = kr.id === proyecto.krId;
+                        return (
+                          <div key={kr.id} className="p-3 rounded-lg" style={{ backgroundColor: principal ? "#EEF2FF" : "#FAFAFA", border: principal ? `1.5px solid ${COLORS.blue}` : "1px solid #E5E7EB" }}>
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                              <span style={{ fontSize: "10px", color: principal ? COLORS.blue : "#9CA3AF", fontWeight: 800 }}>
+                                {kr.id}{principal ? " - KR principal del proyecto" : ""}
+                              </span>
+                              <span style={{ fontSize: "11px", color: "#717182", fontWeight: 700 }}>{kr.valorActual} / {kr.valorObjetivo} {kr.unidad}</span>
+                            </div>
+                            <p style={{ fontSize: "12px", color: "#374151", lineHeight: 1.5, marginBottom: 8 }}>{kr.enunciado}</p>
+                            <ProgressBar value={Math.min(pct, 100)} color={krColor} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
               {/* Tarjeta del KR */}
               <div className="bg-white rounded-lg overflow-hidden" style={{ border: "1.5px solid #E5E7EB" }}>
                 <div style={{ backgroundColor: "#000", padding: "14px 20px" }}>
@@ -595,7 +749,14 @@ export function FichaProyecto() {
 
       {/* Modales */}
       {showModal && (
-        <RegistrarAvanceModal proyectoId={id!} currentPct={currentPct} userName={usuario?.nombre ?? "Usuario"} onClose={() => setShowModal(false)} onSave={handleSaveRegistro} />
+        <RegistrarAvanceModal
+          proyectoId={id!}
+          currentPct={currentPct}
+          userName={usuario?.nombre ?? "Usuario"}
+          indicadorNombre={krProyecto?.metrica}
+          onClose={() => setShowModal(false)}
+          onSave={handleSaveRegistro}
+        />
       )}
       {showGestion && <div className="fixed inset-0 z-40" onClick={() => setShowGestion(false)} />}
     </div>

@@ -17,10 +17,15 @@ type Errors = Partial<Record<string, string>>;
 
 interface KRForm {
   enunciado: string;
+  metrica: string;
+  valorBase: string;
+  valorActual: string;
+  valorObjetivo: string;
+  unidad: string;
   impactoObjetivo?: ImpactoIA;
 }
 
-const emptyKR = (): KRForm => ({ enunciado: "" });
+const emptyKR = (): KRForm => ({ enunciado: "", metrica: "", valorBase: "0", valorActual: "0", valorObjetivo: "", unidad: "" });
 
 export function NuevoOKR() {
   const navigate = useNavigate();
@@ -37,7 +42,7 @@ export function NuevoOKR() {
     departamento: usuario?.departamento ?? DEPARTAMENTOS[0],
     periodo: PERIODOS[1] ?? "2025-I",
   });
-  const [krs, setKRs] = useState<KRForm[]>([emptyKR()]);
+  const [krs, setKRs] = useState<KRForm[]>([emptyKR(), emptyKR()]);
   const [impactoApuesta, setImpactoApuesta] = useState<ImpactoIA | undefined>(undefined);
   const [impactoMeta, setImpactoMeta] = useState<ImpactoIA | undefined>(undefined);
   const [errors, setErrors] = useState<Errors>({});
@@ -52,8 +57,8 @@ export function NuevoOKR() {
     if (field === "metaId") setImpactoMeta(undefined);
   };
 
-  const updateKR = (idx: number, value: string) => {
-    setKRs((prev) => prev.map((kr, i) => i === idx ? { ...kr, enunciado: value, impactoObjetivo: undefined } : kr));
+  const updateKR = (idx: number, field: keyof KRForm, value: string) => {
+    setKRs((prev) => prev.map((kr, i) => i === idx ? { ...kr, [field]: value, impactoObjetivo: field === "enunciado" ? undefined : kr.impactoObjetivo } : kr));
     setKrErrors((prev) => ({ ...prev, [idx]: "" }));
   };
 
@@ -61,9 +66,9 @@ export function NuevoOKR() {
     setKRs((prev) => prev.map((kr, i) => i === idx ? { ...kr, impactoObjetivo: impacto } : kr));
   };
 
-  const addKR = () => setKRs((prev) => [...prev, emptyKR()]);
+  const addKR = () => setKRs((prev) => prev.length >= 5 ? prev : [...prev, emptyKR()]);
   const removeKR = (idx: number) => {
-    if (krs.length === 1) return;
+    if (krs.length <= 2) return;
     setKRs((prev) => prev.filter((_, i) => i !== idx));
   };
 
@@ -73,10 +78,21 @@ export function NuevoOKR() {
     if (!form.apuestaId) e.apuestaId = "Debes asociar el objetivo a UNA apuesta estratégica.";
     if (!form.metaId) e.metaId = "Debes asociar el objetivo a UNA meta institucional.";
 
+    if (krs.length < 2 || krs.length > 5) e.krs = "El OKR debe tener entre 2 y 5 resultados clave.";
+
     const krE: Record<number, string> = {};
     krs.forEach((kr, idx) => {
       if (!kr.enunciado.trim() || kr.enunciado.trim().length < 15)
         krE[idx] = "Escribe el KR como una sentencia explícita y completa (mínimo 15 caracteres).";
+    });
+
+    krs.forEach((kr, idx) => {
+      if (krE[idx]) return;
+      if (!kr.metrica.trim()) krE[idx] = "Define la metrica cuantitativa del KR.";
+      else if (!kr.unidad.trim()) krE[idx] = "Define la unidad de medida.";
+      else if (kr.valorObjetivo === "" || Number.isNaN(Number(kr.valorObjetivo))) krE[idx] = "Define un valor objetivo numerico.";
+      else if (Number(kr.valorObjetivo) <= Number(kr.valorBase)) krE[idx] = "El valor objetivo debe ser mayor al valor base.";
+      else if (Number(kr.valorActual) > Number(kr.valorObjetivo) && !window.confirm(`El KR ${idx + 1} supera el objetivo. Deseas guardarlo como superado?`)) krE[idx] = "Confirma el valor actual superado para guardar.";
     });
 
     setErrors(e);
@@ -90,12 +106,12 @@ export function NuevoOKR() {
     const keyResults: KeyResult[] = krs.map((kr, idx) => ({
       id: `KR-NEW-${Date.now()}-${idx}`,
       enunciado: kr.enunciado.trim(),
-      metrica: kr.enunciado.trim(),
-      valorBase: 0,
-      valorActual: 0,
-      valorObjetivo: 100,
-      unidad: "%",
-      estado: "normal" as const,
+      metrica: kr.metrica.trim(),
+      valorBase: Number(kr.valorBase),
+      valorActual: Number(kr.valorActual),
+      valorObjetivo: Number(kr.valorObjetivo),
+      unidad: kr.unidad.trim(),
+      estado: Number(kr.valorActual) > Number(kr.valorObjetivo) ? "superado" as const : "normal" as const,
       proyectoIds: [],
       impactoObjetivo: kr.impactoObjetivo,
     }));
@@ -322,6 +338,8 @@ export function NuevoOKR() {
             Ej.: <em>"Aumentar de 0 a 12 los syllabus actualizados con metodologías activas durante 2025-I"</em>.
           </p>
 
+          {errors.krs && <p style={{ fontSize: "11px", color: COLORS.orange }}>{errors.krs}</p>}
+
           <div className="space-y-4">
             {krs.map((kr, idx) => (
               <div key={idx} className="rounded-lg p-4 relative" style={{ border: "1.5px solid #E5E7EB", backgroundColor: "#FAFAFA" }}>
@@ -329,7 +347,7 @@ export function NuevoOKR() {
                   <span className="px-2 py-1 rounded text-white" style={{ fontSize: "11px", fontWeight: 800, backgroundColor: COLORS.blue }}>
                     KR {idx + 1}
                   </span>
-                  {krs.length > 1 && (
+                  {krs.length > 2 && (
                     <button onClick={() => removeKR(idx)} className="hover:opacity-70 transition-opacity" style={{ color: COLORS.orange }}>
                       <Trash2 size={15} />
                     </button>
@@ -342,7 +360,7 @@ export function NuevoOKR() {
                   </label>
                   <textarea
                     value={kr.enunciado}
-                    onChange={(e) => updateKR(idx, e.target.value)}
+                    onChange={(e) => updateKR(idx, "enunciado", e.target.value)}
                     placeholder='Ej: "Aumentar de 0 a 12 los syllabus actualizados con metodologías activas durante 2025-I"'
                     rows={2}
                     style={{
@@ -352,6 +370,56 @@ export function NuevoOKR() {
                     }}
                   />
                   {krErrors[idx] && <p style={{ fontSize: "10px", color: COLORS.orange, marginTop: 2 }}>{krErrors[idx]}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 mt-3">
+                  <div className="sm:col-span-2">
+                    <label style={{ fontSize: "10px", fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                      Metrica <span style={{ color: COLORS.orange }}>*</span>
+                    </label>
+                    <input
+                      value={kr.metrica}
+                      onChange={(e) => updateKR(idx, "metrica", e.target.value)}
+                      placeholder="Ej: Syllabus actualizados"
+                      style={{ width: "100%", padding: "8px 10px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 6, outline: "none", fontFamily: "Montserrat, sans-serif", backgroundColor: "#fff" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "10px", fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>Base</label>
+                    <input
+                      type="number"
+                      value={kr.valorBase}
+                      onChange={(e) => updateKR(idx, "valorBase", e.target.value)}
+                      style={{ width: "100%", padding: "8px 10px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 6, outline: "none", backgroundColor: "#fff" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "10px", fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>Actual</label>
+                    <input
+                      type="number"
+                      value={kr.valorActual}
+                      onChange={(e) => updateKR(idx, "valorActual", e.target.value)}
+                      style={{ width: "100%", padding: "8px 10px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 6, outline: "none", backgroundColor: "#fff" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "10px", fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>Objetivo *</label>
+                    <input
+                      type="number"
+                      value={kr.valorObjetivo}
+                      onChange={(e) => updateKR(idx, "valorObjetivo", e.target.value)}
+                      style={{ width: "100%", padding: "8px 10px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 6, outline: "none", backgroundColor: "#fff" }}
+                    />
+                  </div>
+                  <div className="sm:col-span-5">
+                    <label style={{ fontSize: "10px", fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>Unidad *</label>
+                    <input
+                      value={kr.unidad}
+                      onChange={(e) => updateKR(idx, "unidad", e.target.value)}
+                      placeholder="Ej: %, proyectos, articulos"
+                      style={{ width: "100%", padding: "8px 10px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 6, outline: "none", fontFamily: "Montserrat, sans-serif", backgroundColor: "#fff" }}
+                    />
+                  </div>
                 </div>
 
                 <div className="mt-3">

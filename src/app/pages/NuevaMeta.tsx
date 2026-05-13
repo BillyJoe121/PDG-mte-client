@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, BookOpen, Save, AlertCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, Save, AlertCircle, Check } from "lucide-react";
 import { useData } from "../context/DataContext";
 import { useAuth } from "../context/AuthContext";
+import { PERIODOS } from "../data/mockData";
 
 const COLORS = {
   blue: "#5454E9",
@@ -24,7 +25,7 @@ type Errors = Partial<Record<string, string>>;
 
 export function NuevaMeta() {
   const navigate = useNavigate();
-  const { addMeta } = useData();
+  const { apuestas, addMeta } = useData();
   const { usuario } = useAuth();
 
   // Solo director y administrador crean Metas (vienen de la junta directiva)
@@ -35,6 +36,11 @@ export function NuevaMeta() {
     descripcion: "",
     areaInstitucional: AREAS[0],
     estado: "activa" as "activa" | "inactiva",
+    metricaReferencia: "",
+    valorEsperado: "",
+    unidadMedida: "",
+    periodo: PERIODOS[1] ?? "2025-I",
+    apuestaIds: [] as string[],
   });
   const [errors, setErrors] = useState<Errors>({});
   const [saved, setSaved] = useState(false);
@@ -48,8 +54,22 @@ export function NuevaMeta() {
     const e: Errors = {};
     if (!form.nombre.trim()) e.nombre = "El nombre es obligatorio.";
     if (!form.descripcion.trim()) e.descripcion = "La descripción es obligatoria.";
+    if (!form.metricaReferencia.trim()) e.metricaReferencia = "La metrica de referencia es obligatoria.";
+    if (!form.valorEsperado || Number(form.valorEsperado) <= 0) e.valorEsperado = "Ingresa un valor esperado mayor a cero.";
+    if (!form.unidadMedida.trim()) e.unidadMedida = "La unidad de medida es obligatoria.";
+    if (form.apuestaIds.length === 0) e.apuestaIds = "Vincula al menos una apuesta estrategica.";
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  const toggleApuesta = (id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      apuestaIds: prev.apuestaIds.includes(id)
+        ? prev.apuestaIds.filter((apuestaId) => apuestaId !== id)
+        : [...prev.apuestaIds, id],
+    }));
+    setErrors((prev) => ({ ...prev, apuestaIds: "" }));
   };
 
   const handleSubmit = () => {
@@ -59,6 +79,11 @@ export function NuevaMeta() {
       descripcion: form.descripcion,
       estado: form.estado,
       areaInstitucional: form.areaInstitucional,
+      metricaReferencia: form.metricaReferencia,
+      valorEsperado: Number(form.valorEsperado),
+      unidadMedida: form.unidadMedida,
+      periodo: form.periodo,
+      apuestaIds: form.apuestaIds,
     });
     setSaved(true);
     setTimeout(() => navigate("/jerarquia"), 1200);
@@ -153,8 +178,77 @@ export function NuevaMeta() {
           {errors.descripcion && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.descripcion}</p>}
         </div>
 
+        {/* Medicion */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="sm:col-span-2">
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Metrica de referencia <span style={{ color: COLORS.orange }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={form.metricaReferencia}
+              onChange={(e) => set("metricaReferencia", e.target.value)}
+              placeholder="Ej: Cursos renovados, publicaciones Q1/Q2"
+              style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.metricaReferencia ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif" }}
+            />
+            {errors.metricaReferencia && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.metricaReferencia}</p>}
+          </div>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Valor esperado <span style={{ color: COLORS.orange }}>*</span>
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={form.valorEsperado}
+              onChange={(e) => set("valorEsperado", e.target.value)}
+              style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.valorEsperado ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif" }}
+            />
+            {errors.valorEsperado && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.valorEsperado}</p>}
+          </div>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Unidad <span style={{ color: COLORS.orange }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={form.unidadMedida}
+              onChange={(e) => set("unidadMedida", e.target.value)}
+              placeholder="%, cursos"
+              style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.unidadMedida ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif" }}
+            />
+            {errors.unidadMedida && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.unidadMedida}</p>}
+          </div>
+        </div>
+
+        {/* Apuestas vinculadas */}
+        <div>
+          <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Apuestas estrategicas vinculadas <span style={{ color: COLORS.orange }}>*</span>
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {apuestas.map((apuesta) => {
+              const selected = form.apuestaIds.includes(apuesta.id);
+              return (
+                <button key={apuesta.id} type="button" onClick={() => toggleApuesta(apuesta.id)}
+                  className="text-left flex items-start gap-3 p-3 rounded-lg transition-all"
+                  style={{ border: `1.5px solid ${selected ? "#B8C500" : "#E5E7EB"}`, backgroundColor: selected ? "#FAFCE0" : "#fff" }}>
+                  <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: selected ? "#B8C500" : "#F3F4F6" }}>
+                    {selected && <Check size={12} color="#fff" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p style={{ fontSize: "12px", fontWeight: 700, color: "#000", lineHeight: 1.35 }}>{apuesta.nombre}</p>
+                    <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 2 }}>{apuesta.estado} - {apuesta.areaInstitucional}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {errors.apuestaIds && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.apuestaIds}</p>}
+        </div>
+
         {/* Area + Estado */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Area institucional
@@ -184,6 +278,21 @@ export function NuevaMeta() {
             >
               <option value="activa">Activa</option>
               <option value="inactiva">Inactiva</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Periodo
+            </label>
+            <select
+              value={form.periodo}
+              onChange={(e) => set("periodo", e.target.value)}
+              style={{
+                width: "100%", padding: "10px 14px", fontSize: "13px", border: "1.5px solid #E5E7EB",
+                borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif", backgroundColor: "#fff",
+              }}
+            >
+              {PERIODOS.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
         </div>

@@ -4,9 +4,9 @@ import {
   ArrowLeft, Plus, Trash2, Save, X, Edit2,
   FolderKanban, Link2, KeyRound, Target, BookOpen,
   AlertTriangle, CheckCircle2, Circle, Flag,
-  ChevronDown, ChevronUp, ExternalLink, Sparkles,
+  ChevronDown, ChevronUp, ExternalLink, Sparkles, Clock,
 } from "lucide-react";
-import { KeyResult, Proyecto, ImpactoIA } from "../data/mockData";
+import { KeyResult, Proyecto, ImpactoIA, RegistroAvanceKR } from "../data/mockData";
 import { useData } from "../context/DataContext";
 import { useAuth } from "../context/AuthContext";
 import { ImpactoIAPanel } from "../components/ImpactoIAPanel";
@@ -305,22 +305,104 @@ function VincularProyectoForm({
 }
 
 // ── Full KR Card ───────────────────────────────────────────────────────────────
+function RegistrarAvanceKRModal({
+  kr, userName, onClose, onSave,
+}: {
+  kr: KeyResult;
+  userName: string;
+  onClose: () => void;
+  onSave: (valorActual: number, comentario: string) => void;
+}) {
+  const [valor, setValor] = useState(String(kr.valorActual));
+  const [comentario, setComentario] = useState("");
+  const [error, setError] = useState("");
+  const nextValue = Number(valor);
+  const pct = Math.round(((nextValue - kr.valorBase) / Math.max(kr.valorObjetivo - kr.valorBase, 1)) * 100);
+  const clampedPct = Math.min(100, Math.max(0, pct));
+  const color = nextValue > kr.valorObjetivo ? COLORS.green : clampedPct >= 70 ? COLORS.blue : COLORS.orange;
+
+  const handleSave = () => {
+    if (valor === "" || Number.isNaN(nextValue)) {
+      setError("Ingresa un valor actual numerico.");
+      return;
+    }
+    if (!comentario.trim()) {
+      setError("Agrega una nota corta para el historial.");
+      return;
+    }
+    onSave(nextValue, comentario.trim());
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.55)" }} onClick={onClose}>
+      <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: "#000" }}>
+          <div>
+            <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", fontWeight: 800, textTransform: "uppercase" }}>{kr.id}</p>
+            <h3 style={{ color: "#fff", fontSize: "15px", fontWeight: 800 }}>Registrar avance del KR</h3>
+          </div>
+          <button onClick={onClose} style={{ color: "rgba(255,255,255,0.65)", fontSize: "22px" }}>×</button>
+        </div>
+        <div className="p-5 space-y-4">
+          {error && <div className="px-3 py-2 rounded" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: "12px" }}>{error}</div>}
+          <div className="rounded-lg p-3" style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+            <p style={{ fontSize: "12px", color: "#374151", lineHeight: 1.5 }}>{kr.enunciado}</p>
+            <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 6 }}>Base {kr.valorBase} - Objetivo {kr.valorObjetivo} {kr.unidad}</p>
+          </div>
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 800, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Valor actual ({kr.unidad})</label>
+            <input type="number" value={valor} onChange={(e) => { setValor(e.target.value); setError(""); }} style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #000", borderRadius: 8, fontSize: "14px", outline: "none" }} />
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <span style={{ fontSize: "11px", color: "#9CA3AF" }}>Cumplimiento estimado</span>
+                <span style={{ fontSize: "16px", fontWeight: 900, color }}>{Math.max(0, pct)}%</span>
+              </div>
+              <div className="rounded-full overflow-hidden" style={{ height: 8, backgroundColor: "#F3F4F6" }}>
+                <div style={{ height: "100%", width: `${clampedPct}%`, backgroundColor: color, borderRadius: 99 }} />
+              </div>
+              {nextValue > kr.valorObjetivo && <p style={{ fontSize: "10px", color: COLORS.green, marginTop: 5, fontWeight: 700 }}>El KR quedara marcado como superado.</p>}
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 800, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Nota de avance</label>
+            <textarea rows={3} value={comentario} onChange={(e) => { setComentario(e.target.value); setError(""); }} placeholder="Describe la fuente del nuevo valor, corte o evidencia registrada." style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px", resize: "vertical", outline: "none", fontFamily: "Montserrat, sans-serif" }} />
+          </div>
+          <div style={{ padding: "10px 12px", backgroundColor: "#F9FAFB", borderRadius: 8, border: "1px solid #E5E7EB" }}>
+            <p style={{ fontSize: "10px", color: "#9CA3AF", fontWeight: 800, textTransform: "uppercase" }}>Registrado por</p>
+            <p style={{ fontSize: "12px", color: "#000", fontWeight: 700 }}>{userName}</p>
+          </div>
+        </div>
+        <div className="px-5 pb-5 flex justify-end gap-2">
+          <button onClick={onClose} style={{ padding: "9px 18px", border: "1.5px solid #000", borderRadius: 8, fontSize: "12px", fontWeight: 700 }}>Cancelar</button>
+          <button onClick={handleSave} className="flex items-center gap-2" style={{ padding: "9px 18px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 8, fontSize: "12px", fontWeight: 800 }}>
+            <Save size={13} /> Guardar avance
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function KRCard({
-  kr, okrId, okrObjetivo, proyectos, onSave, onDelete, onVincular, onUnlink, canEdit,
+  kr, okrId, okrObjetivo, proyectos, registros, onSave, onDelete, onVincular, onUnlink, onRegistrarAvance, canEdit, userName,
 }: {
   kr: KeyResult;
   okrId: string;
   okrObjetivo: string;
   proyectos: Proyecto[];
+  registros: RegistroAvanceKR[];
   onSave: (krId: string, changes: Partial<KeyResult>) => void;
   onDelete: (krId: string) => void;
   onVincular: (krId: string, proyectoId: string, impacto?: ImpactoIA) => void;
   onUnlink: (krId: string, proyectoId: string) => void;
+  onRegistrarAvance: (krId: string, valorActual: number, comentario: string) => void;
   canEdit: boolean;
+  userName: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showVincular, setShowVincular] = useState(false);
+  const [showRegistrarAvance, setShowRegistrarAvance] = useState(false);
   const [impactoExpanded, setImpactoExpanded] = useState(false);
   const [editForm, setEditForm] = useState<Partial<KeyResult>>({});
   const [localImpacto, setLocalImpacto] = useState<ImpactoIA | undefined>(kr.impactoObjetivo);
@@ -421,6 +503,13 @@ function KRCard({
           {/* Action buttons (view mode) */}
           {canEdit && !editing && (
             <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => setShowRegistrarAvance(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                style={{ border: `1px solid ${COLORS.blue}`, fontSize: "11px", fontWeight: 700, color: COLORS.blue }}
+              >
+                <Plus size={12} /> Avance
+              </button>
               <button
                 onClick={startEdit}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
@@ -531,6 +620,38 @@ function KRCard({
           <div className="space-y-3">
             <KRProgress kr={kr} />
 
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#FAFAFA", border: "1px solid #E5E7EB" }}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Clock size={12} color="#9CA3AF" />
+                  <span style={{ fontSize: "10px", fontWeight: 800, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Historial de valores
+                  </span>
+                </div>
+                <span style={{ fontSize: "10px", color: "#9CA3AF" }}>{registros.length} registros</span>
+              </div>
+              {registros.length === 0 ? (
+                <p style={{ fontSize: "11px", color: "#9CA3AF" }}>Aun no se han registrado avances periodicos para este KR.</p>
+              ) : (
+                <div className="space-y-2">
+                  {registros.slice().sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()).slice(0, 3).map((r) => (
+                    <div key={r.id} className="flex items-start justify-between gap-3">
+                      <div>
+                        <p style={{ fontSize: "11px", fontWeight: 700, color: "#000" }}>
+                          {r.valorAnterior} → {r.valorActual} {kr.unidad}
+                        </p>
+                        <p style={{ fontSize: "10px", color: "#717182", marginTop: 2 }}>{r.comentario}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p style={{ fontSize: "10px", color: "#9CA3AF" }}>{r.fecha}</p>
+                        <p style={{ fontSize: "9px", color: "#9CA3AF" }}>{r.registradoPor}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Impacto en objetivo (collapsible) */}
             <button
               onClick={() => setImpactoExpanded(!impactoExpanded)}
@@ -640,6 +761,17 @@ function KRCard({
             />
           )}
         </div>
+      )}
+      {showRegistrarAvance && (
+        <RegistrarAvanceKRModal
+          kr={kr}
+          userName={userName}
+          onClose={() => setShowRegistrarAvance(false)}
+          onSave={(valorActual, comentario) => {
+            onRegistrarAvance(kr.id, valorActual, comentario);
+            setShowRegistrarAvance(false);
+          }}
+        />
       )}
     </div>
   );
@@ -814,7 +946,7 @@ export function GestionKRs() {
   const { okrId } = useParams<{ okrId: string }>();
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const { okrs, proyectos, apuestas, metas, updateKR, removeKR, addKR, setProyectoKR, unlinkProjectFromKR } = useData();
+  const { okrs, proyectos, apuestas, metas, updateKR, removeKR, addKR, setProyectoKR, unlinkProjectFromKR, registrarAvanceKR, getRegistrosByKR } = useData();
 
   const okr = okrs.find(o => o.id === okrId);
   const canEdit = usuario?.rol === "director" || usuario?.rol === "administrador" || usuario?.rol === "jefe";
@@ -857,6 +989,9 @@ export function GestionKRs() {
 
   const handleUnlink = (krId: string, proyectoId: string) =>
     unlinkProjectFromKR(proyectoId, krId);
+
+  const handleRegistrarAvance = (krId: string, valorActual: number, comentario: string) =>
+    registrarAvanceKR(okr.id, krId, valorActual, usuario?.nombre ?? "Usuario", comentario);
 
   return (
     <div style={{ backgroundColor: "#F9FAFB", minHeight: "100%" }}>
@@ -982,11 +1117,14 @@ export function GestionKRs() {
                 okrId={okr.id}
                 okrObjetivo={okr.objetivo}
                 proyectos={proyectos}
+                registros={getRegistrosByKR(kr.id)}
                 onSave={handleSaveKR}
                 onDelete={handleDeleteKR}
                 onVincular={handleVincular}
                 onUnlink={handleUnlink}
+                onRegistrarAvance={handleRegistrarAvance}
                 canEdit={canEdit}
+                userName={usuario?.nombre ?? "Usuario"}
               />
             ))}
 

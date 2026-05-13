@@ -41,7 +41,7 @@ export function NuevoProyecto() {
     (u) => (u.rol === "tutor" || u.rol === "jefe") && u.estado === "activo"
   );
 
-  const okrsDisponibles = okrs.filter((o) => o.estado === "activo" || o.estado === "borrador");
+  const okrsDisponibles = okrs.filter((o) => o.estado === "activo");
 
   const [form, setForm] = useState({
     nombre: "",
@@ -56,6 +56,7 @@ export function NuevoProyecto() {
     contribucionTipo: "directa" as "directa" | "indirecta" | "soporte",
     tutores: [] as string[],
     krId: "",
+    okrIds: [] as string[],
   });
   const [errors, setErrors] = useState<Errors>({});
   const [saved, setSaved] = useState(false);
@@ -65,6 +66,16 @@ export function NuevoProyecto() {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
     if (field === "krId") setImpactoKR(undefined);
+  };
+
+  const toggleOKR = (okrId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      okrIds: prev.okrIds.includes(okrId)
+        ? prev.okrIds.filter((id) => id !== okrId)
+        : [...prev.okrIds, okrId],
+    }));
+    setErrors((prev) => ({ ...prev, okrIds: "" }));
   };
 
   const toggleTutor = (nombre: string) => {
@@ -86,13 +97,14 @@ export function NuevoProyecto() {
     if (form.fechaInicio && form.fechaCierre && form.fechaCierre <= form.fechaInicio)
       e.fechaCierre = "La fecha de cierre debe ser posterior al inicio.";
     if (form.tutores.length === 0) e.tutores = "Selecciona al menos un tutor.";
-    if (!form.krId && form.estado !== "borrador") e.krId = "Selecciona el KR al que aporta este proyecto.";
+    if (form.estado !== "borrador" && form.okrIds.length === 0) e.okrIds = "Selecciona al menos un OKR activo.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSubmit = () => {
     if (!validate()) return;
+    const okrPrincipal = okrs.find((o) => o.id === form.okrIds[0]);
     addProyecto({
       nombre: form.nombre.trim(),
       descripcion: form.descripcion.trim(),
@@ -105,7 +117,8 @@ export function NuevoProyecto() {
       estado: form.estado,
       contribucionTipo: form.contribucionTipo,
       tutores: form.tutores,
-      krId: form.krId,
+      krId: form.krId || okrPrincipal?.keyResults[0]?.id || "",
+      okrIds: form.okrIds,
       impactoKR,
     });
     setSaved(true);
@@ -270,32 +283,42 @@ export function NuevoProyecto() {
           {errors.tutores && <p style={{ fontSize: "11px", color: COLORS.orange }}>{errors.tutores}</p>}
         </div>
 
-        {/* Sección 3: KR vinculado (único) */}
+        {/* Sección 3: OKRs vinculados */}
         <div className="bg-white rounded-xl p-6 space-y-4" style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
           <h2 style={{ fontSize: "13px", fontWeight: 800, color: "#000", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #5454E9", paddingBottom: 8 }}>
-            Resultado Clave (KR) al que aporta
+            OKRs vinculados
           </h2>
           <p style={{ fontSize: "11px", color: "#717182" }}>
-            Cada proyecto aporta a <strong>UN solo KR</strong>. Selecciona el KR específico (no el Objetivo). Si está en borrador puedes asignarlo después.
+            Vincula el proyecto a uno o mas OKRs activos. Puedes marcar un KR principal para mantener trazabilidad detallada.
           </p>
 
           {okrsDisponibles.length === 0 ? (
             <p style={{ fontSize: "12px", color: "#9CA3AF", fontStyle: "italic" }}>No hay objetivos activos disponibles.</p>
           ) : (
             <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-              {okrsDisponibles.map((o) => (
-                <div key={o.id} className="rounded-lg" style={{ border: "1px solid #E5E7EB", backgroundColor: "#FAFAFA" }}>
-                  <div className="px-3 py-2" style={{ borderBottom: "1px solid #E5E7EB" }}>
+              {okrsDisponibles.map((o) => {
+                const okrSelected = form.okrIds.includes(o.id);
+                return (
+                <div key={o.id} className="rounded-lg" style={{ border: `1.5px solid ${okrSelected ? COLORS.blue : "#E5E7EB"}`, backgroundColor: okrSelected ? "#EEF2FF" : "#FAFAFA" }}>
+                  <div className="px-3 py-2 flex items-start gap-3" style={{ borderBottom: "1px solid #E5E7EB" }}>
+                    <button type="button" onClick={() => toggleOKR(o.id)} className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: okrSelected ? COLORS.blue : "#fff", border: `2px solid ${okrSelected ? COLORS.blue : "#D1D5DB"}` }}>
+                      {okrSelected && <Check size={12} color="#fff" />}
+                    </button>
+                    <div className="flex-1 min-w-0">
                     <p style={{ fontSize: "11px", fontWeight: 800, color: COLORS.blue, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                       {o.id} · {o.departamento} · {o.periodo}
                     </p>
-                    <p style={{ fontSize: "12px", fontWeight: 600, color: "#000", marginTop: 2 }}>{o.objetivo}</p>
+                      <p style={{ fontSize: "12px", fontWeight: 600, color: "#000", marginTop: 2 }}>{o.objetivo}</p>
+                    </div>
                   </div>
                   <div className="p-2 space-y-1">
                     {o.keyResults.map((kr, i) => {
                       const sel = form.krId === kr.id;
                       return (
-                        <button key={kr.id} type="button" onClick={() => set("krId", kr.id)}
+                        <button key={kr.id} type="button" onClick={() => {
+                          if (!form.okrIds.includes(o.id)) toggleOKR(o.id);
+                          set("krId", kr.id);
+                        }}
                           className="w-full text-left flex items-start gap-2 p-2 rounded transition-all"
                           style={{ border: `1.5px solid ${sel ? COLORS.green : "transparent"}`, backgroundColor: sel ? "#F0FDF4" : "#fff" }}>
                           <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -311,9 +334,10 @@ export function NuevoProyecto() {
                     })}
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           )}
+          {errors.okrIds && <p style={{ fontSize: "11px", color: COLORS.orange }}>{errors.okrIds}</p>}
           {errors.krId && <p style={{ fontSize: "11px", color: COLORS.orange }}>{errors.krId}</p>}
 
           {(() => {

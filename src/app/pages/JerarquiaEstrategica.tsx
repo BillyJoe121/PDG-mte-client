@@ -141,6 +141,10 @@ function ObjetivoNode({ okr, proyectos, navigate, filtroPeriodo, parent }: {
   const cumplColor = okr.cumplimiento >= 70 ? COLORS.green : okr.cumplimiento >= 40 ? COLORS.yellow : COLORS.orange;
   const impacto = parent === "apuesta" ? okr.impactoApuesta : okr.impactoMeta;
   const impactoLabel = parent === "apuesta" ? "a la Apuesta" : "a la Meta";
+  const proyectosOKR = proyectos.filter((p) =>
+    p.okrIds?.includes(okr.id) &&
+    (filtroPeriodo === "todos" || p.periodoInicio === filtroPeriodo || p.periodoFin === filtroPeriodo)
+  );
 
   return (
     <div className="ml-6 mb-2">
@@ -153,7 +157,7 @@ function ObjetivoNode({ okr, proyectos, navigate, filtroPeriodo, parent }: {
               <ImpactBadge pct={impacto?.porcentaje} origen={impacto?.origen} label={impactoLabel} />
             </div>
             <p style={{ fontSize: "12px", fontWeight: 700, color: "#000", lineHeight: 1.45 }}>{okr.objetivo}</p>
-            <p style={{ fontSize: "10px", color: "#9CA3AF" }}>{okr.departamento} · {okr.periodo} · {okr.keyResults.length} KRs</p>
+            <p style={{ fontSize: "10px", color: "#9CA3AF" }}>{okr.departamento} · {okr.periodo} · {okr.keyResults.length} KRs · {proyectosOKR.length} proyectos</p>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             <span className="px-2 py-0.5 rounded" style={{ backgroundColor: estadoColor[okr.estado] + "20", color: estadoColor[okr.estado], fontSize: "10px", fontWeight: 600, textTransform: "capitalize" }}>{okr.estado}</span>
@@ -175,6 +179,19 @@ function ObjetivoNode({ okr, proyectos, navigate, filtroPeriodo, parent }: {
               <KRNode key={kr.id} kr={kr} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} />
             ))
           )}
+          <div className="ml-10 mt-2 mb-2">
+            <p style={{ fontSize: "10px", fontWeight: 800, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+              Proyectos vinculados al OKR
+            </p>
+            {proyectosOKR.length === 0 ? (
+              <div className="px-4 py-2.5 rounded-lg flex items-center gap-2" style={{ backgroundColor: "#FEF3F2", border: "1px dashed #FCA5A5" }}>
+                <AlertCircle size={12} color={COLORS.orange} />
+                <span style={{ fontSize: "11px", color: COLORS.orange }}>Sin cobertura de proyectos</span>
+              </div>
+            ) : (
+              proyectosOKR.map((p) => <ProyectoNode key={`${okr.id}-${p.id}`} proyecto={p} navigate={navigate} />)
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -182,12 +199,15 @@ function ObjetivoNode({ okr, proyectos, navigate, filtroPeriodo, parent }: {
 }
 
 // ── Nodo Apuesta ──────────────────────────────────────────────────────────────
-function ApuestaNode({ apuesta, okrs, proyectos, navigate, filtroPeriodo }: {
-  apuesta: ApuestaEstrategica; okrs: OKR[]; proyectos: Proyecto[];
+function ApuestaNode({ apuesta, metas, okrs, proyectos, navigate, filtroPeriodo }: {
+  apuesta: ApuestaEstrategica; metas: MetaInstitucional[]; okrs: OKR[]; proyectos: Proyecto[];
   navigate: (path: string) => void; filtroPeriodo: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const okrsApuesta = okrs.filter((o) => o.apuestaId === apuesta.id && (filtroPeriodo === "todos" || o.periodo === filtroPeriodo));
+  const metasApuesta = metas.filter((m) =>
+    m.apuestaIds?.includes(apuesta.id) || okrsApuesta.some((o) => o.metaId === m.id)
+  );
   const cumplColor = apuesta.cumplimiento >= 70 ? COLORS.green : apuesta.cumplimiento >= 40 ? "#B8C500" : COLORS.orange;
 
   return (
@@ -210,20 +230,20 @@ function ApuestaNode({ apuesta, okrs, proyectos, navigate, filtroPeriodo }: {
               </div>
               <span style={{ fontSize: "13px", fontWeight: 800, color: cumplColor }}>{apuesta.cumplimiento}%</span>
             </div>
-            <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)" }}>{okrsApuesta.length} objetivos</span>
+            <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)" }}>{metasApuesta.length} metas Â· {okrsApuesta.length} objetivos</span>
             {expanded ? <ChevronDown size={15} color="rgba(255,255,255,0.6)" /> : <ChevronRight size={15} color="rgba(255,255,255,0.6)" />}
           </div>
         </div>
       </div>
       {expanded && (
         <div className="mt-1">
-          {okrsApuesta.length === 0 ? (
+          {metasApuesta.length === 0 ? (
             <div className="ml-6 mb-2 px-4 py-2.5 rounded-lg flex items-center gap-2" style={{ backgroundColor: "#F9FAFB", border: "1px dashed #E5E7EB" }}>
               <Target size={12} color="#D1D5DB" />
-              <span style={{ fontSize: "11px", color: "#9CA3AF" }}>Sin Objetivos asociados</span>
+              <span style={{ fontSize: "11px", color: "#9CA3AF" }}>Sin Metas asociadas</span>
             </div>
           ) : (
-            okrsApuesta.map((o) => <ObjetivoNode key={o.id} okr={o} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} parent="apuesta" />)
+            metasApuesta.map((m) => <MetaNode key={m.id} meta={m} okrs={okrsApuesta} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} apuestaId={apuesta.id} />)
           )}
         </div>
       )}
@@ -232,12 +252,16 @@ function ApuestaNode({ apuesta, okrs, proyectos, navigate, filtroPeriodo }: {
 }
 
 // ── Nodo Meta ─────────────────────────────────────────────────────────────────
-function MetaNode({ meta, okrs, proyectos, navigate, filtroPeriodo }: {
+function MetaNode({ meta, okrs, proyectos, navigate, filtroPeriodo, apuestaId }: {
   meta: MetaInstitucional; okrs: OKR[]; proyectos: Proyecto[];
-  navigate: (path: string) => void; filtroPeriodo: string;
+  navigate: (path: string) => void; filtroPeriodo: string; apuestaId?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const okrsMeta = okrs.filter((o) => o.metaId === meta.id && (filtroPeriodo === "todos" || o.periodo === filtroPeriodo));
+  const okrsMeta = okrs.filter((o) =>
+    o.metaId === meta.id &&
+    (!apuestaId || o.apuestaId === apuestaId) &&
+    (filtroPeriodo === "todos" || o.periodo === filtroPeriodo)
+  );
 
   return (
     <div className="mb-4">
@@ -249,7 +273,10 @@ function MetaNode({ meta, okrs, proyectos, navigate, filtroPeriodo }: {
               <span style={{ fontSize: "9px", color: "#7D8900", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Meta Institucional</span>
             </div>
             <p style={{ fontSize: "14px", fontWeight: 800, color: "#000" }}>{meta.nombre}</p>
-            <p style={{ fontSize: "11px", color: "#7D8900" }}>{meta.areaInstitucional}</p>
+            <p style={{ fontSize: "11px", color: "#7D8900" }}>
+              {meta.areaInstitucional}
+              {meta.metricaReferencia ? ` Â· ${meta.metricaReferencia}: ${meta.valorEsperado ?? "-"} ${meta.unidadMedida ?? ""}` : ""}
+            </p>
           </div>
           <div className="flex items-center gap-4 flex-shrink-0">
             <span className="px-2 py-0.5 rounded" style={{ backgroundColor: meta.estado === "activa" ? COLORS.green + "20" : "#E5E7EB", color: meta.estado === "activa" ? COLORS.green : "#9CA3AF", fontSize: "10px", fontWeight: 600, textTransform: "capitalize" }}>{meta.estado}</span>
@@ -298,7 +325,8 @@ export function JerarquiaEstrategica() {
 
   const okrMatchQ = (o: OKR) =>
     !q || o.objetivo.toLowerCase().includes(q) || o.departamento.toLowerCase().includes(q) ||
-    o.keyResults.some(krMatchQ);
+    o.keyResults.some(krMatchQ) ||
+    proyectos.filter((p) => p.okrIds?.includes(o.id)).some(proyectoMatchQ);
 
   const apuestaMatchQ = (a: ApuestaEstrategica) =>
     !q || a.nombre.toLowerCase().includes(q) || a.descripcion.toLowerCase().includes(q) ||
@@ -319,7 +347,7 @@ export function JerarquiaEstrategica() {
   const PERIODOS_FILTER = ["todos", "2024-II", "2025-I", "2025-II", "2026-I"];
 
   const showApuestas = vistaFiltro === "todos" || vistaFiltro === "apuestas";
-  const showMetas = vistaFiltro === "todos" || vistaFiltro === "metas";
+  const showMetas = vistaFiltro === "metas";
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -448,7 +476,7 @@ export function JerarquiaEstrategica() {
               </div>
             )}
             {filteredApuestas.map((a) => (
-              <ApuestaNode key={a.id} apuesta={a} okrs={okrs} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} />
+              <ApuestaNode key={a.id} apuesta={a} metas={metas} okrs={okrs} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} />
             ))}
           </div>
         )}

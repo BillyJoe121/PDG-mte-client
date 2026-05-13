@@ -6,9 +6,9 @@ import {
   Settings, Archive, XCircle, CheckSquare, Link2, Sparkles,
 } from "lucide-react";
 import {
-  okrs, DEPARTAMENTOS,
+  DEPARTAMENTOS, PERIODOS,
   getTipoProyectoLabel, diasSinRegistro,
-  Proyecto, EstadoProyecto, TipoProyecto, ImpactoIA,
+  Proyecto, EstadoProyecto, TipoProyecto, ImpactoIA, OKR,
 } from "../data/mockData";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
@@ -219,7 +219,7 @@ function VincularKRModal({ proyecto, onClose }: { proyecto: Proyecto; onClose: (
 }
 
 // ── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ proyecto, onClose }: { proyecto: Proyecto; onClose: () => void }) {
+function DetailModal({ proyecto, okrs, onClose }: { proyecto: Proyecto; okrs: OKR[]; onClose: () => void }) {
   // Buscar KR único y su Objetivo padre
   const allKRsWithOkr = okrs.flatMap(o => o.keyResults.map(kr => ({ ...kr, okr: o })));
   const krDetail = allKRsWithOkr.find(k => k.id === proyecto.krId);
@@ -379,11 +379,14 @@ function DetailModal({ proyecto, onClose }: { proyecto: Proyecto; onClose: () =>
 export function Proyectos() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const { proyectos, updateProyecto } = useData();
+  const { proyectos, okrs, updateProyecto } = useData();
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState("todos");
   const [filterTipo, setFilterTipo] = useState("todos");
   const [filterDepto, setFilterDepto] = useState("todos");
+  const [filterTutor, setFilterTutor] = useState("todos");
+  const [filterOKR, setFilterOKR] = useState("todos");
+  const [filterPeriodo, setFilterPeriodo] = useState("todos");
   const [sortField, setSortField] = useState<SortField>("avanceGlobal");
   const [sortAsc, setSortAsc] = useState(true);
   const [selected, setSelected] = useState<Proyecto | null>(null);
@@ -392,6 +395,15 @@ export function Proyectos() {
 
   const canCreate = usuario?.rol === "director" || usuario?.rol === "jefe" || usuario?.rol === "administrador";
   const canManage = usuario?.rol === "director" || usuario?.rol === "jefe" || usuario?.rol === "administrador";
+  const tutoresOptions = Array.from(new Set(proyectos.flatMap(p => p.tutores))).sort();
+  const okrsOptions = okrs.filter(o => o.estado === "activo" || o.estado === "completado" || o.estado === "borrador");
+
+  const getOKRsProyecto = (p: Proyecto) => {
+    const ids = new Set(p.okrIds);
+    const okrFromKR = okrs.find(o => o.keyResults.some(kr => kr.id === p.krId));
+    if (okrFromKR) ids.add(okrFromKR.id);
+    return okrs.filter(o => ids.has(o.id));
+  };
 
   const filtered = proyectos
     .filter((p) => {
@@ -402,11 +414,15 @@ export function Proyectos() {
     .filter((p) => filterEstado === "todos" || p.estado === filterEstado)
     .filter((p) => filterTipo === "todos" || p.tipo === filterTipo)
     .filter((p) => filterDepto === "todos" || p.departamento === filterDepto)
+    .filter((p) => filterTutor === "todos" || p.tutores.includes(filterTutor))
+    .filter((p) => filterOKR === "todos" || getOKRsProyecto(p).some(o => o.id === filterOKR))
+    .filter((p) => filterPeriodo === "todos" || p.periodoInicio === filterPeriodo || p.periodoFin === filterPeriodo)
     .filter((p) =>
       !search ||
       p.nombre.toLowerCase().includes(search.toLowerCase()) ||
       p.tutores.some((t) => t.toLowerCase().includes(search.toLowerCase())) ||
-      p.departamento.toLowerCase().includes(search.toLowerCase())
+      p.departamento.toLowerCase().includes(search.toLowerCase()) ||
+      getOKRsProyecto(p).some(o => o.objetivo.toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) => {
       let va: string | number = a[sortField] as string | number;
@@ -431,6 +447,7 @@ export function Proyectos() {
     activos: filtered.filter((p) => p.estado === "activo").length,
     finalizados: filtered.filter((p) => p.estado === "finalizado").length,
     enRiesgo: filtered.filter((p) => p.estado === "activo" && diasSinRegistro(p.ultimoRegistro) > 28).length,
+    okrsCubiertos: new Set(filtered.flatMap(p => getOKRsProyecto(p).map(o => o.id))).size,
   };
 
   return (
@@ -441,6 +458,7 @@ export function Proyectos() {
           { label: "Activos", value: stats.activos, color: COLORS.green },
           { label: "Finalizados", value: stats.finalizados, color: COLORS.blue },
           { label: "En riesgo", value: stats.enRiesgo, color: COLORS.orange },
+          { label: "OKRs cubiertos", value: stats.okrsCubiertos, color: "#7C3AED" },
           { label: "Total filtrado", value: filtered.length, color: "#000" },
         ].map((s) => (
           <div key={s.label} className="flex items-center gap-2">
@@ -475,6 +493,30 @@ export function Proyectos() {
             {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         ))}
+        <select
+          value={filterTutor}
+          onChange={(e) => setFilterTutor(e.target.value)}
+          style={{ border: "1.5px solid #000", borderRadius: 6, padding: "6px 10px", fontSize: "12px", fontWeight: 600, backgroundColor: "#fff" }}
+        >
+          <option value="todos">Todos los tutores</option>
+          {tutoresOptions.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select
+          value={filterOKR}
+          onChange={(e) => setFilterOKR(e.target.value)}
+          style={{ border: "1.5px solid #000", borderRadius: 6, padding: "6px 10px", fontSize: "12px", fontWeight: 600, backgroundColor: "#fff", maxWidth: 220 }}
+        >
+          <option value="todos">Todos los OKRs</option>
+          {okrsOptions.map((o) => <option key={o.id} value={o.id}>{o.id} · {o.objetivo}</option>)}
+        </select>
+        <select
+          value={filterPeriodo}
+          onChange={(e) => setFilterPeriodo(e.target.value)}
+          style={{ border: "1.5px solid #000", borderRadius: 6, padding: "6px 10px", fontSize: "12px", fontWeight: 600, backgroundColor: "#fff" }}
+        >
+          <option value="todos">Todos los periodos</option>
+          {PERIODOS.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
         {(usuario?.rol === "director" || usuario?.rol === "administrador") && (
           <select
             value={filterDepto}
@@ -512,7 +554,7 @@ export function Proyectos() {
                   { label: "Departamento", field: null },
                   { label: "Tutor(es)", field: null },
                   { label: "Estado", field: "estado" as SortField },
-                  { label: "KR", field: null },
+                  { label: "OKRs / KR", field: null },
                   { label: "Avance", field: "avanceGlobal" as SortField },
                   { label: "Último registro", field: "ultimoRegistro" as SortField },
                   { label: "", field: null },
@@ -544,6 +586,7 @@ export function Proyectos() {
               {filtered.map((p, i) => {
                 const dias = diasSinRegistro(p.ultimoRegistro);
                 const enRiesgo = dias > 28 && p.estado === "activo";
+                const okrsProyecto = getOKRsProyecto(p);
 
                 return (
                   <tr
@@ -579,15 +622,30 @@ export function Proyectos() {
                     <td style={{ padding: "12px 14px" }}>
                       <EstadoBadge estado={p.estado} />
                     </td>
-                    {/* KR vinculado */}
+                    {/* OKRs y KR vinculados */}
                     <td style={{ padding: "12px 14px" }}>
-                      {!p.krId ? (
-                        <span style={{ fontSize: "10px", color: COLORS.orange }}>Sin KR</span>
+                      {okrsProyecto.length === 0 ? (
+                        <span style={{ fontSize: "10px", color: COLORS.orange }}>Sin OKR</span>
                       ) : (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="px-1.5 py-0.5 rounded" style={{ backgroundColor: "#EEF2FF", color: "#5454E9", fontSize: "9px", fontWeight: 700, width: "fit-content" }}>
-                            {p.krId}
-                          </span>
+                        <div className="flex flex-col gap-1" style={{ minWidth: 150 }}>
+                          {okrsProyecto.slice(0, 2).map((okr) => (
+                            <div key={okr.id} className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.5 rounded" style={{ backgroundColor: "#EEF2FF", color: "#5454E9", fontSize: "9px", fontWeight: 800, width: "fit-content" }}>
+                                {okr.id}
+                              </span>
+                              <span style={{ fontSize: "9px", color: "#717182", maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {okr.objetivo}
+                              </span>
+                            </div>
+                          ))}
+                          {okrsProyecto.length > 2 && (
+                            <span style={{ fontSize: "9px", color: "#9CA3AF", fontWeight: 700 }}>+{okrsProyecto.length - 2} OKR(s)</span>
+                          )}
+                          {p.krId && (
+                            <span style={{ fontSize: "9px", color: "#374151", fontWeight: 700 }}>
+                              KR principal: {p.krId}
+                            </span>
+                          )}
                           {p.impactoKR && (
                             <span style={{ fontSize: "9px", color: COLORS.green, fontWeight: 700 }}>
                               IA: {p.impactoKR.porcentaje}%
@@ -704,7 +762,7 @@ export function Proyectos() {
       </div>
 
       {/* Detail modal */}
-      {selected && <DetailModal proyecto={selected} onClose={() => setSelected(null)} />}
+      {selected && <DetailModal proyecto={selected} okrs={okrs} onClose={() => setSelected(null)} />}
 
       {/* Vincular KR modal */}
       {vincularKRProyecto && (

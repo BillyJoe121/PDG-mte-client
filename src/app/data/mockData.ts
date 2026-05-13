@@ -23,6 +23,11 @@ export interface MetaInstitucional {
   descripcion: string;
   estado: EstadoApuesta;
   areaInstitucional: string;
+  metricaReferencia?: string;
+  valorEsperado?: number;
+  unidadMedida?: string;
+  periodo?: string;
+  apuestaIds?: string[];
 }
 
 // ── Impacto calculado por IA (común a Objetivo, KR y Proyecto) ───────────────
@@ -129,10 +134,25 @@ export interface RegistroAvance {
   id: string;
   proyectoId: string;
   fecha: string;
+  fechaCorte?: string;
   porcentaje: number;
   comentario: string;
+  indicadorNombre?: string;
+  valorActual?: number;
+  observaciones?: string;
   registradoPor: string;
   hitos: string[];
+}
+
+export interface RegistroAvanceKR {
+  id: string;
+  okrId: string;
+  krId: string;
+  fecha: string;
+  valorAnterior: number;
+  valorActual: number;
+  registradoPor: string;
+  comentario: string;
 }
 
 // ──────────────────────────────────────────
@@ -350,6 +370,9 @@ export interface VinculoOKRProyecto {
   proyectoId: string;
   okrId: string;
   peso: number;
+  contribucionTipo?: "directa" | "indirecta" | "soporte";
+  creadoEn?: string;
+  creadoPor?: string;
 }
 
 export const vinculosIniciales: VinculoOKRProyecto[] = proyectos.flatMap((p) => {
