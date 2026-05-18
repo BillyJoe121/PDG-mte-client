@@ -6,11 +6,15 @@ import { getLabelRol } from "../data/mockData";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Dashboard",
+  "/dashboards": "Dashboards Estrategicos",
   "/jerarquia": "Jerarquía Estratégica",
   "/objetivos": "Objetivos a Corto Plazo",
   "/okrs": "Gestión de OKRs",
   "/proyectos": "Proyectos e Iniciativas",
   "/reportes": "Reportes e Impacto",
+  "/consistencia": "Consistencia Estrategica",
+  "/catalogos": "Catalogos",
+  "/auditoria": "Auditoria",
   "/usuarios": "Gestión de Usuarios",
 };
 

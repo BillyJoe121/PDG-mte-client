@@ -1,521 +1,340 @@
-import { useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  ChevronRight, ChevronDown, Plus, Flag, BookOpen,
-  Target, FolderKanban, AlertCircle, CheckCircle2, Search, X,
-  Sparkles, KeyRound,
-} from "lucide-react";
-import { ApuestaEstrategica, MetaInstitucional, OKR, KeyResult, Proyecto } from "../data/mockData";
+import { BookOpen, ChevronDown, ChevronRight, Flag, FolderKanban, KeyRound, Loader2, Plus, RefreshCw, Target } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
-import { useData } from "../context/DataContext";
+import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
+import {
+  goalsApi,
+  hierarchyApi,
+  strategicBetsApi,
+  type ExecutionSummary,
+  type Goal,
+  type StrategicBet,
+  type StrategicHierarchyNode,
+} from "../services/strategicApi";
 
 const COLORS = {
   blue: "#5454E9",
   yellow: "#E4EB60",
   green: "#4CB979",
   orange: "#E9683B",
-  black: "#000000",
+  gray: "#717182",
 };
 
-function ProgressBar({ value, color = COLORS.blue }: { value: number; color?: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, backgroundColor: "#F3F4F6", minWidth: 80 }}>
-        <div style={{ width: `${Math.min(value, 100)}%`, height: "100%", backgroundColor: color, borderRadius: 99 }} />
-      </div>
-      <span style={{ fontSize: "11px", fontWeight: 700, color: color, minWidth: 34 }}>{value}%</span>
-    </div>
-  );
-}
+type View = "arbol" | "apuestas" | "metas";
 
-function ImpactBadge({ pct, origen, label }: { pct?: number; origen?: "ia" | "manual"; label: string }) {
-  if (pct == null) return null;
-  const isIA = origen === "ia";
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded"
-      style={{
-        backgroundColor: isIA ? "#EEF2FF" : "#F3F4F6",
-        color: isIA ? COLORS.blue : "#374151",
-        fontSize: "9px",
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-      }}
-      title={`${label}: ${pct}% (${isIA ? "IA" : "Manual"})`}
-    >
-      {isIA && <Sparkles size={9} />}
-      {pct}% {label}
-    </span>
-  );
-}
-
-// ── Nodo Proyecto ─────────────────────────────────────────────────────────────
-function ProyectoNode({ proyecto, navigate }: { proyecto: Proyecto; navigate: (path: string) => void }) {
-  const estadoColor: Record<string, string> = {
-    activo: COLORS.green, finalizado: COLORS.blue, borrador: "#9CA3AF", suspendido: COLORS.orange, archivado: "#9CA3AF",
-  };
-  return (
-    <div
-      className="ml-12 mb-2 rounded-lg flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:shadow-sm transition-shadow"
-      style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}
-      onClick={() => navigate(`/proyectos/${proyecto.id}`)}
-    >
-      <FolderKanban size={14} color={estadoColor[proyecto.estado]} />
-      <div className="flex-1 min-w-0">
-        <p style={{ fontSize: "12px", fontWeight: 600, color: "#000", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {proyecto.nombre}
-        </p>
-        <p style={{ fontSize: "10px", color: "#9CA3AF" }}>
-          {proyecto.tutores.join(", ")} · {proyecto.departamento} · {proyecto.periodoInicio}{proyecto.periodoFin !== proyecto.periodoInicio ? ` – ${proyecto.periodoFin}` : ""}
-        </p>
-      </div>
-      <ImpactBadge pct={proyecto.impactoKR?.porcentaje} origen={proyecto.impactoKR?.origen} label="al KR" />
-      <span className="px-2 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: estadoColor[proyecto.estado] + "20", color: estadoColor[proyecto.estado], fontSize: "10px", fontWeight: 600, textTransform: "capitalize" }}>
-        {proyecto.estado}
-      </span>
-      <div className="flex-shrink-0" style={{ minWidth: 100 }}>
-        <ProgressBar value={proyecto.avanceGlobal} color={estadoColor[proyecto.estado]} />
-      </div>
-    </div>
-  );
-}
-
-// ── Nodo KR ───────────────────────────────────────────────────────────────────
-function KRNode({ kr, proyectos, navigate, filtroPeriodo }: {
-  kr: KeyResult; proyectos: Proyecto[]; navigate: (path: string) => void; filtroPeriodo: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const proy = proyectos.filter((p) =>
-    p.krId === kr.id &&
-    (filtroPeriodo === "todos" || p.periodoInicio === filtroPeriodo || p.periodoFin === filtroPeriodo)
-  );
-  const sinCobertura = proy.length === 0;
-  const pct = Math.round(((kr.valorActual - kr.valorBase) / Math.max(kr.valorObjetivo - kr.valorBase, 1)) * 100);
-  const krColor = kr.estado === "superado" ? COLORS.green : kr.estado === "en_riesgo" ? COLORS.orange : COLORS.blue;
-
-  return (
-    <div className="ml-10 mb-2">
-      <div className="rounded-lg overflow-hidden" style={{ border: `1.5px solid ${sinCobertura ? COLORS.orange + "60" : "#E5E7EB"}`, backgroundColor: "#fff" }}>
-        {sinCobertura && (
-          <div className="px-4 py-1 flex items-center gap-1" style={{ backgroundColor: "#FEF3F2" }}>
-            <AlertCircle size={10} color={COLORS.orange} />
-            <span style={{ fontSize: "9px", color: COLORS.orange, fontWeight: 600 }}>Sin proyectos asociados</span>
-          </div>
-        )}
-        <div className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setExpanded(!expanded)}>
-          <KeyRound size={14} color={krColor} className="mt-0.5 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span style={{ fontSize: "9px", fontWeight: 800, color: krColor, backgroundColor: krColor + "18", padding: "1px 6px", borderRadius: 3 }}>{kr.id}</span>
-              <ImpactBadge pct={kr.impactoObjetivo?.porcentaje} origen={kr.impactoObjetivo?.origen} label="al Objetivo" />
-              {kr.estado === "superado" && <CheckCircle2 size={11} color={COLORS.green} />}
-            </div>
-            <p style={{ fontSize: "12px", fontWeight: 600, color: "#000", lineHeight: 1.45 }}>{kr.enunciado}</p>
-            <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 2 }}>
-              {kr.metrica} · {kr.valorActual} / {kr.valorObjetivo} {kr.unidad} · {proy.length} proyectos
-            </p>
-          </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div style={{ minWidth: 110 }}><ProgressBar value={Math.min(pct, 100)} color={krColor} /></div>
-            {expanded ? <ChevronDown size={14} color="#9CA3AF" /> : <ChevronRight size={14} color="#9CA3AF" />}
-          </div>
-        </div>
-      </div>
-
-      {expanded && proy.length > 0 && (
-        <div className="mt-1">
-          {proy.map((p) => <ProyectoNode key={p.id} proyecto={p} navigate={navigate} />)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Nodo Objetivo (OKR) ───────────────────────────────────────────────────────
-function ObjetivoNode({ okr, proyectos, navigate, filtroPeriodo, parent }: {
-  okr: OKR; proyectos: Proyecto[]; navigate: (path: string) => void; filtroPeriodo: string;
-  parent: "apuesta" | "meta";
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const estadoColor: Record<string, string> = { activo: COLORS.green, completado: COLORS.blue, borrador: "#9CA3AF", cancelado: COLORS.orange };
-  const cumplColor = okr.cumplimiento >= 70 ? COLORS.green : okr.cumplimiento >= 40 ? COLORS.yellow : COLORS.orange;
-  const impacto = parent === "apuesta" ? okr.impactoApuesta : okr.impactoMeta;
-  const impactoLabel = parent === "apuesta" ? "a la Apuesta" : "a la Meta";
-  const proyectosOKR = proyectos.filter((p) =>
-    p.okrIds?.includes(okr.id) &&
-    (filtroPeriodo === "todos" || p.periodoInicio === filtroPeriodo || p.periodoFin === filtroPeriodo)
-  );
-
-  return (
-    <div className="ml-6 mb-2">
-      <div className="rounded-lg overflow-hidden" style={{ border: "1.5px solid #E5E7EB", backgroundColor: "#fff" }}>
-        <div className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setExpanded(!expanded)}>
-          <Target size={15} color={COLORS.blue} className="mt-0.5 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span style={{ fontSize: "9px", fontWeight: 800, color: COLORS.blue, backgroundColor: "#EEF2FF", padding: "1px 6px", borderRadius: 3 }}>{okr.id}</span>
-              <ImpactBadge pct={impacto?.porcentaje} origen={impacto?.origen} label={impactoLabel} />
-            </div>
-            <p style={{ fontSize: "12px", fontWeight: 700, color: "#000", lineHeight: 1.45 }}>{okr.objetivo}</p>
-            <p style={{ fontSize: "10px", color: "#9CA3AF" }}>{okr.departamento} · {okr.periodo} · {okr.keyResults.length} KRs · {proyectosOKR.length} proyectos</p>
-          </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <span className="px-2 py-0.5 rounded" style={{ backgroundColor: estadoColor[okr.estado] + "20", color: estadoColor[okr.estado], fontSize: "10px", fontWeight: 600, textTransform: "capitalize" }}>{okr.estado}</span>
-            <div style={{ minWidth: 110 }}><ProgressBar value={okr.cumplimiento} color={cumplColor} /></div>
-            {expanded ? <ChevronDown size={14} color="#9CA3AF" /> : <ChevronRight size={14} color="#9CA3AF" />}
-          </div>
-        </div>
-      </div>
-
-      {expanded && (
-        <div className="mt-1">
-          {okr.keyResults.length === 0 ? (
-            <div className="ml-10 mb-2 px-4 py-2.5 rounded-lg flex items-center gap-2" style={{ backgroundColor: "#F9FAFB", border: "1px dashed #E5E7EB" }}>
-              <KeyRound size={12} color="#D1D5DB" />
-              <span style={{ fontSize: "11px", color: "#9CA3AF" }}>Sin Key Results definidos</span>
-            </div>
-          ) : (
-            okr.keyResults.map((kr) => (
-              <KRNode key={kr.id} kr={kr} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} />
-            ))
-          )}
-          <div className="ml-10 mt-2 mb-2">
-            <p style={{ fontSize: "10px", fontWeight: 800, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
-              Proyectos vinculados al OKR
-            </p>
-            {proyectosOKR.length === 0 ? (
-              <div className="px-4 py-2.5 rounded-lg flex items-center gap-2" style={{ backgroundColor: "#FEF3F2", border: "1px dashed #FCA5A5" }}>
-                <AlertCircle size={12} color={COLORS.orange} />
-                <span style={{ fontSize: "11px", color: COLORS.orange }}>Sin cobertura de proyectos</span>
-              </div>
-            ) : (
-              proyectosOKR.map((p) => <ProyectoNode key={`${okr.id}-${p.id}`} proyecto={p} navigate={navigate} />)
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Nodo Apuesta ──────────────────────────────────────────────────────────────
-function ApuestaNode({ apuesta, metas, okrs, proyectos, navigate, filtroPeriodo }: {
-  apuesta: ApuestaEstrategica; metas: MetaInstitucional[]; okrs: OKR[]; proyectos: Proyecto[];
-  navigate: (path: string) => void; filtroPeriodo: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const okrsApuesta = okrs.filter((o) => o.apuestaId === apuesta.id && (filtroPeriodo === "todos" || o.periodo === filtroPeriodo));
-  const metasApuesta = metas.filter((m) =>
-    m.apuestaIds?.includes(apuesta.id) || okrsApuesta.some((o) => o.metaId === m.id)
-  );
-  const cumplColor = apuesta.cumplimiento >= 70 ? COLORS.green : apuesta.cumplimiento >= 40 ? "#B8C500" : COLORS.orange;
-
-  return (
-    <div className="mb-4">
-      <div className="rounded-lg overflow-hidden" style={{ border: "2px solid #000", backgroundColor: "#000" }}>
-        <div className="flex items-center gap-3 px-4 py-4 cursor-pointer hover:bg-gray-900 transition-colors" onClick={() => setExpanded(!expanded)}>
-          <Flag size={16} color="#E4EB60" />
-          <div className="flex-1 min-w-0">
-            <div className="mb-0.5">
-              <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Apuesta Estratégica</span>
-            </div>
-            <p style={{ fontSize: "14px", fontWeight: 800, color: "#fff" }}>{apuesta.nombre}</p>
-            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)" }}>{apuesta.areaInstitucional} · {apuesta.fechaInicio.slice(0, 4)} – {apuesta.fechaCierre.slice(0, 4)}</p>
-          </div>
-          <div className="flex items-center gap-4 flex-shrink-0">
-            <span className="px-2 py-0.5 rounded" style={{ backgroundColor: apuesta.estado === "activa" ? COLORS.green + "30" : "#333", color: apuesta.estado === "activa" ? COLORS.green : "#9CA3AF", fontSize: "10px", fontWeight: 600, textTransform: "capitalize" }}>{apuesta.estado}</span>
-            <div className="flex items-center gap-2">
-              <div className="rounded-full overflow-hidden" style={{ height: 6, width: 80, backgroundColor: "rgba(255,255,255,0.15)" }}>
-                <div style={{ width: `${apuesta.cumplimiento}%`, height: "100%", backgroundColor: cumplColor, borderRadius: 99 }} />
-              </div>
-              <span style={{ fontSize: "13px", fontWeight: 800, color: cumplColor }}>{apuesta.cumplimiento}%</span>
-            </div>
-            <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)" }}>{metasApuesta.length} metas Â· {okrsApuesta.length} objetivos</span>
-            {expanded ? <ChevronDown size={15} color="rgba(255,255,255,0.6)" /> : <ChevronRight size={15} color="rgba(255,255,255,0.6)" />}
-          </div>
-        </div>
-      </div>
-      {expanded && (
-        <div className="mt-1">
-          {metasApuesta.length === 0 ? (
-            <div className="ml-6 mb-2 px-4 py-2.5 rounded-lg flex items-center gap-2" style={{ backgroundColor: "#F9FAFB", border: "1px dashed #E5E7EB" }}>
-              <Target size={12} color="#D1D5DB" />
-              <span style={{ fontSize: "11px", color: "#9CA3AF" }}>Sin Metas asociadas</span>
-            </div>
-          ) : (
-            metasApuesta.map((m) => <MetaNode key={m.id} meta={m} okrs={okrsApuesta} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} apuestaId={apuesta.id} />)
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Nodo Meta ─────────────────────────────────────────────────────────────────
-function MetaNode({ meta, okrs, proyectos, navigate, filtroPeriodo, apuestaId }: {
-  meta: MetaInstitucional; okrs: OKR[]; proyectos: Proyecto[];
-  navigate: (path: string) => void; filtroPeriodo: string; apuestaId?: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const okrsMeta = okrs.filter((o) =>
-    o.metaId === meta.id &&
-    (!apuestaId || o.apuestaId === apuestaId) &&
-    (filtroPeriodo === "todos" || o.periodo === filtroPeriodo)
-  );
-
-  return (
-    <div className="mb-4">
-      <div className="rounded-lg overflow-hidden" style={{ border: "2px solid #B8C500", backgroundColor: "#FAFCE0" }}>
-        <div className="flex items-center gap-3 px-4 py-4 cursor-pointer hover:bg-yellow-50 transition-colors" onClick={() => setExpanded(!expanded)}>
-          <BookOpen size={16} color="#7D8900" />
-          <div className="flex-1 min-w-0">
-            <div className="mb-0.5">
-              <span style={{ fontSize: "9px", color: "#7D8900", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Meta Institucional</span>
-            </div>
-            <p style={{ fontSize: "14px", fontWeight: 800, color: "#000" }}>{meta.nombre}</p>
-            <p style={{ fontSize: "11px", color: "#7D8900" }}>
-              {meta.areaInstitucional}
-              {meta.metricaReferencia ? ` Â· ${meta.metricaReferencia}: ${meta.valorEsperado ?? "-"} ${meta.unidadMedida ?? ""}` : ""}
-            </p>
-          </div>
-          <div className="flex items-center gap-4 flex-shrink-0">
-            <span className="px-2 py-0.5 rounded" style={{ backgroundColor: meta.estado === "activa" ? COLORS.green + "20" : "#E5E7EB", color: meta.estado === "activa" ? COLORS.green : "#9CA3AF", fontSize: "10px", fontWeight: 600, textTransform: "capitalize" }}>{meta.estado}</span>
-            <span style={{ fontSize: "10px", color: "#7D8900" }}>{okrsMeta.length} objetivos</span>
-            {expanded ? <ChevronDown size={15} color="#7D8900" /> : <ChevronRight size={15} color="#7D8900" />}
-          </div>
-        </div>
-      </div>
-      {expanded && (
-        <div className="mt-1">
-          {okrsMeta.length === 0 ? (
-            <div className="ml-6 mb-2 px-4 py-2.5 rounded-lg flex items-center gap-2" style={{ backgroundColor: "#F9FAFB", border: "1px dashed #E5E7EB" }}>
-              <Target size={12} color="#D1D5DB" />
-              <span style={{ fontSize: "11px", color: "#9CA3AF" }}>Sin Objetivos asociados</span>
-            </div>
-          ) : (
-            okrsMeta.map((o) => <ObjetivoNode key={o.id} okr={o} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} parent="meta" />)
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Página principal ──────────────────────────────────────────────────────────
 export function JerarquiaEstrategica() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const { apuestas, metas, okrs, proyectos } = useData();
-  const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
-  const [busqueda, setBusqueda] = useState("");
-  const [vistaFiltro, setVistaFiltro] = useState<"todos" | "apuestas" | "metas">("todos");
+  const canCreate = usuario?.rol === "director" || usuario?.rol === "administrador";
+  const [view, setView] = useState<View>("arbol");
+  const [period, setPeriod] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [tree, setTree] = useState<StrategicHierarchyNode[]>([]);
+  const [bets, setBets] = useState<StrategicBet[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
+  const [selectedBet, setSelectedBet] = useState<StrategicBet | null>(null);
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const canCreateApuesta = usuario?.rol === "director" || usuario?.rol === "administrador";
-  const canCreateMeta = canCreateApuesta;
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const selectedPeriod = period || undefined;
+      const [treeData, betList, goalList, periodList] = await Promise.all([
+        hierarchyApi.tree(selectedPeriod),
+        strategicBetsApi.list(selectedPeriod),
+        goalsApi.list(selectedPeriod),
+        academicPeriodsApi.list(),
+      ]);
+      setTree(treeData);
+      setBets(betList);
+      setGoals(goalList);
+      setPeriods(periodList);
+      setSelectedBet((prev) => prev ? betList.find((bet) => bet.id === prev.id) ?? null : null);
+      setSelectedGoal((prev) => prev ? goalList.find((goal) => goal.id === prev.id) ?? null : null);
+      setExpanded(new Set(treeData.map((node) => node.id)));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cargar la jerarquia");
+    } finally {
+      setLoading(false);
+    }
+  }, [period]);
 
-  const q = busqueda.toLowerCase().trim();
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const proyectoMatchQ = (p: Proyecto) =>
-    !q || p.nombre.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q) ||
-    p.tutores.some((t) => t.toLowerCase().includes(q));
+  const totalObjectives = useMemo(() => countNodes(tree, "OBJECTIVE"), [tree]);
+  const totalKrs = useMemo(() => countNodes(tree, "KEY_RESULT"), [tree]);
+  const totalProjects = useMemo(() => countNodes(tree, "PROJECT"), [tree]);
 
-  const krMatchQ = (kr: KeyResult) =>
-    !q || kr.enunciado.toLowerCase().includes(q) || kr.metrica.toLowerCase().includes(q) ||
-    proyectos.filter((p) => p.krId === kr.id).some(proyectoMatchQ);
-
-  const okrMatchQ = (o: OKR) =>
-    !q || o.objetivo.toLowerCase().includes(q) || o.departamento.toLowerCase().includes(q) ||
-    o.keyResults.some(krMatchQ) ||
-    proyectos.filter((p) => p.okrIds?.includes(o.id)).some(proyectoMatchQ);
-
-  const apuestaMatchQ = (a: ApuestaEstrategica) =>
-    !q || a.nombre.toLowerCase().includes(q) || a.descripcion.toLowerCase().includes(q) ||
-    okrs.filter((o) => o.apuestaId === a.id).some(okrMatchQ);
-
-  const metaMatchQ = (m: MetaInstitucional) =>
-    !q || m.nombre.toLowerCase().includes(q) || m.descripcion.toLowerCase().includes(q) ||
-    okrs.filter((o) => o.metaId === m.id).some(okrMatchQ);
-
-  const filteredApuestas = useMemo(() => apuestas.filter(apuestaMatchQ), [apuestas, okrs, proyectos, q]);
-  const filteredMetas = useMemo(() => metas.filter(metaMatchQ), [metas, okrs, proyectos, q]);
-
-  const totalOKRsActivos = okrs.filter(
-    (o) => o.estado === "activo" && (filtroPeriodo === "todos" || o.periodo === filtroPeriodo)
-  ).length;
-  const totalKRs = okrs.reduce((s, o) => s + o.keyResults.length, 0);
-
-  const PERIODOS_FILTER = ["todos", "2024-II", "2025-I", "2025-II", "2026-I"];
-
-  const showApuestas = vistaFiltro === "todos" || vistaFiltro === "apuestas";
-  const showMetas = vistaFiltro === "metas";
+  const toggle = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* ── HEADER STICKY ── */}
       <div className="flex-shrink-0 px-6 pt-5 pb-4 bg-white" style={{ borderBottom: "1.5px solid #E5E7EB", zIndex: 10 }}>
-        {/* Stats + leyenda */}
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
           <div>
-            <p style={{ fontSize: "11px", color: "#9CA3AF", marginBottom: 4 }}>
-              {apuestas.length} apuestas · {metas.length} metas · {totalOKRsActivos} objetivos activos · {totalKRs} KRs · {proyectos.filter((p) => p.estado === "activo").length} proyectos activos
+            <h1 style={{ fontSize: "22px", fontWeight: 900, color: "#000" }}>Jerarquia Estrategica</h1>
+            <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 4 }}>
+              {bets.length} apuestas · {goals.length} metas · {totalObjectives} objetivos · {totalKrs} KRs · {totalProjects} proyectos
             </p>
-            <div className="flex items-center gap-3 flex-wrap">
-              {[
-                { icon: Flag, color: "#E4EB60", bg: "#000", label: "Apuesta" },
-                { icon: BookOpen, color: "#7D8900", bg: "#FAFCE0", label: "Meta" },
-                { icon: Target, color: COLORS.blue, bg: "#EEF2FF", label: "Objetivo" },
-                { icon: KeyRound, color: COLORS.blue, bg: "#EEF2FF", label: "KR" },
-                { icon: FolderKanban, color: COLORS.green, bg: "#ECFDF5", label: "Proyecto" },
-              ].map(({ icon: Icon, color, bg, label }) => (
-                <div key={label} className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: bg }}>
-                    <Icon size={10} color={color} />
-                  </div>
-                  <span style={{ fontSize: "11px", color: "#374151" }}>{label}</span>
-                </div>
-              ))}
-              <div className="flex items-center gap-1.5 ml-2">
-                <Sparkles size={11} color={COLORS.blue} />
-                <span style={{ fontSize: "11px", color: "#374151" }}>% Impacto IA</span>
-              </div>
-            </div>
           </div>
-
-          {/* Acciones */}
           <div className="flex items-center gap-2 flex-wrap">
-            {canCreateMeta && (
-              <button onClick={() => navigate("/jerarquia/meta/nueva")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ backgroundColor: "#B8C500", color: "#fff", fontSize: "12px", fontWeight: 700 }}>
-                <Plus size={13} /> Nueva Meta
-              </button>
+            {canCreate && (
+              <>
+                <button onClick={() => navigate("/jerarquia/meta/nueva")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:opacity-90" style={{ backgroundColor: "#B8C500", color: "#fff", fontSize: "12px", fontWeight: 800 }}>
+                  <Plus size={13} /> Nueva Meta
+                </button>
+                <button onClick={() => navigate("/jerarquia/apuesta/nueva")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:opacity-90" style={{ backgroundColor: "#000", color: "#fff", fontSize: "12px", fontWeight: 800 }}>
+                  <Plus size={13} /> Nueva Apuesta
+                </button>
+              </>
             )}
-            {canCreateApuesta && (
-              <button onClick={() => navigate("/jerarquia/apuesta/nueva")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ backgroundColor: "#000", color: "#fff", fontSize: "12px", fontWeight: 700 }}>
-                <Plus size={13} /> Nueva Apuesta
-              </button>
-            )}
+            <button onClick={() => void load()} className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36, border: "1.5px solid #E5E7EB" }} title="Recargar">
+              <RefreshCw size={14} />
+            </button>
           </div>
         </div>
 
-        {/* Controles de filtro */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-0 rounded-lg overflow-hidden" style={{ border: "1.5px solid #000" }}>
             {[
-              { val: "todos", label: "Todos" },
-              { val: "apuestas", label: "Apuestas" },
-              { val: "metas", label: "Metas" },
-            ].map((f) => (
+              { value: "arbol", label: "Arbol" },
+              { value: "apuestas", label: "Apuestas" },
+              { value: "metas", label: "Metas" },
+            ].map((item) => (
               <button
-                key={f.val}
-                onClick={() => setVistaFiltro(f.val as typeof vistaFiltro)}
-                style={{
-                  padding: "6px 14px", fontSize: "11px", fontWeight: 700,
-                  backgroundColor: vistaFiltro === f.val ? "#000" : "#fff",
-                  color: vistaFiltro === f.val ? "#E4EB60" : "#374151",
-                  borderRight: "1px solid #000",
-                  transition: "all 0.15s",
-                }}
+                key={item.value}
+                onClick={() => setView(item.value as View)}
+                style={{ padding: "7px 14px", fontSize: "11px", fontWeight: 800, backgroundColor: view === item.value ? "#000" : "#fff", color: view === item.value ? COLORS.yellow : "#374151", borderRight: "1px solid #000" }}
               >
-                {f.label}
+                {item.label}
               </button>
             ))}
           </div>
-
-          <div className="flex items-center gap-0 rounded-lg overflow-hidden" style={{ border: "1.5px solid #E5E7EB" }}>
-            {PERIODOS_FILTER.map((p) => (
-              <button
-                key={p}
-                onClick={() => setFiltroPeriodo(p)}
-                style={{
-                  padding: "6px 10px", fontSize: "11px", fontWeight: 700,
-                  backgroundColor: filtroPeriodo === p ? COLORS.blue : "#fff",
-                  color: filtroPeriodo === p ? "#fff" : "#374151",
-                  borderRight: "1px solid #E5E7EB",
-                  transition: "all 0.15s",
-                }}
-              >
-                {p === "todos" ? "Todos" : p}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2" style={{ border: "1.5px solid #E5E7EB", minWidth: 220 }}>
-            <Search size={13} color="#9CA3AF" />
-            <input
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar proyecto, KR, objetivo..."
-              style={{ border: "none", outline: "none", fontSize: "12px", flex: 1, backgroundColor: "transparent" }}
-            />
-            {busqueda && (
-              <button onClick={() => setBusqueda("")} style={{ color: "#9CA3AF" }}>
-                <X size={12} />
-              </button>
-            )}
-          </div>
+          <select value={period} onChange={(event) => setPeriod(event.target.value)} style={{ border: "1.5px solid #E5E7EB", borderRadius: 6, padding: "7px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
+            <option value="">Todos los periodos</option>
+            {periods.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
+          </select>
         </div>
       </div>
 
-      {/* ── CONTENIDO SCROLLEABLE ── */}
       <div className="flex-1 overflow-y-auto px-6 py-5">
-        {q && filteredApuestas.length === 0 && filteredMetas.length === 0 && (
-          <div className="py-16 text-center">
-            <Search size={32} color="#D1D5DB" className="mx-auto mb-3" />
-            <p style={{ fontSize: "14px", color: "#9CA3AF" }}>No se encontraron resultados para "{busqueda}"</p>
-            <button onClick={() => setBusqueda("")} className="mt-2" style={{ color: COLORS.blue, fontSize: "12px", fontWeight: 600 }}>Limpiar búsqueda</button>
+        {loading ? (
+          <div className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "13px", fontWeight: 800 }}>
+            <Loader2 size={18} className="mr-2 animate-spin" /> Cargando jerarquia...
           </div>
-        )}
-
-        {showApuestas && filteredApuestas.length > 0 && (
-          <div className="mb-4">
-            {vistaFiltro === "todos" && (
-              <div className="flex items-center gap-2 mb-3">
-                <Flag size={14} color="#000" />
-                <h2 style={{ fontSize: "11px", fontWeight: 800, color: "#000", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Apuestas Estratégicas ({filteredApuestas.length})
-                </h2>
-              </div>
-            )}
-            {filteredApuestas.map((a) => (
-              <ApuestaNode key={a.id} apuesta={a} metas={metas} okrs={okrs} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} />
+        ) : view === "arbol" ? (
+          <div className="space-y-3">
+            {tree.map((node) => (
+              <TreeNode key={node.id} node={node} depth={0} expanded={expanded} onToggle={toggle} />
             ))}
+            {tree.length === 0 && <EmptyState text="No hay nodos en la jerarquia para el filtro seleccionado." />}
           </div>
-        )}
-
-        {showMetas && filteredMetas.length > 0 && (
-          <div className="mb-4">
-            {vistaFiltro === "todos" && (
-              <div className="flex items-center gap-2 mb-3">
-                <BookOpen size={14} color="#7D8900" />
-                <h2 style={{ fontSize: "11px", fontWeight: 800, color: "#7D8900", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Metas Institucionales ({filteredMetas.length})
-                </h2>
-              </div>
-            )}
-            {filteredMetas.map((m) => (
-              <MetaNode key={m.id} meta={m} okrs={okrs} proyectos={proyectos} navigate={navigate} filtroPeriodo={filtroPeriodo} />
-            ))}
-          </div>
-        )}
-
-        <div className="mt-4 rounded-lg p-4 flex flex-wrap items-center gap-6" style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-          {[
-            { label: "Apuestas", value: apuestas.length, color: "#000" },
-            { label: "Metas", value: metas.length, color: "#B8C500" },
-            { label: "Objetivos activos", value: okrs.filter((o) => o.estado === "activo").length, color: COLORS.blue },
-            { label: "Key Results", value: totalKRs, color: COLORS.blue },
-            { label: "Proyectos activos", value: proyectos.filter((p) => p.estado === "activo").length, color: COLORS.green },
-            { label: "KRs sin proyectos", value: okrs.flatMap((o) => o.keyResults).filter((kr) => !proyectos.some((p) => p.krId === kr.id)).length, color: COLORS.orange },
-          ].map((s, i) => (
-            <div key={s.label} className="flex items-center gap-4">
-              {i > 0 && <div style={{ width: 1, height: 36, backgroundColor: "#E5E7EB" }} />}
-              <div className="text-center">
-                <p style={{ fontSize: "20px", fontWeight: 800, color: s.color }}>{s.value}</p>
-                <p style={{ fontSize: "10px", color: "#9CA3AF" }}>{s.label}</p>
-              </div>
+        ) : view === "apuestas" ? (
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-5">
+            <div className="space-y-3">
+              {bets.map((bet) => (
+                <button key={bet.id} onClick={() => setSelectedBet(bet)} className="w-full text-left bg-white rounded-lg p-4 hover:shadow-sm" style={{ border: `1.5px solid ${selectedBet?.id === bet.id ? "#000" : "#E5E7EB"}` }}>
+                  <div className="flex items-start gap-3">
+                    <Flag size={16} color="#000" className="mt-1" />
+                    <div className="flex-1">
+                      <p style={{ fontSize: "14px", fontWeight: 900, color: "#000" }}>{bet.name}</p>
+                      <p style={{ fontSize: "12px", color: COLORS.gray, marginTop: 4 }}>{bet.description}</p>
+                      <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 6 }}>{bet.status} · {bet.startDate ?? "Sin inicio"} - {bet.endDate ?? "Sin cierre"}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
+            <DetailPanel title="Detalle de Apuesta" item={selectedBet} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-5">
+            <div className="space-y-3">
+              {goals.map((goal) => (
+                <button key={goal.id} onClick={() => setSelectedGoal(goal)} className="w-full text-left bg-white rounded-lg p-4 hover:shadow-sm" style={{ border: `1.5px solid ${selectedGoal?.id === goal.id ? "#000" : "#E5E7EB"}` }}>
+                  <div className="flex items-start gap-3">
+                    <BookOpen size={16} color="#7D8900" className="mt-1" />
+                    <div className="flex-1">
+                      <p style={{ fontSize: "14px", fontWeight: 900, color: "#000" }}>{goal.name}</p>
+                      <p style={{ fontSize: "12px", color: COLORS.gray, marginTop: 4 }}>{goal.description}</p>
+                      <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 6 }}>{goal.expectedValue} {goal.measurementUnitName} · {goal.status}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <GoalDetailPanel goal={selectedGoal} periods={periods} onChanged={load} />
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function countNodes(nodes: StrategicHierarchyNode[], type: StrategicHierarchyNode["nodeType"]): number {
+  return nodes.reduce((sum, node) => sum + (node.nodeType === type ? 1 : 0) + countNodes(node.children ?? [], type), 0);
+}
+
+function TreeNode({ node, depth, expanded, onToggle }: { node: StrategicHierarchyNode; depth: number; expanded: Set<string>; onToggle: (id: string) => void }) {
+  const isExpanded = expanded.has(node.id);
+  const hasChildren = node.children.length > 0;
+  const icon = getNodeIcon(node.nodeType);
+  const color = getNodeColor(node.nodeType);
+  const Icon = icon;
+  return (
+    <div>
+      <div className="bg-white rounded-lg p-3" style={{ border: "1.5px solid #E5E7EB", marginLeft: depth * 24 }}>
+        <div className="flex items-start gap-3">
+          <button onClick={() => hasChildren && onToggle(node.id)} className="mt-0.5" style={{ width: 18 }}>
+            {hasChildren ? (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : null}
+          </button>
+          <Icon size={16} color={color} className="mt-0.5" />
+          <div className="flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p style={{ fontSize: "13px", fontWeight: 900, color: "#000" }}>{node.label}</p>
+              {node.badge && <span style={{ fontSize: "10px", fontWeight: 800, color: COLORS.blue, backgroundColor: "#EEF2FF", padding: "2px 6px", borderRadius: 4 }}>{node.badge}</span>}
+              {typeof node.progressPercentage === "number" && <span style={{ fontSize: "10px", fontWeight: 900, color }}>{node.progressPercentage}%</span>}
+            </div>
+            {node.description && <p style={{ fontSize: "11px", color: COLORS.gray, marginTop: 3 }}>{node.description}</p>}
+            {node.executionSummary && <SummaryInline summary={node.executionSummary} />}
+          </div>
+        </div>
+      </div>
+      {isExpanded && hasChildren && (
+        <div className="mt-2 space-y-2">
+          {node.children.map((child) => <TreeNode key={child.id} node={child} depth={depth + 1} expanded={expanded} onToggle={onToggle} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getNodeIcon(type: StrategicHierarchyNode["nodeType"]) {
+  return {
+    STRATEGIC_BET: Flag,
+    GOAL: BookOpen,
+    OBJECTIVE: Target,
+    KEY_RESULT: KeyRound,
+    PROJECT: FolderKanban,
+  }[type];
+}
+
+function getNodeColor(type: StrategicHierarchyNode["nodeType"]) {
+  return {
+    STRATEGIC_BET: "#000",
+    GOAL: "#7D8900",
+    OBJECTIVE: COLORS.blue,
+    KEY_RESULT: COLORS.blue,
+    PROJECT: COLORS.green,
+  }[type];
+}
+
+function SummaryInline({ summary }: { summary: ExecutionSummary }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 mt-2">
+      <span style={{ fontSize: "10px", color: "#9CA3AF" }}>{summary.summaryText}</span>
+      <span style={{ fontSize: "10px", color: COLORS.green, fontWeight: 800 }}>Obj. completos {summary.completedObjectives}</span>
+      <span style={{ fontSize: "10px", color: COLORS.blue, fontWeight: 800 }}>KRs en progreso {summary.inProgressKeyResults}</span>
+      <span style={{ fontSize: "10px", color: COLORS.orange, fontWeight: 800 }}>Proyectos en progreso {summary.inProgressProjects}</span>
+    </div>
+  );
+}
+
+function DetailPanel({ title, item }: { title: string; item: StrategicBet | null }) {
+  return (
+    <aside className="bg-white rounded-lg p-5 h-fit" style={{ border: "1.5px solid #E5E7EB" }}>
+      <h2 style={{ fontSize: "13px", fontWeight: 900, color: "#000", textTransform: "uppercase", marginBottom: 12 }}>{title}</h2>
+      {!item ? <EmptyState text="Selecciona una apuesta para ver su detalle." /> : (
+        <div className="space-y-3">
+          <p style={{ fontSize: "16px", fontWeight: 900, color: "#000" }}>{item.name}</p>
+          <p style={{ fontSize: "12px", color: COLORS.gray, lineHeight: 1.6 }}>{item.description}</p>
+          <p style={{ fontSize: "11px", color: "#374151" }}>{item.status} · {item.startDate ?? "Sin inicio"} - {item.endDate ?? "Sin cierre"}</p>
+          <ExecutionSummaryBox summary={item.executionSummary} />
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function GoalDetailPanel({ goal, periods, onChanged }: { goal: Goal | null; periods: AcademicPeriod[]; onChanged: () => Promise<void> }) {
+  const attached = new Set(goal?.periods.map((period) => period.id) ?? []);
+  const togglePeriod = async (period: AcademicPeriod) => {
+    if (!goal) return;
+    try {
+      if (attached.has(period.id)) {
+        await goalsApi.detachPeriod(goal.id, period.id);
+        toast.success("Periodo desasociado");
+      } else {
+        await goalsApi.attachPeriod(goal.id, period.id);
+        toast.success("Periodo asociado");
+      }
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar la asociacion");
+    }
+  };
+
+  return (
+    <aside className="bg-white rounded-lg p-5 h-fit" style={{ border: "1.5px solid #E5E7EB" }}>
+      <h2 style={{ fontSize: "13px", fontWeight: 900, color: "#000", textTransform: "uppercase", marginBottom: 12 }}>Detalle de Meta</h2>
+      {!goal ? <EmptyState text="Selecciona una meta para ver su detalle." /> : (
+        <div className="space-y-4">
+          <div>
+            <p style={{ fontSize: "16px", fontWeight: 900, color: "#000" }}>{goal.name}</p>
+            <p style={{ fontSize: "12px", color: COLORS.gray, lineHeight: 1.6, marginTop: 4 }}>{goal.description}</p>
+            <p style={{ fontSize: "11px", color: "#374151", marginTop: 6 }}>{goal.expectedValue} {goal.measurementUnitName} · {goal.status}</p>
+          </div>
+          <ExecutionSummaryBox summary={goal.executionSummary} />
+          <div>
+            <p style={{ fontSize: "11px", color: "#000", fontWeight: 900, textTransform: "uppercase", marginBottom: 8 }}>Periodos asociados</p>
+            <div className="flex flex-wrap gap-2">
+              {periods.map((period) => (
+                <button key={period.id} onClick={() => void togglePeriod(period)} className="px-2 py-1 rounded" style={{ border: `1px solid ${attached.has(period.id) ? COLORS.blue : "#E5E7EB"}`, backgroundColor: attached.has(period.id) ? "#EEF2FF" : "#fff", color: attached.has(period.id) ? COLORS.blue : "#374151", fontSize: "11px", fontWeight: 800 }}>
+                  {period.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function ExecutionSummaryBox({ summary }: { summary: ExecutionSummary }) {
+  return (
+    <div className="rounded-lg p-4" style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+      <p style={{ fontSize: "12px", color: "#374151", lineHeight: 1.5 }}>{summary.summaryText}</p>
+      <div className="grid grid-cols-2 gap-2 mt-3">
+        {[
+          ["Obj. completos", summary.completedObjectives],
+          ["Obj. en progreso", summary.inProgressObjectives],
+          ["KRs completos", summary.completedKeyResults],
+          ["KRs en progreso", summary.inProgressKeyResults],
+          ["Proy. completos", summary.completedProjects],
+          ["Proy. en progreso", summary.inProgressProjects],
+        ].map(([label, value]) => (
+          <div key={label} style={{ fontSize: "11px", color: COLORS.gray }}>
+            <strong style={{ color: "#000" }}>{value}</strong> {label}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <p className="py-8 text-center" style={{ fontSize: "12px", color: "#9CA3AF" }}>{text}</p>;
 }

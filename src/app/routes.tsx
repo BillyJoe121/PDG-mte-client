@@ -1,44 +1,67 @@
+import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 import { Layout } from "./components/Layout";
-import { Login } from "./pages/Login";
-import { Dashboard } from "./pages/Dashboard";
-import { JerarquiaEstrategica } from "./pages/JerarquiaEstrategica";
-import { Proyectos } from "./pages/Proyectos";
-import { FichaProyecto } from "./pages/FichaProyecto";
-import { OKRs } from "./pages/OKRs";
-import { GestionKRs } from "./pages/GestionKRs";
-import { Reportes } from "./pages/Reportes";
-import { Usuarios } from "./pages/Usuarios";
-import { PresentacionDashboard } from "./pages/PresentacionDashboard";
-import { NuevaApuesta } from "./pages/NuevaApuesta";
-import { NuevaMeta } from "./pages/NuevaMeta";
-import { NuevoOKR } from "./pages/NuevoOKR";
-import { NuevoProyecto } from "./pages/NuevoProyecto";
+import { RequirePermission } from "./components/RequirePermission";
+import { RouteLoading } from "./components/RouteLoading";
+import type { PermissionAction } from "./security/permissions";
+
+const Login = lazy(() => import("./pages/Login").then((module) => ({ default: module.Login })));
+const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })));
+const DashboardsEstrategicos = lazy(() => import("./pages/DashboardsEstrategicos").then((module) => ({ default: module.DashboardsEstrategicos })));
+const JerarquiaEstrategica = lazy(() => import("./pages/JerarquiaEstrategica").then((module) => ({ default: module.JerarquiaEstrategica })));
+const Proyectos = lazy(() => import("./pages/Proyectos").then((module) => ({ default: module.Proyectos })));
+const FichaProyecto = lazy(() => import("./pages/FichaProyecto").then((module) => ({ default: module.FichaProyecto })));
+const OKRs = lazy(() => import("./pages/OKRs").then((module) => ({ default: module.OKRs })));
+const GestionKRs = lazy(() => import("./pages/GestionKRs").then((module) => ({ default: module.GestionKRs })));
+const Reportes = lazy(() => import("./pages/Reportes").then((module) => ({ default: module.Reportes })));
+const Consistencia = lazy(() => import("./pages/Consistencia").then((module) => ({ default: module.Consistencia })));
+const Usuarios = lazy(() => import("./pages/Usuarios").then((module) => ({ default: module.Usuarios })));
+const Auditoria = lazy(() => import("./pages/Auditoria").then((module) => ({ default: module.Auditoria })));
+const PresentacionDashboard = lazy(() => import("./pages/PresentacionDashboard").then((module) => ({ default: module.PresentacionDashboard })));
+const NuevaApuesta = lazy(() => import("./pages/NuevaApuesta").then((module) => ({ default: module.NuevaApuesta })));
+const NuevaMeta = lazy(() => import("./pages/NuevaMeta").then((module) => ({ default: module.NuevaMeta })));
+const NuevoOKR = lazy(() => import("./pages/NuevoOKR").then((module) => ({ default: module.NuevoOKR })));
+const NuevoProyecto = lazy(() => import("./pages/NuevoProyecto").then((module) => ({ default: module.NuevoProyecto })));
+const RubricaOKR = lazy(() => import("./pages/RubricaOKR").then((module) => ({ default: module.RubricaOKR })));
+const Catalogos = lazy(() => import("./pages/Catalogos").then((module) => ({ default: module.Catalogos })));
+
+function lazyPage(children: ReactNode) {
+  return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
+}
+
+function protectedPage(action: PermissionAction, children: ReactNode) {
+  return lazyPage(<RequirePermission action={action}>{children}</RequirePermission>);
+}
 
 export const router = createBrowserRouter([
-  { path: "/login", Component: Login },
-  { path: "/presentacion", Component: PresentacionDashboard },
+  { path: "/login", element: lazyPage(<Login />) },
+  { path: "/presentacion", element: protectedPage("presentacion.view", <PresentacionDashboard />) },
   {
     path: "/",
     Component: Layout,
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: "dashboard", Component: Dashboard },
-      { path: "jerarquia", Component: JerarquiaEstrategica },
-      { path: "jerarquia/apuesta/nueva", Component: NuevaApuesta },
-      { path: "jerarquia/meta/nueva", Component: NuevaMeta },
-      // /objetivos redirige a /okrs (entidad OCP eliminada)
+      { path: "dashboard", element: protectedPage("dashboard.view", <Dashboard />) },
+      { path: "dashboards", element: protectedPage("dashboards.view", <DashboardsEstrategicos />) },
+      { path: "jerarquia", element: protectedPage("jerarquia.view", <JerarquiaEstrategica />) },
+      { path: "jerarquia/apuesta/nueva", element: protectedPage("jerarquia.manage", <NuevaApuesta />) },
+      { path: "jerarquia/meta/nueva", element: protectedPage("jerarquia.manage", <NuevaMeta />) },
+      { path: "catalogos", element: protectedPage("catalogos.manage", <Catalogos />) },
       { path: "objetivos", element: <Navigate to="/okrs" replace /> },
       { path: "objetivos/:id", element: <Navigate to="/okrs" replace /> },
-      { path: "proyectos", Component: Proyectos },
-      { path: "proyectos/nuevo", Component: NuevoProyecto },
-      { path: "proyectos/:id", Component: FichaProyecto },
-      { path: "okrs", Component: OKRs },
-      { path: "okrs/nuevo", Component: NuevoOKR },
-      { path: "okrs/:okrId/krs", Component: GestionKRs },
-      { path: "reportes", Component: Reportes },
-      { path: "usuarios", Component: Usuarios },
+      { path: "proyectos", element: protectedPage("proyectos.view", <Proyectos />) },
+      { path: "proyectos/nuevo", element: protectedPage("proyectos.manage", <NuevoProyecto />) },
+      { path: "proyectos/:id", element: protectedPage("proyectos.view", <FichaProyecto />) },
+      { path: "okrs", element: protectedPage("okrs.view", <OKRs />) },
+      { path: "okrs/nuevo", element: protectedPage("okrs.manage", <NuevoOKR />) },
+      { path: "okrs/:okrId/krs", element: protectedPage("okrs.view", <GestionKRs />) },
+      { path: "okrs/:okrId/rubrica", element: protectedPage("okrs.view", <RubricaOKR />) },
+      { path: "reportes", element: protectedPage("reportes.view", <Reportes />) },
+      { path: "consistencia", element: protectedPage("consistencia.view", <Consistencia />) },
+      { path: "usuarios", element: protectedPage("usuarios.manage", <Usuarios />) },
+      { path: "auditoria", element: protectedPage("auditoria.view", <Auditoria />) },
       { path: "*", element: <Navigate to="/dashboard" replace /> },
     ],
   },
 ]);
+

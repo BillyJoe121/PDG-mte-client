@@ -11,6 +11,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Presentation,
+  Database,
+  ScrollText,
+  ShieldAlert,
 } from "lucide-react";
 import { IcesiLogo } from "./IcesiLogo";
 import { useAuth } from "../context/AuthContext";
@@ -18,12 +21,16 @@ import { getLabelRol } from "../data/mockData";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["administrador", "director", "jefe", "tutor"] },
+  { to: "/dashboards", label: "Dashboards", icon: BarChart3, roles: ["administrador", "director", "jefe"] },
   { to: "/jerarquia", label: "Jerarquía Estratégica", icon: Layers, roles: ["administrador", "director", "jefe", "tutor"] },
+  { to: "/catalogos", label: "Catálogos", icon: Database, roles: ["administrador"] },
   { to: "/okrs", label: "Objetivos", icon: Target, roles: ["administrador", "director", "jefe", "tutor"] },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, roles: ["administrador", "director", "jefe", "tutor"] },
   { to: "/reportes", label: "Reportes", icon: BarChart3, roles: ["administrador", "director", "jefe"] },
+  { to: "/consistencia", label: "Consistencia", icon: ShieldAlert, roles: ["administrador", "director", "jefe"] },
   { to: "/presentacion", label: "Modo Presentación", icon: Presentation, roles: ["administrador", "director", "jefe", "tutor"] },
   { to: "/usuarios", label: "Usuarios", icon: Users, roles: ["administrador"] },
+  { to: "/auditoria", label: "Auditoria", icon: ScrollText, roles: ["administrador"] },
 ];
 
 const itemAccents = ["#5454E9", "#E4EB60", "#7C3AED", "#E9683B", "#4CB979", "#5454E9", "#E4EB60", "#9CA3AF"];

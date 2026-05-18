@@ -1,490 +1,447 @@
-import { FolderKanban, Target, TrendingUp, AlertTriangle, Presentation, ArrowUpRight, Clock } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  FolderKanban,
+  Loader2,
+  RefreshCw,
+  Target,
+  TrendingUp,
+} from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router";
-import { useData } from "../context/DataContext";
-import { diasSinRegistro } from "../data/mockData";
+import { useGlobalFilters } from "../context/FiltersContext";
+import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
+import {
+  dashboardApi,
+  type CountByStatus,
+  type DashboardData,
+  type DashboardSummary,
+  type ProgressBucket,
+  type ProgressBucketCount,
+} from "../services/dashboardApi";
 
 const COLORS = {
   blue: "#5454E9",
-  yellow: "#E4EB60",
   green: "#4CB979",
   orange: "#E9683B",
-  black: "#000000",
+  yellow: "#E4EB60",
+  purple: "#8B5CF6",
+  teal: "#14B8A6",
+  red: "#DC2626",
   gray: "#717182",
 };
 
-// pieData, radarData — eliminados del módulo: dependen de datos runtime,
-// se calculan dentro del componente con useData().
+const projectStatusLabel: Record<CountByStatus["status"], string> = {
+  BORRADOR: "Borrador",
+  ACTIVO: "Activo",
+  FINALIZADO: "Finalizado",
+  SUSPENDIDO: "Suspendido",
+  ARCHIVADO: "Archivado",
+};
+
+const projectStatusColor: Record<CountByStatus["status"], string> = {
+  BORRADOR: COLORS.gray,
+  ACTIVO: COLORS.blue,
+  FINALIZADO: COLORS.green,
+  SUSPENDIDO: COLORS.orange,
+  ARCHIVADO: "#111827",
+};
+
+const bucketLabel: Record<ProgressBucket, string> = {
+  COMPLETED: "Completados",
+  ON_TRACK: "En ruta",
+  AT_RISK: "En riesgo",
+  LOW: "Bajo",
+};
+
+const bucketColor: Record<ProgressBucket, string> = {
+  COMPLETED: COLORS.green,
+  ON_TRACK: COLORS.blue,
+  AT_RISK: COLORS.orange,
+  LOW: COLORS.red,
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error) {
+    return String((error as { message?: unknown }).message);
+  }
+  return "No se pudo cargar el dashboard.";
+}
+
+function percent(value: number) {
+  return `${Math.round(value)}%`;
+}
+
+function shortLabel(value: string, max = 18) {
+  return value.length > max ? `${value.slice(0, max - 1)}.` : value;
+}
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  color,
+}: {
+  label: string;
+  value: string | number;
+  sub: string;
+  icon: typeof FolderKanban;
+  color: string;
+}) {
+  return (
+    <div className="rounded-lg bg-white p-5" style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-center rounded-lg" style={{ width: 40, height: 40, backgroundColor: `${color}18` }}>
+          <Icon size={20} color={color} />
+        </div>
+        <TrendingUp size={15} color="#9CA3AF" />
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: "#000", lineHeight: 1.1, marginTop: 14 }}>{value}</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 3 }}>{sub}</div>
+    </div>
+  );
+}
+
+function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg bg-white p-5" style={{ border: "1.5px solid #E5E7EB" }}>
+      <div className="mb-4">
+        <h3 style={{ fontSize: 14, fontWeight: 900, color: "#000" }}>{title}</h3>
+        <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 3 }}>{subtitle}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function EmptyChart() {
+  return (
+    <div className="flex h-full min-h-[240px] items-center justify-center rounded-lg" style={{ backgroundColor: "#F9FAFB", color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>
+      Sin datos para el periodo seleccionado.
+    </div>
+  );
+}
+
+function buildKpis(summary: DashboardSummary) {
+  return [
+    {
+      label: "Proyectos activos",
+      value: summary.activeProjects,
+      sub: `${summary.completedProjects} finalizados, ${summary.draftProjects} borradores`,
+      icon: FolderKanban,
+      color: COLORS.blue,
+    },
+    {
+      label: "Objetivos en seguimiento",
+      value: summary.objectivesInFollowUp,
+      sub: `${summary.lowCompletionObjectives} con baja cobertura`,
+      icon: Target,
+      color: COLORS.orange,
+    },
+    {
+      label: "KRs en cobertura",
+      value: summary.completedKeyResults + summary.inProgressKeyResults,
+      sub: `${summary.completedKeyResults} completados, ${summary.inProgressKeyResults} en progreso`,
+      icon: CheckCircle2,
+      color: COLORS.green,
+    },
+    {
+      label: "Cobertura operativa",
+      value: percent(summary.averageObjectiveCoverage),
+      sub: `KRs: ${percent(summary.averageKeyResultCoverage)}`,
+      icon: BarChart3,
+      color: COLORS.purple,
+    },
+  ];
+}
+
+function ProjectsPie({ data }: { data: CountByStatus[] }) {
+  const chartData = data.map((item) => ({
+    ...item,
+    label: projectStatusLabel[item.status],
+  }));
+
+  if (!chartData.some((item) => item.count > 0)) return <EmptyChart />;
+
+  return (
+    <div style={{ width: "100%", height: 280 }}>
+      <ResponsiveContainer>
+        <PieChart>
+          <Pie data={chartData} dataKey="count" nameKey="label" outerRadius={92} label>
+            {chartData.map((item) => (
+              <Cell key={item.status} fill={projectStatusColor[item.status]} />
+            ))}
+          </Pie>
+          <Tooltip formatter={(value, name) => [value, name]} />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function KeyResultsProgressBar({ data }: { data: ProgressBucketCount[] }) {
+  const chartData = data.map((item) => ({
+    ...item,
+    label: bucketLabel[item.bucket],
+    fill: bucketColor[item.bucket],
+  }));
+
+  if (!chartData.some((item) => item.count > 0)) return <EmptyChart />;
+
+  return (
+    <div style={{ width: "100%", height: 280 }}>
+      <ResponsiveContainer>
+        <BarChart data={chartData} margin={{ top: 8, right: 12, left: -16, bottom: 6 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+          <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+          <Tooltip />
+          <Bar dataKey="count" name="KRs">
+            {chartData.map((item) => (
+              <Cell key={item.bucket} fill={item.fill} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function DepartmentRadar({ data }: { data: DashboardData["departments"] }) {
+  const chartData = data.map((item) => ({
+    ...item,
+    departmentLabel: shortLabel(item.departmentName, 16),
+  }));
+
+  if (!chartData.length) return <EmptyChart />;
+
+  return (
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_360px]">
+      <div style={{ width: "100%", height: 360 }}>
+        <ResponsiveContainer>
+          <RadarChart data={chartData}>
+            <PolarGrid />
+            <PolarAngleAxis dataKey="departmentLabel" tick={{ fontSize: 11 }} />
+            <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+            <Radar name="Cobertura" dataKey="averageObjectiveCoverage" fill={COLORS.blue} fillOpacity={0.32} stroke={COLORS.blue} />
+            <Tooltip formatter={(value) => [`${Math.round(Number(value))}%`, "Cobertura"]} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[340px]" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: "2px solid #000" }}>
+              {["Departamento", "Activos", "Finalizados", "Objetivos", "KRs", "Cobertura"].map((head) => (
+                <th key={head} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, fontWeight: 900, color: COLORS.gray, textTransform: "uppercase" }}>
+                  {head}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr key={row.departmentId} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                <td style={{ padding: "10px", fontSize: 12, fontWeight: 800, color: "#000" }}>{row.departmentName}</td>
+                <td style={{ padding: "10px", fontSize: 12 }}>{row.activeProjects}</td>
+                <td style={{ padding: "10px", fontSize: 12 }}>{row.completedProjects}</td>
+                <td style={{ padding: "10px", fontSize: 12 }}>{row.objectives}</td>
+                <td style={{ padding: "10px", fontSize: 12 }}>{row.completedKeyResults + row.inProgressKeyResults}</td>
+                <td style={{ padding: "10px", fontSize: 12, fontWeight: 900, color: COLORS.blue }}>{percent(row.averageObjectiveCoverage)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function StrategicBetsBar({ data }: { data: DashboardData["strategicBets"] }) {
+  const chartData = data.map((item) => ({
+    ...item,
+    label: shortLabel(item.strategicBetName, 20),
+  }));
+
+  if (!chartData.length) return <EmptyChart />;
+
+  return (
+    <div style={{ width: "100%", height: 320 }}>
+      <ResponsiveContainer>
+        <BarChart data={chartData} margin={{ top: 8, right: 16, left: -12, bottom: 42 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: 11 }} angle={-18} textAnchor="end" interval={0} height={58} />
+          <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+          <Tooltip
+            formatter={(value, name) => [
+              name === "Cobertura promedio" ? `${Math.round(Number(value))}%` : value,
+              name,
+            ]}
+            labelFormatter={(value) => data.find((item) => shortLabel(item.strategicBetName, 20) === value)?.strategicBetName ?? value}
+          />
+          <Bar dataKey="averageObjectiveCoverage" name="Cobertura promedio" fill={COLORS.teal} radius={[5, 5, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 export function Dashboard() {
   const { usuario } = useAuth();
-  const navigate = useNavigate();
-  const { proyectos, okrs, apuestas } = useData();
+  const { filters, setFilter } = useGlobalFilters();
+  const initialPeriod = filters.periodo === "todos" ? "" : filters.periodo;
+  const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
+  const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const proyectosActivos = proyectos.filter((p) => p.estado === "activo");
-  const okrsActivos = okrs.filter((o) => o.estado === "activo");
-  const okrsCubiertos = okrsActivos.filter((o) => o.proyectoIds.length > 0).length;
-  const cumplimientoProm = okrsActivos.length
-    ? Math.round(okrsActivos.reduce((s, o) => s + o.cumplimiento, 0) / okrsActivos.length)
-    : 0;
-  const enRiesgo = proyectosActivos.filter((p) => diasSinRegistro(p.ultimoRegistro) > 28).length;
+  const activePeriodName = dashboard?.summary.period ?? periods.find((period) => period.status === "ACTIVO")?.name ?? "Periodo activo";
 
-  const pieData = [
-    { name: "Activos",     value: proyectos.filter((p) => p.estado === "activo").length,     color: COLORS.green },
-    { name: "Finalizados", value: proyectos.filter((p) => p.estado === "finalizado").length,  color: COLORS.blue  },
-    { name: "Borrador",    value: proyectos.filter((p) => p.estado === "borrador").length,    color: COLORS.gray  },
-    { name: "Suspendidos", value: proyectos.filter((p) => p.estado === "suspendido").length,  color: COLORS.orange},
-  ];
+  const sortedPeriods = useMemo(
+    () => [...periods].sort((a, b) => b.startDate.localeCompare(a.startDate)),
+    [periods],
+  );
 
-  const trendData = [
-    { corte: "Ago 2024", A1: 28, A2: 18, A3: 52 },
-    { corte: "Oct 2024", A1: 38, A2: 28, A3: 63 },
-    { corte: "Dic 2024", A1: 50, A2: 38, A3: 72 },
-    { corte: "Feb 2025", A1: 60, A2: 46, A3: 78 },
-    { corte: "Abr 2025", A1: 72, A2: 58, A3: 83 },
-  ];
+  const loadDashboard = useCallback(async (period?: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      const [periodList, data] = await Promise.all([
+        academicPeriodsApi.list(),
+        dashboardApi.load(period),
+      ]);
+      setPeriods(periodList);
+      setDashboard(data);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const deptData = [
-    { dept: "DCSI", proyectos: 12, cumplimiento: 68, okrs: 5 },
-    { dept: "DDI", proyectos: 3, cumplimiento: 45, okrs: 2 },
-    { dept: "DM", proyectos: 1, cumplimiento: 33, okrs: 1 },
-    { dept: "Dir. TDI", proyectos: 3, cumplimiento: 72, okrs: 2 },
-  ];
+  useEffect(() => {
+    void loadDashboard(selectedPeriod || undefined);
+  }, [loadDashboard, selectedPeriod]);
 
-  const radarData = [
-    { subject: "DCSI", cumplimiento: 68 },
-    { subject: "DDI", cumplimiento: 45 },
-    { subject: "DM", cumplimiento: 33 },
-    { subject: "Dir. TDI", cumplimiento: 72 },
-  ];
+  const handlePeriodChange = (value: string) => {
+    setSelectedPeriod(value);
+    setFilter("periodo", value || "todos");
+  };
 
-  const kpis = [
-    {
-      label: "Proyectos Activos",
-      value: proyectosActivos.length,
-      icon: FolderKanban,
-      color: COLORS.blue,
-      sub: `${proyectos.filter((p) => p.estado === "finalizado").length} finalizados este periodo`,
-    },
-    {
-      label: "OKRs con Cobertura",
-      value: `${okrsCubiertos}/${okrsActivos.length}`,
-      icon: Target,
-      color: COLORS.yellow,
-      sub: `${Math.round((okrsCubiertos / okrsActivos.length) * 100)}% de OKRs activos cubiertos`,
-    },
-    {
-      label: "Cumplimiento Promedio",
-      value: `${cumplimientoProm}%`,
-      icon: TrendingUp,
-      color: COLORS.green,
-      sub: "Promedio ponderado de OKRs activos",
-    },
-    {
-      label: "Proyectos en Riesgo",
-      value: enRiesgo,
-      icon: AlertTriangle,
-      color: COLORS.orange,
-      sub: "Sin registro de avance en >28 días",
-    },
-  ];
-
-  const proyectosSinAvance = proyectosActivos
-    .filter((p) => diasSinRegistro(p.ultimoRegistro) > 20)
-    .sort((a, b) => diasSinRegistro(b.ultimoRegistro) - diasSinRegistro(a.ultimoRegistro))
-    .slice(0, 5);
+  const kpis = dashboard ? buildKpis(dashboard.summary) : [];
 
   return (
     <div className="p-6 space-y-6">
-      {/* Welcome */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#000" }}>
-            Bienvenido, {usuario?.nombre.split(" ")[0]}
-          </h2>
-          <p style={{ fontSize: "12px", color: "#717182", marginTop: 2 }}>
-            Periodo académico activo: <strong style={{ color: "#5454E9" }}>2025-I</strong> · Última actualización: 14 de abril de 2026
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "#000" }}>
+            Dashboard de impacto
+          </h1>
+          <p style={{ fontSize: 13, color: COLORS.gray, marginTop: 4 }}>
+            Estado operativo del portafolio y cobertura estrategica para {usuario?.nombre.split(" ")[0] ?? "el usuario"}.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span
-            className="px-3 py-1 rounded"
-            style={{ backgroundColor: "#E4EB60", color: "#000", fontSize: "11px", fontWeight: 700 }}
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={selectedPeriod}
+            onChange={(event) => handlePeriodChange(event.target.value)}
+            style={{ border: "1.5px solid #000", borderRadius: 8, padding: "9px 12px", fontSize: 12, fontWeight: 900, backgroundColor: "#fff", minWidth: 190 }}
           >
-            {apuestas.filter((a) => a.estado === "activa").length} Apuestas Activas
-          </span>
-          {(usuario?.rol === "director" || usuario?.rol === "administrador") && (
-            <button
-              onClick={() => navigate("/presentacion")}
-              className="flex items-center gap-2 px-3 py-1.5 rounded hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: "#000", color: "#fff", fontSize: "11px", fontWeight: 700 }}
-            >
-              <Presentation size={13} /> Modo Presentación
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {kpis.map((kpi) => (
-          <div
-            key={kpi.label}
-            className="rounded-lg p-5 bg-white"
-            style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className="flex items-center justify-center rounded-lg"
-                style={{ width: 40, height: 40, backgroundColor: kpi.color + "18" }}
-              >
-                <kpi.icon size={20} color={kpi.color} strokeWidth={2} />
-              </div>
-              <ArrowUpRight size={14} color="#9CA3AF" />
-            </div>
-            <div style={{ fontSize: "28px", fontWeight: 800, color: "#000", lineHeight: 1.1 }}>
-              {kpi.value}
-            </div>
-            <div style={{ fontSize: "12px", fontWeight: 600, color: "#000", marginTop: 4 }}>
-              {kpi.label}
-            </div>
-            <div style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 2 }}>
-              {kpi.sub}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Charts row 1 */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* Bar chart: Apuestas */}
-        <div
-          className="xl:col-span-2 bg-white rounded-lg p-5"
-          style={{ border: "1.5px solid #E5E7EB" }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#000" }}>
-                Cumplimiento por Apuesta Estratégica
-              </h3>
-              <p style={{ fontSize: "11px", color: "#9CA3AF" }}>% de cumplimiento acumulado</p>
-            </div>
-            <span style={{ fontSize: "10px", color: "#9CA3AF" }}>Periodo 2025-I</span>
-          </div>
-          <svg viewBox="0 0 600 200" width="100%" height={200} preserveAspectRatio="none">
-            {[0, 25, 50, 75, 100].map((g) => {
-              const y = 180 - (g / 100) * 160;
-              return (
-                <g key={`grid-${g}`}>
-                  <line x1={40} y1={y} x2={590} y2={y} stroke="#F3F4F6" strokeWidth={1} />
-                  <text x={36} y={y + 3} fontSize={9} fill="#9CA3AF" textAnchor="end">{g}</text>
-                </g>
-              );
-            })}
-            {apuestas.map((a, i) => {
-              const bw = (550 / apuestas.length) * 0.6;
-              const slot = 550 / apuestas.length;
-              const x = 40 + slot * i + (slot - bw) / 2;
-              const h = (a.cumplimiento / 100) * 160;
-              const color = [COLORS.blue, COLORS.green, COLORS.yellow][i % 3];
-              return (
-                <g key={`bar-${a.id}`}>
-                  <rect x={x} y={180 - h} width={bw} height={h} fill={color} rx={4} />
-                  <text x={x + bw / 2} y={195} fontSize={9} fill="#9CA3AF" textAnchor="middle">
-                    {a.nombre.split(" ").slice(0, 2).join(" ")}
-                  </text>
-                  <text x={x + bw / 2} y={180 - h - 4} fontSize={10} fill="#000" fontWeight={700} textAnchor="middle">
-                    {a.cumplimiento}%
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        {/* Pie chart: Estado proyectos */}
-        <div
-          className="bg-white rounded-lg p-5"
-          style={{ border: "1.5px solid #E5E7EB" }}
-        >
-          <div className="mb-4">
-            <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#000" }}>Estado del Portafolio</h3>
-            <p style={{ fontSize: "11px", color: "#9CA3AF" }}>Distribución de proyectos</p>
-          </div>
-          {(() => {
-            const total = pieData.reduce((s, d) => s + d.value, 0) || 1;
-            let acc = 0;
-            const cx = 100, cy = 70, ro = 60, ri = 38;
-            const arcs = pieData.map((d) => {
-              const start = (acc / total) * Math.PI * 2 - Math.PI / 2;
-              acc += d.value;
-              const end = (acc / total) * Math.PI * 2 - Math.PI / 2;
-              const large = end - start > Math.PI ? 1 : 0;
-              const x1 = cx + ro * Math.cos(start), y1 = cy + ro * Math.sin(start);
-              const x2 = cx + ro * Math.cos(end), y2 = cy + ro * Math.sin(end);
-              const x3 = cx + ri * Math.cos(end), y3 = cy + ri * Math.sin(end);
-              const x4 = cx + ri * Math.cos(start), y4 = cy + ri * Math.sin(start);
-              const path = `M ${x1} ${y1} A ${ro} ${ro} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${ri} ${ri} 0 ${large} 0 ${x4} ${y4} Z`;
-              return { path, color: d.color, name: d.name };
-            });
-            return (
-              <svg viewBox="0 0 200 140" width="100%" height={140}>
-                {arcs.map((a) => (
-                  <path key={`pie-${a.name}`} d={a.path} fill={a.color} />
-                ))}
-              </svg>
-            );
-          })()}
-          <div className="space-y-1 mt-2">
-            {pieData.map((d) => (
-              <div key={d.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
-                  <span style={{ fontSize: "11px", color: "#374151" }}>{d.name}</span>
-                </div>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: "#000" }}>{d.value}</span>
-              </div>
+            <option value="">Periodo activo</option>
+            {sortedPeriods.map((period) => (
+              <option key={period.id} value={period.name}>{period.name}</option>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Charts row 2 */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* Line chart trend */}
-        <div
-          className="xl:col-span-2 bg-white rounded-lg p-5"
-          style={{ border: "1.5px solid #E5E7EB" }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#000" }}>
-                Tendencia Histórica de Cumplimiento
-              </h3>
-              <p style={{ fontSize: "11px", color: "#9CA3AF" }}>Por apuesta estratégica</p>
-            </div>
-          </div>
-          {(() => {
-            const W = 600, H = 180, padL = 40, padR = 10, padT = 10, padB = 30;
-            const innerW = W - padL - padR, innerH = H - padT - padB;
-            const xFor = (i: number) => padL + (i * innerW) / Math.max(1, trendData.length - 1);
-            const yFor = (v: number) => padT + innerH - (v / 100) * innerH;
-            const series: { key: "A1" | "A2" | "A3"; name: string; color: string }[] = [
-              { key: "A1", name: "Apuesta 1", color: COLORS.blue },
-              { key: "A2", name: "Apuesta 2", color: COLORS.green },
-              { key: "A3", name: "Apuesta 3", color: COLORS.orange },
-            ];
-            return (
-              <>
-                <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
-                  {[0, 25, 50, 75, 100].map((g) => {
-                    const y = yFor(g);
-                    return (
-                      <g key={`tg-${g}`}>
-                        <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="#F3F4F6" strokeWidth={1} />
-                        <text x={padL - 4} y={y + 3} fontSize={9} fill="#9CA3AF" textAnchor="end">{g}</text>
-                      </g>
-                    );
-                  })}
-                  {trendData.map((d, i) => (
-                    <text key={`tx-${d.corte}`} x={xFor(i)} y={H - padB + 14} fontSize={9} fill="#9CA3AF" textAnchor="middle">{d.corte}</text>
-                  ))}
-                  {series.map((s) => {
-                    const path = trendData.map((d, i) => `${i === 0 ? "M" : "L"} ${xFor(i)} ${yFor(d[s.key])}`).join(" ");
-                    return (
-                      <g key={`s-${s.key}`}>
-                        <path d={path} fill="none" stroke={s.color} strokeWidth={2.5} />
-                        {trendData.map((d, i) => (
-                          <circle key={`c-${s.key}-${i}`} cx={xFor(i)} cy={yFor(d[s.key])} r={3} fill={s.color} />
-                        ))}
-                      </g>
-                    );
-                  })}
-                </svg>
-                <div className="flex gap-3 justify-center mt-2">
-                  {series.map((s) => (
-                    <div key={`leg-${s.key}`} className="flex items-center gap-1">
-                      <span style={{ width: 10, height: 10, backgroundColor: s.color, borderRadius: 2, display: "inline-block" }} />
-                      <span style={{ fontSize: 10, color: "#374151" }}>{s.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            );
-          })()}
-        </div>
-
-        {/* Dept table */}
-        <div
-          className="bg-white rounded-lg p-5"
-          style={{ border: "1.5px solid #E5E7EB" }}
-        >
-          <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#000", marginBottom: 4 }}>
-            Resumen por Departamento
-          </h3>
-          <p style={{ fontSize: "11px", color: "#9CA3AF", marginBottom: 12 }}>Portafolio y cumplimiento</p>
-          <div className="space-y-3">
-            {deptData.map((d) => (
-              <div key={d.dept}>
-                <div className="flex items-center justify-between mb-1">
-                  <span style={{ fontSize: "12px", fontWeight: 600, color: "#000" }}>{d.dept}</span>
-                  <div className="flex items-center gap-2">
-                    <span style={{ fontSize: "10px", color: "#9CA3AF" }}>{d.proyectos} proy.</span>
-                    <span style={{ fontSize: "12px", fontWeight: 700, color: d.cumplimiento >= 60 ? COLORS.green : COLORS.orange }}>
-                      {d.cumplimiento}%
-                    </span>
-                  </div>
-                </div>
-                <div className="w-full rounded-full overflow-hidden" style={{ height: 6, backgroundColor: "#F3F4F6" }}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${d.cumplimiento}%`,
-                      backgroundColor: d.cumplimiento >= 60 ? COLORS.green : COLORS.orange,
-                      transition: "width 1s ease",
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Proyectos sin avance */}
-      <div
-        className="bg-white rounded-lg p-5"
-        style={{ border: "1.5px solid #E5E7EB" }}
-      >
-        <div className="flex items-center gap-2 mb-4">
-          <Clock size={16} color={COLORS.orange} />
-          <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#000" }}>
-            Proyectos que Requieren Atención
-          </h3>
-          <span
-            className="px-2 py-0.5 rounded"
-            style={{ backgroundColor: "#FEF3F2", color: COLORS.orange, fontSize: "10px", fontWeight: 700 }}
+          </select>
+          <button
+            onClick={() => void loadDashboard(selectedPeriod || undefined)}
+            disabled={loading}
+            className="flex items-center justify-center rounded-lg transition-opacity disabled:opacity-50"
+            style={{ width: 38, height: 38, border: "1.5px solid #E5E7EB", backgroundColor: "#fff" }}
+            title="Recargar dashboard"
           >
-            Sin avance reciente
+            {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+          </button>
+          <span className="px-3 py-2 rounded-lg" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 11, fontWeight: 900 }}>
+            {selectedPeriod ? selectedPeriod : activePeriodName}
           </span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full" style={{ borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "2px solid #000" }}>
-                {["Proyecto", "Departamento", "Tutor", "% Avance", "Días sin registro", "Estado"].map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: "10px", fontWeight: 700, color: "#717182", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {proyectosSinAvance.map((p, i) => {
-                const dias = diasSinRegistro(p.ultimoRegistro);
-                return (
-                  <tr
-                    key={p.id}
-                    style={{ borderBottom: "1px solid #F3F4F6", backgroundColor: i % 2 === 0 ? "#fff" : "#FAFAFA" }}
-                  >
-                    <td style={{ padding: "10px 12px" }}>
-                      <p style={{ fontSize: "12px", fontWeight: 600, color: "#000" }}>{p.nombre}</p>
-                      <p style={{ fontSize: "10px", color: "#9CA3AF" }}>{p.tipo}</p>
-                    </td>
-                    <td style={{ padding: "10px 12px", fontSize: "12px", color: "#374151" }}>{p.departamento}</td>
-                    <td style={{ padding: "10px 12px", fontSize: "12px", color: "#374151" }}>{p.tutores[0]}</td>
-                    <td style={{ padding: "10px 12px" }}>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, backgroundColor: "#F3F4F6", minWidth: 60 }}>
-                          <div
-                            style={{
-                              width: `${p.avanceGlobal}%`,
-                              height: "100%",
-                              backgroundColor: p.avanceGlobal > 50 ? COLORS.green : COLORS.orange,
-                              borderRadius: 99,
-                            }}
-                          />
-                        </div>
-                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#000", minWidth: 30 }}>{p.avanceGlobal}%</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: "10px 12px" }}>
-                      <span
-                        className="px-2 py-1 rounded"
-                        style={{
-                          backgroundColor: dias > 28 ? "#FEF3F2" : "#FFF9EC",
-                          color: dias > 28 ? COLORS.orange : "#B45309",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {dias} días
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px 12px" }}>
-                      <span
-                        className="px-2 py-0.5 rounded"
-                        style={{ backgroundColor: COLORS.green + "20", color: COLORS.green, fontSize: "10px", fontWeight: 600, textTransform: "capitalize" }}
-                      >
-                        {p.estado}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
       </div>
 
-      {/* Apuestas estratégicas summary */}
-      <div>
-        <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#000", marginBottom: 12 }}>
-          Apuestas Estratégicas — Semáforo de Cumplimiento
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {apuestas.map((a) => {
-            const semaforo =
-              a.cumplimiento >= 70 ? COLORS.green :
-              a.cumplimiento >= 40 ? COLORS.yellow :
-              COLORS.orange;
-            const okrsApuesta = okrs.filter((o) => o.apuestaId === a.id);
-            return (
-              <div
-                key={a.id}
-                className="bg-white rounded-lg overflow-hidden"
-                style={{ border: "1.5px solid #E5E7EB" }}
-              >
-                <div style={{ height: 6, backgroundColor: semaforo }} />
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#000", lineHeight: 1.4 }}>{a.nombre}</h4>
-                    <span
-                      className="flex-shrink-0 px-2 py-0.5 rounded"
-                      style={{ backgroundColor: a.estado === "activa" ? "#ECFDF5" : "#F9FAFB", color: a.estado === "activa" ? COLORS.green : "#9CA3AF", fontSize: "10px", fontWeight: 600 }}
-                    >
-                      {a.estado}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span style={{ fontSize: "11px", color: "#9CA3AF" }}>Cumplimiento</span>
-                    <span style={{ fontSize: "18px", fontWeight: 800, color: semaforo }}>{a.cumplimiento}%</span>
-                  </div>
-                  <div className="w-full rounded-full overflow-hidden" style={{ height: 8, backgroundColor: "#F3F4F6" }}>
-                    <div
-                      style={{ width: `${a.cumplimiento}%`, height: "100%", backgroundColor: semaforo, borderRadius: 99, transition: "width 1s" }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <span style={{ fontSize: "10px", color: "#9CA3AF" }}>{a.areaInstitucional.split("·")[0]}</span>
-                    <span style={{ fontSize: "10px", color: "#5454E9", fontWeight: 600 }}>{okrsApuesta.length} OKRs</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {error && (
+        <div className="rounded-lg px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 800 }}>
+          <AlertTriangle size={15} /> {error}
         </div>
-      </div>
+      )}
+
+      {loading && !dashboard ? (
+        <div className="flex items-center justify-center rounded-lg bg-white py-20" style={{ border: "1.5px solid #E5E7EB", color: COLORS.gray, fontSize: 13, fontWeight: 900 }}>
+          <Loader2 size={18} className="mr-2 animate-spin" /> Cargando KPIs del portafolio...
+        </div>
+      ) : dashboard ? (
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {kpis.map((kpi) => (
+              <KpiCard key={kpi.label} {...kpi} />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <Panel title="Proyectos por estado" subtitle="Distribucion del portafolio segun el estado operativo.">
+              <ProjectsPie data={dashboard.projectsByStatus} />
+            </Panel>
+            <Panel title="KRs por nivel de progreso" subtitle="Conteo de resultados clave completados, en ruta, en riesgo o bajos.">
+              <KeyResultsProgressBar data={dashboard.keyResultsByProgress} />
+            </Panel>
+          </div>
+
+          <Panel title="Rendimiento por departamento" subtitle="Cobertura promedio de objetivos y volumen de ejecucion por departamento.">
+            <DepartmentRadar data={dashboard.departments} />
+          </Panel>
+
+          <Panel title="Cobertura por apuesta estrategica" subtitle="Promedio de cobertura objetiva y trazabilidad de objetivos, KRs y proyectos.">
+            <StrategicBetsBar data={dashboard.strategicBets} />
+            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {dashboard.strategicBets.map((bet) => (
+                <div key={bet.strategicBetId} className="rounded-lg p-3" style={{ border: "1px solid #E5E7EB", backgroundColor: "#FAFAFA" }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <p style={{ fontSize: 12, fontWeight: 900, color: "#000", lineHeight: 1.35 }}>{bet.strategicBetName}</p>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: COLORS.teal }}>{percent(bet.averageObjectiveCoverage)}</span>
+                  </div>
+                  <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 6 }}>
+                    {bet.objectives} objetivos - {bet.keyResults} KRs - {bet.inProgressProjects} proyectos en progreso - {bet.completedProjects} finalizados
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </>
+      ) : (
+        <EmptyChart />
+      )}
     </div>
   );
 }

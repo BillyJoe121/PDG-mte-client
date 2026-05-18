@@ -1408,3 +1408,462 @@ Estado actual: no hay framework de pruebas ni herramienta de cobertura configura
 | 2 | HU-2.8, HU-2.6 | Endurecen portafolio, estados y visibilidad institucional. |
 | 3 | HU-3.1 a HU-3.5 | Construyen la capa analitica una vez la data estrategica este mas completa. |
 | 4 | HU-4.4, HU-4.5, HU-4.6 | Fortalecen permisos, seguridad funcional y trazabilidad. |
+
+# Estado 17/mayo/2026
+
+## Implementacion agregada en cliente
+
+| HU | Estado actualizado | Evidencia |
+|---|---|---|
+| HU-1.6 Definir rubrica de evaluacion de iniciativas | Cubierta parcial alta frontend | Se agrego modelo de rubricas por Objetivo/OKR con criterios, pesos que deben sumar 100%, version, copia desde otro OKR y pantalla `/okrs/:okrId/rubrica`. |
+| HU-1.7 Evaluar aporte de proyecto a OKR | Cubierta parcial alta frontend | La pantalla de rubrica permite evaluar proyectos vinculados con escala 0-5 por criterio, guarda evaluador, fecha, version de rubrica, observaciones, puntaje total y aporte ponderado. La ficha de proyecto muestra estas evaluaciones. |
+| HU-2.3 Asignar indicadores de contribucion al proyecto | Cubierta parcial media frontend | La ficha de proyecto permite crear indicadores por vinculo proyecto-OKR/KR con base, actual, objetivo y unidad. El registro de avance puede asociarse a un indicador y actualiza su valor actual. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecutado correctamente con Vite. |
+| Advertencia conocida | No bloqueante | Vite mantiene advertencia de chunk JS mayor a 500 kB. |
+
+## Pendiente inmediato
+
+| Area | Pendiente |
+|---|---|
+| Rubricas | Persistencia backend, control fino de permisos, historial completo por version y copia entre OKRs con confirmacion UX. |
+| Evaluaciones | Flujo de re-evaluacion historica sin sobrescribir evaluaciones previas y reportes agregados por rubrica. |
+| Indicadores | CRUD mas completo por vinculo, validacion de indicadores obligatorios antes de activar proyecto y representacion formal en dashboards. |
+
+# Bloque 1 implementado - 17/mayo/2026
+
+## HUs trabajadas
+
+| HU / alcance | Estado actualizado | Evidencia frontend |
+|---|---|---|
+| HU-0.1 Gestionar periodos academicos | Cubierta parcial alta frontend | Se agrego catalogo de periodos con crear, editar, cerrar/eliminar segun uso y consumo desde formularios/filtros de OKRs, proyectos, jerarquia, reportes y ficha. |
+| HU-0.2 Gestionar unidades de medida | Cubierta parcial alta frontend | Se agrego catalogo de unidades con crear, editar, activar/desactivar y proteccion cuando esta en uso. KRs, metas e indicadores usan selector desde catalogo. |
+| Periodos/unidades hardcoded | Reducido | `PERIODOS` deja de alimentar las pantallas clave; se mantiene solo como constante legacy en mock data. |
+| HU-1.2 Editar apuesta estrategica | Cubierta parcial media frontend | La jerarquia permite editar nombre, descripcion, area institucional, fechas y estado de una apuesta. |
+| HU-1.2 Desactivar apuesta estrategica | Cubierta parcial media frontend | La jerarquia permite activar/desactivar apuestas y alerta cuando existen OKRs vinculados antes de desactivar. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecutado correctamente con Vite. |
+| Advertencia conocida | No bloqueante | Vite mantiene advertencia de chunk JS mayor a 500 kB. |
+
+## Pendiente posterior al bloque
+
+| Area | Pendiente |
+|---|---|
+| Catalogos | Persistencia backend, auditoria, control de concurrencia y validaciones de fechas solapadas de periodos. |
+| Apuestas | Historial/auditoria de cambios, bloqueo backend de eliminacion y notificaciones reales a responsables de OKRs vinculados. |
+
+# Avances 17/05/2026
+
+Segun el analisis realizado sobre el frontend, se identificaron las HUs que ya estaban completas o parcialmente completas, las que estaban incompletas y las que faltaban por implementar. El backend se esta trabajando en otro repositorio, por lo que este corte se enfoca unicamente en el estado funcional del cliente.
+
+## Estado identificado
+
+| Categoria | Resultado del analisis |
+|---|---|
+| HUs completas o parcialmente cubiertas | Existen flujos funcionales para registrar apuestas, metas, OKRs, KRs, proyectos, avances, portafolio, ficha de proyecto, jerarquia estrategica, roles basicos y gestion parcial de usuarios. Varias HUs estaban cubiertas a nivel frontend pero sin persistencia backend ni auditoria. |
+| HUs incompletas | Se identificaron brechas en edicion/desactivacion de apuestas, catalogos de periodos/unidades, indicadores formales de contribucion, rubricas, evaluacion de aporte, reglas de estado, permisos transversales, dashboards y exportaciones reales. |
+| HUs faltantes | Siguen pendientes integraciones institucionales, Jira, SSO, directorio de usuarios, auditoria formal, dashboards completos, filtros globales, reportes PDF reales, sincronizacion de roles y pruebas automatizadas. |
+
+## Lo implementado en este avance
+
+| Area / HU | Avance realizado |
+|---|---|
+| HU-0.1 Gestionar periodos academicos | Se agrego un catalogo frontend de periodos academicos con crear, editar, cerrar/eliminar segun uso y validacion de nombres duplicados. |
+| HU-0.2 Gestionar unidades de medida | Se agrego un catalogo frontend de unidades de medida con crear, editar, activar/desactivar y proteccion cuando una unidad esta en uso. |
+| Catalogos en navegacion | Se creo la pantalla `Catalogos` y se agrego acceso desde el sidebar para director y administrador. |
+| Periodos en formularios y filtros | Se reemplazaron periodos quemados por datos del catalogo en formularios y filtros clave: nuevo OKR, nueva meta, nuevo proyecto, portafolio de proyectos, ficha de proyecto, reportes y jerarquia estrategica. |
+| Unidades en KRs/metas/indicadores | Se reemplazo la captura libre de unidades por selectores desde catalogo en creacion/edicion de KRs, metas institucionales e indicadores de contribucion. |
+| HU-1.2 Editar apuesta estrategica | Se agrego edicion directa de apuesta desde la vista de jerarquia: nombre, descripcion, area institucional, fechas y estado. |
+| HU-1.2 Desactivar apuesta estrategica | Se agrego accion para activar/desactivar apuestas desde la jerarquia, con alerta cuando existen OKRs vinculados antes de desactivar. |
+| Trazabilidad del avance | Se actualizo este documento con el bloque implementado y su verificacion tecnica. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecuto correctamente con Vite. |
+| Advertencia conocida | No bloqueante | Vite mantiene la advertencia de chunk JS mayor a 500 kB. |
+
+## Lo que queda faltando
+
+| Prioridad | Pendiente | HUs relacionadas |
+|---|---|---|
+| Alta | Persistencia backend de catalogos, apuestas, rubricas, evaluaciones e indicadores. | HU-0.1, HU-0.2, HU-1.2, HU-1.6, HU-1.7, HU-2.3 |
+| Alta | Endurecer indicadores de contribucion: CRUD completo por vinculo proyecto-OKR, validacion antes de activar proyecto y calculo mas formal de avance. | HU-2.3, HU-2.4, HU-2.8 |
+| Alta | Completar reglas de cambio de estado de proyectos, incluyendo transiciones validas y requisitos para activar/cerrar. | HU-2.8 |
+| Alta | Soportar de forma mas completa multiples OKRs por proyecto, no solo KR principal con compatibilidad `okrIds`. | HU-2.2 |
+| Media | Completar portafolio institucional de Escuela con exportacion, metricas explicitas y permisos por rol. | HU-2.6 |
+| Media | Construir dashboards: general, por OKR, por apuesta, por departamento y filtros globales. | HU-3.1, HU-3.2, HU-3.3, HU-3.4, HU-3.5 |
+| Media | Implementar exportacion real de reportes PDF/CSV con filtros aplicados. | HU-3.6, HU-3.7 |
+| Media | Completar restricciones transversales por rol y visibilidad por departamento en rutas, vistas, exportaciones y acciones. | HU-4.4, HU-4.5 |
+| Baja / backend-integracion | SSO institucional, importacion de usuarios, sincronizacion de roles, auditoria formal e integracion con Jira. | HU-2.7, HU-4.1, HU-4.3, HU-4.6, HU-4.7 |
+| Transversal | Agregar infraestructura de pruebas automatizadas y cobertura por HU. | Todas |
+
+# Avances 17/05/2026 4:27 pm
+
+## Bloque 2 implementado
+
+En este segundo bloque se continuaron las HUs priorizadas despues del analisis inicial. El foco fue cerrar brechas funcionales del portafolio, indicadores, reglas de estado, dashboard general y filtros globales basicos del frontend.
+
+| HU / alcance | Estado actualizado | Evidencia frontend |
+|---|---|---|
+| HU-2.2 Vincular proyecto a OKRs | Cubierta parcial alta frontend | El modal de vinculacion del portafolio ahora permite manejar multiples OKRs por proyecto, ajustar peso de contribucion, definir tipo de contribucion y seleccionar un KR principal opcional. |
+| HU-2.3 Asignar indicadores de contribucion | Cubierta parcial alta frontend | La ficha del proyecto ahora permite crear, editar, actualizar y eliminar indicadores de contribucion por OKR/KR. Los indicadores se usan como requisito funcional para activar proyectos. |
+| HU-2.6 Consultar portafolio completo de la Escuela | Cubierta parcial media frontend | El portafolio incluye tarjetas por departamento para director/administrador con proyectos activos, total de proyectos, riesgo y cobertura OKR. |
+| HU-2.8 Cambiar estado de un proyecto | Cubierta parcial media frontend | Se agregaron reglas en `DataContext`: para activar se exige OKR/KR vinculado e indicadores por OKR; para finalizar se exige avance 100% o indicador cumplido; para archivar no se permite hacerlo directamente desde activo. |
+| HU-3.1 Dashboard general de la Escuela | Cubierta parcial alta frontend | El dashboard fue reconstruido con KPIs dinamicos, semaforo por apuesta, resumen por departamento, indicadores cumplidos y tabla de proyectos sin avance reciente. |
+| HU-3.5 Filtros globales en dashboards | Cubierta parcial media frontend | Se agrego `FiltersContext` con filtros compartidos por periodo, departamento, estado de proyecto y OKR, persistidos en `sessionStorage` y consumidos por dashboard y portafolio. |
+
+## Archivos principales modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/app/context/FiltersContext.tsx` | Nuevo contexto de filtros globales con persistencia de sesion. |
+| `src/app/App.tsx` | Se agrego `FiltersProvider` alrededor de las rutas. |
+| `src/app/context/DataContext.tsx` | Se agregaron reglas de transicion de estado de proyecto y validaciones de activacion/finalizacion/archivo. |
+| `src/app/pages/Proyectos.tsx` | Se mejoro vinculacion multiple proyecto-OKR, pesos, tipo de contribucion, filtros globales y tarjetas de vista Escuela. |
+| `src/app/pages/FichaProyecto.tsx` | Se agrego edicion/actualizacion de indicadores de contribucion. |
+| `src/app/pages/Dashboard.tsx` | Se reconstruyo el dashboard general para usar datos filtrados reales y filtros globales. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecuto correctamente con Vite. |
+| Advertencia conocida | No bloqueante | Vite mantiene advertencia de chunk JS mayor a 500 kB. |
+
+## Lo que queda faltando despues del bloque 2
+
+| Prioridad | Pendiente | HUs relacionadas |
+|---|---|---|
+| Alta | Persistir en backend los filtros, vinculos proyecto-OKR, indicadores, reglas de estado y evaluaciones. | HU-2.2, HU-2.3, HU-2.8, HU-3.5 |
+| Alta | Completar validaciones de estado con reglas finales del negocio, evidencias de cierre y auditoria de cambios. | HU-2.8, HU-4.6 |
+| Media | Llevar los filtros globales a OKRs, jerarquia, reportes y dashboards especializados. | HU-3.2, HU-3.3, HU-3.4, HU-3.5 |
+| Media | Implementar dashboard por OKR, por apuesta y por departamento con navegacion dedicada. | HU-3.2, HU-3.3, HU-3.4 |
+| Media | Exportaciones reales PDF/CSV para dashboard, portafolio y reportes con filtros aplicados. | HU-2.6, HU-3.6, HU-3.7 |
+| Media | Completar permisos transversales en rutas y acciones, no solo ocultamiento de botones. | HU-4.4, HU-4.5 |
+| Baja / integracion | Integracion Jira, SSO institucional, directorio de usuarios, sincronizacion de roles y auditoria persistente. | HU-2.7, HU-4.1, HU-4.3, HU-4.6, HU-4.7 |
+| Transversal | Agregar pruebas automatizadas unitarias, UI/E2E y coverage por HU. | Todas |
+
+# Avances 18/05/2026 12:48 am
+
+## Bloque 3 implementado
+
+En este bloque se amplio la capa analitica del frontend. El objetivo fue avanzar las HUs de dashboards especializados y extender los filtros globales a vistas que todavia trabajaban con filtros locales.
+
+| HU / alcance | Estado actualizado | Evidencia frontend |
+|---|---|---|
+| HU-3.2 Dashboard por OKR | Cubierta parcial alta frontend | Se agrego una vista analitica por OKR con selector de objetivo, cumplimiento, KRs, proyectos vinculados, indicadores y aporte evaluado promedio. |
+| HU-3.3 Dashboard por apuesta estrategica | Cubierta parcial alta frontend | Se agrego una vista por apuesta con cumplimiento, metas vinculadas, OKRs, proyectos, riesgos y cadena apuesta -> metas -> OKRs -> proyectos. |
+| HU-3.4 Dashboard por departamento | Cubierta parcial alta frontend | Se agrego una vista comparativa por departamento con OKRs, proyectos, activos, indicadores, cobertura OKR, cumplimiento y proyectos en riesgo. |
+| HU-3.5 Filtros globales | Cubierta parcial alta frontend | Los filtros globales ahora se consumen tambien en OKRs, Jerarquia Estrategica, Reportes y la nueva vista de dashboards estrategicos. |
+| Navegacion analitica | Implementada | Se agrego ruta `/dashboards` y opcion de sidebar "Dashboards" para director, administrador y jefe. |
+
+## Archivos principales modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/app/pages/DashboardsEstrategicos.tsx` | Nueva pagina con dashboards por OKR, apuesta y departamento. |
+| `src/app/routes.tsx` | Nueva ruta `/dashboards`. |
+| `src/app/components/Sidebar.tsx` | Nueva opcion de navegacion "Dashboards". |
+| `src/app/pages/OKRs.tsx` | Integracion de filtros globales de periodo, departamento y OKR. |
+| `src/app/pages/JerarquiaEstrategica.tsx` | Integracion con filtros globales de periodo, departamento y OKR. |
+| `src/app/pages/Reportes.tsx` | Reportes ahora calculan KPIs principales usando el alcance de filtros globales. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecuto correctamente con Vite. |
+| Advertencia conocida | No bloqueante | Vite mantiene advertencia de chunk JS mayor a 500 kB. |
+
+## Lo que queda faltando despues del bloque 3
+
+| Prioridad | Pendiente | HUs relacionadas |
+|---|---|---|
+| Alta | Persistencia backend de dashboards, filtros guardados, evaluaciones, indicadores y vinculos. | HU-2.2, HU-2.3, HU-3.1, HU-3.5 |
+| Alta | Profundizar dashboards con historico real por periodo y datos no ilustrativos. | HU-3.2, HU-3.3, HU-3.4, HU-3.7 |
+| Media | Exportaciones reales PDF/CSV desde dashboards especializados con filtros aplicados. | HU-3.6, HU-3.7 |
+| Media | Navegacion cruzada mas completa desde dashboards hacia OKRs, apuestas, departamentos y fichas de proyecto. | HU-3.2, HU-3.3, HU-3.4 |
+| Media | Aplicar filtros globales a todos los reportes secundarios y modo presentacion. | HU-3.5 |
+| Media | Completar permisos transversales de rutas y acciones con una matriz centralizada. | HU-4.4, HU-4.5 |
+| Baja / integracion | Jira, SSO institucional, directorio, sincronizacion de roles y auditoria persistente. | HU-2.7, HU-4.1, HU-4.3, HU-4.6, HU-4.7 |
+| Transversal | Agregar pruebas automatizadas y coverage por HU. | Todas |
+
+---
+
+# Avances 18/05/2026 1:02 a. m.
+
+Segun mi analisis del frontend, ya se habia identificado que existen HUs completas, incompletas y faltantes: el frontend tenia avances solidos en jerarquia estrategica, OKRs, proyectos, dashboards base, filtros globales y reportes; seguian incompletas las HUs transversales de permisos centralizados, auditoria, gestion funcional de usuarios y exportaciones consistentes; y siguen faltando las piezas que dependen del backend, como persistencia real, SSO/directorio institucional, historicos reales, auditoria persistente de servidor e integraciones externas.
+
+## Lo implementado en este bloque
+
+| HU / alcance | Estado actualizado | Evidencia frontend |
+|---|---|---|
+| HU-4.4 Permisos por rol | Cubierta parcial alta frontend | Se agrego una matriz centralizada de permisos por rol y un wrapper de proteccion de rutas (`RequirePermission`) para dashboards, jerarquia, catalogos, OKRs, proyectos, reportes, usuarios, auditoria y modo presentacion. |
+| HU-4.5 Control de acceso a rutas | Implementada en frontend | Las rutas sensibles ahora validan permisos antes de renderizar y muestran una pantalla de acceso restringido si el rol no aplica. |
+| HU-4.6 Auditoria de acciones | Cubierta parcial frontend | Se agrego `AuditContext` con persistencia en `sessionStorage`, eventos mock iniciales y registro de acciones desde usuarios, dashboard, reportes y fichas de proyecto. |
+| HU-4.7 Consulta de auditoria | Cubierta parcial frontend | Se creo la pagina `/auditoria` con filtros por modulo, resultado y busqueda, tabla de eventos y exportacion CSV. |
+| Gestion de usuarios | Mejorada | La pantalla de usuarios ahora crea, edita, activa/desactiva y exporta usuarios en estado local, registrando cada accion en auditoria. |
+| HU-3.6 Exportaciones CSV/PDF | Mejorada | Se centralizo el nombre de archivos, se agrego titulo temporal para impresion/PDF y se registran exportaciones en auditoria. |
+
+## Archivos principales modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/app/security/permissions.ts` | Nueva matriz de permisos y helpers por rol. |
+| `src/app/components/RequirePermission.tsx` | Nuevo wrapper para proteger rutas por permiso. |
+| `src/app/components/AccessDenied.tsx` | Nueva pantalla de acceso restringido. |
+| `src/app/context/AuditContext.tsx` | Nuevo contexto de auditoria con eventos mock y persistencia en sesion. |
+| `src/app/pages/Auditoria.tsx` | Nueva vista de consulta/exportacion de auditoria. |
+| `src/app/pages/Usuarios.tsx` | Gestion local funcional de usuarios, exportacion y auditoria. |
+| `src/app/routes.tsx` | Rutas protegidas y nueva ruta `/auditoria`. |
+| `src/app/components/Sidebar.tsx` | Nueva opcion de navegacion para Auditoria. |
+| `src/app/pages/Dashboard.tsx`, `src/app/pages/Reportes.tsx`, `src/app/pages/FichaProyecto.tsx`, `src/app/pages/Proyectos.tsx` | Exportaciones conectadas a utilidades y/o auditoria; Proyectos ahora exporta CSV desde la vista filtrada. |
+| `src/app/utils/exportUtils.ts` | Helpers de fecha/nombre de archivo y mejora de impresion/PDF. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecuto correctamente con Vite. |
+| Advertencia conocida | No bloqueante | Vite mantiene advertencia de chunk JS mayor a 500 kB. |
+
+## Lo que queda faltando despues del bloque 4
+
+| Prioridad | Pendiente | HUs relacionadas |
+|---|---|---|
+| Alta | Conectar permisos, usuarios y auditoria con backend real, JWT/SSO y politicas del servidor. | HU-4.1, HU-4.3, HU-4.4, HU-4.6 |
+| Alta | Persistir usuarios creados/editados, auditoria y configuraciones de permisos en base de datos. | HU-4.1, HU-4.6, HU-4.7 |
+| Alta | Sustituir datos historicos ilustrativos por historico real por periodo en dashboards/reportes. | HU-3.2, HU-3.3, HU-3.4, HU-3.7 |
+| Media | Completar exportaciones PDF con plantilla institucional real y descarga directa, no solo impresion del navegador. | HU-3.6 |
+| Media | Agregar pruebas automatizadas de rutas protegidas, permisos, usuarios y auditoria. | HU-4.4, HU-4.5, HU-4.6 |
+| Baja / integracion | Integrar directorio institucional para importacion/sincronizacion real de usuarios. | HU-4.1, HU-4.3 |
+
+---
+
+# Avances 18/05/2026 1:14 a. m.
+
+Segun mi analisis del frontend, despues del bloque anterior quedaban HUs completas, incompletas y faltantes asi: permisos/auditoria/usuarios ya tenian una base funcional en frontend; dashboards y reportes seguian incompletos por usar historicos ilustrativos y exportaciones parciales; y siguen faltando las piezas dependientes del backend, especialmente persistencia real, SSO/directorio, auditoria de servidor e integraciones externas.
+
+## Lo implementado en este bloque
+
+| HU / alcance | Estado actualizado | Evidencia frontend |
+|---|---|---|
+| HU-3.7 Historico por periodo | Cubierta parcial frontend | Se agrego un helper reutilizable para calcular comparativos por periodo desde `periodosAcademicos`, OKRs, proyectos, evaluaciones e historico mock disponible. |
+| HU-3.2 / HU-3.3 / HU-3.4 Dashboards especializados | Mejoradas | La vista `/dashboards` ahora exporta CSV/PDF por vista activa: OKR, apuesta o departamento. |
+| HU-3.6 Exportaciones | Mejorada | `printPDF` agrega cabecera institucional temporal para impresion/PDF y conserva titulo del documento al terminar. |
+| HU-3.5 Filtros globales | Mejorada | El modo presentacion ahora acota las apuestas mostradas usando filtros globales de periodo, departamento y OKR. |
+| Navegacion cruzada | Mejorada | En dashboards especializados, los OKRs dentro de apuesta navegan a gestion de KRs y las filas de departamento actualizan el filtro global de departamento. |
+| Reportes comparativos | Mejorados | Dashboard y Reportes reemplazan datos ilustrativos de comparativo/tendencia por calculos derivados del contexto y `historicoOKRs`. |
+
+## Archivos principales modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/app/utils/analytics.ts` | Nuevo helper para construir comparativos por periodo y tendencias por apuesta. |
+| `src/app/pages/Dashboard.tsx` | Comparativo por periodo ahora se calcula con datos del contexto e historico mock. |
+| `src/app/pages/Reportes.tsx` | Tendencias y comparativo ahora usan helpers analiticos reutilizables. |
+| `src/app/pages/DashboardsEstrategicos.tsx` | Exportacion CSV/PDF, auditoria de exportaciones y navegacion cruzada adicional. |
+| `src/app/pages/PresentacionDashboard.tsx` | Modo presentacion respeta filtros globales para determinar las apuestas visibles. |
+| `src/app/utils/exportUtils.ts` | Cabecera institucional de impresion/PDF y limpieza posterior. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecuto correctamente con Vite. |
+| Advertencia conocida | No bloqueante | Vite mantiene advertencia de chunk JS mayor a 500 kB. |
+
+## Lo que queda faltando despues del bloque 5
+
+| Prioridad | Pendiente | HUs relacionadas |
+|---|---|---|
+| Alta | Persistir historicos reales por periodo desde backend en lugar de historico mock parcial. | HU-3.7 |
+| Alta | Conectar usuarios, permisos y auditoria con backend, JWT/SSO y politicas de servidor. | HU-4.1, HU-4.3, HU-4.4, HU-4.6 |
+| Media | Crear plantilla PDF real con paginacion/descarga directa, no solo `window.print`. | HU-3.6 |
+| Media | Completar modo presentacion con metricas internas tambien filtradas, no solo la lista de apuestas visibles. | HU-3.5 |
+| Media | Agregar pruebas automatizadas de analytics, exportaciones, permisos y rutas. | HU-3.6, HU-3.7, HU-4.4 |
+| Baja / integracion | Integracion Jira/directorio institucional y sincronizacion automatica de usuarios. | HU-2.7, HU-4.1, HU-4.3 |
+
+---
+
+# Avances 18/05/2026 1:24 a. m.
+
+Segun mi analisis del frontend, despues del bloque 5 quedaban completas o casi completas las HUs de dashboards, filtros globales, permisos y auditoria frontend; seguian incompletas las HUs de modo presentacion filtrado a profundidad, control de consistencia de datos y pruebas automatizadas; y siguen faltando por backend la persistencia real, SSO/directorio, historicos definitivos, auditoria de servidor e integraciones externas.
+
+## Lo implementado en este bloque
+
+| HU / alcance | Estado actualizado | Evidencia frontend |
+|---|---|---|
+| HU-3.5 Filtros globales en modo presentacion | Mejorada | `PresentacionDashboard` ahora construye un dataset filtrado y lo usa en portada, slides de apuesta y cierre; las metricas internas ya respetan periodo, departamento, OKR y estado de proyecto. |
+| HU-3.2 / HU-3.3 / HU-3.4 Coherencia analitica | Mejorada | Las cifras de apuestas, OKRs, proyectos y metas en presentacion salen del contexto filtrado, no de arreglos estaticos globales. |
+| Validacion de consistencia estrategica | Implementada en frontend | Se agrego un validador para detectar OKRs sin apuesta/meta valida, OKRs activos sin KRs, KRs sin proyectos, proyectos activos sin OKR/KR valido, proyectos sin avance reciente e indicadores faltantes. |
+| Alertas operativas | Implementadas | El dashboard principal muestra un resumen de inconsistencias estrategicas con conteo de severidad alta/media y las primeras alertas accionables. |
+| Preparacion para QA | Parcial | Las validaciones quedan centralizadas en `strategicValidation.ts`, listas para cubrir con pruebas automatizadas cuando se agregue framework de test. |
+
+## Archivos principales modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/app/pages/PresentacionDashboard.tsx` | Refactor para usar dataset filtrado en portada, slides y cierre. |
+| `src/app/utils/strategicValidation.ts` | Nuevo helper de validacion de consistencia estrategica. |
+| `src/app/pages/Dashboard.tsx` | Nuevo panel de consistencia estrategica con severidades y alertas principales. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecuto correctamente con Vite. |
+| Advertencia conocida | No bloqueante | Vite mantiene advertencia de chunk JS mayor a 500 kB. |
+
+## Lo que queda faltando despues del bloque 6
+
+| Prioridad | Pendiente | HUs relacionadas |
+|---|---|---|
+| Alta | Conectar validaciones con reglas de backend para que bloqueen o adviertan segun politicas reales. | HU-4.4, HU-4.6 |
+| Alta | Persistir historicos, auditoria, usuarios y permisos reales en backend. | HU-3.7, HU-4.1, HU-4.6 |
+| Media | Agregar framework de pruebas automatizadas y cubrir analytics, validaciones, permisos y rutas. | Todas |
+| Media | Permitir exportar el reporte completo de inconsistencias estrategicas. | HU-3.6, HU-4.7 |
+| Media | Optimizar bundle con code splitting para eliminar la advertencia de chunk grande. | Transversal |
+| Baja / integracion | Integracion Jira/directorio institucional y sincronizacion automatica de usuarios. | HU-2.7, HU-4.1, HU-4.3 |
+
+---
+
+# Avances 18/05/2026 1:28 a. m.
+
+Segun mi analisis del frontend, despues del bloque 6 quedaban completas o muy avanzadas las HUs de dashboards, filtros globales, permisos, auditoria y validaciones frontend; seguian incompletas la consulta completa/exportable de consistencia estrategica y la optimizacion del bundle; y siguen faltando por backend la persistencia real, SSO/directorio, reglas de servidor, historicos definitivos e integraciones externas.
+
+## Lo implementado en este bloque
+
+| HU / alcance | Estado actualizado | Evidencia frontend |
+|---|---|---|
+| Reporte de consistencia estrategica | Implementado en frontend | Se creo la vista `/consistencia` con filtros por severidad, modulo y busqueda, tabla completa de hallazgos, navegacion hacia entidades y exportacion CSV. |
+| HU-3.6 Exportaciones | Mejorada | El reporte completo de inconsistencias se puede exportar con los filtros aplicados. |
+| HU-4.7 Auditoria | Mejorada | La exportacion de consistencia registra evento en auditoria. |
+| Navegacion operativa | Mejorada | El panel de consistencia del Dashboard ahora tiene acceso directo a la vista completa. |
+| Optimizacion transversal | Implementada | Las rutas principales pasan a `React.lazy` + `Suspense`, separando pantallas en chunks por ruta. |
+| Performance de build | Mejorada | El bundle inicial baja a ~338 kB y desaparece la advertencia de chunk JS mayor a 500 kB. |
+
+## Archivos principales modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/app/pages/Consistencia.tsx` | Nueva pagina de reporte completo de consistencia estrategica. |
+| `src/app/components/RouteLoading.tsx` | Nuevo fallback visual para carga diferida de rutas. |
+| `src/app/routes.tsx` | Refactor a lazy loading/code splitting por ruta, manteniendo proteccion por permisos. |
+| `src/app/security/permissions.ts` | Nuevo permiso `consistencia.view`. |
+| `src/app/components/Sidebar.tsx` | Nueva opcion de navegacion "Consistencia". |
+| `src/app/components/Header.tsx` | Nuevo titulo/breadcrumb para `/consistencia`. |
+| `src/app/pages/Dashboard.tsx` | Boton "Ver todo" hacia reporte completo de consistencia. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecuto correctamente con Vite. |
+| Advertencia de chunk grande | Resuelta | Ya no aparece advertencia de chunks mayores a 500 kB. |
+| Bundle inicial | Mejorado | El chunk inicial queda alrededor de 338 kB; las paginas se dividen en chunks dedicados. |
+
+## Lo que queda faltando despues del bloque 7
+
+| Prioridad | Pendiente | HUs relacionadas |
+|---|---|---|
+| Alta | Conectar reporte de consistencia con reglas del backend y severidades oficiales. | HU-4.4, HU-4.6 |
+| Alta | Persistir historicos, auditoria, usuarios y permisos reales en backend. | HU-3.7, HU-4.1, HU-4.6 |
+| Media | Agregar pruebas automatizadas de rutas lazy, permisos, validaciones y exportaciones. | Todas |
+| Media | Mejorar navegacion desde hallazgos tipo KR hacia el OKR padre exacto. | HU-3.2, HU-4.7 |
+| Baja / integracion | Integracion Jira/directorio institucional y sincronizacion automatica de usuarios. | HU-2.7, HU-4.1, HU-4.3 |
+
+---
+
+# Avances 18/05/2026 1:32 a. m.
+
+Segun mi analisis del frontend, despues del bloque 7 quedaban avanzadas las HUs de consistencia, exportaciones, auditoria, dashboards y rendimiento; seguian incompletas la reutilizacion avanzada de filtros y la navegacion exacta desde algunos hallazgos de consistencia; y siguen faltando por backend persistencia real, reglas oficiales, SSO/directorio, historicos definitivos e integraciones externas.
+
+## Lo implementado en este bloque
+
+| HU / alcance | Estado actualizado | Evidencia frontend |
+|---|---|---|
+| HU-3.5 Filtros globales | Mejorada | Se agregaron presets de filtros globales persistidos en `localStorage`, con guardar, aplicar y eliminar. |
+| Reutilizacion de vistas | Implementada en frontend | El Dashboard permite guardar combinaciones de periodo, departamento, estado de proyecto y OKR como vistas reutilizables. |
+| HU-4.7 Consistencia / auditoria operativa | Mejorada | Los hallazgos de consistencia ahora incluyen `targetPath`, por lo que la vista `/consistencia` navega al destino exacto conocido. |
+| Exportacion de consistencia | Mejorada | El CSV de consistencia ahora incluye la ruta sugerida para cada hallazgo. |
+| Auditoria de presets | Parcial | Guardar un preset desde Dashboard registra evento informativo en auditoria. |
+
+## Archivos principales modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/app/context/FiltersContext.tsx` | Presets de filtros persistidos y metodos `savePreset`, `applyPreset`, `deletePreset`. |
+| `src/app/pages/Dashboard.tsx` | UI de presets de filtros y auditoria al guardar vistas. |
+| `src/app/utils/strategicValidation.ts` | Hallazgos enriquecidos con ruta destino (`targetPath`). |
+| `src/app/pages/Consistencia.tsx` | Navegacion usa `targetPath` y exporta la ruta en CSV. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecuto correctamente con Vite. |
+| Advertencia de chunk grande | OK | No reaparece la advertencia de chunks mayores a 500 kB. |
+
+## Lo que queda faltando despues del bloque 8
+
+| Prioridad | Pendiente | HUs relacionadas |
+|---|---|---|
+| Alta | Persistir presets, usuarios, auditoria e historicos en backend real. | HU-3.5, HU-3.7, HU-4.1, HU-4.6 |
+| Alta | Usar reglas oficiales del backend para consistencia y permisos. | HU-4.4, HU-4.6 |
+| Media | Agregar pruebas automatizadas para filtros/presets, rutas lazy y validaciones. | Todas |
+| Media | Aplicar UI de presets en otras vistas que consumen filtros globales, no solo Dashboard. | HU-3.5 |
+| Baja / integracion | Integracion Jira/directorio institucional y sincronizacion automatica de usuarios. | HU-2.7, HU-4.1, HU-4.3 |
+
+---
+
+# Avances 18/05/2026 1:43 a. m.
+
+Segun mi analisis del frontend, despues del bloque 8 quedaba completa la base de presets de filtros en Dashboard, pero seguia incompleta su reutilizacion en las demas vistas que consumen filtros globales; tambien quedaba pendiente mantener la auditoria de presets sin duplicar logica por pantalla. Lo que depende de backend sigue igual: persistencia real de presets, historicos, auditoria, usuarios, permisos y reglas oficiales.
+
+## Lo implementado en este bloque
+
+| HU / alcance | Estado actualizado | Evidencia frontend |
+|---|---|---|
+| HU-3.5 Presets de filtros globales | Mejorada | Se creo `FilterPresetsBar`, componente reutilizable para guardar, aplicar y eliminar presets. |
+| Reutilizacion transversal | Implementada | Los presets ahora aparecen en Dashboard, Dashboards estrategicos, Reportes y Proyectos. |
+| Sincronizacion de filtros locales | Mejorada | En Proyectos, al aplicar un preset tambien se sincronizan los estados locales de periodo, departamento, estado y OKR. |
+| Auditoria de presets | Mejorada | La auditoria al guardar presets queda centralizada en el componente reutilizable. |
+| Mantenibilidad frontend | Mejorada | Dashboard deja de tener logica propia duplicada para presets y usa el componente comun. |
+
+## Archivos principales modificados
+
+| Archivo | Cambio |
+|---|---|
+| `src/app/components/FilterPresetsBar.tsx` | Nuevo componente reutilizable de presets de filtros. |
+| `src/app/pages/Dashboard.tsx` | Reemplazo de logica local por `FilterPresetsBar`. |
+| `src/app/pages/DashboardsEstrategicos.tsx` | Integracion de presets y sincronizacion de OKR/departamento seleccionados. |
+| `src/app/pages/Reportes.tsx` | Integracion de presets en la vista de reportes. |
+| `src/app/pages/Proyectos.tsx` | Integracion de presets con sincronizacion de filtros locales. |
+
+## Verificacion tecnica
+
+| Verificacion | Resultado | Detalle |
+|---|---|---|
+| Build de produccion | OK | `npm run build` ejecuto correctamente con Vite. |
+| Advertencia de chunk grande | OK | No reaparece la advertencia de chunks mayores a 500 kB. |
+
+## Lo que queda faltando despues del bloque 9
+
+| Prioridad | Pendiente | HUs relacionadas |
+|---|---|---|
+| Alta | Persistir presets y preferencias de usuario en backend real. | HU-3.5, HU-4.1 |
+| Alta | Conectar auditoria de presets y filtros con auditoria de servidor. | HU-4.6, HU-4.7 |
+| Media | Agregar pruebas automatizadas para presets, filtros globales y vistas con filtros locales. | HU-3.5 |
+| Media | Permitir compartir presets entre usuarios/roles cuando exista backend. | HU-3.5, HU-4.4 |
+| Baja / integracion | Integracion Jira/directorio institucional y sincronizacion automatica de usuarios. | HU-2.7, HU-4.1, HU-4.3 |

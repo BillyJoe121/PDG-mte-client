@@ -3,6 +3,24 @@ export type EstadoOKR = "borrador" | "activo" | "completado" | "cancelado";
 export type EstadoProyecto = "borrador" | "activo" | "finalizado" | "suspendido" | "archivado";
 export type TipoProyecto = "grado" | "investigacion" | "extension" | "macroproyecto";
 export type RolUsuario = "administrador" | "director" | "jefe" | "tutor";
+export type EstadoPeriodoAcademico = "planificacion" | "activo" | "cerrado";
+export type TipoUnidadMedida = "numerica" | "porcentaje" | "booleana" | "otra";
+
+export interface PeriodoAcademico {
+  id: string;
+  nombre: string;
+  fechaInicio: string;
+  fechaFin: string;
+  estado: EstadoPeriodoAcademico;
+}
+
+export interface UnidadMedida {
+  id: string;
+  nombre: string;
+  tipo: TipoUnidadMedida;
+  descripcion?: string;
+  activa: boolean;
+}
 
 // ── Apuesta Estratégica (nivel 1) ────────────────────────────────────────────
 export interface ApuestaEstrategica {
@@ -137,6 +155,7 @@ export interface RegistroAvance {
   fechaCorte?: string;
   porcentaje: number;
   comentario: string;
+  indicadorId?: string;
   indicadorNombre?: string;
   valorActual?: number;
   observaciones?: string;
@@ -153,6 +172,61 @@ export interface RegistroAvanceKR {
   valorActual: number;
   registradoPor: string;
   comentario: string;
+}
+
+export interface RubricaCriterio {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  peso: number;
+}
+
+export interface RubricaEvaluacion {
+  id: string;
+  okrId: string;
+  version: number;
+  criterios: RubricaCriterio[];
+  escalaMaxima: number;
+  creadaEn: string;
+  actualizadaEn: string;
+  actualizadaPor: string;
+}
+
+export interface CalificacionCriterio {
+  criterioId: string;
+  puntaje: number;
+  observacion: string;
+}
+
+export interface EvaluacionAporte {
+  id: string;
+  proyectoId: string;
+  okrId: string;
+  krId?: string;
+  rubricaId: string;
+  rubricaVersion: number;
+  fecha: string;
+  evaluador: string;
+  calificaciones: CalificacionCriterio[];
+  puntajeTotal: number;
+  aportePonderado: number;
+  observaciones: string;
+}
+
+export interface IndicadorContribucion {
+  id: string;
+  proyectoId: string;
+  okrId: string;
+  krId?: string;
+  nombre: string;
+  descripcion: string;
+  valorBase: number;
+  valorObjetivo: number;
+  valorActual: number;
+  unidad: string;
+  fechaCorte?: string;
+  estado: "sin_registro" | "en_progreso" | "cumplido" | "en_riesgo";
+  creadoEn: string;
 }
 
 // ──────────────────────────────────────────
@@ -363,6 +437,31 @@ export const historicoOKRs: Record<string, HistoricoOKR[]> = {
 export const PERIODOS = ["2024-II", "2025-I", "2025-II", "2026-I"];
 export const DEPARTAMENTOS = ["DCSI", "DDI", "DM", "Dirección TDI"];
 
+export const periodosAcademicos: PeriodoAcademico[] = [
+  { id: "PER-2024-II", nombre: "2024-II", fechaInicio: "2024-07-15", fechaFin: "2024-12-15", estado: "cerrado" },
+  { id: "PER-2025-I", nombre: "2025-I", fechaInicio: "2025-01-15", fechaFin: "2025-06-15", estado: "cerrado" },
+  { id: "PER-2025-II", nombre: "2025-II", fechaInicio: "2025-07-15", fechaFin: "2025-12-15", estado: "activo" },
+  { id: "PER-2026-I", nombre: "2026-I", fechaInicio: "2026-01-15", fechaFin: "2026-06-15", estado: "planificacion" },
+];
+
+export const unidadesMedida: UnidadMedida[] = [
+  { id: "UM-PCT", nombre: "%", tipo: "porcentaje", descripcion: "Porcentaje de avance o cumplimiento", activa: true },
+  { id: "UM-PROY", nombre: "proyectos", tipo: "numerica", descripcion: "Cantidad de proyectos o iniciativas", activa: true },
+  { id: "UM-CURSOS", nombre: "cursos", tipo: "numerica", descripcion: "Cantidad de cursos", activa: true },
+  { id: "UM-SYLLABUS", nombre: "syllabus", tipo: "numerica", descripcion: "Cantidad de syllabus", activa: true },
+  { id: "UM-ART", nombre: "artículos", tipo: "numerica", descripcion: "Cantidad de articulos/publicaciones", activa: true },
+  { id: "UM-DOC", nombre: "docentes", tipo: "numerica", descripcion: "Cantidad de docentes", activa: true },
+  { id: "UM-EST", nombre: "estudiantes", tipo: "numerica", descripcion: "Cantidad de estudiantes", activa: true },
+  { id: "UM-SEM", nombre: "semilleros", tipo: "numerica", descripcion: "Cantidad de semilleros de investigacion", activa: true },
+  { id: "UM-EMP", nombre: "empresas", tipo: "numerica", descripcion: "Cantidad de empresas aliadas", activa: true },
+  { id: "UM-CONV", nombre: "convenios", tipo: "numerica", descripcion: "Cantidad de convenios activos", activa: true },
+  { id: "UM-PON", nombre: "ponencias", tipo: "numerica", descripcion: "Cantidad de ponencias", activa: true },
+  { id: "UM-ACT", nombre: "actividades", tipo: "numerica", descripcion: "Cantidad de actividades realizadas", activa: true },
+  { id: "UM-PROT", nombre: "prototipos", tipo: "numerica", descripcion: "Cantidad de prototipos", activa: true },
+  { id: "UM-PUNTOS", nombre: "puntos", tipo: "numerica", descripcion: "Puntos de escala o NPS", activa: true },
+  { id: "UM-BOOL", nombre: "cumplido/no cumplido", tipo: "booleana", descripcion: "Resultado binario", activa: true },
+];
+
 // ──────────────────────────────────────────
 // VÍNCULOS OKR-PROYECTO (compat: derivado de proyecto.krId)
 // ──────────────────────────────────────────
@@ -379,6 +478,124 @@ export const vinculosIniciales: VinculoOKRProyecto[] = proyectos.flatMap((p) => 
   const okr = okrs.find((o) => o.keyResults.some((kr) => kr.id === p.krId));
   return okr ? [{ proyectoId: p.id, okrId: okr.id, peso: p.impactoKR?.porcentaje ?? 100 }] : [];
 });
+
+export const rubricasEvaluacion: RubricaEvaluacion[] = [
+  {
+    id: "RUB-OKR1",
+    okrId: "OKR1",
+    version: 1,
+    escalaMaxima: 5,
+    creadaEn: "2026-04-10",
+    actualizadaEn: "2026-04-10",
+    actualizadaPor: "Hugo Arboleda",
+    criterios: [
+      { id: "RUB-OKR1-C1", nombre: "Alineacion estrategica", descripcion: "El proyecto aporta de forma clara al objetivo y a sus KRs.", peso: 35 },
+      { id: "RUB-OKR1-C2", nombre: "Evidencia de resultado", descripcion: "Cuenta con entregables, datos o hitos verificables.", peso: 35 },
+      { id: "RUB-OKR1-C3", nombre: "Escalabilidad", descripcion: "El resultado puede reutilizarse o sostenerse en otros cursos/proyectos.", peso: 30 },
+    ],
+  },
+  {
+    id: "RUB-OKR2",
+    okrId: "OKR2",
+    version: 1,
+    escalaMaxima: 5,
+    creadaEn: "2026-04-10",
+    actualizadaEn: "2026-04-10",
+    actualizadaPor: "Hugo Arboleda",
+    criterios: [
+      { id: "RUB-OKR2-C1", nombre: "Produccion cientifica", descripcion: "Contribuye a publicaciones, prototipos o resultados de investigacion.", peso: 40 },
+      { id: "RUB-OKR2-C2", nombre: "Financiacion o alianzas", descripcion: "Fortalece recursos, redes externas o colaboraciones.", peso: 30 },
+      { id: "RUB-OKR2-C3", nombre: "Formacion investigativa", descripcion: "Involucra estudiantes, semilleros o capacidades nuevas.", peso: 30 },
+    ],
+  },
+];
+
+export const indicadoresContribucion: IndicadorContribucion[] = [
+  {
+    id: "IND-P1-OKR1-1",
+    proyectoId: "P1",
+    okrId: "OKR1",
+    krId: "KR1-2",
+    nombre: "Prototipos con IA integrados al curso",
+    descripcion: "Cantidad de prototipos funcionales usados en actividades del curso.",
+    valorBase: 0,
+    valorObjetivo: 3,
+    valorActual: 2,
+    unidad: "prototipos",
+    fechaCorte: "2025-04-20",
+    estado: "en_progreso",
+    creadoEn: "2026-04-10",
+  },
+  {
+    id: "IND-P3-OKR1-1",
+    proyectoId: "P3",
+    okrId: "OKR1",
+    krId: "KR1-1",
+    nombre: "Syllabus redisenados con ABP",
+    descripcion: "Syllabus actualizados y aprobados con enfoque de aprendizaje basado en proyectos.",
+    valorBase: 0,
+    valorObjetivo: 4,
+    valorActual: 2,
+    unidad: "syllabus",
+    fechaCorte: "2026-03-25",
+    estado: "en_progreso",
+    creadoEn: "2026-04-10",
+  },
+  {
+    id: "IND-P4-OKR2-1",
+    proyectoId: "P4",
+    okrId: "OKR2",
+    krId: "KR2-1",
+    nombre: "Manuscritos enviados",
+    descripcion: "Articulos derivados del proyecto sometidos a revistas indexadas.",
+    valorBase: 0,
+    valorObjetivo: 2,
+    valorActual: 1,
+    unidad: "artículos",
+    fechaCorte: "2025-05-12",
+    estado: "en_progreso",
+    creadoEn: "2026-04-10",
+  },
+];
+
+export const evaluacionesAporte: EvaluacionAporte[] = [
+  {
+    id: "EVAL-P1-OKR1",
+    proyectoId: "P1",
+    okrId: "OKR1",
+    krId: "KR1-2",
+    rubricaId: "RUB-OKR1",
+    rubricaVersion: 1,
+    fecha: "2026-04-12",
+    evaluador: "Hugo Arboleda",
+    calificaciones: [
+      { criterioId: "RUB-OKR1-C1", puntaje: 5, observacion: "Aporta directamente al KR de proyectos con IA." },
+      { criterioId: "RUB-OKR1-C2", puntaje: 4, observacion: "Tiene pilotos y entregables visibles." },
+      { criterioId: "RUB-OKR1-C3", puntaje: 4, observacion: "Puede escalarse a otros cursos introductorios." },
+    ],
+    puntajeTotal: 87,
+    aportePonderado: 68,
+    observaciones: "Evaluacion inicial con evidencia de piloto en curso.",
+  },
+  {
+    id: "EVAL-P4-OKR2",
+    proyectoId: "P4",
+    okrId: "OKR2",
+    krId: "KR2-1",
+    rubricaId: "RUB-OKR2",
+    rubricaVersion: 1,
+    fecha: "2026-04-12",
+    evaluador: "Hugo Arboleda",
+    calificaciones: [
+      { criterioId: "RUB-OKR2-C1", puntaje: 4, observacion: "Resultado investigativo claro." },
+      { criterioId: "RUB-OKR2-C2", puntaje: 3, observacion: "Alianza hospitalaria en consolidacion." },
+      { criterioId: "RUB-OKR2-C3", puntaje: 3, observacion: "Participacion estudiantil todavia limitada." },
+    ],
+    puntajeTotal: 68,
+    aportePonderado: 33,
+    observaciones: "Requiere fortalecer evidencia de transferencia y formacion.",
+  },
+];
 
 // ──────────────────────────────────────────
 // HELPERS

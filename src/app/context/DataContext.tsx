@@ -8,6 +8,11 @@ import {
   objetivosCP as initialOCPs,
   registrosAvance as initialRegistros,
   vinculosIniciales,
+  rubricasEvaluacion as initialRubricas,
+  evaluacionesAporte as initialEvaluaciones,
+  indicadoresContribucion as initialIndicadores,
+  periodosAcademicos as initialPeriodos,
+  unidadesMedida as initialUnidades,
   ApuestaEstrategica,
   MetaInstitucional,
   ObjetivoCP,
@@ -18,6 +23,14 @@ import {
   RegistroAvanceKR,
   VinculoOKRProyecto,
   ImpactoIA,
+  RubricaCriterio,
+  RubricaEvaluacion,
+  EvaluacionAporte,
+  CalificacionCriterio,
+  IndicadorContribucion,
+  PeriodoAcademico,
+  UnidadMedida,
+  EstadoProyecto,
 } from "../data/mockData";
 
 interface DataContextType {
@@ -31,10 +44,25 @@ interface DataContextType {
   // Registros de avance reactivos (persisten en sesión, no se pierden al navegar)
   registrosAvance: RegistroAvance[];
   registrosAvanceKR: RegistroAvanceKR[];
+  rubricasEvaluacion: RubricaEvaluacion[];
+  evaluacionesAporte: EvaluacionAporte[];
+  indicadoresContribucion: IndicadorContribucion[];
+  periodosAcademicos: PeriodoAcademico[];
+  unidadesMedida: UnidadMedida[];
 
   addApuesta: (a: Omit<ApuestaEstrategica, "id" | "cumplimiento">) => string;
   updateApuesta: (id: string, changes: Partial<ApuestaEstrategica>) => void;
   deleteApuesta: (id: string) => void;
+
+  addPeriodoAcademico: (p: Omit<PeriodoAcademico, "id">) => string;
+  updatePeriodoAcademico: (id: string, changes: Partial<PeriodoAcademico>) => void;
+  deletePeriodoAcademico: (id: string) => void;
+  isPeriodoInUse: (nombre: string) => boolean;
+
+  addUnidadMedida: (u: Omit<UnidadMedida, "id">) => string;
+  updateUnidadMedida: (id: string, changes: Partial<UnidadMedida>) => void;
+  deleteUnidadMedida: (id: string) => void;
+  isUnidadInUse: (nombre: string) => boolean;
 
   addMeta: (m: Omit<MetaInstitucional, "id">) => string;
   updateMeta: (id: string, changes: Partial<MetaInstitucional>) => void;
@@ -75,13 +103,37 @@ interface DataContextType {
   getVinculo: (proyectoId: string, okrId: string) => VinculoOKRProyecto | undefined;
   getVinculosByOKR: (okrId: string) => VinculoOKRProyecto[];
   getVinculosByProyecto: (proyectoId: string) => VinculoOKRProyecto[];
+
+  saveRubrica: (okrId: string, criterios: RubricaCriterio[], actualizadoPor: string) => void;
+  copyRubrica: (sourceOkrId: string, targetOkrId: string, actualizadoPor: string) => void;
+  getRubricaByOKR: (okrId: string) => RubricaEvaluacion | undefined;
+  saveEvaluacionAporte: (data: {
+    proyectoId: string;
+    okrId: string;
+    krId?: string;
+    evaluador: string;
+    calificaciones: CalificacionCriterio[];
+    observaciones: string;
+  }) => void;
+  getEvaluacionesByProyecto: (proyectoId: string) => EvaluacionAporte[];
+  getEvaluacionesByOKR: (okrId: string) => EvaluacionAporte[];
+
+  addIndicadorContribucion: (data: Omit<IndicadorContribucion, "id" | "estado" | "creadoEn">) => string;
+  updateIndicadorContribucion: (id: string, changes: Partial<IndicadorContribucion>) => void;
+  deleteIndicadorContribucion: (id: string) => void;
+  getIndicadoresByProyecto: (proyectoId: string) => IndicadorContribucion[];
+  getIndicadoresByOKR: (okrId: string) => IndicadorContribucion[];
 }
 
 // Valor por defecto con no-ops — evita crashes por HMR inestable cuando se
 // reedita este archivo y los hijos quedan momentáneamente fuera del nuevo Provider.
 const noopDefault: DataContextType = {
   apuestas: [], metas: [], objetivosCP: [], okrs: [], proyectos: [], vinculos: [], registrosAvance: [], registrosAvanceKR: [],
+  rubricasEvaluacion: [], evaluacionesAporte: [], indicadoresContribucion: [],
+  periodosAcademicos: [], unidadesMedida: [],
   addApuesta: () => "", updateApuesta: () => {}, deleteApuesta: () => {},
+  addPeriodoAcademico: () => "", updatePeriodoAcademico: () => {}, deletePeriodoAcademico: () => {}, isPeriodoInUse: () => false,
+  addUnidadMedida: () => "", updateUnidadMedida: () => {}, deleteUnidadMedida: () => {}, isUnidadInUse: () => false,
   addMeta: () => "", updateMeta: () => {}, deleteMeta: () => {},
   addOCP: () => "", updateOCP: () => {},
   addOKR: () => "", updateOKR: () => {}, deleteOKR: () => {},
@@ -92,6 +144,10 @@ const noopDefault: DataContextType = {
   unlinkProjectFromKR: () => {},
   addVinculo: () => {}, removeVinculo: () => {}, updateVinculoPeso: () => {},
   getVinculo: () => undefined, getVinculosByOKR: () => [], getVinculosByProyecto: () => [],
+  saveRubrica: () => {}, copyRubrica: () => {}, getRubricaByOKR: () => undefined,
+  saveEvaluacionAporte: () => {}, getEvaluacionesByProyecto: () => [], getEvaluacionesByOKR: () => [],
+  addIndicadorContribucion: () => "", updateIndicadorContribucion: () => {}, deleteIndicadorContribucion: () => {},
+  getIndicadoresByProyecto: () => [], getIndicadoresByOKR: () => [],
 };
 
 // Singleton: vive en globalThis para sobrevivir reemplazos de módulo (HMR).
@@ -108,6 +164,15 @@ const calcCumplimientoOKR = (keyResults: KeyResult[]) => {
   return Math.round(total / keyResults.length);
 };
 
+const calcIndicadorEstado = (indicador: Pick<IndicadorContribucion, "valorBase" | "valorActual" | "valorObjetivo">): IndicadorContribucion["estado"] => {
+  if (indicador.valorActual === indicador.valorBase) return "sin_registro";
+  const span = Math.max(indicador.valorObjetivo - indicador.valorBase, 1);
+  const pct = ((indicador.valorActual - indicador.valorBase) / span) * 100;
+  if (pct >= 100) return "cumplido";
+  if (pct < 30) return "en_riesgo";
+  return "en_progreso";
+};
+
 export function useData(): DataContextType {
   return useContext(DataContext);
 }
@@ -121,6 +186,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [vinculos, setVinculos] = useState<VinculoOKRProyecto[]>([...vinculosIniciales]);
   const [registrosAvance, setRegistros] = useState<RegistroAvance[]>([...initialRegistros]);
   const [registrosAvanceKR, setRegistrosKR] = useState<RegistroAvanceKR[]>([]);
+  const [rubricasEvaluacion, setRubricasEvaluacion] = useState<RubricaEvaluacion[]>([...initialRubricas]);
+  const [evaluacionesAporte, setEvaluacionesAporte] = useState<EvaluacionAporte[]>([...initialEvaluaciones]);
+  const [indicadoresContribucion, setIndicadoresContribucion] = useState<IndicadorContribucion[]>([...initialIndicadores]);
+  const [periodosAcademicos, setPeriodosAcademicos] = useState<PeriodoAcademico[]>([...initialPeriodos]);
+  const [unidadesMedida, setUnidadesMedida] = useState<UnidadMedida[]>([...initialUnidades]);
 
   // ── Apuestas ──────────────────────────────────────────────────────────────────
   const addApuesta = (data: Omit<ApuestaEstrategica, "id" | "cumplimiento">) => {
@@ -136,6 +206,87 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const deleteApuesta = (id: string) => {
     setApuestas(prev => prev.filter(a => a.id !== id));
     toast.success("Apuesta eliminada");
+  };
+
+  // ── Catálogos ───────────────────────────────────────────────────────────────
+  const isPeriodoInUse = (nombre: string) =>
+    okrs.some(o => o.periodo === nombre) ||
+    proyectos.some(p => p.periodoInicio === nombre || p.periodoFin === nombre) ||
+    metas.some(m => m.periodo === nombre);
+
+  const addPeriodoAcademico = (data: Omit<PeriodoAcademico, "id">) => {
+    if (periodosAcademicos.some(p => p.nombre.toLowerCase() === data.nombre.toLowerCase())) {
+      toast.error("Ya existe un periodo con ese nombre");
+      return "";
+    }
+    const id = `PER-${Date.now()}`;
+    setPeriodosAcademicos(prev => [...prev, { ...data, id }]);
+    toast.success("Periodo académico creado");
+    return id;
+  };
+
+  const updatePeriodoAcademico = (id: string, changes: Partial<PeriodoAcademico>) => {
+    const current = periodosAcademicos.find(p => p.id === id);
+    if (!current) return;
+    const nextName = changes.nombre ?? current.nombre;
+    if (periodosAcademicos.some(p => p.id !== id && p.nombre.toLowerCase() === nextName.toLowerCase())) {
+      toast.error("Ya existe un periodo con ese nombre");
+      return;
+    }
+    setPeriodosAcademicos(prev => prev.map(p => p.id === id ? { ...p, ...changes } : p));
+    toast.success("Periodo actualizado");
+  };
+
+  const deletePeriodoAcademico = (id: string) => {
+    const periodo = periodosAcademicos.find(p => p.id === id);
+    if (!periodo) return;
+    if (isPeriodoInUse(periodo.nombre)) {
+      setPeriodosAcademicos(prev => prev.map(p => p.id === id ? { ...p, estado: "cerrado" } : p));
+      toast.info("El periodo está en uso; se marcó como cerrado");
+      return;
+    }
+    setPeriodosAcademicos(prev => prev.filter(p => p.id !== id));
+    toast.success("Periodo eliminado");
+  };
+
+  const isUnidadInUse = (nombre: string) =>
+    metas.some(m => m.unidadMedida === nombre) ||
+    okrs.some(o => o.keyResults.some(k => k.unidad === nombre)) ||
+    indicadoresContribucion.some(ind => ind.unidad === nombre);
+
+  const addUnidadMedida = (data: Omit<UnidadMedida, "id">) => {
+    if (unidadesMedida.some(u => u.nombre.toLowerCase() === data.nombre.toLowerCase())) {
+      toast.error("Ya existe una unidad con ese nombre");
+      return "";
+    }
+    const id = `UM-${Date.now()}`;
+    setUnidadesMedida(prev => [...prev, { ...data, id }]);
+    toast.success("Unidad de medida creada");
+    return id;
+  };
+
+  const updateUnidadMedida = (id: string, changes: Partial<UnidadMedida>) => {
+    const current = unidadesMedida.find(u => u.id === id);
+    if (!current) return;
+    const nextName = changes.nombre ?? current.nombre;
+    if (unidadesMedida.some(u => u.id !== id && u.nombre.toLowerCase() === nextName.toLowerCase())) {
+      toast.error("Ya existe una unidad con ese nombre");
+      return;
+    }
+    setUnidadesMedida(prev => prev.map(u => u.id === id ? { ...u, ...changes } : u));
+    toast.success("Unidad actualizada");
+  };
+
+  const deleteUnidadMedida = (id: string) => {
+    const unidad = unidadesMedida.find(u => u.id === id);
+    if (!unidad) return;
+    if (isUnidadInUse(unidad.nombre)) {
+      setUnidadesMedida(prev => prev.map(u => u.id === id ? { ...u, activa: false } : u));
+      toast.info("La unidad está en uso; se marcó como inactiva");
+      return;
+    }
+    setUnidadesMedida(prev => prev.filter(u => u.id !== id));
+    toast.success("Unidad eliminada");
   };
 
   // ── Metas ─────────────────────────────────────────────────────────────────────
@@ -170,6 +321,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const deleteOKR = (id: string) => {
     setOKRs(prev => prev.filter(o => o.id !== id));
     setVinculos(prev => prev.filter(v => v.okrId !== id));
+    setRubricasEvaluacion(prev => prev.filter(r => r.okrId !== id));
+    setEvaluacionesAporte(prev => prev.filter(e => e.okrId !== id));
+    setIndicadoresContribucion(prev => prev.filter(ind => ind.okrId !== id));
     toast.success("Objetivo eliminado");
   };
 
@@ -259,12 +413,53 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     toast.success("Proyecto creado");
     return id;
   };
-  const updateProyecto = (id: string, changes: Partial<Proyecto>) =>
+
+  const validateProyectoEstado = (proyecto: Proyecto, next: EstadoProyecto) => {
+    if (proyecto.estado === next) return true;
+    const okrIds = new Set(proyecto.okrIds ?? []);
+    const okrFromKR = okrs.find(o => o.keyResults.some(k => k.id === proyecto.krId));
+    if (okrFromKR) okrIds.add(okrFromKR.id);
+    const indicadoresProyecto = indicadoresContribucion.filter(ind => ind.proyectoId === proyecto.id);
+
+    if (next === "activo") {
+      if (okrIds.size === 0) {
+        toast.error("Para activar el proyecto debes vincular al menos un OKR o KR.");
+        return false;
+      }
+      const okrsSinIndicador = [...okrIds].filter(okrId => !indicadoresProyecto.some(ind => ind.okrId === okrId));
+      if (okrsSinIndicador.length > 0) {
+        toast.error(`Para activar el proyecto faltan indicadores de contribucion para: ${okrsSinIndicador.join(", ")}.`);
+        return false;
+      }
+    }
+
+    if (next === "finalizado") {
+      if (proyecto.avanceGlobal < 100 && !indicadoresProyecto.some(ind => ind.estado === "cumplido")) {
+        toast.error("Para finalizar el proyecto registra cumplimiento final: 100% de avance o al menos un indicador cumplido.");
+        return false;
+      }
+    }
+
+    if (next === "archivado" && proyecto.estado === "activo") {
+      toast.error("Suspende o finaliza el proyecto antes de archivarlo.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const updateProyecto = (id: string, changes: Partial<Proyecto>) => {
+    const current = proyectos.find(p => p.id === id);
+    if (!current) return;
+    if (changes.estado && !validateProyectoEstado(current, changes.estado)) return;
     setProyectos(prev => prev.map(p => p.id === id ? { ...p, ...changes } : p));
+  };
   const deleteProyecto = (id: string) => {
     setProyectos(prev => prev.filter(p => p.id !== id));
     setVinculos(prev => prev.filter(v => v.proyectoId !== id));
     setRegistros(prev => prev.filter(r => r.proyectoId !== id));
+    setIndicadoresContribucion(prev => prev.filter(ind => ind.proyectoId !== id));
+    setEvaluacionesAporte(prev => prev.filter(e => e.proyectoId !== id));
     // Limpiar del KR.proyectoIds
     setOKRs(prev => prev.map(o => ({
       ...o,
@@ -279,6 +474,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // ── Registros de avance ───────────────────────────────────────────────────────
   const addRegistroAvance = (r: RegistroAvance) => {
     setRegistros(prev => [...prev, r]);
+    if (r.indicadorId && r.valorActual != null) {
+      setIndicadoresContribucion(prev => prev.map(ind => {
+        if (ind.id !== r.indicadorId) return ind;
+        const next = { ...ind, valorActual: r.valorActual ?? ind.valorActual, fechaCorte: r.fechaCorte ?? r.fecha };
+        return { ...next, estado: calcIndicadorEstado(next) };
+      }));
+    }
     toast.success("Avance registrado correctamente");
   };
   const getRegistrosByProyecto = (proyectoId: string) =>
@@ -349,10 +551,131 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const getVinculosByOKR = (okrId: string) => vinculos.filter(v => v.okrId === okrId);
   const getVinculosByProyecto = (proyectoId: string) => vinculos.filter(v => v.proyectoId === proyectoId);
 
+  const getRubricaByOKR = (okrId: string) =>
+    rubricasEvaluacion.find(r => r.okrId === okrId);
+
+  const saveRubrica = (okrId: string, criterios: RubricaCriterio[], actualizadoPor: string) => {
+    const hoy = new Date().toISOString().split("T")[0];
+    setRubricasEvaluacion(prev => {
+      const existing = prev.find(r => r.okrId === okrId);
+      if (!existing) {
+        return [...prev, {
+          id: `RUB-${okrId}-${Date.now()}`,
+          okrId,
+          version: 1,
+          escalaMaxima: 5,
+          criterios,
+          creadaEn: hoy,
+          actualizadaEn: hoy,
+          actualizadaPor: actualizadoPor,
+        }];
+      }
+      return prev.map(r => r.okrId === okrId
+        ? { ...r, criterios, version: r.version + 1, actualizadaEn: hoy, actualizadaPor: actualizadoPor }
+        : r);
+    });
+    toast.success("Rubrica guardada");
+  };
+
+  const copyRubrica = (sourceOkrId: string, targetOkrId: string, actualizadoPor: string) => {
+    const source = rubricasEvaluacion.find(r => r.okrId === sourceOkrId);
+    if (!source) {
+      toast.error("El objetivo origen no tiene rubrica");
+      return;
+    }
+    const copied = source.criterios.map((c, idx) => ({
+      ...c,
+      id: `RUB-${targetOkrId}-C${idx + 1}-${Date.now()}`,
+    }));
+    saveRubrica(targetOkrId, copied, actualizadoPor);
+  };
+
+  const saveEvaluacionAporte = (data: {
+    proyectoId: string;
+    okrId: string;
+    krId?: string;
+    evaluador: string;
+    calificaciones: CalificacionCriterio[];
+    observaciones: string;
+  }) => {
+    const rubrica = rubricasEvaluacion.find(r => r.okrId === data.okrId);
+    const proyecto = proyectos.find(p => p.id === data.proyectoId);
+    if (!rubrica || !proyecto) {
+      toast.error("No se puede evaluar sin rubrica y proyecto");
+      return;
+    }
+    const puntajeTotal = Math.round(rubrica.criterios.reduce((sum, criterio) => {
+      const calificacion = data.calificaciones.find(c => c.criterioId === criterio.id);
+      return sum + ((calificacion?.puntaje ?? 0) / rubrica.escalaMaxima) * criterio.peso;
+    }, 0));
+    const aportePonderado = Math.round((proyecto.avanceGlobal / 100) * puntajeTotal);
+    const hoy = new Date().toISOString().split("T")[0];
+    const next: EvaluacionAporte = {
+      id: `EVAL-${data.proyectoId}-${data.okrId}-${Date.now()}`,
+      proyectoId: data.proyectoId,
+      okrId: data.okrId,
+      krId: data.krId,
+      rubricaId: rubrica.id,
+      rubricaVersion: rubrica.version,
+      fecha: hoy,
+      evaluador: data.evaluador,
+      calificaciones: data.calificaciones,
+      puntajeTotal,
+      aportePonderado,
+      observaciones: data.observaciones,
+    };
+    setEvaluacionesAporte(prev => [
+      next,
+      ...prev.filter(e => !(e.proyectoId === data.proyectoId && e.okrId === data.okrId)),
+    ]);
+    toast.success("Evaluacion de aporte guardada");
+  };
+
+  const getEvaluacionesByProyecto = (proyectoId: string) =>
+    evaluacionesAporte.filter(e => e.proyectoId === proyectoId);
+  const getEvaluacionesByOKR = (okrId: string) =>
+    evaluacionesAporte.filter(e => e.okrId === okrId);
+
+  const addIndicadorContribucion = (data: Omit<IndicadorContribucion, "id" | "estado" | "creadoEn">) => {
+    const id = `IND-${data.proyectoId}-${Date.now()}`;
+    const indicador: IndicadorContribucion = {
+      ...data,
+      id,
+      estado: calcIndicadorEstado(data),
+      creadoEn: new Date().toISOString().split("T")[0],
+    };
+    setIndicadoresContribucion(prev => [...prev, indicador]);
+    toast.success("Indicador de contribucion creado");
+    return id;
+  };
+
+  const updateIndicadorContribucion = (id: string, changes: Partial<IndicadorContribucion>) => {
+    setIndicadoresContribucion(prev => prev.map(ind => {
+      if (ind.id !== id) return ind;
+      const next = { ...ind, ...changes };
+      return { ...next, estado: calcIndicadorEstado(next) };
+    }));
+    toast.success("Indicador actualizado");
+  };
+
+  const deleteIndicadorContribucion = (id: string) => {
+    setIndicadoresContribucion(prev => prev.filter(ind => ind.id !== id));
+    toast.success("Indicador eliminado");
+  };
+
+  const getIndicadoresByProyecto = (proyectoId: string) =>
+    indicadoresContribucion.filter(ind => ind.proyectoId === proyectoId);
+  const getIndicadoresByOKR = (okrId: string) =>
+    indicadoresContribucion.filter(ind => ind.okrId === okrId);
+
   return (
     <DataContext.Provider value={{
       apuestas, metas, objetivosCP, okrs, proyectos, vinculos, registrosAvance, registrosAvanceKR,
+      rubricasEvaluacion, evaluacionesAporte, indicadoresContribucion,
+      periodosAcademicos, unidadesMedida,
       addApuesta, updateApuesta, deleteApuesta,
+      addPeriodoAcademico, updatePeriodoAcademico, deletePeriodoAcademico, isPeriodoInUse,
+      addUnidadMedida, updateUnidadMedida, deleteUnidadMedida, isUnidadInUse,
       addMeta, updateMeta, deleteMeta,
       addOCP, updateOCP,
       addOKR, updateOKR, deleteOKR,
@@ -362,6 +685,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setProyectoKR, unlinkProjectFromKR,
       addVinculo, removeVinculo, updateVinculoPeso,
       getVinculo, getVinculosByOKR, getVinculosByProyecto,
+      saveRubrica, copyRubrica, getRubricaByOKR,
+      saveEvaluacionAporte, getEvaluacionesByProyecto, getEvaluacionesByOKR,
+      addIndicadorContribucion, updateIndicadorContribucion, deleteIndicadorContribucion,
+      getIndicadoresByProyecto, getIndicadoresByOKR,
     }}>
       {children}
     </DataContext.Provider>

@@ -1,373 +1,361 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, FolderKanban, Save, AlertCircle, Check } from "lucide-react";
-import { useData } from "../context/DataContext";
+import { ArrowLeft, Check, FolderKanban, Loader2, Save } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { departmentsApi, objectivesApi, type Department, type ObjectiveCard } from "../services/strategicApi";
+import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
 import {
-  DEPARTAMENTOS, usuarios, TipoProyecto, EstadoProyecto, ImpactoIA,
-} from "../data/mockData";
-import { ImpactoIAPanel } from "../components/ImpactoIAPanel";
+  projectsApi,
+  type ContributionType,
+  type ProjectKeyResultDraftRequest,
+  type ProjectRequest,
+  type ProjectStatus,
+  type ProjectType,
+} from "../services/projectsApi";
 
 const COLORS = {
   blue: "#5454E9",
-  yellow: "#E4EB60",
   green: "#4CB979",
   orange: "#E9683B",
+  purple: "#7C3AED",
 };
 
-const TIPOS_PROYECTO: { value: TipoProyecto; label: string; color: string; desc: string }[] = [
-  { value: "grado", label: "Proyecto de Grado", color: COLORS.blue, desc: "Trabajo de grado de estudiantes de pregrado" },
-  { value: "investigacion", label: "Investigación", color: COLORS.green, desc: "Proyecto de investigación con grupos o semilleros" },
-  { value: "extension", label: "Extensión", color: COLORS.orange, desc: "Proyecto con impacto externo o comunitario" },
-  { value: "macroproyecto", label: "Macroproyecto", color: "#7C3AED", desc: "Iniciativa interdisciplinar de gran escala" },
+const PROJECT_TYPES: { value: ProjectType; label: string; color: string; desc: string }[] = [
+  { value: "GRADO", label: "Proyecto de grado", color: COLORS.blue, desc: "Trabajo academico o de grado." },
+  { value: "INVESTIGACION", label: "Investigacion", color: COLORS.green, desc: "Proyecto de investigacion, grupo o semillero." },
+  { value: "EXTENSION", label: "Extension", color: COLORS.orange, desc: "Iniciativa con impacto externo." },
+  { value: "MACROPROYECTO", label: "Macroproyecto", color: COLORS.purple, desc: "Iniciativa interdisciplinar de gran escala." },
 ];
 
-const CONTRIBUCION_TIPOS = [
-  { value: "directa", label: "Directa", desc: "Contribuye directamente al logro del KR" },
-  { value: "indirecta", label: "Indirecta", desc: "Contribuye de forma indirecta o complementaria" },
-  { value: "soporte", label: "Soporte", desc: "Apoya el desarrollo del KR sin ser su objetivo principal" },
+const STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
+  { value: "BORRADOR", label: "Borrador" },
+  { value: "ACTIVO", label: "Activo" },
+  { value: "SUSPENDIDO", label: "Suspendido" },
+  { value: "ARCHIVADO", label: "Archivado" },
 ];
 
-type Errors = Partial<Record<string, string>>;
+const CONTRIBUTION_TYPES: { value: ContributionType; label: string }[] = [
+  { value: "DIRECTA", label: "Directa" },
+  { value: "INDIRECTA", label: "Indirecta" },
+  { value: "SOPORTE", label: "Soporte" },
+];
+
+type Errors = Partial<Record<"name" | "description" | "departmentId" | "startPeriod" | "tutors" | "keyResults", string>>;
+
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error) return String(error.message);
+  return "No se pudo completar la accion.";
+}
+
+function parseTutors(value: string) {
+  return value
+    .split(",")
+    .map((tutor) => tutor.trim())
+    .filter(Boolean);
+}
 
 export function NuevoProyecto() {
   const navigate = useNavigate();
-  const { okrs, addProyecto } = useData();
   const { usuario } = useAuth();
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
+  const [objectiveCards, setObjectiveCards] = useState<ObjectiveCard[]>([]);
+  const [loadingCatalogs, setLoadingCatalogs] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Errors>({});
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    type: "GRADO" as ProjectType,
+    departmentId: "",
+    status: "BORRADOR" as ProjectStatus,
+    startPeriod: "",
+    endPeriod: "",
+    startDate: "",
+    endDate: "",
+    tutors: "",
+  });
+  const [krLinks, setKrLinks] = useState<ProjectKeyResultDraftRequest[]>([]);
 
   const canCreate = !!usuario;
 
-  const tutoresDisponibles = usuarios.filter(
-    (u) => (u.rol === "tutor" || u.rol === "jefe") && u.estado === "activo"
-  );
+  useEffect(() => {
+    async function loadCatalogs() {
+      setLoadingCatalogs(true);
+      try {
+        const [departmentsData, periodsData, cardsData] = await Promise.all([
+          departmentsApi.list(),
+          academicPeriodsApi.list(),
+          objectivesApi.cards(),
+        ]);
+        setDepartments(departmentsData);
+        setPeriods(periodsData);
+        setObjectiveCards(cardsData);
+        setForm((current) => ({
+          ...current,
+          departmentId: current.departmentId || String(departmentsData[0]?.id ?? ""),
+          startPeriod: current.startPeriod || periodsData[0]?.name || "2026-1",
+          endPeriod: current.endPeriod || periodsData[0]?.name || "2026-1",
+        }));
+      } catch (error) {
+        toast.error(errorMessage(error));
+      } finally {
+        setLoadingCatalogs(false);
+      }
+    }
+    loadCatalogs();
+  }, []);
 
-  const okrsDisponibles = okrs.filter((o) => o.estado === "activo");
+  const keyResults = useMemo(() => objectiveCards.flatMap((objective) =>
+    objective.keyResults.map((kr) => ({
+      ...kr,
+      objectiveName: objective.name,
+      departmentName: objective.departmentName,
+      period: objective.academicPeriodName,
+    })),
+  ), [objectiveCards]);
 
-  const [form, setForm] = useState({
-    nombre: "",
-    descripcion: "",
-    tipo: "grado" as TipoProyecto,
-    departamento: usuario?.departamento && DEPARTAMENTOS.includes(usuario.departamento) ? usuario.departamento : DEPARTAMENTOS[0],
-    fechaInicio: "",
-    fechaCierre: "",
-    periodoInicio: "2025-I",
-    periodoFin: "2025-I",
-    estado: "borrador" as EstadoProyecto,
-    contribucionTipo: "directa" as "directa" | "indirecta" | "soporte",
-    tutores: [] as string[],
-    krId: "",
-    okrIds: [] as string[],
-  });
-  const [errors, setErrors] = useState<Errors>({});
-  const [saved, setSaved] = useState(false);
-  const [impactoKR, setImpactoKR] = useState<ImpactoIA | undefined>(undefined);
-
-  const set = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: "" }));
-    if (field === "krId") setImpactoKR(undefined);
+  const setField = (field: keyof typeof form, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: "" }));
   };
 
-  const toggleOKR = (okrId: string) => {
-    setForm((prev) => ({
-      ...prev,
-      okrIds: prev.okrIds.includes(okrId)
-        ? prev.okrIds.filter((id) => id !== okrId)
-        : [...prev.okrIds, okrId],
-    }));
-    setErrors((prev) => ({ ...prev, okrIds: "" }));
-  };
-
-  const toggleTutor = (nombre: string) => {
-    setForm((prev) => ({
-      ...prev,
-      tutores: prev.tutores.includes(nombre)
-        ? prev.tutores.filter((t) => t !== nombre)
-        : [...prev.tutores, nombre],
-    }));
-    setErrors((prev) => ({ ...prev, tutores: "" }));
-  };
-
-  const validate = (): boolean => {
-    const e: Errors = {};
-    if (!form.nombre.trim()) e.nombre = "El nombre es obligatorio.";
-    if (!form.descripcion.trim()) e.descripcion = "La descripción es obligatoria.";
-    if (!form.fechaInicio) e.fechaInicio = "La fecha de inicio es obligatoria.";
-    if (!form.fechaCierre) e.fechaCierre = "La fecha de cierre es obligatoria.";
-    if (form.fechaInicio && form.fechaCierre && form.fechaCierre <= form.fechaInicio)
-      e.fechaCierre = "La fecha de cierre debe ser posterior al inicio.";
-    if (form.tutores.length === 0) e.tutores = "Selecciona al menos un tutor.";
-    if (form.estado !== "borrador" && form.okrIds.length === 0) e.okrIds = "Selecciona al menos un OKR activo.";
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = () => {
-    if (!validate()) return;
-    const okrPrincipal = okrs.find((o) => o.id === form.okrIds[0]);
-    addProyecto({
-      nombre: form.nombre.trim(),
-      descripcion: form.descripcion.trim(),
-      tipo: form.tipo,
-      departamento: form.departamento,
-      fechaInicio: form.fechaInicio,
-      fechaCierre: form.fechaCierre,
-      periodoInicio: form.periodoInicio,
-      periodoFin: form.periodoFin,
-      estado: form.estado,
-      contribucionTipo: form.contribucionTipo,
-      tutores: form.tutores,
-      krId: form.krId || okrPrincipal?.keyResults[0]?.id || "",
-      okrIds: form.okrIds,
-      impactoKR,
+  const toggleKeyResult = (keyResultId: number) => {
+    setKrLinks((current) => {
+      if (current.some((link) => link.keyResultId === keyResultId)) {
+        return current.filter((link) => link.keyResultId !== keyResultId);
+      }
+      return [...current, { keyResultId, contributionWeight: 30, contributionType: "DIRECTA" }];
     });
-    setSaved(true);
-    setTimeout(() => navigate("/proyectos"), 1200);
+    setErrors((current) => ({ ...current, keyResults: "" }));
+  };
+
+  const updateLink = (keyResultId: number, changes: Partial<ProjectKeyResultDraftRequest>) => {
+    setKrLinks((current) =>
+      current.map((link) => link.keyResultId === keyResultId ? { ...link, ...changes } : link),
+    );
+  };
+
+  const validate = () => {
+    const next: Errors = {};
+    if (!form.name.trim()) next.name = "El nombre es obligatorio.";
+    if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
+    if (!form.departmentId) next.departmentId = "Selecciona un departamento.";
+    if (!form.startPeriod.trim()) next.startPeriod = "Selecciona el periodo de inicio.";
+    if (parseTutors(form.tutors).length === 0) next.tutors = "Ingresa al menos un tutor.";
+    const invalidLink = krLinks.some((link) =>
+      !link.keyResultId ||
+      link.contributionWeight < 0 ||
+      link.contributionWeight > 100 ||
+      !link.contributionType
+    );
+    if (invalidLink) next.keyResults = "Cada vinculo KR debe tener peso entre 0 y 100 y tipo de contribucion.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    setSaving(true);
+    const payload: ProjectRequest = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      type: form.type,
+      departmentId: Number(form.departmentId),
+      status: form.status,
+      startPeriod: form.startPeriod,
+      endPeriod: form.endPeriod || null,
+      startDate: form.startDate || null,
+      endDate: form.endDate || null,
+      tutors: parseTutors(form.tutors),
+      keyResultLinks: krLinks.length > 0 ? krLinks : undefined,
+    };
+
+    try {
+      const project = await projectsApi.create(payload);
+      toast.success("Proyecto creado correctamente.");
+      navigate(`/proyectos/${project.id}`);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!canCreate) {
     return (
-      <div className="p-8 flex flex-col items-center gap-4 text-center">
-        <AlertCircle size={48} color={COLORS.orange} />
-        <h2 style={{ fontSize: "20px", fontWeight: 800 }}>Debes iniciar sesión</h2>
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 mt-2" style={{ color: COLORS.blue, fontWeight: 700, fontSize: "14px" }}>
-          <ArrowLeft size={16} /> Volver
-        </button>
+      <div className="p-8 text-center">
+        <h2 style={{ fontSize: 20, fontWeight: 900 }}>Debes iniciar sesion</h2>
+        <button onClick={() => navigate("/proyectos")} style={{ marginTop: 12, color: COLORS.blue, fontSize: 13, fontWeight: 800 }}>Volver a proyectos</button>
       </div>
     );
   }
 
-  const tipoColor = TIPOS_PROYECTO.find((t) => t.value === form.tipo)?.color ?? COLORS.blue;
+  const selectedType = PROJECT_TYPES.find((type) => type.value === form.type) ?? PROJECT_TYPES[0];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-gray-100 transition-colors">
+        <button onClick={() => navigate(-1)} className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-gray-100">
           <ArrowLeft size={18} />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: tipoColor }}>
-            <FolderKanban size={18} color="#fff" />
-          </div>
-          <div>
-            <h1 style={{ fontSize: "20px", fontWeight: 900, color: "#000" }}>Nuevo Proyecto</h1>
-            <p style={{ fontSize: "12px", color: "#717182" }}>Cada proyecto aporta a un único Resultado Clave (KR).</p>
-          </div>
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: selectedType.color }}>
+          <FolderKanban size={19} color="#fff" />
+        </div>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 950, color: "#000" }}>Nuevo proyecto</h1>
+          <p style={{ fontSize: 12, color: "#717182", marginTop: 3 }}>Crea un proyecto local y, si aplica, vinculalo de inmediato a uno o varios Key Results.</p>
         </div>
       </div>
 
-      {saved && (
-        <div className="mb-4 px-4 py-3 rounded-lg flex items-center gap-3" style={{ backgroundColor: "#ECFDF5", border: "1.5px solid #4CB979" }}>
-          <AlertCircle size={16} color={COLORS.green} />
-          <span style={{ fontSize: "13px", fontWeight: 700, color: "#065F46" }}>Proyecto creado exitosamente. Redirigiendo...</span>
+      {loadingCatalogs ? (
+        <div className="bg-white rounded-lg p-10 text-center" style={{ border: "1.5px solid #E5E7EB" }}>
+          <Loader2 size={22} className="animate-spin mx-auto mb-3" />
+          <p style={{ fontSize: 13, color: "#717182" }}>Cargando catalogos...</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <div className="bg-white rounded-lg p-5 space-y-5" style={{ border: "1.5px solid #E5E7EB" }}>
+            <h2 style={{ fontSize: 13, fontWeight: 950, textTransform: "uppercase", borderBottom: `2px solid ${COLORS.blue}`, paddingBottom: 8 }}>Informacion general</h2>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Nombre *</label>
+              <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Proyecto de analitica curricular" style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.name ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 13 }} />
+              {errors.name && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.name}</p>}
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Descripcion *</label>
+              <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={4} placeholder="Describe alcance, objetivo y entregables principales..." style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.description ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 13, resize: "vertical" }} />
+              {errors.description && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.description}</p>}
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Tipo de proyecto</label>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-2">
+                {PROJECT_TYPES.map((type) => {
+                  const selected = form.type === type.value;
+                  return (
+                    <button key={type.value} type="button" onClick={() => setField("type", type.value)} className="text-left p-3 rounded-lg" style={{ border: `2px solid ${selected ? type.color : "#E5E7EB"}`, backgroundColor: selected ? `${type.color}12` : "#fff" }}>
+                      <div className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: type.color }} />
+                      <p style={{ fontSize: 12, fontWeight: 900, color: selected ? type.color : "#000" }}>{type.label}</p>
+                      <p style={{ fontSize: 10, color: "#717182", marginTop: 3 }}>{type.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Departamento *</label>
+                <select value={form.departmentId} onChange={(event) => setField("departmentId", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.departmentId ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                  {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+                </select>
+                {errors.departmentId && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.departmentId}</p>}
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Estado inicial</label>
+                <select value={form.status} onChange={(event) => setField("status", event.target.value as ProjectStatus)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                  {STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Tutores *</label>
+                <input value={form.tutors} onChange={(event) => setField("tutors", event.target.value)} placeholder="Tutora A, Tutor B" style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.tutors ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 12 }} />
+                {errors.tutors && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.tutors}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Periodo inicio *</label>
+                <select value={form.startPeriod} onChange={(event) => setField("startPeriod", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.startPeriod ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                  {periods.map((period) => <option key={period.id} value={period.name}>{period.name}</option>)}
+                </select>
+                {errors.startPeriod && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.startPeriod}</p>}
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Periodo fin</label>
+                <select value={form.endPeriod} onChange={(event) => setField("endPeriod", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                  <option value="">Sin definir</option>
+                  {periods.map((period) => <option key={period.id} value={period.name}>{period.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Fecha inicio</label>
+                <input type="date" value={form.startDate} onChange={(event) => setField("startDate", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12 }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Fecha fin</label>
+                <input type="date" value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12 }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-5 space-y-4" style={{ border: "1.5px solid #E5E7EB" }}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 style={{ fontSize: 13, fontWeight: 950, textTransform: "uppercase", borderBottom: `2px solid ${COLORS.blue}`, paddingBottom: 8 }}>Key Results opcionales</h2>
+                <p style={{ fontSize: 12, color: "#717182", marginTop: 8 }}>Puedes vincular varios KRs con peso y tipo de contribucion desde la creacion.</p>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 900, color: COLORS.blue }}>{krLinks.length} seleccionado(s)</span>
+            </div>
+            {errors.keyResults && <p style={{ fontSize: 11, color: COLORS.orange }}>{errors.keyResults}</p>}
+
+            {keyResults.length === 0 ? (
+              <p style={{ fontSize: 13, color: "#717182" }}>No hay Key Results disponibles desde objectives/cards.</p>
+            ) : (
+              <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+                {keyResults.map((kr) => {
+                  const link = krLinks.find((item) => item.keyResultId === kr.id);
+                  const selected = !!link;
+                  return (
+                    <div key={kr.id} className="rounded-lg p-3" style={{ border: `1.5px solid ${selected ? COLORS.blue : "#E5E7EB"}`, backgroundColor: selected ? "#EEF2FF" : "#FAFAFA" }}>
+                      <div className="flex items-start gap-3">
+                        <button type="button" onClick={() => toggleKeyResult(kr.id)} className="w-5 h-5 rounded flex items-center justify-center mt-0.5" style={{ backgroundColor: selected ? COLORS.blue : "#fff", border: `2px solid ${selected ? COLORS.blue : "#D1D5DB"}` }}>
+                          {selected && <Check size={12} color="#fff" />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>
+                            KR {kr.id} - {kr.objectiveName} - {kr.departmentName} - {kr.period}
+                          </p>
+                          <p style={{ fontSize: 12, fontWeight: 850, color: "#000", marginTop: 3 }}>{kr.name || kr.description}</p>
+                          <p style={{ fontSize: 11, color: "#717182", marginTop: 2 }}>{kr.metric}</p>
+                        </div>
+                      </div>
+                      {selected && link && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 ml-8">
+                          <div>
+                            <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase" }}>Peso</label>
+                            <input type="number" min={0} max={100} value={link.contributionWeight} onChange={(event) => updateLink(kr.id, { contributionWeight: Math.max(0, Math.min(100, Number(event.target.value))) })} style={{ width: "100%", marginTop: 4, padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: 12 }} />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase" }}>Tipo de contribucion</label>
+                            <select value={link.contributionType} onChange={(event) => updateLink(kr.id, { contributionType: event.target.value as ContributionType })} style={{ width: "100%", marginTop: 4, padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                              {CONTRIBUTION_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pb-6">
+            <button onClick={() => navigate(-1)} style={{ padding: "10px 18px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontWeight: 850 }}>Cancelar</button>
+            <button onClick={handleSubmit} disabled={saving} className="inline-flex items-center gap-2" style={{ padding: "10px 18px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 6, fontSize: 13, fontWeight: 950, opacity: saving ? 0.65 : 1 }}>
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              Crear proyecto
+            </button>
+          </div>
         </div>
       )}
-
-      <div className="space-y-5">
-        {/* Sección 1: Información básica */}
-        <div className="bg-white rounded-xl p-6 space-y-5" style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-          <h2 style={{ fontSize: "13px", fontWeight: 800, color: "#000", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #5454E9", paddingBottom: 8 }}>
-            Información básica
-          </h2>
-
-          <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Nombre del proyecto <span style={{ color: COLORS.orange }}>*</span>
-            </label>
-            <input
-              type="text" value={form.nombre} onChange={(e) => set("nombre", e.target.value)}
-              placeholder="Ej: Sistema de tutoría inteligente con IA generativa"
-              style={{ width: "100%", padding: "10px 14px", fontSize: "14px", border: `1.5px solid ${errors.nombre ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif" }}
-            />
-            {errors.nombre && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.nombre}</p>}
-          </div>
-
-          <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Descripción <span style={{ color: COLORS.orange }}>*</span>
-            </label>
-            <textarea
-              value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)}
-              placeholder="Describe el alcance, metodología y objetivo principal del proyecto..." rows={3}
-              style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.descripcion ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif", resize: "vertical" }}
-            />
-            {errors.descripcion && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.descripcion}</p>}
-          </div>
-
-          <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Tipo de proyecto <span style={{ color: COLORS.orange }}>*</span>
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {TIPOS_PROYECTO.map((t) => {
-                const sel = form.tipo === t.value;
-                return (
-                  <button key={t.value} type="button" onClick={() => setForm((prev) => ({ ...prev, tipo: t.value }))}
-                    className="p-3 rounded-lg text-left transition-all"
-                    style={{ border: `2px solid ${sel ? t.color : "#E5E7EB"}`, backgroundColor: sel ? t.color + "12" : "#fff" }}>
-                    <div className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: t.color }} />
-                    <p style={{ fontSize: "11px", fontWeight: 700, color: sel ? t.color : "#374151" }}>{t.label}</p>
-                    <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 2, lineHeight: 1.4 }}>{t.desc}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Departamento</label>
-              <select value={form.departamento} onChange={(e) => set("departamento", e.target.value)}
-                style={{ width: "100%", padding: "10px 14px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif", backgroundColor: "#fff" }}>
-                {DEPARTAMENTOS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Estado inicial</label>
-              <select value={form.estado} onChange={(e) => set("estado", e.target.value)}
-                style={{ width: "100%", padding: "10px 14px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif", backgroundColor: "#fff" }}>
-                <option value="borrador">Borrador</option>
-                <option value="activo">Activo</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Tipo de contribución</label>
-              <select value={form.contribucionTipo} onChange={(e) => set("contribucionTipo", e.target.value)}
-                style={{ width: "100%", padding: "10px 14px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif", backgroundColor: "#fff" }}>
-                {CONTRIBUCION_TIPOS.map((c) => <option key={c.value} value={c.value}>{c.label} — {c.desc}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Fecha de inicio <span style={{ color: COLORS.orange }}>*</span></label>
-              <input type="date" value={form.fechaInicio} onChange={(e) => set("fechaInicio", e.target.value)}
-                style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.fechaInicio ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif" }}/>
-              {errors.fechaInicio && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.fechaInicio}</p>}
-            </div>
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Fecha de cierre <span style={{ color: COLORS.orange }}>*</span></label>
-              <input type="date" value={form.fechaCierre} onChange={(e) => set("fechaCierre", e.target.value)}
-                style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.fechaCierre ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif" }}/>
-              {errors.fechaCierre && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.fechaCierre}</p>}
-            </div>
-          </div>
-        </div>
-
-        {/* Sección 2: Tutores */}
-        <div className="bg-white rounded-xl p-6 space-y-4" style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-          <h2 style={{ fontSize: "13px", fontWeight: 800, color: "#000", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #5454E9", paddingBottom: 8 }}>
-            Tutores / Profesores <span style={{ color: COLORS.orange }}>*</span>
-          </h2>
-          <p style={{ fontSize: "11px", color: "#717182" }}>Selecciona uno o más tutores responsables del proyecto.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {tutoresDisponibles.map((u) => {
-              const selected = form.tutores.includes(u.nombre);
-              return (
-                <button key={u.id} type="button" onClick={() => toggleTutor(u.nombre)}
-                  className="text-left flex items-center gap-3 p-3 rounded-lg transition-all"
-                  style={{ border: `1.5px solid ${selected ? COLORS.blue : "#E5E7EB"}`, backgroundColor: selected ? "#EEF2FF" : "#fff" }}>
-                  <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: selected ? COLORS.blue : "#F3F4F6", border: `2px solid ${selected ? COLORS.blue : "#D1D5DB"}` }}>
-                    {selected && <Check size={12} color="#fff" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p style={{ fontSize: "12px", fontWeight: 600, color: "#000" }}>{u.nombre}</p>
-                    <p style={{ fontSize: "10px", color: "#9CA3AF" }}>{u.departamento} · {u.rol === "jefe" ? "Jefe de Dpto." : "Tutor"}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          {errors.tutores && <p style={{ fontSize: "11px", color: COLORS.orange }}>{errors.tutores}</p>}
-        </div>
-
-        {/* Sección 3: OKRs vinculados */}
-        <div className="bg-white rounded-xl p-6 space-y-4" style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-          <h2 style={{ fontSize: "13px", fontWeight: 800, color: "#000", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "2px solid #5454E9", paddingBottom: 8 }}>
-            OKRs vinculados
-          </h2>
-          <p style={{ fontSize: "11px", color: "#717182" }}>
-            Vincula el proyecto a uno o mas OKRs activos. Puedes marcar un KR principal para mantener trazabilidad detallada.
-          </p>
-
-          {okrsDisponibles.length === 0 ? (
-            <p style={{ fontSize: "12px", color: "#9CA3AF", fontStyle: "italic" }}>No hay objetivos activos disponibles.</p>
-          ) : (
-            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-              {okrsDisponibles.map((o) => {
-                const okrSelected = form.okrIds.includes(o.id);
-                return (
-                <div key={o.id} className="rounded-lg" style={{ border: `1.5px solid ${okrSelected ? COLORS.blue : "#E5E7EB"}`, backgroundColor: okrSelected ? "#EEF2FF" : "#FAFAFA" }}>
-                  <div className="px-3 py-2 flex items-start gap-3" style={{ borderBottom: "1px solid #E5E7EB" }}>
-                    <button type="button" onClick={() => toggleOKR(o.id)} className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: okrSelected ? COLORS.blue : "#fff", border: `2px solid ${okrSelected ? COLORS.blue : "#D1D5DB"}` }}>
-                      {okrSelected && <Check size={12} color="#fff" />}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                    <p style={{ fontSize: "11px", fontWeight: 800, color: COLORS.blue, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                      {o.id} · {o.departamento} · {o.periodo}
-                    </p>
-                      <p style={{ fontSize: "12px", fontWeight: 600, color: "#000", marginTop: 2 }}>{o.objetivo}</p>
-                    </div>
-                  </div>
-                  <div className="p-2 space-y-1">
-                    {o.keyResults.map((kr, i) => {
-                      const sel = form.krId === kr.id;
-                      return (
-                        <button key={kr.id} type="button" onClick={() => {
-                          if (!form.okrIds.includes(o.id)) toggleOKR(o.id);
-                          set("krId", kr.id);
-                        }}
-                          className="w-full text-left flex items-start gap-2 p-2 rounded transition-all"
-                          style={{ border: `1.5px solid ${sel ? COLORS.green : "transparent"}`, backgroundColor: sel ? "#F0FDF4" : "#fff" }}>
-                          <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                            style={{ backgroundColor: sel ? COLORS.green : "#fff", border: `2px solid ${sel ? COLORS.green : "#D1D5DB"}` }}>
-                            {sel && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#fff" }} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p style={{ fontSize: "10px", fontWeight: 700, color: "#374151" }}>KR{i + 1}</p>
-                            <p style={{ fontSize: "12px", color: "#000", lineHeight: 1.4 }}>{kr.enunciado || kr.metrica}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );})}
-            </div>
-          )}
-          {errors.okrIds && <p style={{ fontSize: "11px", color: COLORS.orange }}>{errors.okrIds}</p>}
-          {errors.krId && <p style={{ fontSize: "11px", color: COLORS.orange }}>{errors.krId}</p>}
-
-          {(() => {
-            const krSel = form.krId
-              ? okrs.flatMap((o) => o.keyResults).find((k) => k.id === form.krId)
-              : null;
-            return (
-              <ImpactoIAPanel
-                titulo="Impacto del Proyecto en el KR"
-                tipo="proyecto-kr"
-                origen={{ titulo: form.nombre || "Proyecto (sin nombre)", descripcion: form.descripcion }}
-                destino={krSel ? { titulo: krSel.enunciado || krSel.metrica } : null}
-                value={impactoKR}
-                onChange={setImpactoKR}
-              />
-            );
-          })()}
-        </div>
-
-        <div className="flex items-center justify-end gap-3 pb-6">
-          <button onClick={() => navigate(-1)} style={{ padding: "10px 20px", fontSize: "13px", fontWeight: 700, color: "#374151", border: "1.5px solid #E5E7EB", borderRadius: 8, backgroundColor: "#fff" }}>
-            Cancelar
-          </button>
-          <button onClick={handleSubmit} disabled={saved} className="flex items-center gap-2"
-            style={{ padding: "10px 24px", fontSize: "13px", fontWeight: 700, color: "#fff", backgroundColor: saved ? COLORS.green : COLORS.blue, border: "none", borderRadius: 8, cursor: saved ? "default" : "pointer" }}>
-            <Save size={15} />
-            {saved ? "Guardado" : "Crear Proyecto"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

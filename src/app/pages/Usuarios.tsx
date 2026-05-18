@@ -1,14 +1,16 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Plus, Search, Edit2, UserX, UserCheck, Download, ShieldCheck,
-  MoreVertical, Mail, Calendar
+  MoreVertical, Mail, Calendar, UploadCloud
 } from "lucide-react";
-import { usuarios, Usuario, RolUsuario, getLabelRol, DEPARTAMENTOS } from "../data/mockData";
+import { usuarios as usuariosSeed, Usuario, RolUsuario, getLabelRol, DEPARTAMENTOS } from "../data/mockData";
 import { useAuth } from "../context/AuthContext";
+import { useAudit } from "../context/AuditContext";
+import { downloadCSV, getDateStamp } from "../utils/exportUtils";
 
 const COLORS = {
   blue: "#5454E9",
-  yellow: "#E4EB60",
   green: "#4CB979",
   orange: "#E9683B",
 };
@@ -20,53 +22,62 @@ const ROL_COLORS: Record<RolUsuario, { bg: string; color: string }> = {
   tutor: { bg: "#F9FAFB", color: "#374151" },
 };
 
-function UserModal({ user, onClose, mode }: { user: Usuario | null; onClose: () => void; mode: "edit" | "create" }) {
+function getInitials(nombre: string) {
+  return nombre.split(" ").map((part) => part[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+}
+
+function UserModal({
+  user,
+  onClose,
+  onSave,
+  mode,
+}: {
+  user: Usuario | null;
+  onClose: () => void;
+  onSave: (user: Partial<Usuario>) => void;
+  mode: "edit" | "create";
+}) {
   const [formData, setFormData] = useState<Partial<Usuario>>(
     user || { nombre: "", correo: "", rol: "tutor", departamento: "DCSI", estado: "activo" }
   );
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md bg-white rounded-lg overflow-hidden shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={onClose}>
+      <div className="w-full max-w-md overflow-hidden rounded-lg bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div style={{ backgroundColor: "#000", padding: "20px 24px" }}>
           <div className="flex items-center justify-between">
             <h2 style={{ color: "#fff", fontSize: "16px", fontWeight: 800 }}>
               {mode === "create" ? "Nuevo Usuario" : "Editar Usuario"}
             </h2>
-            <button onClick={onClose} style={{ color: "rgba(255,255,255,0.6)", fontSize: "20px" }}>×</button>
+            <button onClick={onClose} style={{ color: "rgba(255,255,255,0.6)", fontSize: "20px" }}>x</button>
           </div>
         </div>
-        <div className="p-6 space-y-4">
+
+        <div className="space-y-4 p-6">
           {[
-            { label: "Nombre completo", key: "nombre", type: "text", placeholder: "Ej: María Claudia Ospina" },
+            { label: "Nombre completo", key: "nombre", type: "text", placeholder: "Ej: Maria Claudia Ospina" },
             { label: "Correo institucional", key: "correo", type: "email", placeholder: "usuario@icesi.edu.co" },
-          ].map((f) => (
-            <div key={f.key}>
+          ].map((field) => (
+            <div key={field.key}>
               <label style={{ fontSize: "11px", fontWeight: 700, color: "#000", display: "block", marginBottom: 5 }}>
-                {f.label} *
+                {field.label} *
               </label>
               <input
-                type={f.type}
-                value={(formData as any)[f.key] || ""}
-                onChange={(e) => setFormData({ ...formData, [f.key]: e.target.value })}
-                placeholder={f.placeholder}
+                type={field.type}
+                value={(formData as Record<string, any>)[field.key] || ""}
+                onChange={(event) => setFormData({ ...formData, [field.key]: event.target.value })}
+                placeholder={field.placeholder}
                 style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", outline: "none", boxSizing: "border-box" }}
               />
             </div>
           ))}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label style={{ fontSize: "11px", fontWeight: 700, color: "#000", display: "block", marginBottom: 5 }}>Rol *</label>
               <select
                 value={formData.rol}
-                onChange={(e) => setFormData({ ...formData, rol: e.target.value as RolUsuario })}
+                onChange={(event) => setFormData({ ...formData, rol: event.target.value as RolUsuario })}
                 style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", boxSizing: "border-box" }}
               >
                 <option value="tutor">Tutor/Profesor</option>
@@ -79,40 +90,42 @@ function UserModal({ user, onClose, mode }: { user: Usuario | null; onClose: () 
               <label style={{ fontSize: "11px", fontWeight: 700, color: "#000", display: "block", marginBottom: 5 }}>Departamento</label>
               <select
                 value={formData.departamento}
-                onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
+                onChange={(event) => setFormData({ ...formData, departamento: event.target.value })}
                 style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", boxSizing: "border-box" }}
               >
-                {[...DEPARTAMENTOS, "TI Institucional"].map((d) => <option key={d} value={d}>{d}</option>)}
+                {[...DEPARTAMENTOS, "TI Institucional"].map((depto) => <option key={depto} value={depto}>{depto}</option>)}
               </select>
             </div>
           </div>
+
           <div>
             <label style={{ fontSize: "11px", fontWeight: 700, color: "#000", display: "block", marginBottom: 5 }}>Estado</label>
             <div className="flex items-center gap-4">
-              {["activo", "inactivo"].map((e) => (
-                <label key={e} className="flex items-center gap-2 cursor-pointer">
+              {["activo", "inactivo"].map((estado) => (
+                <label key={estado} className="flex cursor-pointer items-center gap-2">
                   <input
                     type="radio"
                     name="estado"
-                    value={e}
-                    checked={formData.estado === e}
-                    onChange={() => setFormData({ ...formData, estado: e as "activo" | "inactivo" })}
+                    value={estado}
+                    checked={formData.estado === estado}
+                    onChange={() => setFormData({ ...formData, estado: estado as "activo" | "inactivo" })}
                     style={{ accentColor: "#5454E9" }}
                   />
-                  <span style={{ fontSize: "12px", textTransform: "capitalize" }}>{e}</span>
+                  <span style={{ fontSize: "12px", textTransform: "capitalize" }}>{estado}</span>
                 </label>
               ))}
             </div>
           </div>
         </div>
-        <div className="px-6 py-4 flex justify-end gap-3" style={{ borderTop: "1px solid #E5E7EB" }}>
-          <button onClick={onClose} className="px-4 py-2 rounded border hover:bg-gray-50 transition-colors" style={{ fontSize: "12px", fontWeight: 600 }}>
+
+        <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: "1px solid #E5E7EB" }}>
+          <button onClick={onClose} className="rounded border px-4 py-2 hover:bg-gray-50" style={{ fontSize: "12px", fontWeight: 600 }}>
             Cancelar
           </button>
           <button
-            onClick={onClose}
-            className="px-4 py-2 rounded hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: "#5454E9", color: "#fff", fontSize: "12px", fontWeight: 700 }}
+            onClick={() => onSave(formData)}
+            className="rounded px-4 py-2 hover:opacity-90"
+            style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: "12px", fontWeight: 700 }}
           >
             {mode === "create" ? "Crear Usuario" : "Guardar Cambios"}
           </button>
@@ -124,6 +137,8 @@ function UserModal({ user, onClose, mode }: { user: Usuario | null; onClose: () 
 
 export function Usuarios() {
   const { usuario } = useAuth();
+  const { entries, logAudit } = useAudit();
+  const [users, setUsers] = useState<Usuario[]>(usuariosSeed);
   const [search, setSearch] = useState("");
   const [filterRol, setFilterRol] = useState("todos");
   const [filterEstado, setFilterEstado] = useState("todos");
@@ -135,7 +150,7 @@ export function Usuarios() {
 
   if (usuario?.rol !== "administrador") {
     return (
-      <div className="flex flex-col items-center justify-center h-full py-20">
+      <div className="flex h-full flex-col items-center justify-center py-20">
         <ShieldCheck size={48} color="#E5E7EB" className="mb-4" />
         <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#374151" }}>Acceso Restringido</h2>
         <p style={{ fontSize: "13px", color: "#9CA3AF", marginTop: 6 }}>
@@ -145,57 +160,128 @@ export function Usuarios() {
     );
   }
 
-  const filtered = usuarios
+  const filtered = users
     .filter((u) => filterRol === "todos" || u.rol === filterRol)
     .filter((u) => filterEstado === "todos" || u.estado === filterEstado)
     .filter((u) => filterDepto === "todos" || u.departamento === filterDepto)
-    .filter((u) =>
-      !search ||
-      u.nombre.toLowerCase().includes(search.toLowerCase()) ||
-      u.correo.toLowerCase().includes(search.toLowerCase())
-    );
+    .filter((u) => {
+      const q = search.trim().toLowerCase();
+      return !q || u.nombre.toLowerCase().includes(q) || u.correo.toLowerCase().includes(q);
+    });
 
   const stats = {
-    total: usuarios.length,
-    activos: usuarios.filter((u) => u.estado === "activo").length,
-    inactivos: usuarios.filter((u) => u.estado === "inactivo").length,
-    directores: usuarios.filter((u) => u.rol === "director").length,
+    total: users.length,
+    activos: users.filter((u) => u.estado === "activo").length,
+    inactivos: users.filter((u) => u.estado === "inactivo").length,
+    directores: users.filter((u) => u.rol === "director").length,
+  };
+
+  const handleSave = (formUser: Partial<Usuario>) => {
+    if (!formUser.nombre?.trim() || !formUser.correo?.trim() || !formUser.rol) {
+      toast.error("Completa nombre, correo y rol.");
+      return;
+    }
+
+    if (modal.mode === "create") {
+      const nextNumber = Math.max(...users.map((u) => Number(u.id.replace("U", ""))).filter(Number.isFinite), 0) + 1;
+      const newUser: Usuario = {
+        id: `U${nextNumber}`,
+        nombre: formUser.nombre.trim(),
+        correo: formUser.correo.trim(),
+        rol: formUser.rol,
+        departamento: formUser.departamento || "DCSI",
+        estado: formUser.estado || "activo",
+        ultimoAcceso: getDateStamp(),
+      };
+      setUsers((current) => [newUser, ...current]);
+      logAudit({
+        modulo: "Usuarios",
+        accion: "Creacion",
+        entidad: newUser.nombre,
+        entidadId: newUser.id,
+        detalle: `Usuario creado con rol ${newUser.rol}.`,
+        resultado: "ok",
+      });
+      toast.success("Usuario creado");
+    } else if (modal.user) {
+      const updatedUser = { ...modal.user, ...formUser } as Usuario;
+      setUsers((current) => current.map((u) => u.id === updatedUser.id ? updatedUser : u));
+      logAudit({
+        modulo: "Usuarios",
+        accion: "Edicion",
+        entidad: updatedUser.nombre,
+        entidadId: updatedUser.id,
+        detalle: `Se actualizaron datos del usuario con rol ${updatedUser.rol}.`,
+        resultado: "ok",
+      });
+      toast.success("Usuario actualizado");
+    }
+
+    setModal({ open: false, user: null, mode: "create" });
+  };
+
+  const toggleUserStatus = (target: Usuario) => {
+    const nextStatus = target.estado === "activo" ? "inactivo" : "activo";
+    setUsers((current) => current.map((u) => u.id === target.id ? { ...u, estado: nextStatus } : u));
+    setMenuOpen(null);
+    logAudit({
+      modulo: "Usuarios",
+      accion: nextStatus === "activo" ? "Activacion" : "Desactivacion",
+      entidad: target.nombre,
+      entidadId: target.id,
+      detalle: `Estado cambiado de ${target.estado} a ${nextStatus}.`,
+      resultado: "ok",
+    });
+    toast.success(nextStatus === "activo" ? "Usuario activado" : "Usuario desactivado");
+  };
+
+  const exportUsers = () => {
+    downloadCSV(filtered.map((u) => ({
+      ID: u.id,
+      Nombre: u.nombre,
+      Correo: u.correo,
+      Rol: getLabelRol(u.rol),
+      Departamento: u.departamento,
+      Estado: u.estado,
+      UltimoAcceso: u.ultimoAcceso,
+    })), `Usuarios_SGP_${getDateStamp()}`);
+    logAudit({
+      modulo: "Usuarios",
+      accion: "Exportacion",
+      entidad: "Listado de usuarios",
+      detalle: `${filtered.length} usuarios exportados.`,
+      resultado: "info",
+    });
   };
 
   return (
     <div className="p-6">
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           { label: "Total Usuarios", value: stats.total, color: COLORS.blue },
           { label: "Activos", value: stats.activos, color: COLORS.green },
           { label: "Inactivos", value: stats.inactivos, color: COLORS.orange },
           { label: "Directores", value: stats.directores, color: "#7C3AED" },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-lg p-4" style={{ border: "1.5px solid #E5E7EB" }}>
-            <p style={{ fontSize: "24px", fontWeight: 800, color: s.color }}>{s.value}</p>
-            <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 2 }}>{s.label}</p>
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-lg bg-white p-4" style={{ border: "1.5px solid #E5E7EB" }}>
+            <p style={{ fontSize: "24px", fontWeight: 800, color: stat.color }}>{stat.value}</p>
+            <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 2 }}>{stat.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
-        <div className="flex items-center gap-2 flex-1" style={{ border: "1.5px solid #000", borderRadius: 6, padding: "6px 12px", minWidth: 200, maxWidth: 280 }}>
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="flex min-w-[200px] flex-1 items-center gap-2 rounded-md px-3 py-2" style={{ border: "1.5px solid #000", maxWidth: 280 }}>
           <Search size={14} color="#9CA3AF" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar por nombre o correo..."
             style={{ border: "none", outline: "none", fontSize: "12px", flex: 1, backgroundColor: "transparent" }}
           />
         </div>
 
-        <select
-          value={filterRol}
-          onChange={(e) => setFilterRol(e.target.value)}
-          style={{ border: "1.5px solid #000", borderRadius: 6, padding: "6px 10px", fontSize: "12px", fontWeight: 600, backgroundColor: "#fff" }}
-        >
+        <select value={filterRol} onChange={(event) => setFilterRol(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
           <option value="todos">Todos los roles</option>
           <option value="administrador">Administrador</option>
           <option value="director">Director de Escuela</option>
@@ -203,80 +289,61 @@ export function Usuarios() {
           <option value="tutor">Tutor/Profesor</option>
         </select>
 
-        <select
-          value={filterEstado}
-          onChange={(e) => setFilterEstado(e.target.value)}
-          style={{ border: "1.5px solid #000", borderRadius: 6, padding: "6px 10px", fontSize: "12px", fontWeight: 600, backgroundColor: "#fff" }}
-        >
+        <select value={filterEstado} onChange={(event) => setFilterEstado(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
           <option value="todos">Todos los estados</option>
           <option value="activo">Activo</option>
           <option value="inactivo">Inactivo</option>
         </select>
 
-        <select
-          value={filterDepto}
-          onChange={(e) => setFilterDepto(e.target.value)}
-          style={{ border: "1.5px solid #000", borderRadius: 6, padding: "6px 10px", fontSize: "12px", fontWeight: 600, backgroundColor: "#fff" }}
-        >
+        <select value={filterDepto} onChange={(event) => setFilterDepto(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
           <option value="todos">Todos los deptos.</option>
-          {[...DEPARTAMENTOS, "TI Institucional"].map((d) => <option key={d} value={d}>{d}</option>)}
+          {[...DEPARTAMENTOS, "TI Institucional"].map((depto) => <option key={depto} value={depto}>{depto}</option>)}
         </select>
 
         <div className="flex-1" />
 
         <button
-          className="flex items-center gap-1 px-3 py-2 rounded border hover:bg-gray-50 transition-colors"
-          style={{ fontSize: "11px", fontWeight: 600 }}
+          onClick={() => {
+            toast.info("Sincronizacion simulada con directorio institucional.");
+            logAudit({ modulo: "Usuarios", accion: "Sincronizacion", entidad: "Directorio institucional", detalle: "Accion mock de importacion desde directorio.", resultado: "info" });
+          }}
+          className="flex items-center gap-1 rounded border px-3 py-2 hover:bg-gray-50"
+          style={{ fontSize: "11px", fontWeight: 700 }}
         >
-          <Download size={13} /> Importar del directorio
+          <UploadCloud size={13} /> Importar
+        </button>
+        <button onClick={exportUsers} className="flex items-center gap-1 rounded border px-3 py-2 hover:bg-gray-50" style={{ fontSize: "11px", fontWeight: 700 }}>
+          <Download size={13} /> Exportar
         </button>
         <button
           onClick={() => setModal({ open: true, user: null, mode: "create" })}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: "#5454E9", color: "#fff", fontSize: "12px", fontWeight: 700 }}
+          className="flex items-center gap-2 rounded-lg px-4 py-2 hover:opacity-90"
+          style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: "12px", fontWeight: 700 }}
         >
           <Plus size={14} /> Nuevo Usuario
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg overflow-hidden" style={{ border: "1.5px solid #E5E7EB" }}>
+      <div className="overflow-hidden rounded-lg bg-white" style={{ border: "1.5px solid #E5E7EB" }}>
         <table className="w-full" style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "2px solid #000", backgroundColor: "#000" }}>
-              {["Usuario", "Correo", "Rol", "Departamento", "Estado", "Último acceso", ""].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: "12px 14px", fontSize: "10px", fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
-                  {h}
+              {["Usuario", "Correo", "Rol", "Departamento", "Estado", "Ultimo acceso", ""].map((header) => (
+                <th key={header} style={{ textAlign: "left", padding: "12px 14px", fontSize: "10px", fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+                  {header}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {filtered.map((u, i) => {
+            {filtered.map((u, index) => {
               const rolColors = ROL_COLORS[u.rol];
               return (
-                <tr
-                  key={u.id}
-                  style={{
-                    borderBottom: "1px solid #F3F4F6",
-                    backgroundColor: u.estado === "inactivo" ? "#FAFAFA" : i % 2 === 0 ? "#fff" : "#FAFAFA",
-                    opacity: u.estado === "inactivo" ? 0.7 : 1,
-                  }}
-                >
+                <tr key={u.id} style={{ borderBottom: "1px solid #F3F4F6", backgroundColor: u.estado === "inactivo" ? "#FAFAFA" : index % 2 === 0 ? "#fff" : "#FAFAFA", opacity: u.estado === "inactivo" ? 0.7 : 1 }}>
                   <td style={{ padding: "12px 14px" }}>
                     <div className="flex items-center gap-3">
-                      <div
-                        className="flex items-center justify-center rounded-full flex-shrink-0"
-                        style={{
-                          width: 36,
-                          height: 36,
-                          backgroundColor: u.estado === "inactivo" ? "#E5E7EB" : "#5454E9",
-                          color: "#fff",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {u.nombre.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                      <div className="flex flex-shrink-0 items-center justify-center rounded-full" style={{ width: 36, height: 36, backgroundColor: u.estado === "inactivo" ? "#E5E7EB" : COLORS.blue, color: "#fff", fontSize: "11px", fontWeight: 700 }}>
+                        {getInitials(u.nombre)}
                       </div>
                       <div>
                         <p style={{ fontSize: "13px", fontWeight: 700, color: "#000" }}>{u.nombre}</p>
@@ -291,22 +358,13 @@ export function Usuarios() {
                     </div>
                   </td>
                   <td style={{ padding: "12px 14px" }}>
-                    <span className="px-2 py-1 rounded" style={{ backgroundColor: rolColors.bg, color: rolColors.color, fontSize: "10px", fontWeight: 700 }}>
+                    <span className="rounded px-2 py-1" style={{ backgroundColor: rolColors.bg, color: rolColors.color, fontSize: "10px", fontWeight: 700 }}>
                       {getLabelRol(u.rol)}
                     </span>
                   </td>
                   <td style={{ padding: "12px 14px", fontSize: "12px", color: "#374151" }}>{u.departamento}</td>
                   <td style={{ padding: "12px 14px" }}>
-                    <span
-                      className="flex items-center gap-1 px-2 py-0.5 rounded w-fit"
-                      style={{
-                        backgroundColor: u.estado === "activo" ? "#ECFDF5" : "#F9FAFB",
-                        color: u.estado === "activo" ? "#065F46" : "#9CA3AF",
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        textTransform: "capitalize",
-                      }}
-                    >
+                    <span className="flex w-fit items-center gap-1 rounded px-2 py-0.5" style={{ backgroundColor: u.estado === "activo" ? "#ECFDF5" : "#F9FAFB", color: u.estado === "activo" ? "#065F46" : "#9CA3AF", fontSize: "10px", fontWeight: 700, textTransform: "capitalize" }}>
                       {u.estado === "activo" ? <UserCheck size={10} /> : <UserX size={10} />}
                       {u.estado}
                     </span>
@@ -319,28 +377,22 @@ export function Usuarios() {
                   </td>
                   <td style={{ padding: "12px 14px" }}>
                     <div className="relative">
-                      <button
-                        onClick={() => setMenuOpen(menuOpen === u.id ? null : u.id)}
-                        className="flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 transition-colors"
-                      >
+                      <button onClick={() => setMenuOpen(menuOpen === u.id ? null : u.id)} className="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100">
                         <MoreVertical size={14} color="#9CA3AF" />
                       </button>
                       {menuOpen === u.id && (
-                        <div
-                          className="absolute right-0 top-8 z-20 rounded shadow-lg overflow-hidden"
-                          style={{ backgroundColor: "#fff", border: "1.5px solid #000", minWidth: 160 }}
-                        >
+                        <div className="absolute right-0 top-8 z-20 overflow-hidden rounded shadow-lg" style={{ backgroundColor: "#fff", border: "1.5px solid #000", minWidth: 160 }}>
                           <button
                             onClick={() => { setModal({ open: true, user: u, mode: "edit" }); setMenuOpen(null); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors"
+                            className="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
                             style={{ fontSize: "12px", color: "#000" }}
                           >
                             <Edit2 size={12} /> Editar
                           </button>
                           <button
-                            onClick={() => setMenuOpen(null)}
-                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors"
-                            style={{ fontSize: "12px", color: u.estado === "activo" ? "#E9683B" : "#4CB979" }}
+                            onClick={() => toggleUserStatus(u)}
+                            className="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
+                            style={{ fontSize: "12px", color: u.estado === "activo" ? COLORS.orange : COLORS.green }}
                           >
                             {u.estado === "activo" ? <UserX size={12} /> : <UserCheck size={12} />}
                             {u.estado === "activo" ? "Desactivar" : "Activar"}
@@ -361,43 +413,22 @@ export function Usuarios() {
         )}
       </div>
 
-      {/* Audit log snippet */}
-      <div className="mt-6 bg-white rounded-lg p-5" style={{ border: "1.5px solid #E5E7EB" }}>
+      <div className="mt-6 rounded-lg bg-white p-5" style={{ border: "1.5px solid #E5E7EB" }}>
         <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#000", marginBottom: 12 }}>
-          Log de Auditoría Reciente
+          Log de Auditoria Reciente
         </h3>
         <div className="space-y-2">
-          {[
-            { action: "Creación", entity: "OKR10 – Semillero TDI Labs", user: "Roberto Silva", date: "2026-04-14 09:15", type: "info" },
-            { action: "Cambio de rol", entity: "U11 – Felipe Morales (inactivo)", user: "sgm-admin", date: "2026-04-12 14:30", type: "warning" },
-            { action: "Edición", entity: "P4 – Detección de patologías retinales", user: "María Claudia Ospina", date: "2026-04-11 11:00", type: "info" },
-            { action: "Exportación", entity: "Reporte General 2025-I", user: "Roberto Silva", date: "2026-04-10 16:45", type: "info" },
-          ].map((log, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-4 py-2 px-3 rounded"
-              style={{ backgroundColor: "#F9FAFB", border: "1px solid #F3F4F6" }}
-            >
-              <span
-                className="px-1.5 py-0.5 rounded flex-shrink-0"
-                style={{
-                  backgroundColor: log.type === "warning" ? "#FEF3F2" : "#EEF2FF",
-                  color: log.type === "warning" ? COLORS.orange : COLORS.blue,
-                  fontSize: "9px",
-                  fontWeight: 700,
-                }}
-              >
-                {log.action}
+          {entries.slice(0, 4).map((log) => (
+            <div key={log.id} className="flex items-center gap-4 rounded px-3 py-2" style={{ backgroundColor: "#F9FAFB", border: "1px solid #F3F4F6" }}>
+              <span className="flex-shrink-0 rounded px-1.5 py-0.5" style={{ backgroundColor: log.resultado === "bloqueado" ? "#FEF3F2" : "#EEF2FF", color: log.resultado === "bloqueado" ? COLORS.orange : COLORS.blue, fontSize: "9px", fontWeight: 700 }}>
+                {log.accion}
               </span>
-              <p style={{ fontSize: "11px", color: "#374151", flex: 1 }}>{log.entity}</p>
-              <p style={{ fontSize: "10px", color: "#9CA3AF", whiteSpace: "nowrap" }}>{log.user}</p>
-              <p style={{ fontSize: "10px", color: "#9CA3AF", whiteSpace: "nowrap" }}>{log.date}</p>
+              <p style={{ fontSize: "11px", color: "#374151", flex: 1 }}>{log.entidad}</p>
+              <p style={{ fontSize: "10px", color: "#9CA3AF", whiteSpace: "nowrap" }}>{log.usuario}</p>
+              <p style={{ fontSize: "10px", color: "#9CA3AF", whiteSpace: "nowrap" }}>{new Date(log.fecha).toLocaleString("es-CO")}</p>
             </div>
           ))}
         </div>
-        <button style={{ color: "#5454E9", fontSize: "11px", fontWeight: 600, marginTop: 10, background: "none", border: "none", cursor: "pointer" }}>
-          Ver log completo →
-        </button>
       </div>
 
       {modal.open && (
@@ -405,6 +436,7 @@ export function Usuarios() {
           user={modal.user}
           mode={modal.mode}
           onClose={() => setModal({ open: false, user: null, mode: "create" })}
+          onSave={handleSave}
         />
       )}
     </div>

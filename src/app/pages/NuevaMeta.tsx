@@ -1,92 +1,85 @@
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, BookOpen, Save, AlertCircle, Check } from "lucide-react";
-import { useData } from "../context/DataContext";
+import { AlertCircle, ArrowLeft, BookOpen, Loader2, Save } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
-import { PERIODOS } from "../data/mockData";
+import { measurementUnitsApi, type MeasurementUnit } from "../services/catalogsApi";
+import { goalsApi } from "../services/strategicApi";
 
 const COLORS = {
   blue: "#5454E9",
-  yellow: "#E4EB60",
   green: "#4CB979",
   orange: "#E9683B",
 };
 
-const AREAS = [
-  "Escuela TDI",
-  "Facultad de Ingeniería, Diseño y Ciencias Aplicadas",
-  "Dirección de Investigaciones",
-  "Vicerrectoría Académica",
-  "Dirección de Internacionalización",
-  "Dirección de Extensión",
-];
-
-type Errors = Partial<Record<string, string>>;
+type Errors = Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>>;
 
 export function NuevaMeta() {
   const navigate = useNavigate();
-  const { apuestas, addMeta } = useData();
   const { usuario } = useAuth();
-
-  // Solo director y administrador crean Metas (vienen de la junta directiva)
   const canCreate = usuario?.rol === "director" || usuario?.rol === "administrador";
-
-  const [form, setForm] = useState({
-    nombre: "",
-    descripcion: "",
-    areaInstitucional: AREAS[0],
-    estado: "activa" as "activa" | "inactiva",
-    metricaReferencia: "",
-    valorEsperado: "",
-    unidadMedida: "",
-    periodo: PERIODOS[1] ?? "2025-I",
-    apuestaIds: [] as string[],
-  });
+  const [units, setUnits] = useState<MeasurementUnit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
-  const [saved, setSaved] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    referenceIndicator: "",
+    expectedValue: "",
+    measurementUnitId: "",
+    startDate: "",
+    endDate: "",
+  });
 
-  const set = (field: string, value: string) => {
+  useEffect(() => {
+    measurementUnitsApi.list()
+      .then((data) => setUnits(data.filter((unit) => unit.active)))
+      .catch((error) => toast.error(error instanceof Error ? error.message : "No se pudieron cargar las unidades"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const set = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  const validate = (): boolean => {
-    const e: Errors = {};
-    if (!form.nombre.trim()) e.nombre = "El nombre es obligatorio.";
-    if (!form.descripcion.trim()) e.descripcion = "La descripción es obligatoria.";
-    if (!form.metricaReferencia.trim()) e.metricaReferencia = "La metrica de referencia es obligatoria.";
-    if (!form.valorEsperado || Number(form.valorEsperado) <= 0) e.valorEsperado = "Ingresa un valor esperado mayor a cero.";
-    if (!form.unidadMedida.trim()) e.unidadMedida = "La unidad de medida es obligatoria.";
-    if (form.apuestaIds.length === 0) e.apuestaIds = "Vincula al menos una apuesta estrategica.";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+  const validate = () => {
+    const next: Errors = {};
+    if (!form.name.trim()) next.name = "El nombre es obligatorio.";
+    if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
+    if (form.expectedValue === "" || Number.isNaN(Number(form.expectedValue))) {
+      next.expectedValue = "El valor esperado es obligatorio y debe ser decimal.";
+    }
+    if (!form.measurementUnitId) next.measurementUnitId = "La unidad de medida es obligatoria.";
+    if (form.startDate && form.endDate && form.endDate <= form.startDate) {
+      next.endDate = "La fecha de cierre debe ser posterior al inicio.";
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
-  const toggleApuesta = (id: string) => {
-    setForm((prev) => ({
-      ...prev,
-      apuestaIds: prev.apuestaIds.includes(id)
-        ? prev.apuestaIds.filter((apuestaId) => apuestaId !== id)
-        : [...prev.apuestaIds, id],
-    }));
-    setErrors((prev) => ({ ...prev, apuestaIds: "" }));
-  };
-
-  const handleSubmit = () => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!validate()) return;
-    addMeta({
-      nombre: form.nombre,
-      descripcion: form.descripcion,
-      estado: form.estado,
-      areaInstitucional: form.areaInstitucional,
-      metricaReferencia: form.metricaReferencia,
-      valorEsperado: Number(form.valorEsperado),
-      unidadMedida: form.unidadMedida,
-      periodo: form.periodo,
-      apuestaIds: form.apuestaIds,
-    });
-    setSaved(true);
-    setTimeout(() => navigate("/jerarquia"), 1200);
+    setSaving(true);
+    try {
+      await goalsApi.create({
+        name: form.name.trim(),
+        description: form.description.trim(),
+        ...(form.referenceIndicator.trim() ? { referenceIndicator: form.referenceIndicator.trim() } : {}),
+        expectedValue: Number(form.expectedValue),
+        measurementUnitId: Number(form.measurementUnitId),
+        ...(form.startDate ? { startDate: form.startDate } : {}),
+        ...(form.endDate ? { endDate: form.endDate } : {}),
+      });
+      toast.success("Meta institucional creada");
+      navigate("/jerarquia");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo crear la meta");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!canCreate) {
@@ -94,7 +87,7 @@ export function NuevaMeta() {
       <div className="p-8 flex flex-col items-center gap-4 text-center">
         <AlertCircle size={48} color={COLORS.orange} />
         <h2 style={{ fontSize: "20px", fontWeight: 800 }}>Acceso restringido</h2>
-        <p style={{ color: "#717182" }}>Solo el Director o Administrador pueden registrar Metas Institucionales en la plataforma.</p>
+        <p style={{ color: "#717182" }}>Solo direccion o administracion pueden registrar metas institucionales.</p>
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 mt-2" style={{ color: COLORS.blue, fontWeight: 700, fontSize: "14px" }}>
           <ArrowLeft size={16} /> Volver
         </button>
@@ -104,7 +97,6 @@ export function NuevaMeta() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate(-1)} className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-gray-100 transition-colors">
           <ArrowLeft size={18} />
@@ -115,210 +107,66 @@ export function NuevaMeta() {
           </div>
           <div>
             <h1 style={{ fontSize: "20px", fontWeight: 900, color: "#000" }}>Nueva Meta Institucional</h1>
-            <p style={{ fontSize: "12px", color: "#717182" }}>Registra una Meta propuesta por la Junta Directiva de la Universidad</p>
+            <p style={{ fontSize: "12px", color: "#717182" }}>Captura un enunciado del plan de desarrollo.</p>
           </div>
         </div>
       </div>
 
-      {saved && (
-        <div className="mb-4 px-4 py-3 rounded-lg flex items-center gap-3" style={{ backgroundColor: "#ECFDF5", border: "1.5px solid #4CB979" }}>
-          <AlertCircle size={16} color={COLORS.green} />
-          <span style={{ fontSize: "13px", fontWeight: 700, color: "#065F46" }}>Meta creada exitosamente. Redirigiendo...</span>
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl p-8 space-y-6" style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-
-        {/* Aviso conceptual */}
-        <div className="rounded-lg p-4 flex items-start gap-3" style={{ backgroundColor: "#FAFCE0", border: "1.5px solid #B8C500" }}>
-          <BookOpen size={16} color="#7D8900" style={{ flexShrink: 0, marginTop: 1 }} />
-          <p style={{ fontSize: "12px", color: "#7D8900", lineHeight: 1.6 }}>
-            Las Metas Institucionales son enunciados amplios de intención, propuestos por la Junta Directiva de la Universidad. No contienen cifras ni indicadores de medición —  esos son responsabilidad de los OKRs. El Director los registra en la plataforma tal como los recibe.
-          </p>
-        </div>
-
-        {/* Nombre */}
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl p-8 space-y-6" style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
         <div>
-          <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Enunciado de la meta <span style={{ color: COLORS.orange }}>*</span>
-          </label>
-          <input
-            type="text"
-            value={form.nombre}
-            onChange={(e) => set("nombre", e.target.value)}
-            placeholder='Ej: "Renovar y modernizar la propuesta curricular de la Escuela TDI"'
-            style={{
-              width: "100%", padding: "10px 14px", fontSize: "14px",
-              border: `1.5px solid ${errors.nombre ? COLORS.orange : "#E5E7EB"}`,
-              borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif",
-            }}
-          />
-          {errors.nombre && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.nombre}</p>}
-          <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 4 }}>
-            Debe ser un enunciado de intención, sin porcentajes ni cifras. Las metas son amplias y orientadoras.
-          </p>
+          <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Nombre <span style={{ color: COLORS.orange }}>*</span></label>
+          <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Ej: Renovar y modernizar la propuesta curricular" style={{ width: "100%", padding: "10px 14px", fontSize: "14px", border: `1.5px solid ${errors.name ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+          {errors.name && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.name}</p>}
         </div>
 
-        {/* Descripción */}
         <div>
-          <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Descripción / Contexto <span style={{ color: COLORS.orange }}>*</span>
-          </label>
-          <textarea
-            value={form.descripcion}
-            onChange={(e) => set("descripcion", e.target.value)}
-            placeholder="Describe el alcance, contexto y relevancia de esta meta para la Escuela..."
-            rows={3}
-            style={{
-              width: "100%", padding: "10px 14px", fontSize: "13px",
-              border: `1.5px solid ${errors.descripcion ? COLORS.orange : "#E5E7EB"}`,
-              borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif", resize: "vertical",
-            }}
-          />
-          {errors.descripcion && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.descripcion}</p>}
+          <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Descripcion <span style={{ color: COLORS.orange }}>*</span></label>
+          <textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} placeholder="Describe alcance, contexto y relevancia." style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.description ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", resize: "vertical" }} />
+          {errors.description && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.description}</p>}
         </div>
 
-        {/* Medicion */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="sm:col-span-2">
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Metrica de referencia <span style={{ color: COLORS.orange }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={form.metricaReferencia}
-              onChange={(e) => set("metricaReferencia", e.target.value)}
-              placeholder="Ej: Cursos renovados, publicaciones Q1/Q2"
-              style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.metricaReferencia ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif" }}
-            />
-            {errors.metricaReferencia && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.metricaReferencia}</p>}
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_180px] gap-4">
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Indicador de referencia</label>
+            <input value={form.referenceIndicator} onChange={(e) => set("referenceIndicator", e.target.value)} placeholder="Ej: Cursos renovados" style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none" }} />
           </div>
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Valor esperado <span style={{ color: COLORS.orange }}>*</span>
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={form.valorEsperado}
-              onChange={(e) => set("valorEsperado", e.target.value)}
-              style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.valorEsperado ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif" }}
-            />
-            {errors.valorEsperado && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.valorEsperado}</p>}
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Valor <span style={{ color: COLORS.orange }}>*</span></label>
+            <input type="number" step="0.01" value={form.expectedValue} onChange={(e) => set("expectedValue", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.expectedValue ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+            {errors.expectedValue && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.expectedValue}</p>}
           </div>
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Unidad <span style={{ color: COLORS.orange }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={form.unidadMedida}
-              onChange={(e) => set("unidadMedida", e.target.value)}
-              placeholder="%, cursos"
-              style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.unidadMedida ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif" }}
-            />
-            {errors.unidadMedida && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.unidadMedida}</p>}
-          </div>
-        </div>
-
-        {/* Apuestas vinculadas */}
-        <div>
-          <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Apuestas estrategicas vinculadas <span style={{ color: COLORS.orange }}>*</span>
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {apuestas.map((apuesta) => {
-              const selected = form.apuestaIds.includes(apuesta.id);
-              return (
-                <button key={apuesta.id} type="button" onClick={() => toggleApuesta(apuesta.id)}
-                  className="text-left flex items-start gap-3 p-3 rounded-lg transition-all"
-                  style={{ border: `1.5px solid ${selected ? "#B8C500" : "#E5E7EB"}`, backgroundColor: selected ? "#FAFCE0" : "#fff" }}>
-                  <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: selected ? "#B8C500" : "#F3F4F6" }}>
-                    {selected && <Check size={12} color="#fff" />}
-                  </div>
-                  <div className="min-w-0">
-                    <p style={{ fontSize: "12px", fontWeight: 700, color: "#000", lineHeight: 1.35 }}>{apuesta.nombre}</p>
-                    <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 2 }}>{apuesta.estado} - {apuesta.areaInstitucional}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          {errors.apuestaIds && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.apuestaIds}</p>}
-        </div>
-
-        {/* Area + Estado */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Area institucional
-            </label>
-            <select
-              value={form.areaInstitucional}
-              onChange={(e) => set("areaInstitucional", e.target.value)}
-              style={{
-                width: "100%", padding: "10px 14px", fontSize: "13px", border: "1.5px solid #E5E7EB",
-                borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif", backgroundColor: "#fff",
-              }}
-            >
-              {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Unidad <span style={{ color: COLORS.orange }}>*</span></label>
+            <select value={form.measurementUnitId} onChange={(e) => set("measurementUnitId", e.target.value)} disabled={loading} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.measurementUnitId ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", backgroundColor: "#fff" }}>
+              <option value="">Selecciona</option>
+              {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
             </select>
-          </div>
-          <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Estado
-            </label>
-            <select
-              value={form.estado}
-              onChange={(e) => set("estado", e.target.value as "activa" | "inactiva")}
-              style={{
-                width: "100%", padding: "10px 14px", fontSize: "13px", border: "1.5px solid #E5E7EB",
-                borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif", backgroundColor: "#fff",
-              }}
-            >
-              <option value="activa">Activa</option>
-              <option value="inactiva">Inactiva</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Periodo
-            </label>
-            <select
-              value={form.periodo}
-              onChange={(e) => set("periodo", e.target.value)}
-              style={{
-                width: "100%", padding: "10px 14px", fontSize: "13px", border: "1.5px solid #E5E7EB",
-                borderRadius: 8, outline: "none", fontFamily: "Montserrat, sans-serif", backgroundColor: "#fff",
-              }}
-            >
-              {PERIODOS.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
+            {errors.measurementUnitId && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.measurementUnitId}</p>}
           </div>
         </div>
 
-        {/* Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Fecha inicio</label>
+            <input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Fecha cierre</label>
+            <input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.endDate ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+            {errors.endDate && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.endDate}</p>}
+          </div>
+        </div>
+
         <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: "1px solid #F3F4F6" }}>
-          <button
-            onClick={() => navigate(-1)}
-            style={{ padding: "10px 20px", fontSize: "13px", fontWeight: 700, color: "#374151", border: "1.5px solid #E5E7EB", borderRadius: 8, backgroundColor: "#fff" }}
-          >
+          <button type="button" onClick={() => navigate(-1)} style={{ padding: "10px 20px", fontSize: "13px", fontWeight: 700, color: "#374151", border: "1.5px solid #E5E7EB", borderRadius: 8, backgroundColor: "#fff" }}>
             Cancelar
           </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saved}
-            className="flex items-center gap-2"
-            style={{
-              padding: "10px 24px", fontSize: "13px", fontWeight: 700, color: "#fff",
-              backgroundColor: saved ? COLORS.green : "#B8C500", border: "none", borderRadius: 8, cursor: saved ? "default" : "pointer",
-            }}
-          >
-            <Save size={15} />
-            {saved ? "Guardada" : "Crear Meta"}
+          <button type="submit" disabled={saving || loading} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 24px", fontSize: "13px", fontWeight: 700, color: "#fff", backgroundColor: "#B8C500", borderRadius: 8 }}>
+            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+            Crear Meta
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
