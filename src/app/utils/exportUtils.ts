@@ -53,7 +53,7 @@ export function printPDF(title?: string) {
   if (title) document.title = title;
   header.className = "sgp-print-header";
   header.innerHTML = `
-    <strong>SGP - Escuela TDI</strong>
+    <strong>MTE - Modulo de Trazabilidad Estrategica</strong>
     <span>${title ?? "Reporte"} - ${new Date().toLocaleString("es-CO")}</span>
   `;
   style.textContent = `
@@ -71,9 +71,9 @@ export function printPDF(title?: string) {
         justify-content: space-between;
         gap: 16px;
         padding: 8px 0 10px;
-        border-bottom: 2px solid #000;
+        border-bottom: 1px solid #D9DEE8;
         font-family: Montserrat, Arial, sans-serif;
-        color: #000;
+        color: #111827;
         background: #fff;
         z-index: 999999;
       }

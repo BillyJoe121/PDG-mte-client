@@ -153,18 +153,18 @@ export function Proyectos() {
     <div className="p-6">
       <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 950, color: "#000" }}>Proyectos e iniciativas</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 850, color: "#111827" }}>Proyectos e iniciativas</h1>
           <p style={{ fontSize: 12, color: "#717182", marginTop: 4 }}>Portafolio institucional conectado a /api/v1/projects.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {canSync && (
-            <button onClick={() => void handleSync()} disabled={loading} className="inline-flex items-center gap-2 hover:opacity-90" style={{ padding: "9px 13px", border: "1.5px solid #000", borderRadius: 6, fontSize: 12, fontWeight: 850, backgroundColor: "#fff" }}>
+            <button onClick={() => void handleSync()} disabled={loading} className="inline-flex items-center gap-2 hover:opacity-90" style={{ padding: "9px 13px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, fontWeight: 700, color: "#374151", backgroundColor: "#fff" }}>
               <RefreshCcw size={14} />
               Sincronizar Trayectoria
             </button>
           )}
           {canCreate && (
-            <button onClick={() => navigate("/proyectos/nuevo")} className="inline-flex items-center gap-2 hover:opacity-90" style={{ padding: "10px 14px", borderRadius: 6, fontSize: 12, fontWeight: 900, backgroundColor: COLORS.blue, color: "#fff" }}>
+            <button onClick={() => navigate("/proyectos/nuevo")} className="inline-flex items-center gap-2 hover:opacity-90" style={{ padding: "10px 14px", borderRadius: 5, fontSize: 12, fontWeight: 800, backgroundColor: COLORS.blue, color: "#fff" }}>
               <Plus size={15} />
               Nuevo proyecto
             </button>

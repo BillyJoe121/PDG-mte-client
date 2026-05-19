@@ -2,7 +2,6 @@ import type { UsuarioActual, Rol } from "../context/AuthContext";
 
 export type PermissionAction =
   | "dashboard.view"
-  | "dashboards.view"
   | "presentacion.view"
   | "jerarquia.view"
   | "jerarquia.manage"
@@ -19,7 +18,6 @@ export type PermissionAction =
 const rolePermissions: Record<Rol, PermissionAction[]> = {
   administrador: [
     "dashboard.view",
-    "dashboards.view",
     "presentacion.view",
     "jerarquia.view",
     "jerarquia.manage",
@@ -35,7 +33,6 @@ const rolePermissions: Record<Rol, PermissionAction[]> = {
   ],
   director: [
     "dashboard.view",
-    "dashboards.view",
     "presentacion.view",
     "jerarquia.view",
     "jerarquia.manage",
@@ -48,7 +45,6 @@ const rolePermissions: Record<Rol, PermissionAction[]> = {
   ],
   jefe: [
     "dashboard.view",
-    "dashboards.view",
     "presentacion.view",
     "jerarquia.view",
     "okrs.view",

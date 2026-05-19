@@ -12,7 +12,7 @@ export function Footer() {
           <IcesiLogo variant="white" size="sm" />
           <div style={{ borderLeft: "1px solid rgba(255,255,255,0.3)", paddingLeft: 16 }}>
             <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "11px", fontWeight: 600 }}>
-              SGP · Sistema de Gestión de Proyectos
+              MTE · Modulo de Trazabilidad Estrategica
             </p>
             <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "10px" }}>
               Escuela TDI · Facultad de Ingeniería, Diseño y Ciencias Aplicadas

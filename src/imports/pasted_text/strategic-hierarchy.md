@@ -175,7 +175,7 @@ La vista exporta a PDF o CSV con los filtros aplicados
 
 HU-2.7 — Importar proyectos desde Jira
 Como jefe de Departamento,
-quiero importar la información básica de un proyecto existente en Jira al SGM,
+quiero importar la información básica de un proyecto existente en Jira al MTE,
 para no duplicar el registro manual y mantener la coherencia con el sistema de gestión operativa ya en uso en el DCSI.
 Criterios de aceptación:
 El sistema se conecta a Jira mediante la API oficial (OAuth o API token)
@@ -280,12 +280,12 @@ Criterios de aceptación:
 El sistema permite seleccionar dos periodos académicos para comparar
 La vista muestra en columnas paralelas: % de cumplimiento de OKRs, cantidad de proyectos activos y promedio de aporte por periodo
 Las diferencias positivas se destacan en verde y las negativas en rojo
-El historial comparativo está disponible desde que el SGM tiene datos de al menos dos periodos registrados
+El historial comparativo está disponible desde que el MTE tiene datos de al menos dos periodos registrados
 La vista comparativa es exportable a PDF
 
 HU-4.1 — Autenticación con credenciales institucionales
 Como cualquier usuario de la Escuela TDI,
-quiero autenticarme en el SGM usando mi cuenta institucional de la Universidad ICESI,
+quiero autenticarme en el MTE usando mi cuenta institucional de la Universidad ICESI,
 para acceder al sistema sin necesidad de gestionar credenciales adicionales y garantizar que el acceso es seguro.
 Criterios de aceptación:
 El sistema implementa autenticación mediante SSO (Single Sign-On) con el proveedor de identidad institucional (Google Workspace ICESI u OAuth 2.0)
@@ -297,7 +297,7 @@ El sistema redirige al usuario a su vista principal según su rol inmediatamente
 HU-4.2 — Gestionar usuarios y asignar roles
 Como administrador del sistema,
 quiero crear, editar y desactivar usuarios asignándoles un rol institucional y un departamento,
-para controlar quién puede acceder al SGM y qué acciones puede realizar dentro del sistema.
+para controlar quién puede acceder al MTE y qué acciones puede realizar dentro del sistema.
 Criterios de aceptación:
 Los roles disponibles son: Administrador, Director de Escuela, Jefe de Departamento y Profesor/Tutor
 Cada usuario tiene: nombre, correo institucional, rol, departamento asignado (obligatorio para Jefe y Tutor) y estado (activo/inactivo)
@@ -313,7 +313,7 @@ Criterios de aceptación:
 El sistema se conecta a la API del directorio institucional para buscar usuarios por nombre, correo o departamento
 El administrador puede seleccionar uno o varios usuarios del directorio para importar
 Al importar, el sistema asigna el rol "Tutor" por defecto; el administrador lo puede cambiar antes de confirmar
-Si el usuario ya existe en el SGM, el sistema lo detecta y ofrece actualizar sus datos sin duplicar
+Si el usuario ya existe en el MTE, el sistema lo detecta y ofrece actualizar sus datos sin duplicar
 La importación masiva admite hasta 50 usuarios en una sola operación
 
 HU-4.4 — Control de visibilidad por departamento
@@ -390,12 +390,12 @@ El log es exportable a CSV para revisiones externas
 
 HU-4.7 — Sincronización de roles con el sistema existente
 Como administrador del sistema,
-quiero que los roles y departamentos del SGM puedan sincronizarse con la estructura organizacional registrada en los sistemas institucionales existentes (directorio ICESI),
-para que los cambios de cargo o adscripción departamental se reflejen en el SGM sin requerir actualización manual.
+quiero que los roles y departamentos del MTE puedan sincronizarse con la estructura organizacional registrada en los sistemas institucionales existentes (directorio ICESI),
+para que los cambios de cargo o adscripción departamental se reflejen en el MTE sin requerir actualización manual.
 Criterios de aceptación:
-El sistema verifica periódicamente (cada 24 horas) si hubo cambios en el directorio institucional para los usuarios registrados en el SGM
-Si un usuario cambia de departamento en el directorio, el sistema notifica al administrador para que confirme el cambio en el SGM
-Si un usuario sale de la institución (cuenta desactivada en el directorio), el SGM lo desactiva automáticamente
+El sistema verifica periódicamente (cada 24 horas) si hubo cambios en el directorio institucional para los usuarios registrados en el MTE
+Si un usuario cambia de departamento en el directorio, el sistema notifica al administrador para que confirme el cambio en el MTE
+Si un usuario sale de la institución (cuenta desactivada en el directorio), el MTE lo desactiva automáticamente
 El administrador puede desactivar la sincronización automática y gestionar todo manualmente si lo prefiere
 El sistema mantiene un log de sincronizaciones con resultado (exitosa / con conflictos / fallida)
 

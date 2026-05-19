@@ -151,9 +151,9 @@ const noopDefault: DataContextType = {
 };
 
 // Singleton: vive en globalThis para sobrevivir reemplazos de módulo (HMR).
-const G = globalThis as unknown as { __SGP_DataContext?: React.Context<DataContextType> };
+const G = globalThis as unknown as { __MTE_DataContext?: React.Context<DataContextType> };
 const DataContext: React.Context<DataContextType> =
-  G.__SGP_DataContext ?? (G.__SGP_DataContext = createContext<DataContextType>(noopDefault));
+  G.__MTE_DataContext ?? (G.__MTE_DataContext = createContext<DataContextType>(noopDefault));
 
 const calcCumplimientoOKR = (keyResults: KeyResult[]) => {
   if (keyResults.length === 0) return 0;

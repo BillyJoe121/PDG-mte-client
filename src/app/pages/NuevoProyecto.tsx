@@ -218,7 +218,7 @@ export function NuevoProyecto() {
       ) : (
         <div className="space-y-5">
           <div className="bg-white rounded-lg p-5 space-y-5" style={{ border: "1.5px solid #E5E7EB" }}>
-            <h2 style={{ fontSize: 13, fontWeight: 950, textTransform: "uppercase", borderBottom: `2px solid ${COLORS.blue}`, paddingBottom: 8 }}>Informacion general</h2>
+            <h2 style={{ fontSize: 13, fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Informacion general</h2>
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Nombre *</label>
@@ -298,7 +298,7 @@ export function NuevoProyecto() {
           <div className="bg-white rounded-lg p-5 space-y-4" style={{ border: "1.5px solid #E5E7EB" }}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 style={{ fontSize: 13, fontWeight: 950, textTransform: "uppercase", borderBottom: `2px solid ${COLORS.blue}`, paddingBottom: 8 }}>Key Results opcionales</h2>
+                <h2 style={{ fontSize: 13, fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Key Results opcionales</h2>
                 <p style={{ fontSize: 12, color: "#717182", marginTop: 8 }}>Puedes vincular varios KRs con peso y tipo de contribucion desde la creacion.</p>
               </div>
               <span style={{ fontSize: 12, fontWeight: 900, color: COLORS.blue }}>{krLinks.length} seleccionado(s)</span>

@@ -48,7 +48,7 @@ export function Auditoria() {
       Entidad: entry.entidad,
       Resultado: entry.resultado,
       Detalle: entry.detalle,
-    })), `Auditoria_SGP_${getDateStamp()}`);
+    })), `Auditoria_MTE_${getDateStamp()}`);
     logAudit({
       modulo: "Auditoria",
       accion: "Exportacion",
@@ -104,7 +104,7 @@ export function Auditoria() {
       <div className="overflow-hidden rounded-lg bg-white" style={{ border: "1.5px solid #E5E7EB" }}>
         <table className="w-full" style={{ borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ backgroundColor: "#000", borderBottom: "2px solid #000" }}>
+            <tr style={{ backgroundColor: "#000", borderBottom: "1px solid #1F2937" }}>
               {["Fecha", "Usuario", "Modulo", "Accion", "Entidad", "Resultado"].map((header) => (
                 <th key={header} style={{ textAlign: "left", padding: "12px 14px", fontSize: "10px", fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   {header}
@@ -147,4 +147,3 @@ export function Auditoria() {
     </div>
   );
 }
-

@@ -37,8 +37,8 @@ const DEMO_USERS = [
   },
   {
     id: "U10",
-    nombre: "Sistemas SGM",
-    correo: "sgm-admin@icesi.edu.co",
+    nombre: "Sistemas MTE",
+    correo: "mte-admin@icesi.edu.co",
     rol: "administrador" as Rol,
     departamento: "TI Institucional",
     iniciales: "AD",
@@ -247,7 +247,7 @@ export function Login() {
                 marginBottom: 12,
               }}
             >
-              SGP · Bienvenido
+              MTE · Bienvenido
             </p>
             <h1
               style={{
@@ -415,7 +415,7 @@ export function Login() {
                 (e.currentTarget.style.backgroundColor = "#000000")
               }
             >
-              Ingresar al SGP
+              Ingresar al MTE
               <ArrowRight
                 size={15}
                 style={{ transition: "transform 0.15s" }}
@@ -575,7 +575,7 @@ export function Login() {
             className="text-center mt-10"
             style={{ fontSize: "10px", color: "#9CA3AF", letterSpacing: "0.02em" }}
           >
-            Acceso restringido a usuarios ICESI · SGP v1.0.0
+            Acceso restringido a usuarios ICESI · MTE v1.0.0
           </p>
         </div>
       </div>

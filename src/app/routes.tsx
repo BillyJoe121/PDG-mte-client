@@ -7,7 +7,6 @@ import type { PermissionAction } from "./security/permissions";
 
 const Login = lazy(() => import("./pages/Login").then((module) => ({ default: module.Login })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })));
-const DashboardsEstrategicos = lazy(() => import("./pages/DashboardsEstrategicos").then((module) => ({ default: module.DashboardsEstrategicos })));
 const JerarquiaEstrategica = lazy(() => import("./pages/JerarquiaEstrategica").then((module) => ({ default: module.JerarquiaEstrategica })));
 const Proyectos = lazy(() => import("./pages/Proyectos").then((module) => ({ default: module.Proyectos })));
 const FichaProyecto = lazy(() => import("./pages/FichaProyecto").then((module) => ({ default: module.FichaProyecto })));
@@ -42,7 +41,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: "dashboard", element: protectedPage("dashboard.view", <Dashboard />) },
-      { path: "dashboards", element: protectedPage("dashboards.view", <DashboardsEstrategicos />) },
+      { path: "dashboards", element: <Navigate to="/dashboard" replace /> },
       { path: "jerarquia", element: protectedPage("jerarquia.view", <JerarquiaEstrategica />) },
       { path: "jerarquia/apuesta/nueva", element: protectedPage("jerarquia.manage", <NuevaApuesta />) },
       { path: "jerarquia/meta/nueva", element: protectedPage("jerarquia.manage", <NuevaMeta />) },
@@ -64,4 +63,3 @@ export const router = createBrowserRouter([
     ],
   },
 ]);
-

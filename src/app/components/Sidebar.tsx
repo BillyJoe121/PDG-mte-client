@@ -21,12 +21,11 @@ import { getLabelRol } from "../data/mockData";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["administrador", "director", "jefe", "tutor"] },
-  { to: "/dashboards", label: "Dashboards", icon: BarChart3, roles: ["administrador", "director", "jefe"] },
   { to: "/jerarquia", label: "Jerarquía Estratégica", icon: Layers, roles: ["administrador", "director", "jefe", "tutor"] },
   { to: "/catalogos", label: "Catálogos", icon: Database, roles: ["administrador"] },
   { to: "/okrs", label: "Objetivos", icon: Target, roles: ["administrador", "director", "jefe", "tutor"] },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, roles: ["administrador", "director", "jefe", "tutor"] },
-  { to: "/reportes", label: "Reportes", icon: BarChart3, roles: ["administrador", "director", "jefe"] },
+  { to: "/reportes", label: "Reportes y exportaciones", icon: BarChart3, roles: ["administrador", "director", "jefe"] },
   { to: "/consistencia", label: "Consistencia", icon: ShieldAlert, roles: ["administrador", "director", "jefe"] },
   { to: "/presentacion", label: "Modo Presentación", icon: Presentation, roles: ["administrador", "director", "jefe", "tutor"] },
   { to: "/usuarios", label: "Usuarios", icon: Users, roles: ["administrador"] },
@@ -84,7 +83,7 @@ export function Sidebar() {
       {!collapsed && (
         <div className="px-4 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            SGP · Escuela TDI
+            MTE · Escuela TDI
           </p>
         </div>
       )}

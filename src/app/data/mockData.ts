@@ -423,7 +423,7 @@ export const usuarios: Usuario[] = [
   { id: "U7", nombre: "Jorge Vargas Peña", correo: "jvargas@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-11" },
   { id: "U8", nombre: "María Fernández Rueda", correo: "mfernandez@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-09" },
   { id: "U9", nombre: "Patricia Gómez Vidal", correo: "pgomez@icesi.edu.co", rol: "tutor", departamento: "Dirección TDI", estado: "activo", ultimoAcceso: "2026-04-14" },
-  { id: "U10", nombre: "Sistemas SGP", correo: "sgm-admin@icesi.edu.co", rol: "administrador", departamento: "TI Institucional", estado: "activo", ultimoAcceso: "2026-04-14" },
+  { id: "U10", nombre: "Sistemas MTE", correo: "mte-admin@icesi.edu.co", rol: "administrador", departamento: "TI Institucional", estado: "activo", ultimoAcceso: "2026-04-14" },
   { id: "U11", nombre: "Felipe Morales Castro", correo: "fmorales@icesi.edu.co", rol: "tutor", departamento: "DDI", estado: "inactivo", ultimoAcceso: "2025-11-20" },
   { id: "U12", nombre: "Leonardo Bustamante", correo: "lbustamante@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-14" },
 ];

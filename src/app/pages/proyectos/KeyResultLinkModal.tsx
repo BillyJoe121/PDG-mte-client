@@ -84,20 +84,20 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.55)" }} onClick={onClose}>
-      <div className="w-full max-w-2xl bg-white rounded-lg shadow-2xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 p-5" style={{ backgroundColor: "#000" }}>
+      <div className="w-full max-w-2xl bg-white rounded-md shadow-2xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 p-5" style={{ backgroundColor: "#F7F8FB", borderBottom: "1px solid #E5E7EB" }}>
           <div>
-            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>Proyecto {project.id}</p>
-            <h2 style={{ color: "#fff", fontSize: 16, fontWeight: 900 }}>Vincular Key Result</h2>
-            <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 4 }}>{project.name}</p>
+            <p style={{ color: "#6B7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>Proyecto {project.id}</p>
+            <h2 style={{ color: "#111827", fontSize: 16, fontWeight: 800 }}>Vincular Key Result</h2>
+            <p style={{ color: "#4B5563", fontSize: 12, marginTop: 4 }}>{project.name}</p>
           </div>
-          <button onClick={onClose} style={{ color: "#fff", fontSize: 22, lineHeight: 1 }}>x</button>
+          <button onClick={onClose} style={{ color: "#4B5563", fontSize: 22, lineHeight: 1 }}>x</button>
         </div>
 
         <div className="p-5 space-y-4">
           {project.linkedKeyResults.length > 0 && (
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-              <p style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", marginBottom: 8 }}>Vinculos actuales</p>
+            <div className="rounded-md p-3" style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+              <p style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", marginBottom: 8 }}>Vinculos actuales</p>
               <div className="space-y-2">
                 {project.linkedKeyResults.map((link) => (
                   <div key={link.linkId} className="flex items-start gap-3 p-2 rounded" style={{ backgroundColor: "#fff", border: "1px solid #E5E7EB" }}>
@@ -131,8 +131,8 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
           )}
 
           <div>
-            <label style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>Key Result</label>
-            <select value={keyResultId} onChange={(event) => setKeyResultId(event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #000", borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+            <label style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Key Result</label>
+            <select value={keyResultId} onChange={(event) => setKeyResultId(event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, backgroundColor: "#fff" }}>
               <option value="">Selecciona un KR</option>
               {keyResults.map((kr) => (
                 <option key={kr.id} value={kr.id}>
@@ -144,12 +144,12 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>Peso de contribucion</label>
-              <input type="number" min={0} max={100} value={weight} onChange={(event) => setWeight(Math.max(0, Math.min(100, Number(event.target.value))))} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #000", borderRadius: 6, fontSize: 12 }} />
+              <label style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Peso de contribucion</label>
+              <input type="number" min={0} max={100} value={weight} onChange={(event) => setWeight(Math.max(0, Math.min(100, Number(event.target.value))))} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12 }} />
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>Tipo</label>
-              <select value={contributionType} onChange={(event) => setContributionType(event.target.value as ContributionType)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #000", borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+              <label style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Tipo</label>
+              <select value={contributionType} onChange={(event) => setContributionType(event.target.value as ContributionType)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, backgroundColor: "#fff" }}>
                 {CONTRIBUTION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>
@@ -157,10 +157,10 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
         </div>
 
         <div className="flex justify-end gap-3 px-5 pb-5">
-          <button onClick={onClose} style={{ padding: "10px 16px", border: "1.5px solid #000", borderRadius: 6, fontSize: 12, fontWeight: 800 }}>
+          <button onClick={onClose} style={{ padding: "10px 16px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, fontWeight: 700, color: "#374151" }}>
             Cancelar
           </button>
-          <button disabled={saving} onClick={handleCreate} className="inline-flex items-center gap-2" style={{ padding: "10px 16px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 900, opacity: saving ? 0.65 : 1 }}>
+          <button disabled={saving} onClick={handleCreate} className="inline-flex items-center gap-2" style={{ padding: "10px 16px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 5, fontSize: 12, fontWeight: 800, opacity: saving ? 0.65 : 1 }}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
             Guardar vinculo
           </button>
@@ -168,20 +168,20 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
       </div>
       {unlinkTarget && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.35)" }} onClick={() => setUnlinkTarget(null)}>
-          <div className="w-full max-w-md bg-white rounded-lg shadow-2xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: "#000" }}>
-              <p style={{ color: "#fff", fontSize: 15, fontWeight: 900 }}>Desvincular proyecto del KR?</p>
-              <button onClick={() => setUnlinkTarget(null)} style={{ color: "#fff" }}><X size={18} /></button>
+          <div className="w-full max-w-md bg-white rounded-md shadow-2xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: "#F7F8FB", borderBottom: "1px solid #E5E7EB" }}>
+              <p style={{ color: "#111827", fontSize: 15, fontWeight: 800 }}>Desvincular proyecto del KR?</p>
+              <button onClick={() => setUnlinkTarget(null)} style={{ color: "#4B5563" }}><X size={18} /></button>
             </div>
             <div className="p-5">
               <p style={{ fontSize: 12, color: "#717182", lineHeight: 1.55 }}>
                 El proyecto no se eliminara. Solo se desactivara esta vinculacion estrategica.
               </p>
-              <p style={{ fontSize: 12, color: "#000", fontWeight: 850, marginTop: 10 }}>KR {unlinkTarget.keyResultId}: {unlinkTarget.keyResultDescription}</p>
+              <p style={{ fontSize: 12, color: "#111827", fontWeight: 750, marginTop: 10 }}>KR {unlinkTarget.keyResultId}: {unlinkTarget.keyResultDescription}</p>
             </div>
             <div className="flex justify-end gap-2 px-5 pb-5">
               <button onClick={() => setUnlinkTarget(null)} disabled={saving} style={{ padding: "8px 12px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 12, fontWeight: 800 }}>Cancelar</button>
-              <button onClick={() => handleRemove(unlinkTarget.id)} disabled={saving} style={{ padding: "8px 12px", backgroundColor: COLORS.orange, color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 900 }}>Desvincular</button>
+              <button onClick={() => handleRemove(unlinkTarget.id)} disabled={saving} style={{ padding: "8px 12px", backgroundColor: COLORS.orange, color: "#fff", borderRadius: 5, fontSize: 12, fontWeight: 800 }}>Desvincular</button>
             </div>
           </div>
         </div>

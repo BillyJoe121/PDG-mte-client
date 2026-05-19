@@ -110,15 +110,15 @@ function KpiCard({
   color: string;
 }) {
   return (
-    <div className="rounded-lg bg-white p-5" style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+    <div className="rounded-md bg-white p-5" style={{ border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(17,24,39,0.04)" }}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center justify-center rounded-lg" style={{ width: 40, height: 40, backgroundColor: `${color}18` }}>
           <Icon size={20} color={color} />
         </div>
         <TrendingUp size={15} color="#9CA3AF" />
       </div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: "#000", lineHeight: 1.1, marginTop: 14 }}>{value}</div>
-      <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 760, color: "#111827", lineHeight: 1.1, marginTop: 14 }}>{value}</div>
+      <div style={{ fontSize: 12, fontWeight: 650, color: "#111827", marginTop: 4 }}>{label}</div>
       <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 3 }}>{sub}</div>
     </div>
   );
@@ -126,9 +126,9 @@ function KpiCard({
 
 function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg bg-white p-5" style={{ border: "1.5px solid #E5E7EB" }}>
+    <section className="rounded-md bg-white p-5" style={{ border: "1px solid #E5E7EB" }}>
       <div className="mb-4">
-        <h3 style={{ fontSize: 14, fontWeight: 900, color: "#000" }}>{title}</h3>
+        <h3 style={{ fontSize: 14, fontWeight: 800, color: "#111827" }}>{title}</h3>
         <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 3 }}>{subtitle}</p>
       </div>
       {children}
@@ -138,7 +138,7 @@ function Panel({ title, subtitle, children }: { title: string; subtitle: string;
 
 function EmptyChart() {
   return (
-    <div className="flex h-full min-h-[240px] items-center justify-center rounded-lg" style={{ backgroundColor: "#F9FAFB", color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>
+    <div className="flex h-full min-h-[240px] items-center justify-center rounded-md" style={{ backgroundColor: "#F9FAFB", color: COLORS.gray, fontSize: 12, fontWeight: 700 }}>
       Sin datos para el periodo seleccionado.
     </div>
   );
@@ -254,9 +254,9 @@ function DepartmentRadar({ data }: { data: DashboardData["departments"] }) {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[340px]" style={{ borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ borderBottom: "2px solid #000" }}>
+            <tr style={{ borderBottom: "1px solid #E5E7EB" }}>
               {["Departamento", "Activos", "Finalizados", "Objetivos", "KRs", "Cobertura"].map((head) => (
-                <th key={head} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, fontWeight: 900, color: COLORS.gray, textTransform: "uppercase" }}>
+                <th key={head} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, fontWeight: 800, color: COLORS.gray, textTransform: "uppercase" }}>
                   {head}
                 </th>
               ))}
@@ -265,12 +265,12 @@ function DepartmentRadar({ data }: { data: DashboardData["departments"] }) {
           <tbody>
             {data.map((row) => (
               <tr key={row.departmentId} style={{ borderBottom: "1px solid #F3F4F6" }}>
-                <td style={{ padding: "10px", fontSize: 12, fontWeight: 800, color: "#000" }}>{row.departmentName}</td>
+                <td style={{ padding: "10px", fontSize: 12, fontWeight: 700, color: "#111827" }}>{row.departmentName}</td>
                 <td style={{ padding: "10px", fontSize: 12 }}>{row.activeProjects}</td>
                 <td style={{ padding: "10px", fontSize: 12 }}>{row.completedProjects}</td>
                 <td style={{ padding: "10px", fontSize: 12 }}>{row.objectives}</td>
                 <td style={{ padding: "10px", fontSize: 12 }}>{row.completedKeyResults + row.inProgressKeyResults}</td>
-                <td style={{ padding: "10px", fontSize: 12, fontWeight: 900, color: COLORS.blue }}>{percent(row.averageObjectiveCoverage)}</td>
+                <td style={{ padding: "10px", fontSize: 12, fontWeight: 800, color: COLORS.blue }}>{percent(row.averageObjectiveCoverage)}</td>
               </tr>
             ))}
           </tbody>
@@ -358,7 +358,7 @@ export function Dashboard() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: "#000" }}>
+          <h1 style={{ fontSize: 23, fontWeight: 700, color: "#111827" }}>
             Dashboard de impacto
           </h1>
           <p style={{ fontSize: 13, color: COLORS.gray, marginTop: 4 }}>
@@ -369,7 +369,7 @@ export function Dashboard() {
           <select
             value={selectedPeriod}
             onChange={(event) => handlePeriodChange(event.target.value)}
-            style={{ border: "1.5px solid #000", borderRadius: 8, padding: "9px 12px", fontSize: 12, fontWeight: 900, backgroundColor: "#fff", minWidth: 190 }}
+            style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "9px 12px", fontSize: 12, fontWeight: 650, color: "#374151", backgroundColor: "#fff", minWidth: 190 }}
           >
             <option value="">Periodo activo</option>
             {sortedPeriods.map((period) => (
@@ -379,26 +379,26 @@ export function Dashboard() {
           <button
             onClick={() => void loadDashboard(selectedPeriod || undefined)}
             disabled={loading}
-            className="flex items-center justify-center rounded-lg transition-opacity disabled:opacity-50"
-            style={{ width: 38, height: 38, border: "1.5px solid #E5E7EB", backgroundColor: "#fff" }}
+            className="flex items-center justify-center rounded-md transition-opacity disabled:opacity-50"
+            style={{ width: 38, height: 38, border: "1px solid #E5E7EB", backgroundColor: "#fff" }}
             title="Recargar dashboard"
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
           </button>
-          <span className="px-3 py-2 rounded-lg" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 11, fontWeight: 900 }}>
+          <span className="px-3 py-2 rounded-md" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 11, fontWeight: 700 }}>
             {selectedPeriod ? selectedPeriod : activePeriodName}
           </span>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 800 }}>
+        <div className="rounded-md px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 700 }}>
           <AlertTriangle size={15} /> {error}
         </div>
       )}
 
       {loading && !dashboard ? (
-        <div className="flex items-center justify-center rounded-lg bg-white py-20" style={{ border: "1.5px solid #E5E7EB", color: COLORS.gray, fontSize: 13, fontWeight: 900 }}>
+        <div className="flex items-center justify-center rounded-md bg-white py-20" style={{ border: "1px solid #E5E7EB", color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
           <Loader2 size={18} className="mr-2 animate-spin" /> Cargando KPIs del portafolio...
         </div>
       ) : dashboard ? (
@@ -426,10 +426,10 @@ export function Dashboard() {
             <StrategicBetsBar data={dashboard.strategicBets} />
             <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
               {dashboard.strategicBets.map((bet) => (
-                <div key={bet.strategicBetId} className="rounded-lg p-3" style={{ border: "1px solid #E5E7EB", backgroundColor: "#FAFAFA" }}>
+                <div key={bet.strategicBetId} className="rounded-md p-3" style={{ border: "1px solid #E5E7EB", backgroundColor: "#FAFAFA" }}>
                   <div className="flex items-start justify-between gap-3">
-                    <p style={{ fontSize: 12, fontWeight: 900, color: "#000", lineHeight: 1.35 }}>{bet.strategicBetName}</p>
-                    <span style={{ fontSize: 13, fontWeight: 900, color: COLORS.teal }}>{percent(bet.averageObjectiveCoverage)}</span>
+                    <p style={{ fontSize: 12, fontWeight: 750, color: "#111827", lineHeight: 1.35 }}>{bet.strategicBetName}</p>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: COLORS.teal }}>{percent(bet.averageObjectiveCoverage)}</span>
                   </div>
                   <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 6 }}>
                     {bet.objectives} objetivos - {bet.keyResults} KRs - {bet.inProgressProjects} proyectos en progreso - {bet.completedProjects} finalizados

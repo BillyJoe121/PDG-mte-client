@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 const adminUser = {
   id: 'U10',
-  nombre: 'Sistemas SGM',
-  correo: 'sgm-admin@icesi.edu.co',
+  nombre: 'Sistemas MTE',
+  correo: 'mte-admin@icesi.edu.co',
   rol: 'administrador',
   departamento: 'TI Institucional',
   iniciales: 'AD',

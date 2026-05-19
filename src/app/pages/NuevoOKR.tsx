@@ -209,7 +209,7 @@ export function NuevoOKR() {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="bg-white rounded-xl p-6 space-y-5" style={{ border: "1.5px solid #E5E7EB" }}>
-            <h2 style={{ fontSize: "13px", fontWeight: 800, color: "#000", textTransform: "uppercase", borderBottom: "2px solid #5454E9", paddingBottom: 8 }}>Datos del Objetivo</h2>
+            <h2 style={{ fontSize: "13px", fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Datos del Objetivo</h2>
             <div>
               <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Nombre <span style={{ color: COLORS.orange }}>*</span></label>
               <input value={form.name} onChange={(e) => set("name", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "14px", border: `1.5px solid ${errors.name ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
@@ -231,7 +231,7 @@ export function NuevoOKR() {
 
           <div className="bg-white rounded-xl p-6 space-y-4" style={{ border: "1.5px solid #E5E7EB" }}>
             <div className="flex items-center justify-between">
-              <h2 style={{ fontSize: "13px", fontWeight: 800, color: "#000", textTransform: "uppercase", borderBottom: "2px solid #5454E9", paddingBottom: 8, flex: 1, marginRight: 16 }}>Key Results</h2>
+              <h2 style={{ fontSize: "13px", fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8, flex: 1, marginRight: 16 }}>Key Results</h2>
               <button type="button" onClick={() => setKrs((prev) => [...prev, emptyKr()])} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:opacity-90" style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: "12px", fontWeight: 700 }}>
                 <Plus size={14} /> Agregar KR
               </button>

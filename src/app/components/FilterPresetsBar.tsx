@@ -41,23 +41,23 @@ export function FilterPresetsBar({
   };
 
   return (
-    <div className="bg-white rounded-lg p-4 flex flex-wrap items-center gap-3" style={{ border: "1.5px solid #E5E7EB" }}>
-      <div className="flex items-center gap-2" style={{ color: "#000", fontSize: "12px", fontWeight: 900 }}>
+    <div className="bg-white rounded-md p-4 flex flex-wrap items-center gap-3" style={{ border: "1px solid #E5E7EB" }}>
+      <div className="flex items-center gap-2" style={{ color: "#111827", fontSize: "12px", fontWeight: 750 }}>
         <Bookmark size={14} color={COLORS.blue} /> Presets de filtros
       </div>
       <input
         value={presetName}
         onChange={(event) => setPresetName(event.target.value)}
         placeholder="Nombre del preset"
-        style={{ border: "1.5px solid #000", borderRadius: 6, padding: "7px 10px", fontSize: "12px", minWidth: 180 }}
+        style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "7px 10px", fontSize: "12px", minWidth: 180 }}
       />
-      <button onClick={handleSavePreset} style={{ padding: "7px 12px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 6, fontSize: "12px", fontWeight: 800 }}>
+      <button onClick={handleSavePreset} style={{ padding: "7px 12px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 5, fontSize: "12px", fontWeight: 750 }}>
         Guardar vista
       </button>
       <div className="flex flex-wrap items-center gap-2">
         {presets.map((preset) => (
           <div key={preset.id} className="flex items-center gap-1 rounded" style={{ border: "1px solid #E5E7EB", backgroundColor: "#FAFAFA" }}>
-            <button onClick={() => handleApplyPreset(preset.id)} style={{ padding: "7px 8px", fontSize: "11px", fontWeight: 800, color: "#374151" }}>
+            <button onClick={() => handleApplyPreset(preset.id)} style={{ padding: "7px 8px", fontSize: "11px", fontWeight: 650, color: "#374151" }}>
               {preset.nombre}
             </button>
             <button onClick={() => deletePreset(preset.id)} className="flex items-center justify-center hover:bg-red-50" style={{ width: 26, height: 28, color: COLORS.orange }}>
@@ -70,4 +70,3 @@ export function FilterPresetsBar({
     </div>
   );
 }
-

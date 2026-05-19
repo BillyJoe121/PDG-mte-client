@@ -58,9 +58,9 @@ function validatePeriod(value: string) {
 
 function KpiCard({ label, value, sub, color }: { label: string; value: string | number; sub: string; color: string }) {
   return (
-    <div className="rounded-lg bg-white p-4" style={{ border: "1.5px solid #E5E7EB" }}>
-      <p style={{ fontSize: 26, fontWeight: 900, color }}>{value}</p>
-      <p style={{ fontSize: 12, fontWeight: 800, color: "#000", marginTop: 2 }}>{label}</p>
+    <div className="rounded-md bg-white p-4" style={{ border: "1px solid #E5E7EB" }}>
+      <p style={{ fontSize: 25, fontWeight: 800, color }}>{value}</p>
+      <p style={{ fontSize: 12, fontWeight: 700, color: "#111827", marginTop: 2 }}>{label}</p>
       <p style={{ fontSize: 10, color: COLORS.gray, marginTop: 2 }}>{sub}</p>
     </div>
   );
@@ -68,9 +68,9 @@ function KpiCard({ label, value, sub, color }: { label: string; value: string | 
 
 function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg bg-white p-5" style={{ border: "1.5px solid #E5E7EB" }}>
+    <section className="rounded-md bg-white p-5" style={{ border: "1px solid #E5E7EB" }}>
       <div className="mb-4">
-        <h3 style={{ fontSize: 14, fontWeight: 900, color: "#000" }}>{title}</h3>
+        <h3 style={{ fontSize: 14, fontWeight: 800, color: "#111827" }}>{title}</h3>
         <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 3 }}>{subtitle}</p>
       </div>
       {children}
@@ -81,26 +81,26 @@ function Panel({ title, subtitle, children }: { title: string; subtitle: string;
 function GeneralSummary({ report }: { report: GeneralReport }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <KpiCard label="Proyectos totales" value={report.totalProjects} sub={`${report.activeProjects} activos`} color={COLORS.blue} />
-      <KpiCard label="Proyectos finalizados" value={report.completedProjects} sub="Con evidencia de cierre" color={COLORS.green} />
-      <KpiCard label="Objetivos" value={report.totalObjectives} sub={`${report.totalKeyResults} KRs asociados`} color={COLORS.orange} />
-      <KpiCard label="Cobertura objetivo" value={formatPercent(report.averageObjectiveCoverage)} sub={`KRs: ${formatPercent(report.averageKeyResultCoverage)}`} color="#7C3AED" />
+      <KpiCard label="Total del corte" value={report.totalProjects} sub={`${report.activeProjects} activos para exportar`} color={COLORS.blue} />
+      <KpiCard label="Cierres documentados" value={report.completedProjects} sub="Base de evidencias" color={COLORS.green} />
+      <KpiCard label="Objetivos incluidos" value={report.totalObjectives} sub={`${report.totalKeyResults} KRs trazables`} color={COLORS.orange} />
+      <KpiCard label="Cobertura reportada" value={formatPercent(report.averageObjectiveCoverage)} sub={`KR reportado: ${formatPercent(report.averageKeyResultCoverage)}`} color="#7C3AED" />
     </div>
   );
 }
 
 function DepartmentTable({ data }: { data: ConsolidatedReport["departments"] }) {
   if (!data.length) {
-    return <div className="rounded-lg bg-gray-50 p-8 text-center" style={{ color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>Sin departamentos para los filtros seleccionados.</div>;
+    return <div className="rounded-md bg-gray-50 p-8 text-center" style={{ color: COLORS.gray, fontSize: 12, fontWeight: 700 }}>Sin departamentos para los filtros seleccionados.</div>;
   }
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px]" style={{ borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ borderBottom: "2px solid #000" }}>
+          <tr style={{ borderBottom: "1px solid #E5E7EB" }}>
             {["Departamento", "Proyectos", "Objetivos", "KRs", "Cobertura promedio"].map((head) => (
-              <th key={head} style={{ textAlign: "left", padding: "9px 12px", fontSize: 10, fontWeight: 900, color: COLORS.gray, textTransform: "uppercase" }}>
+              <th key={head} style={{ textAlign: "left", padding: "9px 12px", fontSize: 10, fontWeight: 800, color: COLORS.gray, textTransform: "uppercase" }}>
                 {head}
               </th>
             ))}
@@ -111,7 +111,7 @@ function DepartmentTable({ data }: { data: ConsolidatedReport["departments"] }) 
             const coverage = numericPercent(row.averageObjectiveCoverage);
             return (
               <tr key={row.departmentId} style={{ borderBottom: "1px solid #F3F4F6" }}>
-                <td style={{ padding: "12px", fontSize: 13, fontWeight: 900, color: "#000" }}>{row.departmentName}</td>
+                <td style={{ padding: "12px", fontSize: 13, fontWeight: 700, color: "#111827" }}>{row.departmentName}</td>
                 <td style={{ padding: "12px", fontSize: 13 }}>{row.projects}</td>
                 <td style={{ padding: "12px", fontSize: 13 }}>{row.objectives}</td>
                 <td style={{ padding: "12px", fontSize: 13 }}>{row.keyResults}</td>
@@ -120,7 +120,7 @@ function DepartmentTable({ data }: { data: ConsolidatedReport["departments"] }) 
                     <div className="overflow-hidden rounded-full" style={{ width: 120, height: 7, backgroundColor: "#F3F4F6" }}>
                       <div style={{ width: `${Math.min(100, Math.max(0, coverage))}%`, height: "100%", backgroundColor: coverage >= 70 ? COLORS.green : coverage >= 40 ? COLORS.blue : COLORS.orange }} />
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 900, color: coverage >= 70 ? COLORS.green : coverage >= 40 ? COLORS.blue : COLORS.orange }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: coverage >= 70 ? COLORS.green : coverage >= 40 ? COLORS.blue : COLORS.orange }}>
                       {formatPercent(row.averageObjectiveCoverage)}
                     </span>
                   </div>
@@ -136,7 +136,7 @@ function DepartmentTable({ data }: { data: ConsolidatedReport["departments"] }) 
 
 function RankingTable({ data }: { data: ConsolidatedReport["objectiveRanking"] }) {
   if (!data.length) {
-    return <div className="rounded-lg bg-gray-50 p-8 text-center" style={{ color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>Sin objetivos para el ranking actual.</div>;
+    return <div className="rounded-md bg-gray-50 p-8 text-center" style={{ color: COLORS.gray, fontSize: 12, fontWeight: 700 }}>Sin objetivos para el ranking actual.</div>;
   }
 
   return (
@@ -144,14 +144,14 @@ function RankingTable({ data }: { data: ConsolidatedReport["objectiveRanking"] }
       {data.map((row, index) => {
         const coverage = numericPercent(row.coveragePercentage);
         return (
-          <div key={row.objectiveId} className="rounded-lg p-4" style={{ border: "1px solid #E5E7EB", backgroundColor: index < 3 ? "#FAFAF0" : "#fff" }}>
+          <div key={row.objectiveId} className="rounded-md p-4" style={{ border: "1px solid #E5E7EB", backgroundColor: index < 3 ? "#FAFAF0" : "#fff" }}>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="flex items-center justify-center rounded" style={{ width: 26, height: 26, backgroundColor: index < 3 ? COLORS.yellow : "#F3F4F6", color: "#000", fontSize: 11, fontWeight: 900 }}>
+                  <span className="flex items-center justify-center rounded" style={{ width: 26, height: 26, backgroundColor: index < 3 ? COLORS.yellow : "#F3F4F6", color: "#111827", fontSize: 11, fontWeight: 800 }}>
                     {index + 1}
                   </span>
-                  <p style={{ fontSize: 13, fontWeight: 900, color: "#000" }}>{row.objectiveName}</p>
+                  <p style={{ fontSize: 13, fontWeight: 750, color: "#111827" }}>{row.objectiveName}</p>
                 </div>
                 <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 6 }}>
                   {row.departmentName} - {row.period} - {row.keyResults} KRs
@@ -161,7 +161,7 @@ function RankingTable({ data }: { data: ConsolidatedReport["objectiveRanking"] }
                 <div className="overflow-hidden rounded-full" style={{ width: 170, height: 8, backgroundColor: "#F3F4F6" }}>
                   <div style={{ width: `${Math.min(100, Math.max(0, coverage))}%`, height: "100%", backgroundColor: coverage >= 70 ? COLORS.green : coverage >= 40 ? COLORS.blue : COLORS.orange }} />
                 </div>
-                <span style={{ minWidth: 48, textAlign: "right", fontSize: 15, fontWeight: 900, color: coverage >= 70 ? COLORS.green : coverage >= 40 ? COLORS.blue : COLORS.orange }}>
+                <span style={{ minWidth: 48, textAlign: "right", fontSize: 15, fontWeight: 800, color: coverage >= 70 ? COLORS.green : coverage >= 40 ? COLORS.blue : COLORS.orange }}>
                   {formatPercent(row.coveragePercentage)}
                 </span>
               </div>
@@ -175,8 +175,8 @@ function RankingTable({ data }: { data: ConsolidatedReport["objectiveRanking"] }
 
 function ComparisonCard({ title, report }: { title: string; report: GeneralReport }) {
   return (
-    <div className="rounded-lg p-5" style={{ border: "1.5px solid #E5E7EB", backgroundColor: "#fff" }}>
-      <h4 style={{ fontSize: 13, fontWeight: 900, color: "#000", marginBottom: 12 }}>{title}</h4>
+    <div className="rounded-md p-5" style={{ border: "1px solid #E5E7EB", backgroundColor: "#fff" }}>
+      <h4 style={{ fontSize: 13, fontWeight: 800, color: "#111827", marginBottom: 12 }}>{title}</h4>
       <div className="grid grid-cols-2 gap-3">
         <KpiCard label="Proyectos" value={report.totalProjects} sub={`${report.activeProjects} activos`} color={COLORS.blue} />
         <KpiCard label="Objetivos" value={report.totalObjectives} sub={`${report.totalKeyResults} KRs`} color={COLORS.orange} />
@@ -192,9 +192,9 @@ function DeltaBadge({ label, value }: { label: string; value: string }) {
   const color = delta > 0 ? COLORS.green : delta < 0 ? COLORS.red : COLORS.gray;
   const Icon = delta < 0 ? TrendingDown : TrendingUp;
   return (
-    <div className="rounded-lg px-4 py-3 flex items-center justify-between" style={{ backgroundColor: delta > 0 ? "#ECFDF5" : delta < 0 ? "#FEF2F2" : "#F9FAFB", border: `1px solid ${delta === 0 ? "#E5E7EB" : `${color}40`}` }}>
-      <span style={{ fontSize: 12, fontWeight: 900, color: "#000" }}>{label}</span>
-      <span className="flex items-center gap-1" style={{ fontSize: 14, fontWeight: 900, color }}>
+    <div className="rounded-md px-4 py-3 flex items-center justify-between" style={{ backgroundColor: delta > 0 ? "#ECFDF5" : delta < 0 ? "#FEF2F2" : "#F9FAFB", border: `1px solid ${delta === 0 ? "#E5E7EB" : `${color}40`}` }}>
+      <span style={{ fontSize: 12, fontWeight: 750, color: "#111827" }}>{label}</span>
+      <span className="flex items-center gap-1" style={{ fontSize: 14, fontWeight: 800, color }}>
         <Icon size={14} /> {formatPercent(value)}
       </span>
     </div>
@@ -346,17 +346,17 @@ export function Reportes() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: "#000" }}>Reportes y analisis comparativo</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827" }}>Centro de reportes exportables</h1>
           <p style={{ fontSize: 13, color: COLORS.gray, marginTop: 4 }}>
-            Reportes consolidados exportables por periodo, departamento y objetivo.
+            Salidas consolidadas para auditoria, comparativos y descargas por periodo, departamento y objetivo.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => void loadReport()}
             disabled={loading}
-            className="flex items-center justify-center rounded-lg disabled:opacity-50"
-            style={{ width: 38, height: 38, border: "1.5px solid #E5E7EB", backgroundColor: "#fff" }}
+            className="flex items-center justify-center rounded-md disabled:opacity-50"
+            style={{ width: 38, height: 38, border: "1px solid #E5E7EB", backgroundColor: "#fff" }}
             title="Recargar reporte"
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
@@ -364,63 +364,63 @@ export function Reportes() {
           <button
             onClick={() => void exportWithFilters("pdf")}
             disabled={!!exporting}
-            className="flex items-center gap-2 rounded-lg disabled:opacity-50"
-            style={{ padding: "9px 13px", backgroundColor: COLORS.yellow, color: "#000", fontSize: 12, fontWeight: 900 }}
+            className="flex items-center gap-2 rounded-md disabled:opacity-50"
+            style={{ padding: "9px 13px", backgroundColor: COLORS.yellow, color: "#111827", fontSize: 12, fontWeight: 800 }}
           >
             {exporting === "pdf" ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />} PDF
           </button>
           <button
             onClick={() => void exportWithFilters("csv")}
             disabled={!!exporting}
-            className="flex items-center gap-2 rounded-lg disabled:opacity-50"
-            style={{ padding: "9px 13px", backgroundColor: "#000", color: "#fff", fontSize: 12, fontWeight: 900 }}
+            className="flex items-center gap-2 rounded-md disabled:opacity-50"
+            style={{ padding: "9px 13px", backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 800 }}
           >
             {exporting === "csv" ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} CSV
           </button>
         </div>
       </div>
 
-      <div className="rounded-lg bg-white p-4 flex flex-wrap items-center gap-3" style={{ border: "1.5px solid #E5E7EB" }}>
-        <select value={period} onChange={(event) => handlePeriodChange(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 7, padding: "8px 10px", fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>
+      <div className="rounded-md bg-white p-4 flex flex-wrap items-center gap-3" style={{ border: "1px solid #E5E7EB" }}>
+        <select value={period} onChange={(event) => handlePeriodChange(event.target.value)} style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "8px 10px", fontSize: 12, fontWeight: 600, color: "#374151", backgroundColor: "#fff" }}>
           <option value="">Periodo activo</option>
           {sortedPeriods.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
         </select>
-        <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} style={{ border: "1.5px solid #E5E7EB", borderRadius: 7, padding: "8px 10px", fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>
+        <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "8px 10px", fontSize: 12, fontWeight: 600, color: "#374151", backgroundColor: "#fff" }}>
           <option value="">Todos los departamentos</option>
           {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
         </select>
-        <select value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)} style={{ border: "1.5px solid #E5E7EB", borderRadius: 7, padding: "8px 10px", fontSize: 12, fontWeight: 800, backgroundColor: "#fff", maxWidth: 360 }}>
+        <select value={objectiveId} onChange={(event) => setObjectiveId(event.target.value)} style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "8px 10px", fontSize: 12, fontWeight: 600, color: "#374151", backgroundColor: "#fff", maxWidth: 360 }}>
           <option value="">Todos los objetivos</option>
           {objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.name}</option>)}
         </select>
-        <button onClick={clearFilters} style={{ padding: "8px 12px", border: "1.5px solid #E5E7EB", borderRadius: 7, fontSize: 12, fontWeight: 800 }}>
+        <button onClick={clearFilters} style={{ padding: "8px 12px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, fontWeight: 650, color: "#374151" }}>
           Limpiar filtros
         </button>
       </div>
 
       {error && (
-        <div className="rounded-lg px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 800 }}>
+        <div className="rounded-md px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 700 }}>
           <AlertTriangle size={15} /> {error}
         </div>
       )}
 
-      <div className="flex w-fit overflow-hidden rounded-lg" style={{ border: "1.5px solid #000" }}>
+      <div className="flex w-fit overflow-hidden rounded-md" style={{ border: "1px solid #D1D5DB" }}>
         {[
-          { key: "general", label: "Reporte General" },
-          { key: "departments", label: "Por Departamento" },
-          { key: "ranking", label: "Ranking Objetivos" },
-          { key: "comparison", label: "Comparativa" },
+          { key: "general", label: "Consolidado exportable" },
+          { key: "departments", label: "Detalle por departamento" },
+          { key: "ranking", label: "Ranking accionable" },
+          { key: "comparison", label: "Comparativa de periodos" },
         ].map((item) => (
           <button
             key={item.key}
             onClick={() => setTab(item.key as ReportTab)}
             style={{
               padding: "9px 15px",
-              backgroundColor: tab === item.key ? "#000" : "#fff",
-              color: tab === item.key ? "#fff" : "#374151",
-              borderRight: "1px solid #000",
+              backgroundColor: tab === item.key ? "#EEF2FF" : "#fff",
+              color: tab === item.key ? COLORS.blue : "#374151",
+              borderRight: "1px solid #D1D5DB",
               fontSize: 12,
-              fontWeight: 900,
+              fontWeight: 700,
             }}
           >
             {item.label}
@@ -429,7 +429,7 @@ export function Reportes() {
       </div>
 
       {loading && !report ? (
-        <div className="flex items-center justify-center rounded-lg bg-white py-20" style={{ border: "1.5px solid #E5E7EB", color: COLORS.gray, fontSize: 13, fontWeight: 900 }}>
+        <div className="flex items-center justify-center rounded-md bg-white py-20" style={{ border: "1px solid #E5E7EB", color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
           <Loader2 size={18} className="mr-2 animate-spin" /> Cargando reportes...
         </div>
       ) : report ? (
@@ -437,46 +437,46 @@ export function Reportes() {
           {tab === "general" && (
             <div className="space-y-5">
               <GeneralSummary report={report.general} />
-              <Panel title="Resumen por departamento" subtitle="JSON consolidado de impacto estrategico agrupado por departamento.">
+              <Panel title="Resumen por departamento" subtitle="Insumo tabular para exportacion y revision institucional.">
                 <DepartmentTable data={report.departments} />
               </Panel>
             </div>
           )}
 
           {tab === "departments" && (
-            <Panel title="Reporte por departamento" subtitle="Proyectos, objetivos, KRs y cobertura promedio con filtros aplicados.">
+              <Panel title="Reporte por departamento" subtitle="Detalle operativo para descarga y trazabilidad por unidad.">
               <DepartmentTable data={report.departments} />
             </Panel>
           )}
 
           {tab === "ranking" && (
-            <Panel title="Ranking de objetivos por cobertura" subtitle="Objetivos ordenados segun porcentaje de cobertura estrategica.">
+              <Panel title="Ranking de objetivos por cobertura" subtitle="Prioriza objetivos para seguimiento, mejora y documentacion.">
               <RankingTable data={report.objectiveRanking} />
             </Panel>
           )}
 
           {tab === "comparison" && (
             <div className="space-y-5">
-              <div className="rounded-lg bg-white p-4 flex flex-wrap items-end gap-3" style={{ border: "1.5px solid #E5E7EB" }}>
+              <div className="rounded-md bg-white p-4 flex flex-wrap items-end gap-3" style={{ border: "1px solid #E5E7EB" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 900, color: COLORS.gray, marginBottom: 4 }}>Periodo base</label>
-                  <select value={basePeriod} onChange={(event) => setBasePeriod(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 7, padding: "8px 10px", fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: COLORS.gray, marginBottom: 4 }}>Periodo base</label>
+                  <select value={basePeriod} onChange={(event) => setBasePeriod(event.target.value)} style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "8px 10px", fontSize: 12, fontWeight: 600, color: "#374151", backgroundColor: "#fff" }}>
                     {sortedPeriods.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 900, color: COLORS.gray, marginBottom: 4 }}>Periodo comparado</label>
-                  <select value={comparePeriod} onChange={(event) => setComparePeriod(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 7, padding: "8px 10px", fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: COLORS.gray, marginBottom: 4 }}>Periodo comparado</label>
+                  <select value={comparePeriod} onChange={(event) => setComparePeriod(event.target.value)} style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "8px 10px", fontSize: 12, fontWeight: 600, color: "#374151", backgroundColor: "#fff" }}>
                     {sortedPeriods.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
                   </select>
                 </div>
-                <button onClick={() => void loadComparison()} disabled={comparisonLoading || !basePeriod || !comparePeriod} className="flex items-center gap-2 rounded-lg disabled:opacity-50" style={{ padding: "9px 13px", backgroundColor: "#000", color: "#fff", fontSize: 12, fontWeight: 900 }}>
+                <button onClick={() => void loadComparison()} disabled={comparisonLoading || !basePeriod || !comparePeriod} className="flex items-center gap-2 rounded-md disabled:opacity-50" style={{ padding: "9px 13px", backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 800 }}>
                   {comparisonLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Comparar
                 </button>
               </div>
 
               {comparisonLoading ? (
-                <div className="flex items-center justify-center rounded-lg bg-white py-14" style={{ border: "1.5px solid #E5E7EB", color: COLORS.gray, fontSize: 13, fontWeight: 900 }}>
+                <div className="flex items-center justify-center rounded-md bg-white py-14" style={{ border: "1px solid #E5E7EB", color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
                   <Loader2 size={18} className="mr-2 animate-spin" /> Calculando comparativa...
                 </div>
               ) : comparison ? (
@@ -491,7 +491,7 @@ export function Reportes() {
                   </div>
                 </>
               ) : (
-                <div className="rounded-lg bg-white p-8 text-center" style={{ border: "1.5px solid #E5E7EB", color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>
+                <div className="rounded-md bg-white p-8 text-center" style={{ border: "1px solid #E5E7EB", color: COLORS.gray, fontSize: 12, fontWeight: 700 }}>
                   Selecciona dos periodos para generar la comparativa.
                 </div>
               )}

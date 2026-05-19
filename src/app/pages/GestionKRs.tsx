@@ -86,7 +86,7 @@ export function GestionKRs() {
 
   return (
     <div style={{ backgroundColor: "#F9FAFB", minHeight: "100%" }}>
-      <div className="sticky top-0 z-10 bg-white px-6 py-3" style={{ borderBottom: "2px solid #000" }}>
+      <div className="sticky top-0 z-10 bg-white px-6 py-3" style={{ borderBottom: "1px solid #E5E7EB" }}>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/okrs")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50" style={{ border: "1px solid #E5E7EB", fontSize: "12px", fontWeight: 700, color: "#374151" }}>
             <ArrowLeft size={14} /> Objetivos

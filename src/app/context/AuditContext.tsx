@@ -54,7 +54,7 @@ const seedEntries: AuditEntry[] = [
   {
     id: "AUD-SEED-2",
     fecha: "2026-04-12T14:30:00.000Z",
-    usuario: "Sistemas SGP",
+    usuario: "Sistemas MTE",
     rol: "administrador",
     modulo: "Usuarios",
     accion: "Cambio de rol",
@@ -139,4 +139,3 @@ export function AuditProvider({ children }: { children: ReactNode }) {
 export function useAudit() {
   return useContext(AuditContext);
 }
-

@@ -6,12 +6,11 @@ import { getLabelRol } from "../data/mockData";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/dashboards": "Dashboards Estrategicos",
   "/jerarquia": "Jerarquía Estratégica",
   "/objetivos": "Objetivos a Corto Plazo",
   "/okrs": "Gestión de OKRs",
   "/proyectos": "Proyectos e Iniciativas",
-  "/reportes": "Reportes e Impacto",
+  "/reportes": "Reportes y exportaciones",
   "/consistencia": "Consistencia Estrategica",
   "/catalogos": "Catalogos",
   "/auditoria": "Auditoria",
@@ -23,7 +22,7 @@ export function Header() {
   const location = useLocation();
   const [showNotif, setShowNotif] = useState(false);
 
-  const pageTitle = breadcrumbMap[location.pathname] || "SGP";
+  const pageTitle = breadcrumbMap[location.pathname] || "MTE";
 
   const notifications = [
     { id: 1, msg: "OKR8 tiene menos del 40% de cumplimiento a mitad del periodo.", type: "warning" },
@@ -45,7 +44,7 @@ export function Header() {
       {/* Left: title */}
       <div>
         <p style={{ fontSize: "10px", color: "#717182", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          SGP · Escuela TDI
+          MTE · Escuela TDI
         </p>
         <h1 style={{ fontSize: "16px", fontWeight: 700, color: "#000000", lineHeight: 1.2 }}>
           {pageTitle}

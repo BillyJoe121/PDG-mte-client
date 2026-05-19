@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 const adminUser = {
   id: 'U10',
-  nombre: 'Sistemas SGM',
-  correo: 'sgm-admin@icesi.edu.co',
+  nombre: 'Sistemas MTE',
+  correo: 'mte-admin@icesi.edu.co',
   rol: 'administrador',
   departamento: 'TI Institucional',
   iniciales: 'AD',
@@ -27,9 +27,9 @@ async function seedSession(page: Page, user: typeof adminUser | typeof tutorUser
 test.describe('authentication and permissions', () => {
   test('happy path: admin can sign in manually and open the dashboard', async ({ page }) => {
     await page.goto('/login');
-    await page.locator('input[type="email"]').fill('sgm-admin@icesi.edu.co');
+    await page.locator('input[type="email"]').fill('mte-admin@icesi.edu.co');
     await page.locator('input[type="password"]').fill('demo1234');
-    await page.getByRole('button', { name: /Ingresar al SGP/i }).click();
+    await page.getByRole('button', { name: /Ingresar al MTE/i }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole('heading', { name: /Dashboard de impacto/i })).toBeVisible();
@@ -39,12 +39,12 @@ test.describe('authentication and permissions', () => {
     await page.goto('/dashboard');
 
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole('button', { name: /Ingresar al SGP/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Ingresar al MTE/i })).toBeVisible();
   });
 
   test('sad path: empty credentials show validation feedback', async ({ page }) => {
     await page.goto('/login');
-    await page.getByRole('button', { name: /Ingresar al SGP/i }).click();
+    await page.getByRole('button', { name: /Ingresar al MTE/i }).click();
 
     await expect(page.getByText(/Por favor/i)).toBeVisible();
   });
@@ -53,7 +53,7 @@ test.describe('authentication and permissions', () => {
     await page.goto('/login');
     await page.locator('input[type="email"]').fill('nadie@icesi.edu.co');
     await page.locator('input[type="password"]').fill('demo1234');
-    await page.getByRole('button', { name: /Ingresar al SGP/i }).click();
+    await page.getByRole('button', { name: /Ingresar al MTE/i }).click();
 
     await expect(page.getByText(/Credenciales inválidas/i)).toBeVisible();
   });

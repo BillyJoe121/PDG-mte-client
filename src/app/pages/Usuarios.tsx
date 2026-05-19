@@ -244,7 +244,7 @@ export function Usuarios() {
       Departamento: u.departamento,
       Estado: u.estado,
       UltimoAcceso: u.ultimoAcceso,
-    })), `Usuarios_SGP_${getDateStamp()}`);
+    })), `Usuarios_MTE_${getDateStamp()}`);
     logAudit({
       modulo: "Usuarios",
       accion: "Exportacion",
@@ -327,7 +327,7 @@ export function Usuarios() {
       <div className="overflow-hidden rounded-lg bg-white" style={{ border: "1.5px solid #E5E7EB" }}>
         <table className="w-full" style={{ borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ borderBottom: "2px solid #000", backgroundColor: "#000" }}>
+            <tr style={{ borderBottom: "1px solid #1F2937", backgroundColor: "#000" }}>
               {["Usuario", "Correo", "Rol", "Departamento", "Estado", "Ultimo acceso", ""].map((header) => (
                 <th key={header} style={{ textAlign: "left", padding: "12px 14px", fontSize: "10px", fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                   {header}

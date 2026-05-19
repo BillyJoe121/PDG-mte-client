@@ -37,28 +37,38 @@ export function ProjectFilters({
   status,
   type,
 }: ProjectFiltersProps) {
+  const controlStyle = {
+    border: "1px solid #D1D5DB",
+    borderRadius: 5,
+    padding: "8px 10px",
+    fontSize: 12,
+    fontWeight: 600,
+    color: "#374151",
+    backgroundColor: "#fff",
+  } as const;
+
   return (
     <div className="flex flex-wrap items-center gap-3 mb-5">
-      <div className="flex items-center gap-2" style={{ border: "1.5px solid #000", borderRadius: 6, padding: "7px 12px", minWidth: 260 }}>
+      <div className="flex items-center gap-2" style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "7px 12px", minWidth: 260 }}>
         <Search size={14} color="#717182" />
         <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar proyecto..." style={{ border: 0, outline: 0, fontSize: 12, flex: 1, backgroundColor: "transparent" }} />
       </div>
-      <select value={status} onChange={(event) => onStatusChange(event.target.value as ProjectStatus | "todos")} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>
+      <select value={status} onChange={(event) => onStatusChange(event.target.value as ProjectStatus | "todos")} style={controlStyle}>
         {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      <select value={type} onChange={(event) => onTypeChange(event.target.value as ProjectType | "todos")} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>
+      <select value={type} onChange={(event) => onTypeChange(event.target.value as ProjectType | "todos")} style={controlStyle}>
         {TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      <select value={departmentId} onChange={(event) => onDepartmentChange(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>
+      <select value={departmentId} onChange={(event) => onDepartmentChange(event.target.value)} style={controlStyle}>
         <option value="todos">Todos los departamentos</option>
         {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
       </select>
-      <select value={period} onChange={(event) => onPeriodChange(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>
+      <select value={period} onChange={(event) => onPeriodChange(event.target.value)} style={controlStyle}>
         <option value="todos">Todos los periodos</option>
         {periods.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
       </select>
-      <button onClick={onReset} style={{ padding: "8px 12px", border: "1px solid #D1D5DB", borderRadius: 6, fontSize: 12, fontWeight: 800 }}>Limpiar</button>
-      <button onClick={onExportCSV} className="inline-flex items-center gap-2" style={{ padding: "8px 12px", border: "1px solid #D1D5DB", borderRadius: 6, fontSize: 12, fontWeight: 800 }}>
+      <button onClick={onReset} style={{ padding: "8px 12px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, fontWeight: 650, color: "#374151" }}>Limpiar</button>
+      <button onClick={onExportCSV} className="inline-flex items-center gap-2" style={{ padding: "8px 12px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, fontWeight: 650, color: "#374151" }}>
         <Download size={14} />
         Exportar CSV
       </button>

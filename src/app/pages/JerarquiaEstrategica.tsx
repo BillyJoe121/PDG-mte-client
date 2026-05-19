@@ -20,6 +20,10 @@ const COLORS = {
   green: "#4CB979",
   orange: "#E9683B",
   gray: "#717182",
+  navy: "#1F2A44",
+  text: "#111827",
+  border: "#D9DEE8",
+  subtle: "#F7F8FB",
 };
 
 type View = "arbol" | "apuestas" | "metas";
@@ -81,10 +85,10 @@ export function JerarquiaEstrategica() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-shrink-0 px-6 pt-5 pb-4 bg-white" style={{ borderBottom: "1.5px solid #E5E7EB", zIndex: 10 }}>
+      <div className="flex-shrink-0 px-6 pt-5 pb-4 bg-white" style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}>
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
           <div>
-            <h1 style={{ fontSize: "22px", fontWeight: 900, color: "#000" }}>Jerarquia Estrategica</h1>
+            <h1 style={{ fontSize: "22px", fontWeight: 800, color: COLORS.text }}>Jerarquia Estrategica</h1>
             <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 4 }}>
               {bets.length} apuestas · {goals.length} metas · {totalObjectives} objetivos · {totalKrs} KRs · {totalProjects} proyectos
             </p>
@@ -92,22 +96,22 @@ export function JerarquiaEstrategica() {
           <div className="flex items-center gap-2 flex-wrap">
             {canCreate && (
               <>
-                <button onClick={() => navigate("/jerarquia/meta/nueva")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:opacity-90" style={{ backgroundColor: "#B8C500", color: "#fff", fontSize: "12px", fontWeight: 800 }}>
+                <button onClick={() => navigate("/jerarquia/meta/nueva")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: "#B8C500", color: "#fff", fontSize: "12px", fontWeight: 750 }}>
                   <Plus size={13} /> Nueva Meta
                 </button>
-                <button onClick={() => navigate("/jerarquia/apuesta/nueva")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:opacity-90" style={{ backgroundColor: "#000", color: "#fff", fontSize: "12px", fontWeight: 800 }}>
+                <button onClick={() => navigate("/jerarquia/apuesta/nueva")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: "12px", fontWeight: 750 }}>
                   <Plus size={13} /> Nueva Apuesta
                 </button>
               </>
             )}
-            <button onClick={() => void load()} className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36, border: "1.5px solid #E5E7EB" }} title="Recargar">
+            <button onClick={() => void load()} className="flex items-center justify-center rounded-md" style={{ width: 36, height: 36, border: "1px solid #E5E7EB" }} title="Recargar">
               <RefreshCw size={14} />
             </button>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-0 rounded-lg overflow-hidden" style={{ border: "1.5px solid #000" }}>
+          <div className="flex items-center gap-0 rounded-md overflow-hidden" style={{ border: `1px solid ${COLORS.border}` }}>
             {[
               { value: "arbol", label: "Arbol" },
               { value: "apuestas", label: "Apuestas" },
@@ -116,13 +120,13 @@ export function JerarquiaEstrategica() {
               <button
                 key={item.value}
                 onClick={() => setView(item.value as View)}
-                style={{ padding: "7px 14px", fontSize: "11px", fontWeight: 800, backgroundColor: view === item.value ? "#000" : "#fff", color: view === item.value ? COLORS.yellow : "#374151", borderRight: "1px solid #000" }}
+                style={{ padding: "7px 14px", fontSize: "11px", fontWeight: 700, backgroundColor: view === item.value ? "#EEF2FF" : "#fff", color: view === item.value ? COLORS.blue : "#374151", borderRight: `1px solid ${COLORS.border}` }}
               >
                 {item.label}
               </button>
             ))}
           </div>
-          <select value={period} onChange={(event) => setPeriod(event.target.value)} style={{ border: "1.5px solid #E5E7EB", borderRadius: 6, padding: "7px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
+          <select value={period} onChange={(event) => setPeriod(event.target.value)} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 5, padding: "7px 10px", fontSize: "12px", fontWeight: 600, color: "#374151", backgroundColor: "#fff" }}>
             <option value="">Todos los periodos</option>
             {periods.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
           </select>
@@ -145,11 +149,11 @@ export function JerarquiaEstrategica() {
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-5">
             <div className="space-y-3">
               {bets.map((bet) => (
-                <button key={bet.id} onClick={() => setSelectedBet(bet)} className="w-full text-left bg-white rounded-lg p-4 hover:shadow-sm" style={{ border: `1.5px solid ${selectedBet?.id === bet.id ? "#000" : "#E5E7EB"}` }}>
+                <button key={bet.id} onClick={() => setSelectedBet(bet)} className="w-full text-left bg-white rounded-md p-4 hover:shadow-sm" style={{ border: `1px solid ${selectedBet?.id === bet.id ? COLORS.blue : COLORS.border}` }}>
                   <div className="flex items-start gap-3">
-                    <Flag size={16} color="#000" className="mt-1" />
+                    <Flag size={16} color={COLORS.navy} className="mt-1" />
                     <div className="flex-1">
-                      <p style={{ fontSize: "14px", fontWeight: 900, color: "#000" }}>{bet.name}</p>
+                      <p style={{ fontSize: "14px", fontWeight: 800, color: COLORS.text }}>{bet.name}</p>
                       <p style={{ fontSize: "12px", color: COLORS.gray, marginTop: 4 }}>{bet.description}</p>
                       <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 6 }}>{bet.status} · {bet.startDate ?? "Sin inicio"} - {bet.endDate ?? "Sin cierre"}</p>
                     </div>
@@ -163,11 +167,11 @@ export function JerarquiaEstrategica() {
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-5">
             <div className="space-y-3">
               {goals.map((goal) => (
-                <button key={goal.id} onClick={() => setSelectedGoal(goal)} className="w-full text-left bg-white rounded-lg p-4 hover:shadow-sm" style={{ border: `1.5px solid ${selectedGoal?.id === goal.id ? "#000" : "#E5E7EB"}` }}>
+                <button key={goal.id} onClick={() => setSelectedGoal(goal)} className="w-full text-left bg-white rounded-md p-4 hover:shadow-sm" style={{ border: `1px solid ${selectedGoal?.id === goal.id ? COLORS.blue : COLORS.border}` }}>
                   <div className="flex items-start gap-3">
                     <BookOpen size={16} color="#7D8900" className="mt-1" />
                     <div className="flex-1">
-                      <p style={{ fontSize: "14px", fontWeight: 900, color: "#000" }}>{goal.name}</p>
+                      <p style={{ fontSize: "14px", fontWeight: 800, color: COLORS.text }}>{goal.name}</p>
                       <p style={{ fontSize: "12px", color: COLORS.gray, marginTop: 4 }}>{goal.description}</p>
                       <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 6 }}>{goal.expectedValue} {goal.measurementUnitName} · {goal.status}</p>
                     </div>
@@ -195,7 +199,7 @@ function TreeNode({ node, depth, expanded, onToggle }: { node: StrategicHierarch
   const Icon = icon;
   return (
     <div>
-      <div className="bg-white rounded-lg p-3" style={{ border: "1.5px solid #E5E7EB", marginLeft: depth * 24 }}>
+      <div className="bg-white rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, marginLeft: depth * 24 }}>
         <div className="flex items-start gap-3">
           <button onClick={() => hasChildren && onToggle(node.id)} className="mt-0.5" style={{ width: 18 }}>
             {hasChildren ? (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : null}
@@ -203,9 +207,9 @@ function TreeNode({ node, depth, expanded, onToggle }: { node: StrategicHierarch
           <Icon size={16} color={color} className="mt-0.5" />
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <p style={{ fontSize: "13px", fontWeight: 900, color: "#000" }}>{node.label}</p>
+              <p style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text }}>{node.label}</p>
               {node.badge && <span style={{ fontSize: "10px", fontWeight: 800, color: COLORS.blue, backgroundColor: "#EEF2FF", padding: "2px 6px", borderRadius: 4 }}>{node.badge}</span>}
-              {typeof node.progressPercentage === "number" && <span style={{ fontSize: "10px", fontWeight: 900, color }}>{node.progressPercentage}%</span>}
+              {typeof node.progressPercentage === "number" && <span style={{ fontSize: "10px", fontWeight: 800, color }}>{node.progressPercentage}%</span>}
             </div>
             {node.description && <p style={{ fontSize: "11px", color: COLORS.gray, marginTop: 3 }}>{node.description}</p>}
             {node.executionSummary && <SummaryInline summary={node.executionSummary} />}
@@ -233,7 +237,7 @@ function getNodeIcon(type: StrategicHierarchyNode["nodeType"]) {
 
 function getNodeColor(type: StrategicHierarchyNode["nodeType"]) {
   return {
-    STRATEGIC_BET: "#000",
+    STRATEGIC_BET: COLORS.navy,
     GOAL: "#7D8900",
     OBJECTIVE: COLORS.blue,
     KEY_RESULT: COLORS.blue,
@@ -254,11 +258,11 @@ function SummaryInline({ summary }: { summary: ExecutionSummary }) {
 
 function DetailPanel({ title, item }: { title: string; item: StrategicBet | null }) {
   return (
-    <aside className="bg-white rounded-lg p-5 h-fit" style={{ border: "1.5px solid #E5E7EB" }}>
-      <h2 style={{ fontSize: "13px", fontWeight: 900, color: "#000", textTransform: "uppercase", marginBottom: 12 }}>{title}</h2>
+    <aside className="bg-white rounded-md p-5 h-fit" style={{ border: `1px solid ${COLORS.border}` }}>
+      <h2 style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text, textTransform: "uppercase", marginBottom: 12 }}>{title}</h2>
       {!item ? <EmptyState text="Selecciona una apuesta para ver su detalle." /> : (
         <div className="space-y-3">
-          <p style={{ fontSize: "16px", fontWeight: 900, color: "#000" }}>{item.name}</p>
+          <p style={{ fontSize: "16px", fontWeight: 800, color: COLORS.text }}>{item.name}</p>
           <p style={{ fontSize: "12px", color: COLORS.gray, lineHeight: 1.6 }}>{item.description}</p>
           <p style={{ fontSize: "11px", color: "#374151" }}>{item.status} · {item.startDate ?? "Sin inicio"} - {item.endDate ?? "Sin cierre"}</p>
           <ExecutionSummaryBox summary={item.executionSummary} />
@@ -287,18 +291,18 @@ function GoalDetailPanel({ goal, periods, onChanged }: { goal: Goal | null; peri
   };
 
   return (
-    <aside className="bg-white rounded-lg p-5 h-fit" style={{ border: "1.5px solid #E5E7EB" }}>
-      <h2 style={{ fontSize: "13px", fontWeight: 900, color: "#000", textTransform: "uppercase", marginBottom: 12 }}>Detalle de Meta</h2>
+    <aside className="bg-white rounded-md p-5 h-fit" style={{ border: `1px solid ${COLORS.border}` }}>
+      <h2 style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text, textTransform: "uppercase", marginBottom: 12 }}>Detalle de Meta</h2>
       {!goal ? <EmptyState text="Selecciona una meta para ver su detalle." /> : (
         <div className="space-y-4">
           <div>
-            <p style={{ fontSize: "16px", fontWeight: 900, color: "#000" }}>{goal.name}</p>
+            <p style={{ fontSize: "16px", fontWeight: 800, color: COLORS.text }}>{goal.name}</p>
             <p style={{ fontSize: "12px", color: COLORS.gray, lineHeight: 1.6, marginTop: 4 }}>{goal.description}</p>
             <p style={{ fontSize: "11px", color: "#374151", marginTop: 6 }}>{goal.expectedValue} {goal.measurementUnitName} · {goal.status}</p>
           </div>
           <ExecutionSummaryBox summary={goal.executionSummary} />
           <div>
-            <p style={{ fontSize: "11px", color: "#000", fontWeight: 900, textTransform: "uppercase", marginBottom: 8 }}>Periodos asociados</p>
+            <p style={{ fontSize: "11px", color: COLORS.text, fontWeight: 800, textTransform: "uppercase", marginBottom: 8 }}>Periodos asociados</p>
             <div className="flex flex-wrap gap-2">
               {periods.map((period) => (
                 <button key={period.id} onClick={() => void togglePeriod(period)} className="px-2 py-1 rounded" style={{ border: `1px solid ${attached.has(period.id) ? COLORS.blue : "#E5E7EB"}`, backgroundColor: attached.has(period.id) ? "#EEF2FF" : "#fff", color: attached.has(period.id) ? COLORS.blue : "#374151", fontSize: "11px", fontWeight: 800 }}>
@@ -315,7 +319,7 @@ function GoalDetailPanel({ goal, periods, onChanged }: { goal: Goal | null; peri
 
 function ExecutionSummaryBox({ summary }: { summary: ExecutionSummary }) {
   return (
-    <div className="rounded-lg p-4" style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+    <div className="rounded-md p-4" style={{ backgroundColor: COLORS.subtle, border: `1px solid ${COLORS.border}` }}>
       <p style={{ fontSize: "12px", color: "#374151", lineHeight: 1.5 }}>{summary.summaryText}</p>
       <div className="grid grid-cols-2 gap-2 mt-3">
         {[
@@ -327,7 +331,7 @@ function ExecutionSummaryBox({ summary }: { summary: ExecutionSummary }) {
           ["Proy. en progreso", summary.inProgressProjects],
         ].map(([label, value]) => (
           <div key={label} style={{ fontSize: "11px", color: COLORS.gray }}>
-            <strong style={{ color: "#000" }}>{value}</strong> {label}
+            <strong style={{ color: COLORS.text }}>{value}</strong> {label}
           </div>
         ))}
       </div>

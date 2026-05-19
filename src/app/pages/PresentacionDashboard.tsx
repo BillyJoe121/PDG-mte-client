@@ -24,11 +24,14 @@ const COLORS = {
   yellow: "#E4EB60",
   green: "#4CB979",
   orange: "#E9683B",
-  bg: "#08080D",
-  surface: "rgba(255,255,255,0.06)",
-  border: "rgba(255,255,255,0.1)",
-  textDim: "rgba(255,255,255,0.62)",
-  textMuted: "rgba(255,255,255,0.38)",
+  navy: "#1F2A44",
+  bg: "#F6F7FB",
+  surface: "#FFFFFF",
+  surfaceMuted: "#F2F4F8",
+  border: "#D9DEE8",
+  text: "#111827",
+  textDim: "#4B5563",
+  textMuted: "#6B7280",
 };
 
 function getErrorMessage(error: unknown) {
@@ -81,8 +84,8 @@ function SummaryCards({ content }: { content: Record<string, unknown> }) {
   return (
     <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
       {entries.slice(0, 6).map(([key, value], index) => (
-        <div key={key} className="rounded-xl p-5" style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}` }}>
-          <p style={{ color: [COLORS.yellow, COLORS.green, COLORS.blue, COLORS.orange][index % 4], fontSize: 28, fontWeight: 900, lineHeight: 1 }}>
+        <div key={key} className="rounded-md p-5" style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}` }}>
+          <p style={{ color: [COLORS.yellow, COLORS.green, COLORS.blue, COLORS.orange][index % 4], fontSize: 28, fontWeight: 850, lineHeight: 1 }}>
             {formatValue(value)}
           </p>
           <p style={{ color: COLORS.textDim, fontSize: 11, fontWeight: 700, marginTop: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
@@ -103,16 +106,16 @@ function ContentDetails({ content }: { content: Record<string, unknown> }) {
   return (
     <div className="space-y-4">
       {typeof summaryText === "string" && (
-        <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 18, lineHeight: 1.6, maxWidth: 860 }}>
+        <p style={{ color: COLORS.textDim, fontSize: 18, lineHeight: 1.6, maxWidth: 860 }}>
           {summaryText}
         </p>
       )}
       {detailEntries.length > 0 && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {detailEntries.slice(0, 8).map(([key, value]) => (
-            <div key={key} className="flex items-center justify-between gap-4 rounded-lg px-4 py-3" style={{ backgroundColor: "rgba(255,255,255,0.035)", border: `1px solid ${COLORS.border}` }}>
+            <div key={key} className="flex items-center justify-between gap-4 rounded-md px-4 py-3" style={{ backgroundColor: COLORS.surfaceMuted, border: `1px solid ${COLORS.border}` }}>
               <span style={{ color: COLORS.textDim, fontSize: 12, fontWeight: 800 }}>{formatLabel(key)}</span>
-              <span style={{ color: "#fff", fontSize: 13, fontWeight: 900, textAlign: "right" }}>{formatValue(value)}</span>
+              <span style={{ color: COLORS.text, fontSize: 13, fontWeight: 800, textAlign: "right" }}>{formatValue(value)}</span>
             </div>
           ))}
         </div>
@@ -125,13 +128,13 @@ function SlideView({ slide, total, current, period }: { slide: PresentationSlide
   const accent = slide.type === "COVER" ? COLORS.yellow : slide.type === "CLOSING" ? COLORS.green : COLORS.blue;
 
   return (
-    <article className="h-full w-full overflow-hidden" style={{ background: `radial-gradient(circle at 80% 10%, ${accent}24, transparent 28%), ${COLORS.bg}` }}>
+    <article className="h-full w-full overflow-hidden" style={{ background: `radial-gradient(circle at 80% 10%, ${accent}20, transparent 30%), linear-gradient(135deg, #FFFFFF 0%, ${COLORS.bg} 72%)` }}>
       <div className="flex h-full">
-        <aside className="hidden h-full w-[32%] flex-col justify-between p-12 lg:flex" style={{ background: `linear-gradient(160deg, ${accent}28, rgba(255,255,255,0.02))`, borderRight: `1px solid ${COLORS.border}` }}>
+        <aside className="hidden h-full w-[32%] flex-col justify-between p-12 lg:flex" style={{ background: `linear-gradient(160deg, ${accent}18, #FFFFFF 68%)`, borderRight: `1px solid ${COLORS.border}` }}>
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5" style={{ backgroundColor: "rgba(255,255,255,0.08)", border: `1px solid ${COLORS.border}` }}>
+            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5" style={{ backgroundColor: "#FFFFFF", border: `1px solid ${COLORS.border}` }}>
               <Sparkles size={12} color={accent} />
-              <span style={{ color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              <span style={{ color: COLORS.navy, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                 Escuela TDI
               </span>
             </div>
@@ -146,7 +149,7 @@ function SlideView({ slide, total, current, period }: { slide: PresentationSlide
             <p style={{ color: COLORS.textMuted, fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>
               {slide.type.replace("_", " ")}
             </p>
-            <p style={{ color: "#fff", fontSize: 68, fontWeight: 900, lineHeight: 1, marginTop: 12 }}>
+            <p style={{ color: COLORS.navy, fontSize: 68, fontWeight: 850, lineHeight: 1, marginTop: 12 }}>
               {String(current + 1).padStart(2, "0")}
             </p>
             <p style={{ color: COLORS.textDim, fontSize: 12, marginTop: 8 }}>
@@ -156,16 +159,16 @@ function SlideView({ slide, total, current, period }: { slide: PresentationSlide
 
           <div>
             <p style={{ color: COLORS.textMuted, fontSize: 11 }}>Periodo</p>
-            <p style={{ color: "#fff", fontSize: 14, fontWeight: 900, marginTop: 3 }}>{period ?? "Activo"}</p>
+            <p style={{ color: COLORS.text, fontSize: 14, fontWeight: 800, marginTop: 3 }}>{period ?? "Activo"}</p>
           </div>
         </aside>
 
         <main className="flex flex-1 flex-col justify-center gap-10 p-8 md:p-14">
           <div>
-            <p style={{ color: accent, fontSize: 12, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
+            <p style={{ color: accent, fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
               {period ?? "Periodo activo"}
             </p>
-            <h1 style={{ color: "#fff", fontSize: slide.type === "COVER" ? 58 : 46, fontWeight: 900, lineHeight: 1.05, maxWidth: 980 }}>
+            <h1 style={{ color: COLORS.navy, fontSize: slide.type === "COVER" ? 58 : 46, fontWeight: 850, lineHeight: 1.05, maxWidth: 980 }}>
               {slide.title}
             </h1>
             {slide.subtitle && (
@@ -196,7 +199,7 @@ function NavDots({ current, total, onGo }: { current: number; total: number; onG
             width: current === index ? 26 : 7,
             height: 7,
             borderRadius: 99,
-            backgroundColor: current === index ? COLORS.yellow : "rgba(255,255,255,0.22)",
+            backgroundColor: current === index ? COLORS.blue : "#CBD5E1",
             transition: "all 0.2s ease",
           }}
           title={`Ir a diapositiva ${index + 1}`}
@@ -325,7 +328,7 @@ export function PresentacionDashboard() {
       style={{
         width: "100vw",
         height: "100vh",
-        backgroundColor: "#000",
+        backgroundColor: COLORS.bg,
         display: "flex",
         flexDirection: "column",
         fontFamily: "Montserrat, sans-serif",
@@ -335,37 +338,37 @@ export function PresentacionDashboard() {
         zIndex: 9999,
       }}
     >
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, backgroundColor: "rgba(255,255,255,0.08)", zIndex: 20 }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, backgroundColor: "#E5E7EB", zIndex: 20 }}>
         <div style={{ width: `${progress}%`, height: "100%", background: `linear-gradient(90deg, ${COLORS.blue}, ${COLORS.yellow})`, transition: "width 0.25s ease" }} />
       </div>
 
       <div style={{ flex: 1, minHeight: 0 }}>
         {loading ? (
-          <div className="flex h-full items-center justify-center" style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>
+          <div className="flex h-full items-center justify-center" style={{ color: COLORS.text, fontSize: 14, fontWeight: 800 }}>
             <Loader2 size={20} className="mr-2 animate-spin" /> Cargando presentacion...
           </div>
         ) : error ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
-            <p style={{ color: COLORS.orange, fontSize: 16, fontWeight: 900 }}>{error}</p>
-            <button onClick={() => void loadPresentation()} className="flex items-center gap-2 rounded-lg" style={{ padding: "10px 14px", backgroundColor: COLORS.yellow, color: "#000", fontSize: 12, fontWeight: 900 }}>
+            <p style={{ color: COLORS.orange, fontSize: 16, fontWeight: 800 }}>{error}</p>
+            <button onClick={() => void loadPresentation()} className="flex items-center gap-2 rounded-md" style={{ padding: "10px 14px", backgroundColor: COLORS.yellow, color: COLORS.text, fontSize: 12, fontWeight: 800 }}>
               <RefreshCw size={14} /> Reintentar
             </button>
           </div>
         ) : slide ? (
           <SlideView slide={slide} total={slides.length} current={index} period={data?.period ?? null} />
         ) : (
-          <div className="flex h-full items-center justify-center" style={{ color: COLORS.textDim, fontSize: 14, fontWeight: 900 }}>
+          <div className="flex h-full items-center justify-center" style={{ color: COLORS.textDim, fontSize: 14, fontWeight: 800 }}>
             No hay diapositivas para el periodo seleccionado.
           </div>
         )}
       </div>
 
-      <footer className="flex items-center justify-between gap-4 px-6 py-4" style={{ backgroundColor: "rgba(0,0,0,0.82)", borderTop: `1px solid ${COLORS.border}`, backdropFilter: "blur(12px)" }}>
+      <footer className="flex items-center justify-between gap-4 px-6 py-4" style={{ backgroundColor: "rgba(255,255,255,0.94)", borderTop: `1px solid ${COLORS.border}`, backdropFilter: "blur(12px)" }}>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/dashboard")} className="flex items-center gap-2" style={{ color: COLORS.textDim, fontSize: 12, fontWeight: 800 }}>
             <X size={14} /> Salir
           </button>
-          <select value={period} onChange={(event) => handlePeriodChange(event.target.value)} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 7, padding: "7px 9px", fontSize: 12, fontWeight: 800, backgroundColor: "#111", color: "#fff" }}>
+          <select value={period} onChange={(event) => handlePeriodChange(event.target.value)} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 5, padding: "7px 9px", fontSize: 12, fontWeight: 650, backgroundColor: "#fff", color: COLORS.text }}>
             <option value="">Periodo activo</option>
             {sortedPeriods.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
           </select>
@@ -379,13 +382,13 @@ export function PresentacionDashboard() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={toggleFullscreen} disabled={!data?.controls.fullscreenEnabled} className="flex items-center justify-center rounded-lg disabled:opacity-40" style={{ width: 34, height: 34, backgroundColor: COLORS.surface, color: "#fff", border: `1px solid ${COLORS.border}` }} title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}>
+          <button onClick={toggleFullscreen} disabled={!data?.controls.fullscreenEnabled} className="flex items-center justify-center rounded-md disabled:opacity-40" style={{ width: 34, height: 34, backgroundColor: COLORS.surface, color: COLORS.text, border: `1px solid ${COLORS.border}` }} title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}>
             {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
-          <button onClick={goPrev} disabled={index === 0} className="flex items-center gap-1.5 rounded-lg disabled:opacity-35" style={{ padding: "8px 12px", backgroundColor: COLORS.surface, color: "#fff", border: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 800 }}>
+          <button onClick={goPrev} disabled={index === 0} className="flex items-center gap-1.5 rounded-md disabled:opacity-35" style={{ padding: "8px 12px", backgroundColor: COLORS.surface, color: COLORS.text, border: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 700 }}>
             <ChevronLeft size={14} /> Anterior
           </button>
-          <button onClick={goNext} disabled={index >= slides.length - 1} className="flex items-center gap-1.5 rounded-lg disabled:opacity-35" style={{ padding: "8px 13px", backgroundColor: index >= slides.length - 1 ? COLORS.surface : COLORS.blue, color: "#fff", border: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 900 }}>
+          <button onClick={goNext} disabled={index >= slides.length - 1} className="flex items-center gap-1.5 rounded-md disabled:opacity-35" style={{ padding: "8px 13px", backgroundColor: index >= slides.length - 1 ? COLORS.surface : COLORS.blue, color: index >= slides.length - 1 ? COLORS.text : "#fff", border: `1px solid ${index >= slides.length - 1 ? COLORS.border : COLORS.blue}`, fontSize: 12, fontWeight: 800 }}>
             Siguiente <ChevronRight size={14} />
           </button>
         </div>
