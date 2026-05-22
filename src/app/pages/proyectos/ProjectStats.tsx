@@ -1,4 +1,5 @@
 import type { ProjectResponse } from "../../services/projectsApi";
+import { motion, useReducedMotion } from "motion/react";
 import { COLORS } from "./proyectosShared";
 
 export function buildProjectStats(projects: ProjectResponse[]) {
@@ -11,18 +12,28 @@ export function buildProjectStats(projects: ProjectResponse[]) {
 }
 
 export function ProjectStats({ stats }: { stats: ReturnType<typeof buildProjectStats> }) {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <div className="flex items-center gap-6 mb-5 flex-wrap">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
       {[
         { label: "Activos", value: stats.activos, color: COLORS.green },
         { label: "Finalizados", value: stats.finalizados, color: COLORS.blue },
         { label: "KRs vinculados", value: stats.krs, color: COLORS.purple },
-        { label: "Total filtrado", value: stats.total, color: "#111827" },
-      ].map((item) => (
-        <div key={item.label} className="flex items-center gap-2">
-          <span style={{ fontSize: 21, fontWeight: 850, color: item.color }}>{item.value}</span>
-          <span style={{ fontSize: 12, color: "#717182" }}>{item.label}</span>
-        </div>
+        { label: "Total filtrado", value: stats.total, color: COLORS.text },
+      ].map((item, index) => (
+        <motion.div
+          key={item.label}
+          className="bg-white rounded-md p-4"
+          style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.16, ease: "easeOut", delay: Math.min(index * 0.025, 0.1) }}
+          whileHover={reduceMotion ? undefined : { y: -2, transition: { duration: 0.12, ease: "easeOut" } }}
+        >
+          <p style={{ fontSize: "24px", fontWeight: 800, color: item.color }}>{item.value}</p>
+          <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 2, fontWeight: 700 }}>{item.label}</p>
+        </motion.div>
       ))}
     </div>
   );

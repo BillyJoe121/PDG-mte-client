@@ -1,14 +1,15 @@
-import { Download, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import type { AcademicPeriod } from "../../services/catalogsApi";
 import type { Department } from "../../services/strategicApi";
 import type { ProjectStatus, ProjectType } from "../../services/projectsApi";
-import { STATUS_OPTIONS, TYPE_OPTIONS } from "./proyectosShared";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { COLORS, STATUS_OPTIONS, TYPE_OPTIONS } from "./proyectosShared";
 
 interface ProjectFiltersProps {
   departmentId: string;
   departments: Department[];
   onDepartmentChange: (value: string) => void;
-  onExportCSV: () => void;
+  onCreateProject?: () => void;
   onPeriodChange: (value: string) => void;
   onReset: () => void;
   onSearchChange: (value: string) => void;
@@ -25,7 +26,7 @@ export function ProjectFilters({
   departmentId,
   departments,
   onDepartmentChange,
-  onExportCSV,
+  onCreateProject,
   onPeriodChange,
   onReset,
   onSearchChange,
@@ -37,41 +38,53 @@ export function ProjectFilters({
   status,
   type,
 }: ProjectFiltersProps) {
-  const controlStyle = {
-    border: "1px solid #D1D5DB",
-    borderRadius: 5,
-    padding: "8px 10px",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#374151",
-    backgroundColor: "#fff",
-  } as const;
-
   return (
-    <div className="flex flex-wrap items-center gap-3 mb-5">
-      <div className="flex items-center gap-2" style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "7px 12px", minWidth: 260 }}>
+    <div className="sticky top-0 z-30 -mx-6 mb-5 flex flex-wrap items-center gap-3 bg-[#F8FAFC]/95 px-6 py-3 backdrop-blur" style={{ borderTop: `1px solid ${COLORS.border}`, borderBottom: `1px solid ${COLORS.border}` }}>
+      <div className="flex items-center gap-2" style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 11px", width: 220, minHeight: 38, backgroundColor: "#F8FAFC", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85)" }}>
         <Search size={14} color="#717182" />
-        <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar proyecto..." style={{ border: 0, outline: 0, fontSize: 12, flex: 1, backgroundColor: "transparent" }} />
+        <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar proyecto..." style={{ border: 0, outline: 0, fontSize: 12, flex: 1, backgroundColor: "transparent", color: COLORS.text, fontWeight: 700 }} />
       </div>
-      <select value={status} onChange={(event) => onStatusChange(event.target.value as ProjectStatus | "todos")} style={controlStyle}>
-        {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-      <select value={type} onChange={(event) => onTypeChange(event.target.value as ProjectType | "todos")} style={controlStyle}>
-        {TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-      <select value={departmentId} onChange={(event) => onDepartmentChange(event.target.value)} style={controlStyle}>
-        <option value="todos">Todos los departamentos</option>
-        {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
-      </select>
-      <select value={period} onChange={(event) => onPeriodChange(event.target.value)} style={controlStyle}>
-        <option value="todos">Todos los periodos</option>
-        {periods.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
-      </select>
-      <button onClick={onReset} style={{ padding: "8px 12px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, fontWeight: 650, color: "#374151" }}>Limpiar</button>
-      <button onClick={onExportCSV} className="inline-flex items-center gap-2" style={{ padding: "8px 12px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, fontWeight: 650, color: "#374151" }}>
-        <Download size={14} />
-        Exportar CSV
-      </button>
+      <FilterSelect value={status} onChange={(value) => onStatusChange(value as ProjectStatus | "todos")} options={STATUS_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Estado" } : option)} />
+      <FilterSelect value={type} onChange={(value) => onTypeChange(value as ProjectType | "todos")} options={TYPE_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Tipo" } : option)} />
+      <FilterSelect width={170} value={departmentId} onChange={onDepartmentChange} options={[{ value: "todos", label: "Todos: Departamento" }, ...departments.map((department) => ({ value: String(department.id), label: department.name }))]} />
+      <FilterSelect value={period} onChange={onPeriodChange} options={[{ value: "todos", label: "Todos: Periodo" }, ...periods.map((item) => ({ value: item.name, label: item.name }))]} />
+      <button onClick={onReset} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "8px 11px", fontSize: "12px", fontWeight: 750, backgroundColor: "#fff", color: "#374151", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>Limpiar</button>
+      {onCreateProject && (
+        <button onClick={onCreateProject} className="ml-auto inline-flex items-center gap-2 hover:opacity-90" style={{ padding: "10px 14px", borderRadius: 6, fontSize: 12, fontWeight: 800, backgroundColor: COLORS.green, color: "#fff", boxShadow: `0 10px 22px ${COLORS.green}33` }}>
+          <Plus size={15} />
+          Nuevo proyecto
+        </button>
+      )}
     </div>
   );
 }
+
+function FilterSelect({ value, onChange, options, width = 150 }: { value: string; onChange: (value: string) => void; options: { value: string; label: string }[]; width?: number }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="focus-visible:ring-0" style={{ ...filterSelectStyle, width }}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+const filterSelectStyle = {
+  width: 150,
+  minHeight: 38,
+  border: `1px solid ${COLORS.border}`,
+  borderRadius: 8,
+  padding: "8px 11px",
+  fontSize: 12,
+  fontWeight: 750,
+  backgroundColor: "#F8FAFC",
+  color: COLORS.text,
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85)",
+};

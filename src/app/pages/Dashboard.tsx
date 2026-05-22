@@ -1,27 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
+  Activity,
   AlertTriangle,
   BarChart3,
   CheckCircle2,
   FolderKanban,
+  Gauge,
+  Layers3,
   Loader2,
   RefreshCw,
   Target,
-  TrendingUp,
 } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
-  Pie,
-  PieChart,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -29,6 +24,7 @@ import {
 } from "recharts";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
 import {
   dashboardApi,
@@ -38,17 +34,31 @@ import {
   type ProgressBucket,
   type ProgressBucketCount,
 } from "../services/dashboardApi";
+import { objectivesApi, type ObjectiveCard } from "../services/strategicApi";
 
 const COLORS = {
   blue: "#5454E9",
   green: "#4CB979",
   orange: "#E9683B",
   yellow: "#E4EB60",
-  purple: "#8B5CF6",
+  purple: "#7C3AED",
   teal: "#14B8A6",
   red: "#DC2626",
   gray: "#717182",
+  text: "#111827",
+  border: "#D9DEE8",
+  subtle: "#F7F8FB",
 };
+
+const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
+const MAX_COVERAGE_ITEMS_PER_CHART = 6;
+const AXIS_LABEL_MAX_CHARS = 18;
+const viewMotion = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -4 },
+  transition: shortMotionTransition,
+} as const;
 
 const projectStatusLabel: Record<CountByStatus["status"], string> = {
   BORRADOR: "Borrador",
@@ -63,7 +73,7 @@ const projectStatusColor: Record<CountByStatus["status"], string> = {
   ACTIVO: COLORS.blue,
   FINALIZADO: COLORS.green,
   SUSPENDIDO: COLORS.orange,
-  ARCHIVADO: "#111827",
+  ARCHIVADO: COLORS.text,
 };
 
 const bucketLabel: Record<ProgressBucket, string> = {
@@ -92,221 +102,128 @@ function percent(value: number) {
   return `${Math.round(value)}%`;
 }
 
-function shortLabel(value: string, max = 18) {
-  return value.length > max ? `${value.slice(0, max - 1)}.` : value;
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function KpiCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  color,
-}: {
-  label: string;
-  value: string | number;
-  sub: string;
-  icon: typeof FolderKanban;
-  color: string;
-}) {
-  return (
-    <div className="rounded-md bg-white p-5" style={{ border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(17,24,39,0.04)" }}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center justify-center rounded-lg" style={{ width: 40, height: 40, backgroundColor: `${color}18` }}>
-          <Icon size={20} color={color} />
-        </div>
-        <TrendingUp size={15} color="#9CA3AF" />
-      </div>
-      <div style={{ fontSize: 26, fontWeight: 760, color: "#111827", lineHeight: 1.1, marginTop: 14 }}>{value}</div>
-      <div style={{ fontSize: 12, fontWeight: 650, color: "#111827", marginTop: 4 }}>{label}</div>
-      <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 3 }}>{sub}</div>
-    </div>
-  );
+function sumCounts<T extends { count: number }>(items: T[]) {
+  return items.reduce((sum, item) => sum + item.count, 0);
 }
 
-function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-md bg-white p-5" style={{ border: "1px solid #E5E7EB" }}>
-      <div className="mb-4">
-        <h3 style={{ fontSize: 14, fontWeight: 800, color: "#111827" }}>{title}</h3>
-        <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 3 }}>{subtitle}</p>
-      </div>
-      {children}
-    </section>
-  );
+function chunkItems<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
 }
 
-function EmptyChart() {
-  return (
-    <div className="flex h-full min-h-[240px] items-center justify-center rounded-md" style={{ backgroundColor: "#F9FAFB", color: COLORS.gray, fontSize: 12, fontWeight: 700 }}>
-      Sin datos para el periodo seleccionado.
-    </div>
-  );
+function wrapLabel(value: string, maxChars = AXIS_LABEL_MAX_CHARS) {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+
+  words.forEach((word) => {
+    if (!current) {
+      current = word;
+      return;
+    }
+    if (`${current} ${word}`.length <= maxChars) {
+      current = `${current} ${word}`;
+      return;
+    }
+    lines.push(current);
+    current = word;
+  });
+
+  if (current) lines.push(current);
+  return lines.length > 0 ? lines : [value];
 }
 
-function buildKpis(summary: DashboardSummary) {
+function maxWrappedLines(items: CoverageItem[]) {
+  return Math.max(1, ...items.map((item) => wrapLabel(item.name).length));
+}
+
+function buildKpis(summary: DashboardSummary, totalProjects: number) {
   return [
     {
       label: "Proyectos activos",
       value: summary.activeProjects,
-      sub: `${summary.completedProjects} finalizados, ${summary.draftProjects} borradores`,
+      sub: `${summary.completedProjects} finalizados de ${totalProjects || 0} totales`,
       icon: FolderKanban,
-      color: COLORS.blue,
+      color: COLORS.green,
     },
     {
       label: "Objetivos en seguimiento",
       value: summary.objectivesInFollowUp,
-      sub: `${summary.lowCompletionObjectives} con baja cobertura`,
+      sub: `${summary.lowCompletionObjectives} requieren atencion`,
       icon: Target,
       color: COLORS.orange,
     },
     {
-      label: "KRs en cobertura",
+      label: "KRs operativos",
       value: summary.completedKeyResults + summary.inProgressKeyResults,
       sub: `${summary.completedKeyResults} completados, ${summary.inProgressKeyResults} en progreso`,
       icon: CheckCircle2,
-      color: COLORS.green,
+      color: COLORS.orange,
     },
     {
-      label: "Cobertura operativa",
+      label: "Cobertura estrategica",
       value: percent(summary.averageObjectiveCoverage),
-      sub: `KRs: ${percent(summary.averageKeyResultCoverage)}`,
-      icon: BarChart3,
+      sub: `Cobertura KR ${percent(summary.averageKeyResultCoverage)}`,
+      icon: Gauge,
       color: COLORS.purple,
     },
   ];
 }
 
-function ProjectsPie({ data }: { data: CountByStatus[] }) {
-  const chartData = data.map((item) => ({
-    ...item,
-    label: projectStatusLabel[item.status],
-  }));
+function buildGoalCoverage(cards: ObjectiveCard[]): GoalCoverageExecution[] {
+  const groups = new Map<number, { goalName: string; objectives: number; keyResults: number; coverageSum: number }>();
 
-  if (!chartData.some((item) => item.count > 0)) return <EmptyChart />;
+  cards.forEach((card) => {
+    const current = groups.get(card.goalId) ?? {
+      goalName: card.goalName,
+      objectives: 0,
+      keyResults: 0,
+      coverageSum: 0,
+    };
+    current.objectives += 1;
+    current.keyResults += card.keyResults.length;
+    current.coverageSum += card.completionPercentage;
+    groups.set(card.goalId, current);
+  });
 
-  return (
-    <div style={{ width: "100%", height: 280 }}>
-      <ResponsiveContainer>
-        <PieChart>
-          <Pie data={chartData} dataKey="count" nameKey="label" outerRadius={92} label>
-            {chartData.map((item) => (
-              <Cell key={item.status} fill={projectStatusColor[item.status]} />
-            ))}
-          </Pie>
-          <Tooltip formatter={(value, name) => [value, name]} />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  return [...groups.entries()]
+    .map(([goalId, item]) => ({
+      goalId,
+      goalName: item.goalName,
+      objectives: item.objectives,
+      keyResults: item.keyResults,
+      averageObjectiveCoverage: item.objectives ? item.coverageSum / item.objectives : 0,
+    }))
+    .sort((a, b) => b.averageObjectiveCoverage - a.averageObjectiveCoverage);
 }
 
-function KeyResultsProgressBar({ data }: { data: ProgressBucketCount[] }) {
-  const chartData = data.map((item) => ({
-    ...item,
-    label: bucketLabel[item.bucket],
-    fill: bucketColor[item.bucket],
-  }));
+type DashboardDerived = {
+  kpis: ReturnType<typeof buildKpis>;
+};
 
-  if (!chartData.some((item) => item.count > 0)) return <EmptyChart />;
-
-  return (
-    <div style={{ width: "100%", height: 280 }}>
-      <ResponsiveContainer>
-        <BarChart data={chartData} margin={{ top: 8, right: 12, left: -16, bottom: 6 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-          <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-          <Tooltip />
-          <Bar dataKey="count" name="KRs">
-            {chartData.map((item) => (
-              <Cell key={item.bucket} fill={item.fill} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
+interface GoalCoverageExecution {
+  goalId: number;
+  goalName: string;
+  objectives: number;
+  keyResults: number;
+  averageObjectiveCoverage: number;
 }
 
-function DepartmentRadar({ data }: { data: DashboardData["departments"] }) {
-  const chartData = data.map((item) => ({
-    ...item,
-    departmentLabel: shortLabel(item.departmentName, 16),
-  }));
-
-  if (!chartData.length) return <EmptyChart />;
-
-  return (
-    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_360px]">
-      <div style={{ width: "100%", height: 360 }}>
-        <ResponsiveContainer>
-          <RadarChart data={chartData}>
-            <PolarGrid />
-            <PolarAngleAxis dataKey="departmentLabel" tick={{ fontSize: 11 }} />
-            <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
-            <Radar name="Cobertura" dataKey="averageObjectiveCoverage" fill={COLORS.blue} fillOpacity={0.32} stroke={COLORS.blue} />
-            <Tooltip formatter={(value) => [`${Math.round(Number(value))}%`, "Cobertura"]} />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[340px]" style={{ borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid #E5E7EB" }}>
-              {["Departamento", "Activos", "Finalizados", "Objetivos", "KRs", "Cobertura"].map((head) => (
-                <th key={head} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, fontWeight: 800, color: COLORS.gray, textTransform: "uppercase" }}>
-                  {head}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row) => (
-              <tr key={row.departmentId} style={{ borderBottom: "1px solid #F3F4F6" }}>
-                <td style={{ padding: "10px", fontSize: 12, fontWeight: 700, color: "#111827" }}>{row.departmentName}</td>
-                <td style={{ padding: "10px", fontSize: 12 }}>{row.activeProjects}</td>
-                <td style={{ padding: "10px", fontSize: 12 }}>{row.completedProjects}</td>
-                <td style={{ padding: "10px", fontSize: 12 }}>{row.objectives}</td>
-                <td style={{ padding: "10px", fontSize: 12 }}>{row.completedKeyResults + row.inProgressKeyResults}</td>
-                <td style={{ padding: "10px", fontSize: 12, fontWeight: 800, color: COLORS.blue }}>{percent(row.averageObjectiveCoverage)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function StrategicBetsBar({ data }: { data: DashboardData["strategicBets"] }) {
-  const chartData = data.map((item) => ({
-    ...item,
-    label: shortLabel(item.strategicBetName, 20),
-  }));
-
-  if (!chartData.length) return <EmptyChart />;
-
-  return (
-    <div style={{ width: "100%", height: 320 }}>
-      <ResponsiveContainer>
-        <BarChart data={chartData} margin={{ top: 8, right: 16, left: -12, bottom: 42 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 11 }} angle={-18} textAnchor="end" interval={0} height={58} />
-          <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-          <Tooltip
-            formatter={(value, name) => [
-              name === "Cobertura promedio" ? `${Math.round(Number(value))}%` : value,
-              name,
-            ]}
-            labelFormatter={(value) => data.find((item) => shortLabel(item.strategicBetName, 20) === value)?.strategicBetName ?? value}
-          />
-          <Bar dataKey="averageObjectiveCoverage" name="Cobertura promedio" fill={COLORS.teal} radius={[5, 5, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
+interface CoverageItem {
+  id: number;
+  name: string;
+  objectives: number;
+  keyResults: number;
+  completedProjects?: number;
+  inProgressProjects?: number;
+  averageObjectiveCoverage: number;
 }
 
 export function Dashboard() {
@@ -316,11 +233,11 @@ export function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [goalCoverage, setGoalCoverage] = useState<GoalCoverageExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const activePeriodName = dashboard?.summary.period ?? periods.find((period) => period.status === "ACTIVO")?.name ?? "Periodo activo";
-
   const sortedPeriods = useMemo(
     () => [...periods].sort((a, b) => b.startDate.localeCompare(a.startDate)),
     [periods],
@@ -330,12 +247,17 @@ export function Dashboard() {
     setLoading(true);
     setError("");
     try {
-      const [periodList, data] = await Promise.all([
-        academicPeriodsApi.list(),
+      const periodList = await academicPeriodsApi.list();
+      const selectedPeriodData = period
+        ? periodList.find((item) => item.name === period)
+        : periodList.find((item) => item.status === "ACTIVO");
+      const [data, objectiveCards] = await Promise.all([
         dashboardApi.load(period),
+        objectivesApi.cards({ periodId: selectedPeriodData?.id }),
       ]);
       setPeriods(periodList);
       setDashboard(data);
+      setGoalCoverage(buildGoalCoverage(objectiveCards));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -348,36 +270,162 @@ export function Dashboard() {
   }, [loadDashboard, selectedPeriod]);
 
   const handlePeriodChange = (value: string) => {
-    setSelectedPeriod(value);
-    setFilter("periodo", value || "todos");
+    const next = value === "__active" ? "" : value;
+    setSelectedPeriod(next);
+    setFilter("periodo", next || "todos");
   };
 
-  const kpis = dashboard ? buildKpis(dashboard.summary) : [];
+  const derived = useMemo<DashboardDerived | null>(() => {
+    if (!dashboard) return null;
+    const totalProjects = sumCounts(dashboard.projectsByStatus);
+
+    return {
+      kpis: buildKpis(dashboard.summary, totalProjects),
+    };
+  }, [dashboard]);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex h-full flex-col overflow-hidden bg-[#F8FAFC]">
+      <DashboardHeader
+        activePeriodName={activePeriodName}
+        loading={loading}
+        onPeriodChange={handlePeriodChange}
+        onReload={() => void loadDashboard(selectedPeriod || undefined)}
+        periods={sortedPeriods}
+        selectedPeriod={selectedPeriod}
+        summary={dashboard?.summary}
+        userName={usuario?.nombre}
+      />
+
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        {error && (
+          <motion.div {...viewMotion} className="mb-5 flex items-center gap-2 rounded-md px-4 py-3" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 800 }}>
+            <AlertTriangle size={15} /> {error}
+          </motion.div>
+        )}
+
+        {loading && !dashboard ? (
+          <motion.div {...viewMotion} className="flex items-center justify-center rounded-md bg-white py-20" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
+            <Loader2 size={18} className="mr-2 animate-spin" /> Cargando KPIs del portafolio...
+          </motion.div>
+        ) : dashboard && derived ? (
+          <motion.div {...viewMotion} className="space-y-5">
+            <DashboardKpiGrid kpis={derived.kpis} />
+
+            <main className="space-y-5">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <DashboardPanel
+                  title="Proyectos por estado"
+                  subtitle="Lectura operativa del portafolio segun su ciclo de vida."
+                  icon={<FolderKanban size={16} />}
+                >
+                  <ProjectStatusDistribution data={dashboard.projectsByStatus} />
+                </DashboardPanel>
+
+                <DashboardPanel
+                  title="KRs por progreso"
+                  subtitle="Distribucion de resultados clave por avance y riesgo."
+                  icon={<Activity size={16} />}
+                >
+                  <KeyResultsProgress data={dashboard.keyResultsByProgress} />
+                </DashboardPanel>
+              </div>
+
+              <DashboardPanel
+                title="Rendimiento por departamento"
+                subtitle="Cobertura promedio, objetivos y volumen de ejecucion por unidad."
+                icon={<Layers3 size={16} />}
+              >
+                <DepartmentPerformance data={dashboard.departments} />
+              </DashboardPanel>
+
+              <DashboardPanel
+                title="Cobertura por apuesta estrategica"
+                subtitle="Alineacion de objetivos, KRs y proyectos alrededor de cada apuesta."
+                icon={<BarChart3 size={16} />}
+              >
+                <StrategicBetCoverage data={dashboard.strategicBets} />
+              </DashboardPanel>
+
+              <DashboardPanel
+                title="Cobertura por meta"
+                subtitle="Cobertura promedio de objetivos agrupados por meta institucional."
+                icon={<Target size={16} />}
+              >
+                <GoalCoverage data={goalCoverage} />
+              </DashboardPanel>
+            </main>
+          </motion.div>
+        ) : (
+          <EmptyState text="Sin datos para el periodo seleccionado." />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DashboardHeader({
+  activePeriodName,
+  loading,
+  onPeriodChange,
+  onReload,
+  periods,
+  selectedPeriod,
+  summary,
+  userName,
+}: {
+  activePeriodName: string;
+  loading: boolean;
+  onPeriodChange: (value: string) => void;
+  onReload: () => void;
+  periods: AcademicPeriod[];
+  selectedPeriod: string;
+  summary?: DashboardSummary;
+  userName?: string;
+}) {
+  const reduceMotion = useReducedMotion();
+  const firstName = userName?.split(" ")[0] ?? "el equipo";
+
+  return (
+    <motion.div
+      className="flex-shrink-0 bg-white px-6 pb-4 pt-5"
+      style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}
+      initial={reduceMotion ? false : { opacity: 0, y: -6 }}
+      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={shortMotionTransition}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 style={{ fontSize: 23, fontWeight: 700, color: "#111827" }}>
-            Dashboard de impacto
-          </h1>
-          <p style={{ fontSize: 13, color: COLORS.gray, marginTop: 4 }}>
-            Estado operativo del portafolio y cobertura estrategica para {usuario?.nombre.split(" ")[0] ?? "el usuario"}.
+          <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>Centro de mando estrategico</p>
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: COLORS.text, lineHeight: 1.15, marginTop: 3 }}>Dashboard de impacto</h1>
+          <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 5 }}>
+            Seguimiento ejecutivo del portafolio para {firstName}.
+            {summary && (
+              <>
+                {" "}{summary.activeProjects} activos - {summary.objectivesInFollowUp} objetivos - {summary.completedKeyResults + summary.inProgressKeyResults} KRs - {percent(summary.averageObjectiveCoverage)} cobertura
+              </>
+            )}
           </p>
         </div>
+
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={selectedPeriod}
-            onChange={(event) => handlePeriodChange(event.target.value)}
-            style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "9px 12px", fontSize: 12, fontWeight: 650, color: "#374151", backgroundColor: "#fff", minWidth: 190 }}
-          >
-            <option value="">Periodo activo</option>
-            {sortedPeriods.map((period) => (
-              <option key={period.id} value={period.name}>{period.name}</option>
-            ))}
-          </select>
+          <Select value={selectedPeriod || "__active"} onValueChange={onPeriodChange}>
+            <SelectTrigger className="focus-visible:ring-0" style={selectControlStyle}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
+              <SelectItem value="__active" className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
+                Periodo activo
+              </SelectItem>
+              {periods.map((period) => (
+                <SelectItem key={period.id} value={period.name} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
+                  {period.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <button
-            onClick={() => void loadDashboard(selectedPeriod || undefined)}
+            onClick={onReload}
             disabled={loading}
             className="flex items-center justify-center rounded-md transition-opacity disabled:opacity-50"
             style={{ width: 38, height: 38, border: "1px solid #E5E7EB", backgroundColor: "#fff" }}
@@ -385,63 +433,351 @@ export function Dashboard() {
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
           </button>
-          <span className="px-3 py-2 rounded-md" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 11, fontWeight: 700 }}>
-            {selectedPeriod ? selectedPeriod : activePeriodName}
+          <span className="rounded-md px-3 py-2" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 11, fontWeight: 850 }}>
+            {selectedPeriod || activePeriodName}
           </span>
         </div>
       </div>
+    </motion.div>
+  );
+}
 
-      {error && (
-        <div className="rounded-md px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 700 }}>
-          <AlertTriangle size={15} /> {error}
-        </div>
-      )}
-
-      {loading && !dashboard ? (
-        <div className="flex items-center justify-center rounded-md bg-white py-20" style={{ border: "1px solid #E5E7EB", color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
-          <Loader2 size={18} className="mr-2 animate-spin" /> Cargando KPIs del portafolio...
-        </div>
-      ) : dashboard ? (
-        <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {kpis.map((kpi) => (
-              <KpiCard key={kpi.label} {...kpi} />
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <Panel title="Proyectos por estado" subtitle="Distribucion del portafolio segun el estado operativo.">
-              <ProjectsPie data={dashboard.projectsByStatus} />
-            </Panel>
-            <Panel title="KRs por nivel de progreso" subtitle="Conteo de resultados clave completados, en ruta, en riesgo o bajos.">
-              <KeyResultsProgressBar data={dashboard.keyResultsByProgress} />
-            </Panel>
-          </div>
-
-          <Panel title="Rendimiento por departamento" subtitle="Cobertura promedio de objetivos y volumen de ejecucion por departamento.">
-            <DepartmentRadar data={dashboard.departments} />
-          </Panel>
-
-          <Panel title="Cobertura por apuesta estrategica" subtitle="Promedio de cobertura objetiva y trazabilidad de objetivos, KRs y proyectos.">
-            <StrategicBetsBar data={dashboard.strategicBets} />
-            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {dashboard.strategicBets.map((bet) => (
-                <div key={bet.strategicBetId} className="rounded-md p-3" style={{ border: "1px solid #E5E7EB", backgroundColor: "#FAFAFA" }}>
-                  <div className="flex items-start justify-between gap-3">
-                    <p style={{ fontSize: 12, fontWeight: 750, color: "#111827", lineHeight: 1.35 }}>{bet.strategicBetName}</p>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: COLORS.teal }}>{percent(bet.averageObjectiveCoverage)}</span>
-                  </div>
-                  <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 6 }}>
-                    {bet.objectives} objetivos - {bet.keyResults} KRs - {bet.inProgressProjects} proyectos en progreso - {bet.completedProjects} finalizados
-                  </p>
-                </div>
-              ))}
-            </div>
-          </Panel>
-        </>
-      ) : (
-        <EmptyChart />
-      )}
+function DashboardKpiGrid({ kpis }: { kpis: ReturnType<typeof buildKpis> }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {kpis.map((kpi, index) => (
+        <MetricCard key={kpi.label} index={index} {...kpi} />
+      ))}
     </div>
   );
 }
+
+function MetricCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  color,
+  index,
+}: ReturnType<typeof buildKpis>[number] & { index: number }) {
+  const reduceMotion = useReducedMotion();
+  const solid = true;
+
+  return (
+    <motion.div
+      className="rounded-md bg-white p-4"
+      style={{
+        backgroundColor: solid ? color : "#fff",
+        border: `1px solid ${solid ? color : COLORS.border}`,
+        boxShadow: solid ? `0 14px 30px ${color}2E` : "0 1px 2px rgba(17,24,39,0.06)",
+      }}
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={{ ...shortMotionTransition, delay: Math.min(index * 0.025, 0.1) }}
+      whileHover={reduceMotion ? undefined : { y: -2, transition: { duration: 0.12, ease: "easeOut" } }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: solid ? "rgba(255,255,255,0.16)" : `${color}18`, border: `1px solid ${solid ? "rgba(255,255,255,0.32)" : `${color}26`}` }}>
+          <Icon size={19} color={solid ? "#fff" : color} />
+        </div>
+        <span style={{ width: 34, height: 5, borderRadius: 99, backgroundColor: solid ? "rgba(255,255,255,0.72)" : color, opacity: 0.86 }} />
+      </div>
+      <p style={{ fontSize: 25, fontWeight: 900, color: solid ? "#fff" : color, lineHeight: 1.05, marginTop: 14 }}>{value}</p>
+      <p style={{ fontSize: 11, fontWeight: 850, color: solid ? "#fff" : COLORS.text, marginTop: 5 }}>{label}</p>
+      <p style={{ fontSize: 11, color: solid ? "rgba(255,255,255,0.82)" : COLORS.gray, marginTop: 3, lineHeight: 1.35 }}>{sub}</p>
+    </motion.div>
+  );
+}
+
+function DashboardPanel({ title, subtitle, icon, children }: { title: string; subtitle: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <section className="rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, border: "1px solid #DDE3FF" }}>
+          {icon}
+        </div>
+        <div>
+          <h2 style={{ fontSize: 15, fontWeight: 900, color: COLORS.text, lineHeight: 1.15 }}>{title}</h2>
+          <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 3, lineHeight: 1.4 }}>{subtitle}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ProjectStatusDistribution({ data }: { data: CountByStatus[] }) {
+  const total = sumCounts(data);
+  if (!total) return <EmptyState text="Sin proyectos para el periodo seleccionado." compact />;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex h-3 overflow-hidden rounded-full bg-[#EEF2F7]">
+        {data.filter((item) => item.count > 0).map((item) => (
+          <div
+            key={item.status}
+            title={`${projectStatusLabel[item.status]} ${item.count}`}
+            style={{ width: `${(item.count / total) * 100}%`, backgroundColor: projectStatusColor[item.status] }}
+          />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {data.map((item) => (
+          <DistributionRow
+            key={item.status}
+            color={projectStatusColor[item.status]}
+            label={projectStatusLabel[item.status]}
+            total={total}
+            value={item.count}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function KeyResultsProgress({ data }: { data: ProgressBucketCount[] }) {
+  const total = sumCounts(data);
+  if (!total) return <EmptyState text="Sin Key Results para el periodo seleccionado." compact />;
+
+  return (
+    <div className="space-y-2">
+      {data.map((item) => (
+        <DistributionRow
+          key={item.bucket}
+          color={bucketColor[item.bucket]}
+          label={bucketLabel[item.bucket]}
+          total={total}
+          value={item.count}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DistributionRow({ color, label, total, value }: { color: string; label: string; total: number; value: number }) {
+  const width = total ? (value / total) * 100 : 0;
+  return (
+    <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+          <span style={{ fontSize: 12, fontWeight: 850, color: COLORS.text }}>{label}</span>
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 900, color }}>{value}</span>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
+        <div style={{ width: `${width}%`, height: "100%", backgroundColor: color }} />
+      </div>
+    </div>
+  );
+}
+
+function DepartmentPerformance({ data }: { data: DashboardData["departments"] }) {
+  if (!data.length) return <EmptyState text="Sin departamentos para comparar." compact />;
+  const ordered = [...data].sort((a, b) => b.averageObjectiveCoverage - a.averageObjectiveCoverage);
+
+  return (
+    <div className="space-y-2">
+      {ordered.map((department) => {
+        const coverage = clampPercent(department.averageObjectiveCoverage);
+        const color = coverage >= 70 ? COLORS.green : coverage < 35 ? COLORS.orange : COLORS.blue;
+        return (
+          <div key={department.departmentId} className="grid grid-cols-1 gap-3 rounded-md p-3 md:grid-cols-[minmax(0,1fr)_260px]" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
+            <div className="min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p style={{ fontSize: 13, fontWeight: 900, color: COLORS.text, lineHeight: 1.25 }}>{department.departmentName}</p>
+                  <p style={{ fontSize: 10, color: "#9CA3AF", marginTop: 4 }}>
+                    {department.objectives} objetivos - {department.completedKeyResults + department.inProgressKeyResults} KRs - {department.activeProjects} activos - {department.completedProjects} finalizados
+                  </p>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 900, color }}>{coverage}%</span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#EEF2F7]">
+                <div style={{ width: `${coverage}%`, height: "100%", backgroundColor: color }} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <MiniStat label="Activos" value={department.activeProjects} />
+              <MiniStat label="Final." value={department.completedProjects} />
+              <MiniStat label="Objetivos" value={department.objectives} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StrategicBetCoverage({ data }: { data: DashboardData["strategicBets"] }) {
+  if (!data.length) return <EmptyState text="Sin apuestas estrategicas para el periodo." compact />;
+  const items = data.map((item) => ({
+    id: item.strategicBetId,
+    name: item.strategicBetName,
+    objectives: item.objectives,
+    keyResults: item.keyResults,
+    completedProjects: item.completedProjects,
+    inProgressProjects: item.inProgressProjects,
+    averageObjectiveCoverage: item.averageObjectiveCoverage,
+  }));
+
+  return <CoverageCharts barColor={COLORS.purple} data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" showProjects />;
+}
+
+function GoalCoverage({ data }: { data: GoalCoverageExecution[] }) {
+  if (!data.length) return <EmptyState text="Sin metas con objetivos para el periodo." compact />;
+  const items = data.map((item) => ({
+    id: item.goalId,
+    name: item.goalName,
+    objectives: item.objectives,
+    keyResults: item.keyResults,
+    averageObjectiveCoverage: item.averageObjectiveCoverage,
+  }));
+
+  return <CoverageCharts barColor={COLORS.green} data={items} emptyText="Sin metas con objetivos para el periodo." metricLabel="Meta" />;
+}
+
+function CoverageCharts({
+  barColor,
+  data,
+  emptyText,
+  metricLabel,
+  showProjects = false,
+}: {
+  barColor: string;
+  data: CoverageItem[];
+  emptyText: string;
+  metricLabel: string;
+  showProjects?: boolean;
+}) {
+  if (!data.length) return <EmptyState text={emptyText} compact />;
+  const chunks = chunkItems(data, MAX_COVERAGE_ITEMS_PER_CHART);
+
+  return (
+    <div className="space-y-4">
+      {chunks.map((chunk, index) => (
+        <CoverageChart key={`${metricLabel}-${index}`} barColor={barColor} data={chunk} metricLabel={metricLabel} index={index} total={chunks.length} />
+      ))}
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {data.map((item) => (
+          <CoverageSummaryCard key={item.id} barColor={barColor} item={item} showProjects={showProjects} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CoverageChart({ barColor, data, metricLabel, index, total }: { barColor: string; data: CoverageItem[]; metricLabel: string; index: number; total: number }) {
+  const maxLines = maxWrappedLines(data);
+  const axisHeight = Math.max(72, maxLines * 14 + 30);
+
+  return (
+    <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
+      {total > 1 && (
+        <p style={{ fontSize: 10, fontWeight: 850, color: "#9CA3AF", textTransform: "uppercase", marginBottom: 8 }}>
+          {metricLabel}s {index * MAX_COVERAGE_ITEMS_PER_CHART + 1}-{index * MAX_COVERAGE_ITEMS_PER_CHART + data.length}
+        </p>
+      )}
+      <div style={{ width: "100%", height: 260 + axisHeight }}>
+        <ResponsiveContainer>
+          <BarChart data={data} margin={{ top: 8, right: 12, left: -18, bottom: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+            <XAxis
+              dataKey="name"
+              interval={0}
+              height={axisHeight}
+              tick={<WrappedAxisTick />}
+              tickLine={false}
+            />
+            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: COLORS.gray }} />
+            <Tooltip
+              cursor={{ fill: "#F8FAFC" }}
+              formatter={(value) => [`${Math.round(Number(value))}%`, "Cobertura"]}
+            />
+            <Bar dataKey="averageObjectiveCoverage" name="Cobertura" radius={[5, 5, 0, 0]}>
+              {data.map((item) => (
+                <Cell key={item.id} fill={barColor} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function WrappedAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: { value?: string } }) {
+  const lines = wrapLabel(String(payload?.value ?? ""));
+  return (
+    <g transform={`translate(${x ?? 0},${y ?? 0})`}>
+      {lines.map((line, index) => (
+        <text
+          key={`${line}-${index}`}
+          x={0}
+          y={index * 14}
+          textAnchor="middle"
+          fill={COLORS.gray}
+          fontSize={10}
+          fontWeight={800}
+        >
+          {line}
+        </text>
+      ))}
+    </g>
+  );
+}
+
+function CoverageSummaryCard({ barColor, item, showProjects }: { barColor: string; item: CoverageItem; showProjects: boolean }) {
+  const coverage = clampPercent(item.averageObjectiveCoverage);
+  const projectText = showProjects
+    ? ` - ${item.inProgressProjects ?? 0} proyectos en progreso - ${item.completedProjects ?? 0} finalizados`
+    : "";
+
+  return (
+    <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
+      <div className="flex items-start justify-between gap-3">
+        <p style={{ fontSize: 12, fontWeight: 900, color: COLORS.text, lineHeight: 1.35 }}>{item.name}</p>
+        <span style={{ fontSize: 13, fontWeight: 900, color: barColor }}>{coverage}%</span>
+      </div>
+      <p style={{ fontSize: 10, color: COLORS.gray, marginTop: 6, lineHeight: 1.45 }}>
+        {item.objectives} objetivos - {item.keyResults} KRs{projectText}
+      </p>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
+        <div style={{ width: `${coverage}%`, height: "100%", backgroundColor: barColor }} />
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md bg-white p-2 text-center" style={{ border: "1px solid #EEF2F7" }}>
+      <p style={{ fontSize: 14, fontWeight: 900, color: COLORS.text }}>{value}</p>
+      <p style={{ fontSize: 9, fontWeight: 850, color: "#9CA3AF", textTransform: "uppercase", marginTop: 2 }}>{label}</p>
+    </div>
+  );
+}
+
+function EmptyState({ text, compact = false }: { text: string; compact?: boolean }) {
+  return (
+    <div className="flex items-center justify-center rounded-md text-center" style={{ minHeight: compact ? 180 : 260, backgroundColor: "#F8FAFC", border: `1px dashed ${COLORS.border}`, color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>
+      {text}
+    </div>
+  );
+}
+
+const selectControlStyle: CSSProperties = {
+  width: 190,
+  minHeight: 38,
+  border: `1px solid ${COLORS.border}`,
+  borderRadius: 8,
+  padding: "8px 11px",
+  fontSize: 12,
+  fontWeight: 750,
+  backgroundColor: "#F8FAFC",
+  color: COLORS.text,
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85)",
+};

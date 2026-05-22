@@ -10,7 +10,7 @@ import {
   strategicBetsApi,
 } from "./strategicApi";
 
-const baseUrl = "http://localhost:8081/api/v1";
+const baseUrl = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
 
 function jsonResponse(body: unknown, status = 200) {
   return {
@@ -40,9 +40,11 @@ describe("strategic hierarchy APIs", () => {
     await strategicBetsApi.list("2026-1");
     await strategicBetsApi.create({ name: "Apuesta", description: "Descripcion", startDate: "2026-01-01" });
     await strategicBetsApi.get(7, "2026-1");
+    await strategicBetsApi.update(7, { name: "Apuesta editada", description: "Nueva descripcion" });
     await goalsApi.list();
     await goalsApi.create({ name: "Meta", description: "Desc", expectedValue: 10, measurementUnitId: 2 });
     await goalsApi.get(3);
+    await goalsApi.update(3, { name: "Meta editada", description: "Desc editada", expectedValue: 12, measurementUnitId: 2 });
     await goalsApi.attachPeriod(3, 1);
     await goalsApi.detachPeriod(3, 1);
 
@@ -52,11 +54,13 @@ describe("strategic hierarchy APIs", () => {
       body: JSON.stringify({ name: "Apuesta", description: "Descripcion", startDate: "2026-01-01" }),
     }));
     expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/strategic-bets/7?period=2026-1`, expect.any(Object));
-    expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/goals`, expect.any(Object));
-    expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/goals`, expect.objectContaining({ method: "POST" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(6, `${baseUrl}/goals/3`, expect.any(Object));
-    expect(fetchMock).toHaveBeenNthCalledWith(7, `${baseUrl}/goals/3/periods/1`, expect.objectContaining({ method: "POST" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(8, `${baseUrl}/goals/3/periods/1`, expect.objectContaining({ method: "DELETE" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/strategic-bets/7`, expect.objectContaining({ method: "PUT" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/goals`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(6, `${baseUrl}/goals`, expect.objectContaining({ method: "POST" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(7, `${baseUrl}/goals/3`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(8, `${baseUrl}/goals/3`, expect.objectContaining({ method: "PUT" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(9, `${baseUrl}/goals/3/periods/1`, expect.objectContaining({ method: "POST" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(10, `${baseUrl}/goals/3/periods/1`, expect.objectContaining({ method: "DELETE" }));
   });
 
   it("calls objective, key result, hierarchy and department endpoints", async () => {

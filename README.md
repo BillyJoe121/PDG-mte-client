@@ -40,6 +40,34 @@ Por defecto Vite levanta la aplicacion en:
 http://localhost:5173
 ```
 
+### Correr local contra el backend de staging
+
+Para levantar el frontend local conectado al backend desplegado en Render, usa:
+
+```bash
+npm run dev -- --host 127.0.0.1
+```
+
+Luego abre en el navegador:
+
+```text
+http://127.0.0.1:5173/
+```
+
+La configuracion local usa:
+
+```text
+VITE_API_URL=/api/v1
+```
+
+Vite reenvia las llamadas a `/api` hacia:
+
+```text
+https://pdg-mte-api-staging.onrender.com
+```
+
+Esto permite consumir el backend de staging desde el frontend local sin problemas de CORS.
+
 Compilar para produccion:
 
 ```bash

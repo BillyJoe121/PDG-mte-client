@@ -14,6 +14,10 @@ export const COLORS = {
   green: "#4CB979",
   orange: "#E9683B",
   purple: "#7C3AED",
+  gray: "#717182",
+  text: "#111827",
+  border: "#D9DEE8",
+  subtle: "#F7F8FB",
 };
 
 export const STATUS_OPTIONS: { value: ProjectStatus | "todos"; label: string }[] = [

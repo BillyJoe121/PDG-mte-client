@@ -32,7 +32,18 @@ const navItems = [
   { to: "/auditoria", label: "Auditoria", icon: ScrollText, roles: ["administrador"] },
 ];
 
-const itemAccents = ["#5454E9", "#E4EB60", "#7C3AED", "#E9683B", "#4CB979", "#5454E9", "#E4EB60", "#9CA3AF"];
+const itemColors: Record<string, string> = {
+  "/dashboard": "#E4EB60",     // amarillo
+  "/jerarquia": "#5454E9",     // azul
+  "/catalogos": "#9CA3AF",     // gris
+  "/okrs": "#E9683B",          // naranja
+  "/proyectos": "#4CB979",      // verde
+  "/reportes": "#7C3AED",       // morado
+  "/consistencia": "#E4EB60",   // amarillo
+  "/presentacion": "#5454E9",   // azul
+  "/usuarios": "#9CA3AF",       // gris
+  "/auditoria": "#9CA3AF",      // gris
+};
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -60,13 +71,13 @@ export function Sidebar() {
     >
       {/* Logo area */}
       <div
-        className="flex items-center justify-between px-4 py-5"
-        style={{ backgroundColor: "#5454E9", minHeight: 72 }}
+        className="flex items-center justify-between px-4"
+        style={{ backgroundColor: "#5454E9", height: 64, minHeight: 64 }}
       >
-        {!collapsed && <IcesiLogo variant="white" size="sm" />}
+        {!collapsed && <IcesiLogo variant="white" size="md" />}
         {collapsed && (
           <div className="mx-auto">
-            <IcesiLogo variant="white" size="sm" />
+            <IcesiLogo variant="white" size="md" />
           </div>
         )}
         <button
@@ -106,7 +117,7 @@ export function Sidebar() {
               justifyContent: collapsed ? "center" : "flex-start",
               backgroundColor: isActive ? "#E4EB60" : "transparent",
               color: isActive ? "#000000" : "#FFFFFF",
-              borderLeft: isActive ? `4px solid #000` : `4px solid ${itemAccents[idx % itemAccents.length]}`,
+              borderLeft: isActive ? `4px solid #000` : `4px solid ${(itemColors[item.to] || "#9CA3AF")}`,
               textDecoration: "none",
               transition: "background-color 0.15s",
               position: "relative",

@@ -33,6 +33,15 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://pdg-mte-api-staging.onrender.com',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

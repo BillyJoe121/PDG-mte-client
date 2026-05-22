@@ -1,3 +1,105 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+.modern-hierarchy-card p,
+.modern-hierarchy-card span {
+  color: #fff !important;
+}
+
+.app-scroll-purple,
+.app-scroll-purple * {
+  scrollbar-color: #5454E9 transparent;
+  scrollbar-width: thin;
+}
+
+.app-scroll-orange,
+.app-scroll-orange * {
+  scrollbar-color: #E9683B transparent;
+  scrollbar-width: thin;
+}
+
+.app-scroll-green,
+.app-scroll-green * {
+  scrollbar-color: #4CB979 transparent;
+  scrollbar-width: thin;
+}
+
+.app-scroll-black,
+.app-scroll-black * {
+  scrollbar-color: #111827 transparent;
+  scrollbar-width: thin;
+}
+
+.app-scroll-default,
+.app-scroll-default * {
+  scrollbar-color: #717182 transparent;
+  scrollbar-width: thin;
+}
+
+.app-scroll-purple::-webkit-scrollbar,
+.app-scroll-purple *::-webkit-scrollbar,
+.app-scroll-orange::-webkit-scrollbar,
+.app-scroll-orange *::-webkit-scrollbar,
+.app-scroll-green::-webkit-scrollbar,
+.app-scroll-green *::-webkit-scrollbar,
+.app-scroll-black::-webkit-scrollbar,
+.app-scroll-black *::-webkit-scrollbar,
+.app-scroll-default::-webkit-scrollbar,
+.app-scroll-default *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.app-scroll-purple::-webkit-scrollbar-track,
+.app-scroll-purple *::-webkit-scrollbar-track,
+.app-scroll-orange::-webkit-scrollbar-track,
+.app-scroll-orange *::-webkit-scrollbar-track,
+.app-scroll-green::-webkit-scrollbar-track,
+.app-scroll-green *::-webkit-scrollbar-track,
+.app-scroll-black::-webkit-scrollbar-track,
+.app-scroll-black *::-webkit-scrollbar-track,
+.app-scroll-default::-webkit-scrollbar-track,
+.app-scroll-default *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-scroll-purple::-webkit-scrollbar-thumb,
+.app-scroll-purple *::-webkit-scrollbar-thumb {
+  background-color: #5454E9;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.app-scroll-orange::-webkit-scrollbar-thumb,
+.app-scroll-orange *::-webkit-scrollbar-thumb {
+  background-color: #E9683B;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.app-scroll-green::-webkit-scrollbar-thumb,
+.app-scroll-green *::-webkit-scrollbar-thumb {
+  background-color: #4CB979;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.app-scroll-black::-webkit-scrollbar-thumb,
+.app-scroll-black *::-webkit-scrollbar-thumb {
+  background-color: #111827;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.app-scroll-default::-webkit-scrollbar-thumb,
+.app-scroll-default *::-webkit-scrollbar-thumb {
+  background-color: #717182;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}

@@ -220,6 +220,8 @@ export const strategicBetsApi = {
     api<StrategicBet>("/strategic-bets", { method: "POST", body: JSON.stringify(body) }),
   get: (id: number, period?: string) =>
     api<StrategicBet>(`/strategic-bets/${id}${period ? `?period=${period}` : ""}`),
+  update: (id: number, body: StrategicBetRequest) =>
+    api<StrategicBet>(`/strategic-bets/${id}`, { method: "PUT", body: JSON.stringify(body) }),
 };
 
 export const goalsApi = {
@@ -228,6 +230,8 @@ export const goalsApi = {
     api<Goal>("/goals", { method: "POST", body: JSON.stringify(body) }),
   get: (id: number, period?: string) =>
     api<Goal>(`/goals/${id}${period ? `?period=${period}` : ""}`),
+  update: (id: number, body: GoalRequest) =>
+    api<Goal>(`/goals/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   attachPeriod: (goalId: number, periodId: number) =>
     api<Goal>(`/goals/${goalId}/periods/${periodId}`, { method: "POST" }),
   detachPeriod: (goalId: number, periodId: number) =>

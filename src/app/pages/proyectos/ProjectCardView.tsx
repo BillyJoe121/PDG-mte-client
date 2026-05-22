@@ -1,32 +1,32 @@
 import type { CSSProperties } from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown, Edit2, Settings, TrendingUp } from "lucide-react";
+import { Archive, CheckCircle2, CheckSquare, ExternalLink, Link2, PauseCircle, Settings } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import type { ObjectiveCard } from "../../services/strategicApi";
-import { COLORS } from "./okrsShared";
+import type { ProjectResponse } from "../../services/projectsApi";
+import { COLORS, statusLabel, typeLabel } from "./proyectosShared";
 
-interface ObjectiveCardViewProps {
-  canEdit: boolean;
-  card: ObjectiveCard;
+interface ProjectCardViewProps {
+  canManage: boolean;
   index?: number;
+  project: ProjectResponse;
   selected: boolean;
-  onEdit: () => void;
-  onManageKrs: () => void;
+  onLink: () => void;
+  onOpen: () => void;
   onSelect: () => void;
 }
 
-export function ObjectiveCardView({ card, selected, canEdit, index = 0, onSelect, onManageKrs, onEdit }: ObjectiveCardViewProps) {
+export function ProjectCardView({ canManage, index = 0, project, selected, onLink, onOpen, onSelect }: ProjectCardViewProps) {
   const reduceMotion = useReducedMotion();
-  const status = getCompletionStatus(card.completionPercentage, card.lowCompletionAlert);
-  const objectiveCode = `OBJ-${String(card.id).padStart(2, "0")}`;
+  const status = getStatusMeta(project.status);
+  const progressColor = project.globalProgress >= 40 ? "#fff" : COLORS.orange;
 
   return (
     <motion.div
       layout
-      className="okr-objective-card rounded-md overflow-hidden"
+      className="rounded-md overflow-hidden"
       style={{
-        backgroundColor: COLORS.orange,
-        border: `1px solid ${selected ? "#fff" : COLORS.orange}`,
-        boxShadow: selected ? `0 0 0 3px ${COLORS.orange}33, 0 18px 38px ${COLORS.orange}2E` : "0 1px 2px rgba(17,24,39,0.08)",
+        backgroundColor: COLORS.green,
+        border: `1px solid ${selected ? "#fff" : COLORS.green}`,
+        boxShadow: selected ? `0 0 0 3px ${COLORS.green}33, 0 18px 38px ${COLORS.green}2E` : "0 1px 2px rgba(17,24,39,0.08)",
       }}
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
@@ -38,8 +38,8 @@ export function ObjectiveCardView({ card, selected, canEdit, index = 0, onSelect
         <div className="p-5" style={{ display: "flex", flexDirection: "column", flex: 1 }}>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 space-y-2">
-              <p style={eyebrowStyle}>{objectiveCode}</p>
-              <p style={metaLineStyle}>{card.departmentName} · {card.academicPeriodName}</p>
+              <p style={eyebrowStyle}>PROY-{String(project.id).padStart(2, "0")}</p>
+              <p style={metaLineStyle}>{project.departmentName ?? "Sin departamento"} · {project.startPeriod}</p>
               <span className="inline-flex items-center gap-1.5 rounded" style={statusPillStyle}>
                 <status.Icon size={12} />
                 {status.label}
@@ -48,29 +48,29 @@ export function ObjectiveCardView({ card, selected, canEdit, index = 0, onSelect
             <div className="relative flex-shrink-0" style={{ width: 48, height: 48 }}>
               <svg width="48" height="48" viewBox="0 0 48 48">
                 <circle cx="24" cy="24" r="18" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="4" />
-                <circle cx="24" cy="24" r="18" fill="none" stroke="#fff" strokeWidth="4" strokeDasharray={`${(card.completionPercentage / 100) * 113.1} 113.1`} strokeLinecap="round" transform="rotate(-90 24 24)" />
+                <circle cx="24" cy="24" r="18" fill="none" stroke={progressColor} strokeWidth="4" strokeDasharray={`${(project.globalProgress / 100) * 113.1} 113.1`} strokeLinecap="round" transform="rotate(-90 24 24)" />
               </svg>
-              <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", fontSize: "10px", fontWeight: 900, color: "#fff" }}>{card.completionPercentage}%</span>
+              <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", fontSize: "10px", fontWeight: 900, color: "#fff" }}>{project.globalProgress}%</span>
             </div>
           </div>
 
           <div className="flex flex-1 items-center py-4">
-            <h3 style={titleStyle}>{card.name}</h3>
+            <h3 style={titleStyle}>{project.name}</h3>
           </div>
 
           <div className="mt-auto pt-3">
-            <p style={descriptionStyle}>{card.description}</p>
-            <div className="flex items-center justify-between gap-2 mt-3" onClick={(event) => event.stopPropagation()}>
+            <p style={descriptionStyle}>{project.description}</p>
+            <div className="mt-3 flex items-center justify-between gap-2" onClick={(event) => event.stopPropagation()}>
               <button type="button" onClick={onSelect} className="flex items-center gap-1 rounded-md" style={ghostButtonStyle}>
-                <ChevronDown size={14} /> {selected ? "Detalle activo" : "Ver detalle"}
+                <Settings size={14} /> {selected ? "Detalle activo" : "Ver detalle"}
               </button>
-              {canEdit && (
+              {canManage && (
                 <div className="flex items-center gap-1.5">
-                  <button onClick={onEdit} className="flex items-center justify-center rounded-md" style={iconButtonStyle} title="Editar">
-                    <Edit2 size={13} />
+                  <button onClick={onLink} className="flex items-center justify-center rounded-md" style={iconButtonStyle} title="Vincular KR">
+                    <Link2 size={13} />
                   </button>
-                  <button onClick={onManageKrs} className="flex items-center justify-center rounded-md" style={iconButtonStyle} title="Gestionar KRs">
-                    <Settings size={13} />
+                  <button onClick={onOpen} className="flex items-center justify-center rounded-md" style={iconButtonStyle} title="Ver ficha">
+                    <ExternalLink size={13} />
                   </button>
                 </div>
               )}
@@ -97,6 +97,15 @@ const metaLineStyle: CSSProperties = {
   fontWeight: 800,
 };
 
+const statusPillStyle: CSSProperties = {
+  backgroundColor: "rgba(255,255,255,0.15)",
+  color: "#fff",
+  fontSize: "10px",
+  fontWeight: 850,
+  padding: "4px 7px",
+  border: "1px solid rgba(255,255,255,0.28)",
+};
+
 const titleStyle: CSSProperties = {
   width: "100%",
   fontSize: "27px",
@@ -109,21 +118,11 @@ const titleStyle: CSSProperties = {
 const descriptionStyle: CSSProperties = {
   fontSize: "12px",
   color: "rgba(255,255,255,0.84)",
-  marginTop: 10,
   lineHeight: 1.45,
   display: "-webkit-box",
   WebkitLineClamp: 2,
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
-};
-
-const statusPillStyle: CSSProperties = {
-  backgroundColor: "rgba(255,255,255,0.15)",
-  color: "#fff",
-  fontSize: "10px",
-  fontWeight: 850,
-  padding: "4px 7px",
-  border: "1px solid rgba(255,255,255,0.28)",
 };
 
 const ghostButtonStyle: CSSProperties = {
@@ -143,12 +142,17 @@ const iconButtonStyle: CSSProperties = {
   backgroundColor: "rgba(255,255,255,0.14)",
 };
 
-function getCompletionStatus(completion: number, lowCompletionAlert: boolean) {
-  if (lowCompletionAlert || completion < 30) {
-    return { label: "En riesgo", Icon: AlertTriangle };
-  }
-  if (completion >= 70) {
-    return { label: "Avanzado", Icon: CheckCircle2 };
-  }
-  return { label: "En progreso", Icon: TrendingUp };
+function getStatusMeta(status: ProjectResponse["status"]) {
+  const icons = {
+    BORRADOR: Archive,
+    ACTIVO: CheckCircle2,
+    FINALIZADO: CheckSquare,
+    SUSPENDIDO: PauseCircle,
+    ARCHIVADO: Archive,
+  };
+  return { label: statusLabel(status), Icon: icons[status] };
+}
+
+export function projectTypeLabel(project: ProjectResponse) {
+  return typeLabel(project.type);
 }

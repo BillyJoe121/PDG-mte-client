@@ -19,6 +19,8 @@ const Auditoria = lazy(() => import("./pages/Auditoria").then((module) => ({ def
 const PresentacionDashboard = lazy(() => import("./pages/PresentacionDashboard").then((module) => ({ default: module.PresentacionDashboard })));
 const NuevaApuesta = lazy(() => import("./pages/NuevaApuesta").then((module) => ({ default: module.NuevaApuesta })));
 const NuevaMeta = lazy(() => import("./pages/NuevaMeta").then((module) => ({ default: module.NuevaMeta })));
+const GestionApuesta = lazy(() => import("./pages/GestionApuesta").then((module) => ({ default: module.GestionApuesta })));
+const GestionMeta = lazy(() => import("./pages/GestionMeta").then((module) => ({ default: module.GestionMeta })));
 const NuevoOKR = lazy(() => import("./pages/NuevoOKR").then((module) => ({ default: module.NuevoOKR })));
 const NuevoProyecto = lazy(() => import("./pages/NuevoProyecto").then((module) => ({ default: module.NuevoProyecto })));
 const RubricaOKR = lazy(() => import("./pages/RubricaOKR").then((module) => ({ default: module.RubricaOKR })));
@@ -45,6 +47,8 @@ export const router = createBrowserRouter([
       { path: "jerarquia", element: protectedPage("jerarquia.view", <JerarquiaEstrategica />) },
       { path: "jerarquia/apuesta/nueva", element: protectedPage("jerarquia.manage", <NuevaApuesta />) },
       { path: "jerarquia/meta/nueva", element: protectedPage("jerarquia.manage", <NuevaMeta />) },
+      { path: "jerarquia/apuestas/:betId/gestionar", element: protectedPage("jerarquia.manage", <GestionApuesta />) },
+      { path: "jerarquia/metas/:goalId/gestionar", element: protectedPage("jerarquia.manage", <GestionMeta />) },
       { path: "catalogos", element: protectedPage("catalogos.manage", <Catalogos />) },
       { path: "objetivos", element: <Navigate to="/okrs" replace /> },
       { path: "objetivos/:id", element: <Navigate to="/okrs" replace /> },

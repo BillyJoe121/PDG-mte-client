@@ -5,7 +5,7 @@ import {
   measurementUnitsApi,
 } from "./catalogsApi";
 
-const baseUrl = "http://localhost:8081/api/v1";
+const baseUrl = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
 
 function jsonResponse(body: unknown, status = 200) {
   return {
