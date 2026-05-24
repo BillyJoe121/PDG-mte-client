@@ -36,6 +36,7 @@ type View = "arbol" | "apuestas" | "metas";
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 const expandMotionTransition = { duration: 0.18, ease: "easeInOut" } as const;
+const HIERARCHY_DEPTH_INDENT = 48;
 const subtleViewMotion = {
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0 },
@@ -374,7 +375,7 @@ function TreeNode({
           border: `1px solid ${theme.border}`,
           boxShadow: hasChildren ? "0 1px 2px rgba(17, 24, 39, 0.08)" : "none",
           cursor: hasChildren ? "pointer" : "default",
-          marginLeft: depth * 24,
+          marginLeft: depth * HIERARCHY_DEPTH_INDENT,
         }}
         initial={reduceMotion ? false : { opacity: 0, y: 8 }}
         animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
@@ -500,8 +501,8 @@ function getNodeTheme(type: StrategicHierarchyNode["nodeType"]): NodeTheme {
       badgeText: "#FFFFFF",
     },
     KEY_RESULT: {
-      background: COLORS.orange,
-      border: COLORS.orange,
+      background: COLORS.purple,
+      border: COLORS.purple,
       text: "#FFFFFF",
       mutedText: "rgba(255,255,255,0.84)",
       badgeBackground: "rgba(255,255,255,0.18)",

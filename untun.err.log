@@ -1,0 +1,18 @@
+
+[41m[30m ERROR [39m[49m TTY initialization failed: uv_tty_init returned EBADF (bad file descriptor)
+
+    [90mat [39mnew WriteStream ([36mnode:tty:97:11[39m)
+    [90mat [39m/C:/Users/joshe/AppData/Local/npm-cache/_npx/c628db61ff937621/node_modules/consola/dist/chunks/prompt.mjs:174:1562
+    [90mat [39mnew Promise ([36m<anonymous>[39m)
+    [90mat [39mfD.prompt ([36m/C:/Users/joshe/AppData/Local/npm-cache/_npx/c628db61ff937621/node_modules/consola/dist/chunks/prompt.mjs:174:1341[39m)
+    [90mat [39mye ([36m/C:/Users/joshe/AppData/Local/npm-cache/_npx/c628db61ff937621/node_modules/consola/dist/chunks/prompt.mjs:194:7[39m)
+    [90mat [39mModule.prompt ([36m/C:/Users/joshe/AppData/Local/npm-cache/_npx/c628db61ff937621/node_modules/consola/dist/chunks/prompt.mjs:253:18[39m)
+    [90mat [39m/C:/Users/joshe/AppData/Local/npm-cache/_npx/c628db61ff937621/node_modules/consola/dist/index.mjs:632:70
+    [90mat [39mprocess.processTicksAndRejections ([36mnode:internal/process/task_queues:104:5[39m)
+    [90mat [39masync startTunnel ([36m/C:/Users/joshe/AppData/Local/npm-cache/_npx/c628db61ff937621/node_modules/untun/dist/index.mjs:15:101[39m)
+    [90mat [39masync Object.run ([36m/C:/Users/joshe/AppData/Local/npm-cache/_npx/c628db61ff937621/node_modules/untun/dist/cli.mjs:37:21[39m) 
+
+
+
+[41m[30m ERROR [39m[49m TTY initialization failed: uv_tty_init returned EBADF (bad file descriptor)
+
