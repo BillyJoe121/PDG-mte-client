@@ -9,6 +9,10 @@ export interface UsuarioActual {
   rol: Rol;
   departamento?: string;
   iniciales: string;
+  token?: string;
+  roles?: string[];
+  permissions?: string[];
+  capabilities?: string[];
 }
 
 interface AuthContextType {
@@ -42,12 +46,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (user: UsuarioActual) => {
     setUsuario(user);
-    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); } catch { /* ignore */ }
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+      if (user.token) {
+        sessionStorage.setItem("sgp_access_token", user.token);
+      } else {
+        sessionStorage.removeItem("sgp_access_token");
+      }
+    } catch { /* ignore */ }
   };
 
   const logout = () => {
     setUsuario(null);
-    try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem("sgp_access_token");
+    } catch { /* ignore */ }
   };
 
   return (

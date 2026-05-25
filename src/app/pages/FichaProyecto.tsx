@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -7,19 +7,24 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock3,
+  Edit2,
   FileText,
+  FolderKanban,
   GitBranch,
   Link2,
   Loader2,
   Plus,
+  Save,
   Target,
   TrendingUp,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useAuth } from "../context/AuthContext";
-import { objectivesApi, type ObjectiveCard } from "../services/strategicApi";
+import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
+import { departmentsApi, objectivesApi, type Department, type ObjectiveCard } from "../services/strategicApi";
 import {
   contributionTypeLabel,
   projectContributionApi,
@@ -29,6 +34,8 @@ import {
   type ProjectDetailResponse,
   type ProjectKeyResultLinkResponse,
   type ProjectStatus,
+  type ProjectType,
+  type ProjectUpdateRequest,
 } from "../services/projectsApi";
 import { ConfirmUnlinkModal } from "./fichaProyecto/ConfirmUnlinkModal";
 import { LinkKeyResultModal } from "./fichaProyecto/LinkKeyResultModal";
@@ -52,6 +59,8 @@ const TYPE_LABELS = {
   MACROPROYECTO: "Macroproyecto",
 } as const;
 
+const PROJECT_TYPE_OPTIONS = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label })) as Array<{ value: ProjectType; label: string }>;
+
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 
 export function FichaProyecto() {
@@ -63,12 +72,15 @@ export function FichaProyecto() {
   const [detail, setDetail] = useState<ProjectDetailResponse | null>(null);
   const [contributionChain, setContributionChain] = useState<ImpactChain | null>(null);
   const [objectiveCards, setObjectiveCards] = useState<ObjectiveCard[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [activeTab, setActiveTab] = useState<ProjectTab>("resumen");
   const [loading, setLoading] = useState(true);
   const [savingStatus, setSavingStatus] = useState(false);
   const [error, setError] = useState("");
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [unlinkTarget, setUnlinkTarget] = useState<ProjectKeyResultLinkResponse | null>(null);
 
   const loadDetail = async () => {
@@ -91,7 +103,13 @@ export function FichaProyecto() {
 
   useEffect(() => {
     void loadDetail();
-    objectivesApi.cards().then(setObjectiveCards).catch(() => undefined);
+    Promise.all([objectivesApi.cards(), departmentsApi.list(), academicPeriodsApi.list()])
+      .then(([cards, departmentList, periodList]) => {
+        setObjectiveCards(cards);
+        setDepartments(departmentList);
+        setPeriods(periodList);
+      })
+      .catch(() => undefined);
   }, [projectId]);
 
   const project = detail?.project;
@@ -172,10 +190,6 @@ export function FichaProyecto() {
         <Breadcrumb projectName={project.name} onBack={() => navigate("/proyectos")} />
 
         <ProjectHero
-          canManageLinks={canManageLinks}
-          canRegisterProgress={canRegisterProgress}
-          onLink={() => setShowLinkModal(true)}
-          onRegisterProgress={() => setShowProgressModal(true)}
           progressColor={progressColor}
           project={project}
         />
@@ -244,7 +258,10 @@ export function FichaProyecto() {
 
           <ProjectAside
             canManageLinks={canManageLinks}
+            canRegisterProgress={canRegisterProgress}
+            onEdit={() => setShowEditModal(true)}
             onLink={() => setShowLinkModal(true)}
+            onRegisterProgress={() => setShowProgressModal(true)}
             project={project}
             savingStatus={savingStatus}
             statusTransitions={statusTransitions}
@@ -258,6 +275,18 @@ export function FichaProyecto() {
           project={project}
           onClose={() => setShowProgressModal(false)}
           onSaved={loadDetail}
+        />
+      )}
+      {showEditModal && (
+        <EditProjectModal
+          departments={departments}
+          periods={periods}
+          project={project}
+          onClose={() => setShowEditModal(false)}
+          onSaved={async () => {
+            setShowEditModal(false);
+            await loadDetail();
+          }}
         />
       )}
       {showLinkModal && (
@@ -279,6 +308,210 @@ export function FichaProyecto() {
   );
 }
 
+function EditProjectModal({
+  departments,
+  onClose,
+  onSaved,
+  periods,
+  project,
+}: {
+  departments: Department[];
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+  periods: AcademicPeriod[];
+  project: ProjectDetailResponse["project"];
+}) {
+  const [form, setForm] = useState({
+    name: project.name,
+    description: project.description,
+    type: project.type,
+    departmentId: project.departmentId ? String(project.departmentId) : "",
+    startPeriod: project.startPeriod,
+    endPeriod: project.endPeriod ?? "",
+    startDate: dateInputValue(project.startDate),
+    endDate: dateInputValue(project.endDate),
+    actualEndDate: dateInputValue(project.actualEndDate),
+    tutors: project.tutors.join(", "),
+  });
+  const [saving, setSaving] = useState(false);
+
+  const updateField = <K extends keyof typeof form>(field: K, value: (typeof form)[K]) => {
+    setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!form.name.trim() || !form.description.trim() || !form.departmentId || !form.startPeriod) {
+      toast.error("Completa nombre, descripcion, departamento y periodo inicial.");
+      return;
+    }
+
+    const tutors = parseTutors(form.tutors);
+    if (tutors.length === 0) {
+      toast.error("Agrega al menos un tutor.");
+      return;
+    }
+
+    const payload: ProjectUpdateRequest = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      type: form.type,
+      departmentId: Number(form.departmentId),
+      startPeriod: form.startPeriod,
+      endPeriod: form.endPeriod || null,
+      startDate: form.startDate || null,
+      endDate: form.endDate || null,
+      actualEndDate: form.actualEndDate || null,
+      tutors,
+    };
+
+    setSaving(true);
+    try {
+      await projectsApi.update(project.id, payload);
+      toast.success("Proyecto actualizado.");
+      await onSaved();
+    } catch (saveError) {
+      toast.error(errorMessage(saveError));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <motion.div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/35 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.form
+        onSubmit={handleSubmit}
+        className="w-full max-w-3xl overflow-hidden rounded-md bg-white"
+        style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 24px 70px rgba(17,24,39,0.22)" }}
+        initial={{ y: 14, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 10, opacity: 0 }}
+        transition={shortMotionTransition}
+      >
+        <div className="flex items-start justify-between gap-4 p-5" style={{ backgroundColor: COLORS.green }}>
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", color: "#fff" }}>
+              <FolderKanban size={18} />
+            </div>
+            <div>
+              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Proyecto</p>
+              <h2 style={{ color: "#fff", fontSize: 20, fontWeight: 950, lineHeight: 1.1, marginTop: 4 }}>Editar proyecto</h2>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.14)" }} aria-label="Cerrar">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="max-h-[70vh] overflow-y-auto p-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <ModalField label="Nombre" className="md:col-span-2">
+              <input value={form.name} onChange={(event) => updateField("name", event.target.value)} style={modalInputStyle} />
+            </ModalField>
+
+            <ModalField label="Descripcion" className="md:col-span-2">
+              <textarea value={form.description} onChange={(event) => updateField("description", event.target.value)} rows={4} style={modalTextAreaStyle} />
+            </ModalField>
+
+            <ModalField label="Tipo">
+              <ModalSelect value={form.type} onChange={(value) => updateField("type", value as ProjectType)} placeholder="Tipo" options={PROJECT_TYPE_OPTIONS} />
+            </ModalField>
+
+            <ModalField label="Departamento">
+              <ModalSelect
+                value={form.departmentId}
+                onChange={(value) => updateField("departmentId", value)}
+                placeholder="Departamento"
+                options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
+              />
+            </ModalField>
+
+            <ModalField label="Periodo inicial">
+              <ModalSelect
+                value={form.startPeriod}
+                onChange={(value) => updateField("startPeriod", value)}
+                placeholder="Periodo inicial"
+                options={periods.map((period) => ({ value: period.name, label: period.name }))}
+              />
+            </ModalField>
+
+            <ModalField label="Periodo final">
+              <ModalSelect
+                value={form.endPeriod || "none"}
+                onChange={(value) => updateField("endPeriod", value === "none" ? "" : value)}
+                placeholder="Periodo final"
+                options={[{ value: "none", label: "Sin periodo final" }, ...periods.map((period) => ({ value: period.name, label: period.name }))]}
+              />
+            </ModalField>
+
+            <ModalField label="Fecha inicio">
+              <input type="date" value={form.startDate} onChange={(event) => updateField("startDate", event.target.value)} style={modalInputStyle} />
+            </ModalField>
+
+            <ModalField label="Fecha fin">
+              <input type="date" value={form.endDate} onChange={(event) => updateField("endDate", event.target.value)} style={modalInputStyle} />
+            </ModalField>
+
+            <ModalField label="Fecha fin real">
+              <input type="date" value={form.actualEndDate} onChange={(event) => updateField("actualEndDate", event.target.value)} style={modalInputStyle} />
+            </ModalField>
+
+            <ModalField label="Tutores" className="md:col-span-2">
+              <input value={form.tutors} onChange={(event) => updateField("tutors", event.target.value)} placeholder="Separados por coma" style={modalInputStyle} />
+            </ModalField>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-[#E5E7EB] p-4">
+          <button type="button" onClick={onClose} className="inline-flex items-center justify-center rounded-md" style={secondaryButtonStyle}>
+            Cancelar
+          </button>
+          <button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-md" style={{ ...primaryButtonStyle, opacity: saving ? 0.65 : 1 }}>
+            <Save size={14} />
+            {saving ? "Guardando..." : "Guardar cambios"}
+          </button>
+        </div>
+      </motion.form>
+    </motion.div>
+  );
+}
+
+function ModalField({ children, className = "", label }: { children: ReactNode; className?: string; label: string }) {
+  return (
+    <label className={`block ${className}`}>
+      <span style={{ display: "block", color: "#6B7280", fontSize: 11, fontWeight: 900, textTransform: "uppercase", marginBottom: 6 }}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function ModalSelect({
+  onChange,
+  options,
+  placeholder,
+  value,
+}: {
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="focus-visible:ring-0" style={selectControlStyle}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent position="popper" align="start" className="z-[95] max-h-72 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#ECFDF5] focus:text-[#198754]">
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function Breadcrumb({ projectName, onBack }: { projectName: string; onBack: () => void }) {
   return (
     <div className="mb-4 flex items-center gap-2">
@@ -292,24 +525,10 @@ function Breadcrumb({ projectName, onBack }: { projectName: string; onBack: () =
   );
 }
 
-function ProjectHero({
-  canManageLinks,
-  canRegisterProgress,
-  onLink,
-  onRegisterProgress,
-  progressColor,
-  project,
-}: {
-  canManageLinks: boolean;
-  canRegisterProgress: boolean;
-  onLink: () => void;
-  onRegisterProgress: () => void;
-  progressColor: string;
-  project: ProjectDetailResponse["project"];
-}) {
+function ProjectHero({ progressColor, project }: { progressColor: string; project: ProjectDetailResponse["project"] }) {
   return (
     <section className="overflow-hidden rounded-md" style={{ backgroundColor: COLORS.green, boxShadow: `0 18px 42px ${COLORS.green}24` }}>
-      <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="p-5 sm:p-6">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
@@ -323,27 +542,12 @@ function ProjectHero({
               <h1 style={heroTitleStyle}>{project.name}</h1>
               <p style={heroDescriptionStyle}>{project.description}</p>
             </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {canRegisterProgress && (
-                <button onClick={onRegisterProgress} className="inline-flex items-center gap-2 rounded-md" style={heroPrimaryButtonStyle}>
-                  <Plus size={14} />
-                  Registrar avance
-                </button>
-              )}
-              {canManageLinks && (
-                <button onClick={onLink} className="inline-flex items-center gap-2 rounded-md" style={heroSecondaryButtonStyle}>
-                  <Link2 size={14} />
-                  Vincular KR
-                </button>
-              )}
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <HeroFact label="Departamento" value={project.departmentName ?? String(project.departmentId ?? "Sin departamento")} />
             <HeroFact label="Periodo" value={`${project.startPeriod}${project.endPeriod ? ` - ${project.endPeriod}` : ""}`} />
             <HeroFact label="Tutores" value={project.tutors.length ? project.tutors.join(", ") : "Sin tutores"} />
-            <HeroFact label="Origen" value={`${project.origin} / ${project.syncStatus}`} />
           </div>
         </div>
 
@@ -544,14 +748,20 @@ function KeyResultsSection({
 
 function ProjectAside({
   canManageLinks,
+  canRegisterProgress,
+  onEdit,
   onLink,
+  onRegisterProgress,
   onStatusChange,
   project,
   savingStatus,
   statusTransitions,
 }: {
   canManageLinks: boolean;
+  canRegisterProgress: boolean;
+  onEdit: () => void;
   onLink: () => void;
+  onRegisterProgress: () => void;
   onStatusChange: (status: ProjectStatus) => void;
   project: ProjectDetailResponse["project"];
   savingStatus: boolean;
@@ -577,7 +787,19 @@ function ProjectAside({
             </Select>
           )}
           {canManageLinks && (
-            <button onClick={onLink} className="inline-flex w-full items-center justify-center gap-2 rounded-md" style={primaryButtonStyle}>
+            <button onClick={onEdit} className="inline-flex w-full items-center justify-center gap-2 rounded-md" style={secondaryButtonStyle}>
+              <Edit2 size={14} />
+              Editar proyecto
+            </button>
+          )}
+          {canRegisterProgress && (
+            <button onClick={onRegisterProgress} className="inline-flex w-full items-center justify-center gap-2 rounded-md" style={primaryButtonStyle}>
+              <Plus size={14} />
+              Registrar avance
+            </button>
+          )}
+          {canManageLinks && (
+            <button onClick={onLink} className="inline-flex w-full items-center justify-center gap-2 rounded-md" style={secondaryButtonStyle}>
               <Link2 size={14} />
               Vincular Key Result
             </button>
@@ -590,7 +812,6 @@ function ProjectAside({
           <InfoBlock label="Tipo" value={TYPE_LABELS[project.type]} />
           <InfoBlock label="Departamento" value={project.departmentName ?? String(project.departmentId ?? "Sin departamento")} />
           <InfoBlock label="Periodo" value={`${project.startPeriod}${project.endPeriod ? ` - ${project.endPeriod}` : ""}`} />
-          <InfoBlock label="Sincronizacion" value={`${project.origin} / ${project.syncStatus}`} />
         </div>
       </Panel>
     </aside>
@@ -680,15 +901,16 @@ function ImpactCard({ impact, projectProgress }: { impact: ImpactChain["impacts"
 }
 
 function RadialProgress({ value, color }: { value: number; color: string }) {
-  const radius = 48;
+  const radius = 72;
+  const center = 105;
   const circumference = 2 * Math.PI * radius;
   const dash = (Math.max(0, Math.min(100, value)) / 100) * circumference;
 
   return (
-    <div className="relative" style={{ width: 150, height: 150 }}>
-      <svg width="150" height="150" viewBox="0 0 150 150">
-        <circle cx="75" cy="75" r={radius} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="11" />
-        <circle cx="75" cy="75" r={radius} fill="none" stroke={color} strokeWidth="11" strokeDasharray={`${dash} ${circumference}`} strokeLinecap="round" transform="rotate(-90 75 75)" />
+    <div className="relative" style={{ width: 210, height: 210 }}>
+      <svg width="210" height="210" viewBox="0 0 210 210">
+        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="13" />
+        <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth="13" strokeDasharray={`${dash} ${circumference}`} strokeLinecap="round" transform={`rotate(-90 ${center} ${center})`} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span style={{ color: "#fff", fontSize: 36, fontWeight: 950, lineHeight: 1 }}>{value}%</span>
@@ -770,6 +992,17 @@ function getProgressColor(value: number) {
   return COLORS.orange;
 }
 
+function dateInputValue(value?: string | null) {
+  return value ? value.slice(0, 10) : "";
+}
+
+function parseTutors(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 const heroEyebrowStyle: CSSProperties = {
   color: "rgba(255,255,255,0.74)",
   fontSize: 10,
@@ -793,23 +1026,6 @@ const heroDescriptionStyle: CSSProperties = {
   marginTop: 10,
   lineHeight: 1.55,
   maxWidth: 860,
-};
-
-const heroPrimaryButtonStyle: CSSProperties = {
-  padding: "10px 13px",
-  backgroundColor: "#fff",
-  color: COLORS.green,
-  fontSize: 12,
-  fontWeight: 950,
-};
-
-const heroSecondaryButtonStyle: CSSProperties = {
-  padding: "10px 13px",
-  backgroundColor: "rgba(255,255,255,0.14)",
-  color: "#fff",
-  border: "1px solid rgba(255,255,255,0.34)",
-  fontSize: 12,
-  fontWeight: 950,
 };
 
 const primaryButtonStyle: CSSProperties = {
@@ -839,4 +1055,24 @@ const selectControlStyle: CSSProperties = {
   fontWeight: 750,
   backgroundColor: "#F8FAFC",
   color: COLORS.text,
+};
+
+const modalInputStyle: CSSProperties = {
+  width: "100%",
+  minHeight: 40,
+  border: `1px solid ${COLORS.border}`,
+  borderRadius: 8,
+  padding: "9px 11px",
+  fontSize: 13,
+  fontWeight: 750,
+  backgroundColor: "#F8FAFC",
+  color: COLORS.text,
+  outline: "none",
+};
+
+const modalTextAreaStyle: CSSProperties = {
+  ...modalInputStyle,
+  resize: "vertical",
+  minHeight: 112,
+  lineHeight: 1.5,
 };

@@ -11,6 +11,7 @@ const user: UsuarioActual = {
   rol: 'director',
   departamento: 'Direccion TDI',
   iniciales: 'HA',
+  token: 'mock-token-ha',
 };
 
 describe('AuthContext', () => {
@@ -26,10 +27,12 @@ describe('AuthContext', () => {
     act(() => getAuth().login(user));
     expect(getAuth().usuario).toEqual(user);
     expect(JSON.parse(sessionStorage.getItem('sgp_session_user') ?? '{}')).toMatchObject({ id: 'U1' });
+    expect(sessionStorage.getItem('sgp_access_token')).toBe('mock-token-ha');
 
     act(() => getAuth().logout());
     expect(getAuth().usuario).toBeNull();
     expect(sessionStorage.getItem('sgp_session_user')).toBeNull();
+    expect(sessionStorage.getItem('sgp_access_token')).toBeNull();
   });
 
   it('restores a valid session from storage', () => {

@@ -71,7 +71,10 @@ describe("reports and presentation APIs", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       `${baseUrl}/reports/export.csv?period=2026-1&departmentId=7`,
-      expect.objectContaining({ headers: { Authorization: "Bearer legacy-token" } }),
+      expect.objectContaining({
+        cache: "no-store",
+        headers: expect.objectContaining({ Authorization: "Bearer legacy-token" }),
+      }),
     );
     expect(anchor.download).toBe("msp-report.csv");
     expect(click).toHaveBeenCalled();
@@ -120,7 +123,10 @@ describe("reports and presentation APIs", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       `${baseUrl}/reports/export.pdf`,
-      expect.objectContaining({ headers: { Authorization: "Bearer session-token" } }),
+      expect.objectContaining({
+        cache: "no-store",
+        headers: expect.objectContaining({ Authorization: "Bearer session-token" }),
+      }),
     );
     expect(anchor.download).toBe("msp-report.pdf");
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:report");
@@ -137,7 +143,7 @@ describe("reports and presentation APIs", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       `${baseUrl}/reports/export.csv`,
-      expect.objectContaining({ headers: {} }),
+      expect.objectContaining({ cache: "no-store", headers: { "Content-Type": "application/json" } }),
     );
     expect(click).toHaveBeenCalled();
   });
@@ -173,7 +179,7 @@ describe("reports and presentation APIs", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       `${baseUrl}/reports/export.csv`,
-      expect.objectContaining({ headers: {} }),
+      expect.objectContaining({ cache: "no-store", headers: { "Content-Type": "application/json" } }),
     );
   });
 });

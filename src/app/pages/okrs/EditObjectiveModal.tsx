@@ -5,8 +5,10 @@ import { toast } from "sonner";
 import { objectivesApi, type ObjectiveCard } from "../../services/strategicApi";
 import { COLORS } from "./okrsShared";
 
+type EditableObjective = Pick<ObjectiveCard, "id" | "name" | "description">;
+
 interface EditObjectiveModalProps {
-  objective: ObjectiveCard;
+  objective: EditableObjective;
   onClose: () => void;
   onSaved: () => Promise<void>;
 }

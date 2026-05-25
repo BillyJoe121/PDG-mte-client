@@ -12,6 +12,7 @@ const Proyectos = lazy(() => import("./pages/Proyectos").then((module) => ({ def
 const FichaProyecto = lazy(() => import("./pages/FichaProyecto").then((module) => ({ default: module.FichaProyecto })));
 const OKRs = lazy(() => import("./pages/OKRs").then((module) => ({ default: module.OKRs })));
 const GestionKRs = lazy(() => import("./pages/GestionKRs").then((module) => ({ default: module.GestionKRs })));
+const GestionKR = lazy(() => import("./pages/GestionKR").then((module) => ({ default: module.GestionKR })));
 const Reportes = lazy(() => import("./pages/Reportes").then((module) => ({ default: module.Reportes })));
 const Consistencia = lazy(() => import("./pages/Consistencia").then((module) => ({ default: module.Consistencia })));
 const Usuarios = lazy(() => import("./pages/Usuarios").then((module) => ({ default: module.Usuarios })));
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
       { path: "okrs", element: protectedPage("okrs.view", <OKRs />) },
       { path: "okrs/nuevo", element: protectedPage("okrs.manage", <NuevoOKR />) },
       { path: "okrs/:okrId/krs", element: protectedPage("okrs.view", <GestionKRs />) },
+      { path: "okrs/:okrId/krs/:krId", element: protectedPage("okrs.view", <GestionKR />) },
       { path: "okrs/:okrId/rubrica", element: protectedPage("okrs.view", <RubricaOKR />) },
       { path: "reportes", element: protectedPage("reportes.view", <Reportes />) },
       { path: "consistencia", element: protectedPage("consistencia.view", <Consistencia />) },

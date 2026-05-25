@@ -16,7 +16,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -31,10 +31,10 @@ import {
   type CountByStatus,
   type DashboardData,
   type DashboardSummary,
+  type GoalExecution,
   type ProgressBucket,
   type ProgressBucketCount,
 } from "../services/dashboardApi";
-import { objectivesApi, type ObjectiveCard } from "../services/strategicApi";
 
 const COLORS = {
   blue: "#5454E9",
@@ -89,6 +89,13 @@ const bucketColor: Record<ProgressBucket, string> = {
   AT_RISK: COLORS.orange,
   LOW: COLORS.red,
 };
+
+const objectiveBucketMeta = {
+  completedObjectives: { label: "Completados", color: COLORS.green },
+  objectivesAbove50: { label: "Mas del 50%", color: COLORS.blue },
+  objectivesBetween0And50: { label: "0 a 50%", color: COLORS.orange },
+  objectivesAtZero: { label: "En 0%", color: COLORS.red },
+} as const;
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -168,62 +175,30 @@ function buildKpis(summary: DashboardSummary, totalProjects: number) {
       color: COLORS.orange,
     },
     {
-      label: "Cobertura estrategica",
-      value: percent(summary.averageObjectiveCoverage),
-      sub: `Cobertura KR ${percent(summary.averageKeyResultCoverage)}`,
+      label: "Objetivos completados",
+      value: summary.completedObjectives,
+      sub: `${summary.objectivesAbove50} con mas del 50%, ${summary.objectivesBetween0And50} entre 0 y 50%, ${summary.objectivesAtZero} en 0%`,
       icon: Gauge,
       color: COLORS.purple,
     },
   ];
 }
 
-function buildGoalCoverage(cards: ObjectiveCard[]): GoalCoverageExecution[] {
-  const groups = new Map<number, { goalName: string; objectives: number; keyResults: number; coverageSum: number }>();
-
-  cards.forEach((card) => {
-    const current = groups.get(card.goalId) ?? {
-      goalName: card.goalName,
-      objectives: 0,
-      keyResults: 0,
-      coverageSum: 0,
-    };
-    current.objectives += 1;
-    current.keyResults += card.keyResults.length;
-    current.coverageSum += card.completionPercentage;
-    groups.set(card.goalId, current);
-  });
-
-  return [...groups.entries()]
-    .map(([goalId, item]) => ({
-      goalId,
-      goalName: item.goalName,
-      objectives: item.objectives,
-      keyResults: item.keyResults,
-      averageObjectiveCoverage: item.objectives ? item.coverageSum / item.objectives : 0,
-    }))
-    .sort((a, b) => b.averageObjectiveCoverage - a.averageObjectiveCoverage);
-}
-
 type DashboardDerived = {
   kpis: ReturnType<typeof buildKpis>;
 };
-
-interface GoalCoverageExecution {
-  goalId: number;
-  goalName: string;
-  objectives: number;
-  keyResults: number;
-  averageObjectiveCoverage: number;
-}
 
 interface CoverageItem {
   id: number;
   name: string;
   objectives: number;
+  completedObjectives: number;
+  objectivesAbove50: number;
+  objectivesBetween0And50: number;
+  objectivesAtZero: number;
   keyResults: number;
   completedProjects?: number;
   inProgressProjects?: number;
-  averageObjectiveCoverage: number;
 }
 
 export function Dashboard() {
@@ -233,7 +208,6 @@ export function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [goalCoverage, setGoalCoverage] = useState<GoalCoverageExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -247,17 +221,12 @@ export function Dashboard() {
     setLoading(true);
     setError("");
     try {
-      const periodList = await academicPeriodsApi.list();
-      const selectedPeriodData = period
-        ? periodList.find((item) => item.name === period)
-        : periodList.find((item) => item.status === "ACTIVO");
-      const [data, objectiveCards] = await Promise.all([
+      const [periodList, data] = await Promise.all([
+        academicPeriodsApi.list(),
         dashboardApi.load(period),
-        objectivesApi.cards({ periodId: selectedPeriodData?.id }),
       ]);
       setPeriods(periodList);
       setDashboard(data);
-      setGoalCoverage(buildGoalCoverage(objectiveCards));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -349,10 +318,10 @@ export function Dashboard() {
 
               <DashboardPanel
                 title="Cobertura por meta"
-                subtitle="Cobertura promedio de objetivos agrupados por meta institucional."
+                subtitle="Objetivos agrupados por meta institucional segun sus buckets de avance."
                 icon={<Target size={16} />}
               >
-                <GoalCoverage data={goalCoverage} />
+                <GoalCoverage data={dashboard.goals} />
               </DashboardPanel>
             </main>
           </motion.div>
@@ -402,7 +371,7 @@ function DashboardHeader({
             Seguimiento ejecutivo del portafolio para {firstName}.
             {summary && (
               <>
-                {" "}{summary.activeProjects} activos - {summary.objectivesInFollowUp} objetivos - {summary.completedKeyResults + summary.inProgressKeyResults} KRs - {percent(summary.averageObjectiveCoverage)} cobertura
+                {" "}{summary.activeProjects} activos - {summary.objectivesInFollowUp} objetivos - {summary.completedKeyResults + summary.inProgressKeyResults} KRs - {summary.completedObjectives} objetivos completados
               </>
             )}
           </p>
@@ -617,36 +586,42 @@ function StrategicBetCoverage({ data }: { data: DashboardData["strategicBets"] }
     id: item.strategicBetId,
     name: item.strategicBetName,
     objectives: item.objectives,
+    completedObjectives: item.completedObjectives,
+    objectivesAbove50: item.objectivesAbove50,
+    objectivesBetween0And50: item.objectivesBetween0And50,
+    objectivesAtZero: item.objectivesAtZero,
     keyResults: item.keyResults,
     completedProjects: item.completedProjects,
     inProgressProjects: item.inProgressProjects,
-    averageObjectiveCoverage: item.averageObjectiveCoverage,
   }));
 
-  return <CoverageCharts barColor={COLORS.purple} data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" showProjects />;
+  return <CoverageCharts data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" showProjects />;
 }
 
-function GoalCoverage({ data }: { data: GoalCoverageExecution[] }) {
+function GoalCoverage({ data }: { data: GoalExecution[] }) {
   if (!data.length) return <EmptyState text="Sin metas con objetivos para el periodo." compact />;
   const items = data.map((item) => ({
     id: item.goalId,
     name: item.goalName,
     objectives: item.objectives,
+    completedObjectives: item.completedObjectives,
+    objectivesAbove50: item.objectivesAbove50,
+    objectivesBetween0And50: item.objectivesBetween0And50,
+    objectivesAtZero: item.objectivesAtZero,
     keyResults: item.keyResults,
-    averageObjectiveCoverage: item.averageObjectiveCoverage,
+    completedProjects: item.completedProjects,
+    inProgressProjects: item.inProgressProjects,
   }));
 
-  return <CoverageCharts barColor={COLORS.green} data={items} emptyText="Sin metas con objetivos para el periodo." metricLabel="Meta" />;
+  return <CoverageCharts data={items} emptyText="Sin metas con objetivos para el periodo." metricLabel="Meta" />;
 }
 
 function CoverageCharts({
-  barColor,
   data,
   emptyText,
   metricLabel,
   showProjects = false,
 }: {
-  barColor: string;
   data: CoverageItem[];
   emptyText: string;
   metricLabel: string;
@@ -658,19 +633,19 @@ function CoverageCharts({
   return (
     <div className="space-y-4">
       {chunks.map((chunk, index) => (
-        <CoverageChart key={`${metricLabel}-${index}`} barColor={barColor} data={chunk} metricLabel={metricLabel} index={index} total={chunks.length} />
+        <CoverageChart key={`${metricLabel}-${index}`} data={chunk} metricLabel={metricLabel} index={index} total={chunks.length} />
       ))}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {data.map((item) => (
-          <CoverageSummaryCard key={item.id} barColor={barColor} item={item} showProjects={showProjects} />
+          <CoverageSummaryCard key={item.id} item={item} showProjects={showProjects} />
         ))}
       </div>
     </div>
   );
 }
 
-function CoverageChart({ barColor, data, metricLabel, index, total }: { barColor: string; data: CoverageItem[]; metricLabel: string; index: number; total: number }) {
+function CoverageChart({ data, metricLabel, index, total }: { data: CoverageItem[]; metricLabel: string; index: number; total: number }) {
   const maxLines = maxWrappedLines(data);
   const axisHeight = Math.max(72, maxLines * 14 + 30);
 
@@ -692,16 +667,16 @@ function CoverageChart({ barColor, data, metricLabel, index, total }: { barColor
               tick={<WrappedAxisTick />}
               tickLine={false}
             />
-            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: COLORS.gray }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: COLORS.gray }} />
+            <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 800, paddingTop: 8 }} />
             <Tooltip
               cursor={{ fill: "#F8FAFC" }}
-              formatter={(value) => [`${Math.round(Number(value))}%`, "Cobertura"]}
+              formatter={(value, name) => [Number(value), String(name)]}
             />
-            <Bar dataKey="averageObjectiveCoverage" name="Cobertura" radius={[5, 5, 0, 0]}>
-              {data.map((item) => (
-                <Cell key={item.id} fill={barColor} />
-              ))}
-            </Bar>
+            <Bar dataKey="completedObjectives" name={objectiveBucketMeta.completedObjectives.label} fill={objectiveBucketMeta.completedObjectives.color} radius={[5, 5, 0, 0]} />
+            <Bar dataKey="objectivesAbove50" name={objectiveBucketMeta.objectivesAbove50.label} fill={objectiveBucketMeta.objectivesAbove50.color} radius={[5, 5, 0, 0]} />
+            <Bar dataKey="objectivesBetween0And50" name={objectiveBucketMeta.objectivesBetween0And50.label} fill={objectiveBucketMeta.objectivesBetween0And50.color} radius={[5, 5, 0, 0]} />
+            <Bar dataKey="objectivesAtZero" name={objectiveBucketMeta.objectivesAtZero.label} fill={objectiveBucketMeta.objectivesAtZero.color} radius={[5, 5, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -730,23 +705,36 @@ function WrappedAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: 
   );
 }
 
-function CoverageSummaryCard({ barColor, item, showProjects }: { barColor: string; item: CoverageItem; showProjects: boolean }) {
-  const coverage = clampPercent(item.averageObjectiveCoverage);
+function CoverageSummaryCard({ item, showProjects }: { item: CoverageItem; showProjects: boolean }) {
+  const totalBuckets = item.completedObjectives + item.objectivesAbove50 + item.objectivesBetween0And50 + item.objectivesAtZero;
   const projectText = showProjects
     ? ` - ${item.inProgressProjects ?? 0} proyectos en progreso - ${item.completedProjects ?? 0} finalizados`
     : "";
+  const bucketText = `${item.completedObjectives} objetivos completados, ${item.objectivesAbove50} con mas del 50%, ${item.objectivesBetween0And50} entre 0 y 50%, ${item.objectivesAtZero} en 0%`;
 
   return (
     <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
       <div className="flex items-start justify-between gap-3">
         <p style={{ fontSize: 12, fontWeight: 900, color: COLORS.text, lineHeight: 1.35 }}>{item.name}</p>
-        <span style={{ fontSize: 13, fontWeight: 900, color: barColor }}>{coverage}%</span>
+        <span style={{ fontSize: 13, fontWeight: 900, color: COLORS.purple }}>{item.objectives}</span>
       </div>
       <p style={{ fontSize: 10, color: COLORS.gray, marginTop: 6, lineHeight: 1.45 }}>
         {item.objectives} objetivos - {item.keyResults} KRs{projectText}
       </p>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
-        <div style={{ width: `${coverage}%`, height: "100%", backgroundColor: barColor }} />
+      <p style={{ fontSize: 11, color: COLORS.text, fontWeight: 800, marginTop: 8, lineHeight: 1.45 }}>
+        {bucketText}
+      </p>
+      <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-[#EEF2F7]">
+        {totalBuckets > 0 ? (
+          <>
+            <div style={{ width: `${(item.completedObjectives / totalBuckets) * 100}%`, backgroundColor: objectiveBucketMeta.completedObjectives.color }} />
+            <div style={{ width: `${(item.objectivesAbove50 / totalBuckets) * 100}%`, backgroundColor: objectiveBucketMeta.objectivesAbove50.color }} />
+            <div style={{ width: `${(item.objectivesBetween0And50 / totalBuckets) * 100}%`, backgroundColor: objectiveBucketMeta.objectivesBetween0And50.color }} />
+            <div style={{ width: `${(item.objectivesAtZero / totalBuckets) * 100}%`, backgroundColor: objectiveBucketMeta.objectivesAtZero.color }} />
+          </>
+        ) : (
+          <div style={{ width: "100%", backgroundColor: "#E5E7EB" }} />
+        )}
       </div>
     </div>
   );

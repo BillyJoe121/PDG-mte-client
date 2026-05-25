@@ -1,17 +1,13 @@
-import { FormEvent, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate, useParams } from "react-router";
-import { AlertTriangle, ArrowLeft, Edit2, KeyRound, Loader2, Plus, Save, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BookOpen, Building2, CalendarDays, Edit2, Flag, KeyRound, Loader2, Plus, Settings, Target } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { measurementUnitsApi, type MeasurementUnit } from "../services/catalogsApi";
-import { ApiError, keyResultsApi, objectivesApi, type KeyResult, type KeyResultRequest, type Objective } from "../services/strategicApi";
-
-const COLORS = {
-  blue: "#5454E9",
-  green: "#4CB979",
-  orange: "#E9683B",
-  gray: "#717182",
-};
+import { objectivesApi, type KeyResultRequest, type Objective } from "../services/strategicApi";
+import { EditObjectiveModal } from "./okrs/EditObjectiveModal";
+import { KrFormModal } from "./okrs/KrFormModal";
+import { COLORS } from "./okrs/okrsShared";
 
 export function GestionKRs() {
   const { okrId } = useParams<{ okrId: string }>();
@@ -20,11 +16,12 @@ export function GestionKRs() {
   const canEdit = usuario?.rol === "director" || usuario?.rol === "administrador" || usuario?.rol === "jefe";
   const objectiveId = Number(okrId);
   const [objective, setObjective] = useState<Objective | null>(null);
+  const [objectiveOptions, setObjectiveOptions] = useState<Objective[]>([]);
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState<KeyResult | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [creatingKr, setCreatingKr] = useState(false);
+  const [editingObjective, setEditingObjective] = useState(false);
 
   const load = async () => {
     if (!objectiveId) return;
@@ -36,6 +33,12 @@ export function GestionKRs() {
       ]);
       setObjective(nextObjective);
       setUnits(unitList.filter((unit) => unit.active));
+      try {
+        const nextObjectives = await objectivesApi.list();
+        setObjectiveOptions(nextObjectives.length ? nextObjectives : [nextObjective]);
+      } catch {
+        setObjectiveOptions([nextObjective]);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo cargar el objetivo");
     } finally {
@@ -47,18 +50,29 @@ export function GestionKRs() {
     void load();
   }, [objectiveId]);
 
-  const remove = async (kr: KeyResult) => {
-    if (!window.confirm(`Eliminar el Key Result "${kr.name}"?`)) return;
+  const stats = useMemo(() => {
+    const keyResults = objective?.keyResults ?? [];
+    const progress = keyResults.length
+      ? Math.round(keyResults.reduce((sum, kr) => sum + kr.progressPercentage, 0) / keyResults.length)
+      : 0;
+    return {
+      keyResults: keyResults.length,
+      progress,
+      completed: keyResults.filter((kr) => kr.progressPercentage >= 100).length,
+    };
+  }, [objective]);
+
+  const createKr = async (body: KeyResultRequest, objectiveIds?: number[]) => {
+    if (!objective) return;
+    const targets = Array.from(new Set((objectiveIds?.length ? objectiveIds : [objective.id]).filter(Boolean)));
     setSaving(true);
     try {
-      await keyResultsApi.remove(kr.id);
-      toast.success("Key Result eliminado");
+      await Promise.all(targets.map((targetId) => objectivesApi.addKeyResult(targetId, body)));
+      toast.success(targets.length > 1 ? `Key Result creado en ${targets.length} objetivos` : "Key Result creado");
+      setCreatingKr(false);
       await load();
     } catch (error) {
-      const message = error instanceof ApiError && error.status === 409
-        ? "No se puede eliminar este Key Result porque tiene proyectos vinculados activos."
-        : error instanceof Error ? error.message : "No se pudo eliminar el Key Result";
-      toast.error(message);
+      toast.error(error instanceof Error ? error.message : "No se pudo crear el Key Result");
     } finally {
       setSaving(false);
     }
@@ -66,7 +80,7 @@ export function GestionKRs() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "13px", fontWeight: 800 }}>
+      <div className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
         <Loader2 size={18} className="mr-2 animate-spin" /> Cargando Key Results...
       </div>
     );
@@ -74,169 +88,181 @@ export function GestionKRs() {
 
   if (!objective) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4 p-8">
+      <div className="flex h-64 flex-col items-center justify-center gap-4 p-8">
         <AlertTriangle size={40} color={COLORS.orange} />
-        <p style={{ fontSize: "16px", fontWeight: 700, color: "#000" }}>Objetivo no encontrado</p>
-        <button onClick={() => navigate("/okrs")} className="flex items-center gap-2" style={{ padding: "10px 20px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 8, fontSize: "12px", fontWeight: 700 }}>
-          <ArrowLeft size={14} /> Volver a Objetivos
+        <p style={{ fontSize: 16, fontWeight: 800, color: COLORS.text }}>Objetivo no encontrado</p>
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 rounded-md px-5 py-2.5" style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 800 }}>
+          <ArrowLeft size={14} /> Volver
         </button>
       </div>
     );
   }
 
   return (
-    <div style={{ backgroundColor: "#F9FAFB", minHeight: "100%" }}>
-      <div className="sticky top-0 z-10 bg-white px-6 py-3" style={{ borderBottom: "1px solid #E5E7EB" }}>
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/okrs")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50" style={{ border: "1px solid #E5E7EB", fontSize: "12px", fontWeight: 700, color: "#374151" }}>
-            <ArrowLeft size={14} /> Objetivos
-          </button>
-          <div className="flex-1 min-w-0">
-            <p style={{ fontSize: "10px", color: COLORS.gray, fontWeight: 800, textTransform: "uppercase" }}>Objetivo #{objective.id}</p>
-            <h1 style={{ fontSize: "15px", fontWeight: 900, color: "#000" }}>{objective.name}</h1>
-          </div>
-          {canEdit && !adding && !editing && (
-            <button onClick={() => setAdding(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg" style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: "12px", fontWeight: 800 }}>
-              <Plus size={14} /> Nuevo KR
-            </button>
-          )}
-        </div>
+    <div className="min-h-full px-6 py-5" style={{ backgroundColor: "#F8FAFC" }}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: "#374151", fontSize: 12, fontWeight: 800, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+          <ArrowLeft size={14} /> Volver
+        </button>
       </div>
 
-      <div className="p-6 space-y-4">
-        <div className="bg-white rounded-xl p-5" style={{ border: "1.5px solid #E5E7EB" }}>
-          <p style={{ fontSize: "13px", color: "#374151", lineHeight: 1.6 }}>{objective.description}</p>
-          <p style={{ fontSize: "11px", color: COLORS.gray, marginTop: 8 }}>
-            {objective.departmentName} · {objective.academicPeriodName} · {objective.strategicBetName} · {objective.goalName}
-          </p>
-        </div>
+      <section className="objective-detail-hero overflow-hidden rounded-md bg-white">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+          <div className="flex min-h-[178px] flex-col justify-center gap-3 p-5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "color-mix(in srgb, #E9683B 10%, white)", border: "1px solid color-mix(in srgb, #E9683B 34%, white)", color: COLORS.orange }}>
+                <Target size={18} />
+              </span>
+              <span style={{ color: COLORS.orange, fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Objetivo #{objective.id}
+              </span>
+            </div>
+            <div>
+              <h1 style={{ color: COLORS.orange, fontSize: 24, fontWeight: 950, lineHeight: 1.12, maxWidth: 860 }}>{objective.name}</h1>
+              <p style={{ color: COLORS.gray, fontSize: 12, lineHeight: 1.5, marginTop: 8, maxWidth: 900 }}>{objective.description}</p>
+            </div>
+          </div>
 
-        {adding && (
-          <KrForm
-            units={units}
-            initial={null}
-            saving={saving}
-            onCancel={() => setAdding(false)}
-            onSubmit={async (body) => {
-              setSaving(true);
-              try {
-                await objectivesApi.addKeyResult(objective.id, body);
-                toast.success("Key Result agregado");
-                setAdding(false);
-                await load();
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : "No se pudo agregar el Key Result");
-              } finally {
-                setSaving(false);
-              }
-            }}
-          />
-        )}
-
-        {objective.keyResults.map((kr) => (
-          <div key={kr.id} className="bg-white rounded-xl p-4" style={{ border: "1.5px solid #E5E7EB" }}>
-            {editing?.id === kr.id ? (
-              <KrForm
-                units={units}
-                initial={kr}
-                saving={saving}
-                onCancel={() => setEditing(null)}
-                onSubmit={async (body) => {
-                  setSaving(true);
-                  try {
-                    await keyResultsApi.update(kr.id, body);
-                    toast.success("Key Result actualizado");
-                    setEditing(null);
-                    await load();
-                  } catch (error) {
-                    toast.error(error instanceof Error ? error.message : "No se pudo actualizar el Key Result");
-                  } finally {
-                    setSaving(false);
-                  }
-                }}
-              />
-            ) : (
-              <div className="flex items-start gap-3">
-                <KeyRound size={16} color={COLORS.blue} className="mt-1" />
-                <div className="flex-1">
-                  <p style={{ fontSize: "13px", fontWeight: 900, color: "#000" }}>{kr.name}</p>
-                  <p style={{ fontSize: "12px", color: "#374151", marginTop: 3 }}>{kr.description}</p>
-                  <p style={{ fontSize: "10px", color: COLORS.gray, marginTop: 6 }}>
-                    {kr.metric} · Base {kr.baseValue} · Actual {kr.currentValue} · Objetivo {kr.targetValue} {kr.measurementUnitName} · {kr.progressPercentage}%
-                  </p>
-                </div>
-                {canEdit && (
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setEditing(kr)} className="p-1.5 rounded hover:bg-gray-100"><Edit2 size={14} color={COLORS.blue} /></button>
-                    <button onClick={() => void remove(kr)} className="p-1.5 rounded hover:bg-red-50"><Trash2 size={14} color={COLORS.orange} /></button>
-                  </div>
-                )}
-              </div>
+          <div className="flex flex-col justify-center gap-3 p-5" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
+            <div className="grid grid-cols-3 gap-2">
+              <MetricTile label="KRs" value={stats.keyResults} color={COLORS.purple} />
+              <MetricTile label="Avance" value={`${objective.completionPercentage ?? stats.progress}%`} color={COLORS.orange} />
+              <MetricTile label="Completos" value={stats.completed} color={COLORS.green} />
+            </div>
+            <div className="space-y-2">
+              <ContextRow icon={<Building2 size={14} />} label="Departamento" value={objective.departmentName} />
+              <ContextRow icon={<CalendarDays size={14} />} label="Periodo" value={objective.academicPeriodName} />
+              <ContextRow icon={<Flag size={14} />} label="Apuesta" value={objective.strategicBetName} />
+              <ContextRow icon={<BookOpen size={14} />} label="Meta" value={objective.goalName} />
+            </div>
+            {canEdit && (
+              <button type="button" onClick={() => setEditingObjective(true)} className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2" style={detailActionButtonStyle(COLORS.orange)}>
+                <Edit2 size={14} /> Editar objetivo
+              </button>
             )}
           </div>
-        ))}
-        {objective.keyResults.length === 0 && !adding && (
-          <div className="text-center py-12 rounded-xl" style={{ border: "2px dashed #E5E7EB", backgroundColor: "#fff" }}>
-            <KeyRound size={32} color="#D1D5DB" className="mx-auto mb-3" />
-            <p style={{ fontSize: "13px", color: COLORS.gray }}>Este objetivo no tiene Key Results.</p>
+        </div>
+      </section>
+
+      <section className="mt-5 rounded-md bg-white p-5" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p style={{ color: COLORS.text, fontSize: 15, fontWeight: 900 }}>Key Results del objetivo</p>
+            <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>Gestiona las metricas y valores esperados que evidencian el avance del objetivo.</p>
           </div>
-        )}
-      </div>
+          {canEdit ? (
+            <button type="button" onClick={() => setCreatingKr(true)} className="inline-flex items-center gap-2 rounded-md px-4 py-2" style={detailActionButtonStyle(COLORS.purple)}>
+              <Plus size={14} /> Crear KR
+            </button>
+          ) : (
+            <span style={{ color: COLORS.gray, fontSize: 11, fontWeight: 850 }}>{objective.keyResults.length} KRs asociados</span>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {objective.keyResults.map((kr) => (
+            <article key={kr.id} className="kr-detail-card rounded-md p-4">
+              <div className="flex items-start gap-3">
+                <KeyRound size={18} className="kr-detail-card__accent mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="kr-detail-card__title" style={{ fontSize: 14, fontWeight: 900, lineHeight: 1.25 }}>{kr.name}</p>
+                      <p className="kr-detail-card__description" style={{ fontSize: 12, marginTop: 5, lineHeight: 1.5 }}>{kr.description}</p>
+                    </div>
+                    <span className="kr-detail-card__progress rounded-md px-3 py-2" style={{ fontSize: 18, fontWeight: 950, lineHeight: 1 }}>{kr.progressPercentage}%</span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
+                    <KrValue label="Metrica" value={kr.metric} />
+                    <KrValue label="Base" value={kr.baseValue} />
+                    <KrValue label="Actual" value={kr.currentValue} />
+                    <KrValue label="Objetivo" value={`${kr.targetValue} ${kr.measurementUnitName}`} />
+                  </div>
+                </div>
+                <button onClick={() => navigate(`/okrs/${objective.id}/krs/${kr.id}`)} className="kr-detail-card__icon-button inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ fontSize: 11, fontWeight: 900 }} title="Gestionar KR">
+                  <Settings size={14} /> Gestionar
+                </button>
+              </div>
+            </article>
+          ))}
+
+          {objective.keyResults.length === 0 && (
+            <div className="rounded-md py-12 text-center" style={{ border: `2px dashed ${COLORS.border}`, backgroundColor: "#fff" }}>
+              <KeyRound size={32} color="#D1D5DB" className="mx-auto mb-3" />
+              <p style={{ fontSize: 13, color: COLORS.gray }}>Este objetivo no tiene Key Results.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {creatingKr && (
+        <KrFormModal
+          objectiveId={objective.id}
+          objectiveOptions={objectiveOptions.map((item) => ({
+            id: item.id,
+            name: item.name,
+            departmentName: item.departmentName,
+            academicPeriodName: item.academicPeriodName,
+          }))}
+          allowObjectiveSelection
+          keyResult={null}
+          units={units}
+          saving={saving}
+          onClose={() => setCreatingKr(false)}
+          onSubmit={createKr}
+        />
+      )}
+
+      {editingObjective && (
+        <EditObjectiveModal
+          objective={objective}
+          onClose={() => setEditingObjective(false)}
+          onSaved={async () => {
+            setEditingObjective(false);
+            await load();
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function KrForm({ units, initial, saving, onCancel, onSubmit }: { units: MeasurementUnit[]; initial: KeyResult | null; saving: boolean; onCancel: () => void; onSubmit: (body: KeyResultRequest) => Promise<void> }) {
-  const [form, setForm] = useState({
-    name: initial?.name ?? "",
-    description: initial?.description ?? "",
-    metric: initial?.metric ?? "",
-    baseValue: String(initial?.baseValue ?? 0),
-    targetValue: String(initial?.targetValue ?? ""),
-    measurementUnitId: String(initial?.measurementUnitId ?? ""),
-  });
-  const [error, setError] = useState("");
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!form.name.trim() || !form.description.trim() || !form.metric.trim() || !form.targetValue || !form.measurementUnitId) {
-      setError("Completa nombre, descripcion, metrica, valor objetivo y unidad.");
-      return;
-    }
-    await onSubmit({
-      name: form.name.trim(),
-      description: form.description.trim(),
-      metric: form.metric.trim(),
-      baseValue: Number(form.baseValue) || 0,
-      targetValue: Number(form.targetValue),
-      measurementUnitId: Number(form.measurementUnitId),
-    });
-  };
-
+function MetricTile({ label, value, color }: { label: string; value: string | number; color: string }) {
   return (
-    <form onSubmit={submit} className="rounded-lg p-4 space-y-3" style={{ border: `2px solid ${COLORS.blue}`, backgroundColor: "#F0F4FF" }}>
-      <div className="flex items-center justify-between">
-        <p style={{ fontSize: "11px", fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>{initial ? "Editar KR" : "Nuevo KR"}</p>
-        <button type="button" onClick={onCancel}><X size={16} /></button>
-      </div>
-      {error && <p style={{ fontSize: "11px", color: COLORS.orange }}>{error}</p>}
-      <input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Nombre" style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px" }} />
-      <textarea value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Descripcion" rows={2} style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: "12px", resize: "vertical" }} />
-      <input value={form.metric} onChange={(e) => setForm((prev) => ({ ...prev, metric: e.target.value }))} placeholder="Metrica" style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: "12px" }} />
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <input type="number" value={form.baseValue} onChange={(e) => setForm((prev) => ({ ...prev, baseValue: e.target.value }))} placeholder="Base" style={{ padding: "8px 10px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: "12px" }} />
-        <input type="number" value={form.targetValue} onChange={(e) => setForm((prev) => ({ ...prev, targetValue: e.target.value }))} placeholder="Objetivo" style={{ padding: "8px 10px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: "12px" }} />
-        <select value={form.measurementUnitId} onChange={(e) => setForm((prev) => ({ ...prev, measurementUnitId: e.target.value }))} style={{ padding: "8px 10px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: "12px", backgroundColor: "#fff" }}>
-          <option value="">Unidad</option>
-          {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
-        </select>
-      </div>
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} style={{ padding: "7px 12px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: "11px", fontWeight: 700 }}>Cancelar</button>
-        <button type="submit" disabled={saving} className="flex items-center gap-1 disabled:opacity-60" style={{ padding: "7px 12px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 6, fontSize: "11px", fontWeight: 800 }}>
-          {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Guardar
-        </button>
-      </div>
-    </form>
+    <div className="rounded-md px-3 py-2.5" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff" }}>
+      <span style={{ display: "block", color, fontSize: 21, fontWeight: 950, lineHeight: 1 }}>{value}</span>
+      <span style={{ display: "block", color: "#374151", fontSize: 9, fontWeight: 850, marginTop: 5, textTransform: "uppercase" }}>{label}</span>
+    </div>
   );
+}
+
+function ContextRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-md px-3 py-2" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
+      <span className="flex items-center gap-2" style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>
+        {icon} {label}
+      </span>
+      <span style={{ color: COLORS.text, fontSize: 11, fontWeight: 850, textAlign: "right", lineHeight: 1.4 }}>{value}</span>
+    </div>
+  );
+}
+
+function KrValue({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="kr-detail-card__value rounded-md px-3 py-2">
+      <span style={{ display: "block", fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>{label}</span>
+      <span style={{ display: "block", fontSize: 12, fontWeight: 850, marginTop: 3 }}>{value}</span>
+    </div>
+  );
+}
+
+function detailActionButtonStyle(color: string): CSSProperties {
+  return {
+    border: `1px solid ${color}`,
+    backgroundColor: color,
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: 900,
+    boxShadow: `0 10px 22px ${color}30`,
+  };
 }

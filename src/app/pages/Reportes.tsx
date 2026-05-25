@@ -758,14 +758,32 @@ export function Reportes() {
 
   return (
     <div className="min-h-full bg-[#F8FAFC]">
-      <div className="sgp-screen-only bg-white px-6 pb-4 pt-5" style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>Reportes y exportaciones</p>
-            <h1 style={{ fontSize: 22, fontWeight: 900, color: COLORS.text, lineHeight: 1.15, marginTop: 3 }}>Centro de reportes exportables</h1>
-            <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 5 }}>
-              {reportSubtitle}
-            </p>
+      <div className="sgp-screen-only sticky top-0 z-40 bg-white px-6 py-3" style={{ borderBottom: "1px solid #E5E7EB" }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+            <ReportSelect
+              value={period}
+              onChange={handlePeriodChange}
+              allLabel="Periodo activo"
+              options={sortedPeriods.map((item) => ({ value: item.name, label: item.name }))}
+            />
+            <ReportSelect
+              value={departmentId}
+              onChange={setDepartmentId}
+              allLabel="Todos: Departamento"
+              options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
+              width={200}
+            />
+            <ReportSelect
+              value={objectiveId}
+              onChange={setObjectiveId}
+              allLabel="Todos: Objetivo"
+              options={objectives.map((objective) => ({ value: String(objective.id), label: objective.name }))}
+              width={280}
+            />
+            <button onClick={clearFilters} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "8px 11px", fontSize: 12, fontWeight: 750, backgroundColor: "#fff", color: "#374151", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+              Limpiar
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -782,10 +800,34 @@ export function Reportes() {
             <ExportButton format="csv" active={exporting === "csv"} disabled={!!exporting} onClick={() => void exportWithFilters("csv")} />
           </div>
         </div>
+
+        <div className="mt-3 flex w-fit overflow-hidden rounded-md bg-white shadow-[0_1px_2px_rgba(17,24,39,0.05)]" style={{ border: `1.5px solid ${COLORS.border}` }}>
+          {[
+            { key: "general", label: "Consolidado" },
+            { key: "departments", label: "Departamentos" },
+            { key: "ranking", label: "Ranking" },
+            { key: "comparison", label: "Comparativa" },
+          ].map((item, index, arr) => (
+            <button
+              key={item.key}
+              onClick={() => setTab(item.key as ReportTab)}
+              style={{
+                padding: "9px 15px",
+                backgroundColor: tab === item.key ? "#EEF2FF" : "#fff",
+                color: tab === item.key ? COLORS.blue : "#374151",
+                borderRight: index === arr.length - 1 ? "none" : `1.5px solid ${COLORS.border}`,
+                fontSize: 12,
+                fontWeight: 800,
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="px-6 py-5">
-        <div className="sgp-screen-only mb-5 flex flex-wrap items-center gap-3 rounded-md bg-white px-4 py-3" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+        <div className="sgp-screen-only mb-5 hidden flex-wrap items-center gap-3 rounded-md bg-white px-4 py-3" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
           <ReportSelect
             value={period}
             onChange={handlePeriodChange}
@@ -816,30 +858,6 @@ export function Reportes() {
             <AlertTriangle size={15} /> {error}
           </motion.div>
         )}
-
-        <div className="sgp-screen-only mb-5 flex w-fit overflow-hidden rounded-md" style={{ border: `1.5px solid ${COLORS.border}` }}>
-          {[
-            { key: "general", label: "Consolidado" },
-            { key: "departments", label: "Departamentos" },
-            { key: "ranking", label: "Ranking" },
-            { key: "comparison", label: "Comparativa" },
-          ].map((item, index, arr) => (
-            <button
-              key={item.key}
-              onClick={() => setTab(item.key as ReportTab)}
-              style={{
-                padding: "9px 15px",
-                backgroundColor: tab === item.key ? "#EEF2FF" : "#fff",
-                color: tab === item.key ? COLORS.blue : "#374151",
-                borderRight: index === arr.length - 1 ? "none" : `1.5px solid ${COLORS.border}`,
-                fontSize: 12,
-                fontWeight: 800,
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
 
         {loading && !report ? (
           <motion.div {...viewMotion} className="flex items-center justify-center rounded-md bg-white py-20" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>

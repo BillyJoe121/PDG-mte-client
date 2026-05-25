@@ -51,8 +51,8 @@ export function KrForm({ units, initial, saving, onCancel, onSubmit }: KrFormPro
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.16, ease: "easeOut" }}
     >
-      <p style={{ fontSize: "11px", fontWeight: 900, color: COLORS.orange, textTransform: "uppercase" }}>{initial ? "Editar KR" : "Nuevo KR"}</p>
-      {error && <p style={{ fontSize: "11px", color: COLORS.orange }}>{error}</p>}
+      <p style={{ fontSize: "11px", fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>{initial ? "Editar KR" : "Nuevo KR"}</p>
+      {error && <p style={{ fontSize: "11px", color: COLORS.blue }}>{error}</p>}
       <input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Nombre" style={formControlStyle} />
       <textarea value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Descripcion" rows={2} style={{ ...formControlStyle, resize: "vertical" }} />
       <input value={form.metric} onChange={(e) => setForm((prev) => ({ ...prev, metric: e.target.value }))} placeholder="Metrica" style={formControlStyle} />
@@ -74,7 +74,7 @@ export function KrForm({ units, initial, saving, onCancel, onSubmit }: KrFormPro
       </div>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel} style={{ padding: "8px 13px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontSize: "11px", fontWeight: 750, backgroundColor: "#fff", color: "#374151" }}>Cancelar</button>
-        <button type="submit" disabled={saving} className="flex items-center gap-1 disabled:opacity-60" style={{ padding: "8px 13px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: "11px", fontWeight: 850 }}>
+        <button type="submit" disabled={saving} className="flex items-center gap-1 disabled:opacity-60" style={{ padding: "8px 13px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 8, fontSize: "11px", fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.blue}30` }}>
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Guardar
         </button>
       </div>

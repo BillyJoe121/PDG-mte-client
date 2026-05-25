@@ -1,80 +1,79 @@
-import type { CSSProperties } from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown, Edit2, Settings, TrendingUp } from "lucide-react";
+import type { CSSProperties, KeyboardEvent } from "react";
+import { AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import type { ObjectiveCard } from "../../services/strategicApi";
+import { truncateText } from "../../utils/text";
 import { COLORS } from "./okrsShared";
 
 interface ObjectiveCardViewProps {
-  canEdit: boolean;
   card: ObjectiveCard;
   index?: number;
-  selected: boolean;
-  onEdit: () => void;
-  onManageKrs: () => void;
-  onSelect: () => void;
+  onOpen: () => void;
 }
 
-export function ObjectiveCardView({ card, selected, canEdit, index = 0, onSelect, onManageKrs, onEdit }: ObjectiveCardViewProps) {
+export function ObjectiveCardView({ card, index = 0, onOpen }: ObjectiveCardViewProps) {
   const reduceMotion = useReducedMotion();
   const status = getCompletionStatus(card.completionPercentage, card.lowCompletionAlert);
   const objectiveCode = `OBJ-${String(card.id).padStart(2, "0")}`;
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onOpen();
+    }
+  };
+
   return (
     <motion.div
       layout
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={handleKeyDown}
       className="okr-objective-card rounded-md overflow-hidden"
-      style={{
-        backgroundColor: COLORS.orange,
-        border: `1px solid ${selected ? "#fff" : COLORS.orange}`,
-        boxShadow: selected ? `0 0 0 3px ${COLORS.orange}33, 0 18px 38px ${COLORS.orange}2E` : "0 1px 2px rgba(17,24,39,0.08)",
-      }}
+      style={{ "--okr-card-accent": COLORS.orange } as CSSProperties}
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.16, ease: "easeOut", delay: Math.min(index * 0.025, 0.12) }}
       whileHover={reduceMotion ? undefined : { y: -2, transition: { duration: 0.12, ease: "easeOut" } }}
       whileTap={reduceMotion ? undefined : { scale: 0.997, transition: { duration: 0.08, ease: "easeOut" } }}
     >
-      <div className="cursor-pointer" style={{ minHeight: 292, aspectRatio: "1 / 1", display: "flex", flexDirection: "column" }} onClick={onSelect}>
+      <div style={{ minHeight: 292, aspectRatio: "1 / 1", display: "flex", flexDirection: "column" }}>
         <div className="p-5" style={{ display: "flex", flexDirection: "column", flex: 1 }}>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 space-y-2">
-              <p style={eyebrowStyle}>{objectiveCode}</p>
-              <p style={metaLineStyle}>{card.departmentName} · {card.academicPeriodName}</p>
-              <span className="inline-flex items-center gap-1.5 rounded" style={statusPillStyle}>
+              <p className="okr-objective-card__eyebrow" style={eyebrowStyle}>{objectiveCode}</p>
+              <p className="okr-objective-card__meta" style={metaLineStyle}>{card.departmentName} · {card.academicPeriodName}</p>
+              <span className="okr-objective-card__status inline-flex items-center gap-1.5 rounded" style={statusPillStyle}>
                 <status.Icon size={12} />
                 {status.label}
               </span>
             </div>
             <div className="relative flex-shrink-0" style={{ width: 48, height: 48 }}>
               <svg width="48" height="48" viewBox="0 0 48 48">
-                <circle cx="24" cy="24" r="18" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="4" />
-                <circle cx="24" cy="24" r="18" fill="none" stroke="#fff" strokeWidth="4" strokeDasharray={`${(card.completionPercentage / 100) * 113.1} 113.1`} strokeLinecap="round" transform="rotate(-90 24 24)" />
+                <circle className="okr-objective-card__progress-track" cx="24" cy="24" r="18" fill="none" strokeWidth="4" />
+                <circle
+                  className="okr-objective-card__progress-ring"
+                  cx="24"
+                  cy="24"
+                  r="18"
+                  fill="none"
+                  strokeWidth="4"
+                  strokeDasharray={`${(card.completionPercentage / 100) * 113.1} 113.1`}
+                  strokeLinecap="round"
+                  transform="rotate(-90 24 24)"
+                />
               </svg>
-              <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", fontSize: "10px", fontWeight: 900, color: "#fff" }}>{card.completionPercentage}%</span>
+              <span className="okr-objective-card__progress-label" style={progressLabelStyle}>{card.completionPercentage}%</span>
             </div>
           </div>
 
           <div className="flex flex-1 items-center py-4">
-            <h3 style={titleStyle}>{card.name}</h3>
+            <h3 className="okr-objective-card__title" style={titleStyle}>{truncateText(card.name, 60)}</h3>
           </div>
 
           <div className="mt-auto pt-3">
-            <p style={descriptionStyle}>{card.description}</p>
-            <div className="flex items-center justify-between gap-2 mt-3" onClick={(event) => event.stopPropagation()}>
-              <button type="button" onClick={onSelect} className="flex items-center gap-1 rounded-md" style={ghostButtonStyle}>
-                <ChevronDown size={14} /> {selected ? "Detalle activo" : "Ver detalle"}
-              </button>
-              {canEdit && (
-                <div className="flex items-center gap-1.5">
-                  <button onClick={onEdit} className="flex items-center justify-center rounded-md" style={iconButtonStyle} title="Editar">
-                    <Edit2 size={13} />
-                  </button>
-                  <button onClick={onManageKrs} className="flex items-center justify-center rounded-md" style={iconButtonStyle} title="Gestionar KRs">
-                    <Settings size={13} />
-                  </button>
-                </div>
-              )}
-            </div>
+            <p className="okr-objective-card__description" style={descriptionStyle}>{card.description}</p>
           </div>
         </div>
       </div>
@@ -85,14 +84,12 @@ export function ObjectiveCardView({ card, selected, canEdit, index = 0, onSelect
 const eyebrowStyle: CSSProperties = {
   fontSize: "10px",
   fontWeight: 850,
-  color: "rgba(255,255,255,0.72)",
   textTransform: "uppercase",
   letterSpacing: 0,
 };
 
 const metaLineStyle: CSSProperties = {
   marginTop: 3,
-  color: "rgba(255,255,255,0.84)",
   fontSize: "11px",
   fontWeight: 800,
 };
@@ -101,46 +98,33 @@ const titleStyle: CSSProperties = {
   width: "100%",
   fontSize: "27px",
   fontWeight: 900,
-  color: "#fff",
   lineHeight: 1.06,
   overflowWrap: "anywhere",
 };
 
 const descriptionStyle: CSSProperties = {
   fontSize: "12px",
-  color: "rgba(255,255,255,0.84)",
   marginTop: 10,
   lineHeight: 1.45,
   display: "-webkit-box",
-  WebkitLineClamp: 2,
+  WebkitLineClamp: 3,
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
 };
 
 const statusPillStyle: CSSProperties = {
-  backgroundColor: "rgba(255,255,255,0.15)",
-  color: "#fff",
   fontSize: "10px",
   fontWeight: 850,
   padding: "4px 7px",
-  border: "1px solid rgba(255,255,255,0.28)",
 };
 
-const ghostButtonStyle: CSSProperties = {
-  border: "1px solid rgba(255,255,255,0.48)",
-  fontSize: "11px",
-  color: "#fff",
-  fontWeight: 850,
-  backgroundColor: "rgba(255,255,255,0.14)",
-  padding: "7px 10px",
-};
-
-const iconButtonStyle: CSSProperties = {
-  width: 32,
-  height: 32,
-  border: "1px solid rgba(255,255,255,0.48)",
-  color: "#fff",
-  backgroundColor: "rgba(255,255,255,0.14)",
+const progressLabelStyle: CSSProperties = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  fontSize: "10px",
+  fontWeight: 900,
 };
 
 function getCompletionStatus(completion: number, lowCompletionAlert: boolean) {

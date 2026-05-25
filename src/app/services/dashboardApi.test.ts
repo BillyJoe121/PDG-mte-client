@@ -33,6 +33,7 @@ describe("dashboard API", () => {
       .mockResolvedValueOnce(jsonResponse([]))
       .mockResolvedValueOnce(jsonResponse([]))
       .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(jsonResponse([]))
       .mockResolvedValueOnce(jsonResponse([]));
 
     await dashboardApi.load();
@@ -42,6 +43,7 @@ describe("dashboard API", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/dashboard/key-results/by-progress`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/dashboard/departments/summary`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/dashboard/strategic-bets/summary`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(6, `${baseUrl}/dashboard/goals/summary`, expect.any(Object));
   });
 
   it("adds the selected period as query param", async () => {
@@ -51,6 +53,17 @@ describe("dashboard API", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       `${baseUrl}/dashboard/projects/by-status?period=2026-Q3`,
+      expect.any(Object),
+    );
+  });
+
+  it("loads goal summary with selected period", async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+
+    await dashboardApi.goalsSummary("2026-Q3");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${baseUrl}/dashboard/goals/summary?period=2026-Q3`,
       expect.any(Object),
     );
   });

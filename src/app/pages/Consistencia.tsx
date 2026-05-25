@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -7,78 +7,112 @@ import {
   ExternalLink,
   Filter,
   Layers3,
+  Loader2,
   Search,
   ShieldAlert,
   ShieldCheck,
-  Target,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { useData } from "../context/DataContext";
-import { useAudit } from "../context/AuditContext";
-import { buildExportFilename, downloadCSV } from "../utils/exportUtils";
 import {
-  validateStrategicConsistency,
-  type StrategicIssue,
-  type StrategicIssueSeverity,
-} from "../utils/strategicValidation";
+  consistencyApi,
+  type ConsistencyFinding,
+  type ConsistencyModule,
+  type ConsistencyResponse,
+  type ConsistencySeverity,
+} from "../services/consistencyApi";
 
 const COLORS = {
   blue: "#5454E9",
   green: "#4CB979",
   orange: "#E9683B",
   yellow: "#E4EB60",
-  red: "#DC2626",
   gray: "#717182",
   text: "#111827",
   border: "#D9DEE8",
   subtle: "#F7F8FB",
 };
 
-const severityMeta: Record<StrategicIssueSeverity, {
+const DEFAULT_STALE_DAYS = 15;
+const consistencyModules: ConsistencyModule[] = ["INDICADORES", "OKRS", "PROYECTOS"];
+
+const severityMeta: Record<ConsistencySeverity, {
   bg: string;
   color: string;
   label: string;
   solid: string;
   icon: ReactNode;
 }> = {
-  alta: { bg: "#FEF3F2", color: "#991B1B", label: "Alta", solid: COLORS.red, icon: <AlertTriangle size={12} /> },
-  media: { bg: "#FFF7ED", color: "#9A3412", label: "Media", solid: COLORS.orange, icon: <ShieldAlert size={12} /> },
-  baja: { bg: "#F9FAFB", color: "#374151", label: "Baja", solid: COLORS.gray, icon: <ShieldCheck size={12} /> },
+  ALTA: { bg: COLORS.orange, color: "#FFFFFF", label: "Alta", solid: COLORS.orange, icon: <AlertTriangle size={12} /> },
+  MEDIA: { bg: COLORS.yellow, color: COLORS.text, label: "Media", solid: COLORS.yellow, icon: <ShieldAlert size={12} /> },
+  BAJA: { bg: COLORS.blue, color: "#FFFFFF", label: "Baja", solid: COLORS.blue, icon: <ShieldCheck size={12} /> },
 };
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error) {
+    return String((error as { message?: unknown }).message);
+  }
+  return "No se pudo cargar la consistencia estrategica.";
+}
+
 export function Consistencia() {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
-  const { apuestas, metas, okrs, proyectos, indicadoresContribucion } = useData();
-  const { logAudit } = useAudit();
   const [search, setSearch] = useState("");
-  const [severity, setSeverity] = useState<StrategicIssueSeverity | "todas">("todas");
-  const [moduleFilter, setModuleFilter] = useState("todos");
+  const [severity, setSeverity] = useState<ConsistencySeverity | "todas">("todas");
+  const [moduleFilter, setModuleFilter] = useState<ConsistencyModule | "todos">("todos");
   const [selectedIssueId, setSelectedIssueId] = useState("");
+  const [data, setData] = useState<ConsistencyResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState("");
 
-  const issues = useMemo(
-    () => validateStrategicConsistency({ apuestas, metas, okrs, proyectos, indicadoresContribucion }),
-    [apuestas, metas, okrs, proyectos, indicadoresContribucion],
-  );
+  const apiFilters = useMemo(() => ({
+    staleDays: DEFAULT_STALE_DAYS,
+    severity: severity === "todas" ? undefined : severity,
+    module: moduleFilter === "todos" ? undefined : moduleFilter,
+  }), [moduleFilter, severity]);
 
-  const modules = useMemo(() => Array.from(new Set(issues.map((issue) => issue.modulo))), [issues]);
+  const loadConsistency = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setData(await consistencyApi.check(apiFilters));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [apiFilters]);
+
+  useEffect(() => {
+    void loadConsistency();
+  }, [loadConsistency]);
+
+  const issues = data?.findings ?? [];
   const filtered = useMemo(() => issues
-    .filter((issue) => severity === "todas" || issue.severity === severity)
-    .filter((issue) => moduleFilter === "todos" || issue.modulo === moduleFilter)
     .filter((issue) => {
       const q = search.trim().toLowerCase();
       if (!q) return true;
-      return [issue.entidad, issue.entidadId, issue.detalle, issue.accion, issue.modulo].some((value) =>
-        value.toLowerCase().includes(q),
+      return [
+        issue.severity,
+        issue.module,
+        issue.entityCode,
+        issue.entityName,
+        issue.description,
+        issue.recommendedAction,
+        issue.actionLabel,
+      ].some((value) =>
+        String(value ?? "").toLowerCase().includes(q),
       );
-    }), [issues, moduleFilter, search, severity]);
+    }), [issues, search]);
 
   const selectedIssue = filtered.find((issue) => issue.id === selectedIssueId) ?? filtered[0] ?? null;
-  const stats = useMemo(() => buildStats(issues), [issues]);
+  const stats = data?.summary ?? { total: 0, high: 0, medium: 0, low: 0 };
   const moduleStats = useMemo(() => buildModuleStats(issues), [issues]);
-  const healthScore = issues.length === 0 ? 100 : Math.max(0, Math.round(100 - ((stats.alta * 18) + (stats.media * 8) + (stats.baja * 3))));
+  const healthScore = stats.total === 0 ? 100 : Math.max(0, Math.round(100 - ((stats.high * 18) + (stats.medium * 8) + (stats.low * 3))));
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
@@ -86,25 +120,24 @@ export function Consistencia() {
     transition: shortMotionTransition,
   };
 
-  const goToIssue = (targetPath: string) => navigate(targetPath);
+  const goToIssue = (targetPath: string) => navigate(targetPath.trim());
 
-  const exportIssues = () => {
-    downloadCSV(filtered.map((issue) => ({
-      Severidad: issue.severity,
-      Modulo: issue.modulo,
-      Entidad: issue.entidad,
-      ID: issue.entidadId,
-      Detalle: issue.detalle,
-      Accion: issue.accion,
-      Ruta: issue.targetPath,
-    })), buildExportFilename("Consistencia_Estrategica", severity !== "todas" ? severity : undefined));
-    logAudit({
-      modulo: "Reportes",
-      accion: "Exportacion",
-      entidad: "Consistencia estrategica",
-      detalle: `${filtered.length} inconsistencias exportadas.`,
-      resultado: "info",
-    });
+  const exportCsv = async () => {
+    setExporting(true);
+    setError("");
+    try {
+      const blob = await consistencyApi.exportCsv(apiFilters);
+      const href = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = href;
+      anchor.download = "consistencia-estrategica.csv";
+      anchor.click();
+      URL.revokeObjectURL(href);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const resetFilters = () => {
@@ -118,34 +151,44 @@ export function Consistencia() {
     <div className="min-h-full bg-[#F8FAFC]">
       <div className="mx-auto max-w-7xl p-6">
         <ConsistencyHero
-          filteredCount={filtered.length}
           healthScore={healthScore}
-          issueCount={issues.length}
-          onExport={exportIssues}
         />
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Total hallazgos" value={issues.length} sub={`${filtered.length} visibles con filtros`} icon={<ShieldAlert size={16} />} color={COLORS.blue} />
-          <MetricCard label="Alta severidad" value={stats.alta} sub="Requieren accion inmediata" icon={<AlertTriangle size={16} />} color={COLORS.red} />
-          <MetricCard label="Media severidad" value={stats.media} sub="Riesgos de seguimiento" icon={<ShieldAlert size={16} />} color={COLORS.orange} />
-          <MetricCard label="Baja severidad" value={stats.baja} sub="Ajustes de cobertura" icon={<ShieldCheck size={16} />} color={COLORS.gray} />
+        {error && (
+          <motion.div {...viewMotion} className="mt-3 flex items-center gap-2 rounded-md px-4 py-3" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 850 }}>
+            <AlertTriangle size={15} />
+            {error}
+          </motion.div>
+        )}
+
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Total hallazgos" value={stats.total} sub={`${filtered.length} visibles con busqueda`} icon={<ShieldAlert size={16} />} color={COLORS.blue} />
+          <MetricCard label="Alta severidad" value={stats.high} sub="Requieren accion inmediata" icon={<AlertTriangle size={16} />} color={COLORS.orange} />
+          <MetricCard label="Media severidad" value={stats.medium} sub="Riesgos de seguimiento" icon={<ShieldAlert size={16} />} color={COLORS.yellow} />
+          <MetricCard label="Baja severidad" value={stats.low} sub="Ajustes de cobertura" icon={<ShieldCheck size={16} />} color={COLORS.blue} />
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <main className="min-w-0 space-y-4">
             <FilterPanel
               moduleFilter={moduleFilter}
-              modules={modules}
               onModuleChange={setModuleFilter}
+              onExport={() => void exportCsv()}
               onReset={resetFilters}
               onSearchChange={setSearch}
-              onSeverityChange={(value) => setSeverity(value as StrategicIssueSeverity | "todas")}
+              onSeverityChange={(value) => setSeverity(value as ConsistencySeverity | "todas")}
+              exporting={exporting}
+              loading={loading}
               search={search}
               severity={severity}
             />
 
             <AnimatePresence mode="wait" initial={false}>
-              {filtered.length === 0 ? (
+              {loading && !data ? (
+                <motion.div key="loading" {...viewMotion}>
+                  <LoadingState />
+                </motion.div>
+              ) : filtered.length === 0 ? (
                 <motion.div key="empty" {...viewMotion}>
                   <EmptyState />
                 </motion.div>
@@ -157,7 +200,7 @@ export function Consistencia() {
                       index={index}
                       issue={issue}
                       selected={selectedIssue?.id === issue.id}
-                      onOpen={() => goToIssue(issue.targetPath)}
+                      onOpen={() => goToIssue(issue.actionUrl)}
                       onSelect={() => setSelectedIssueId(issue.id)}
                     />
                   ))}
@@ -166,8 +209,7 @@ export function Consistencia() {
             </AnimatePresence>
           </main>
 
-          <aside className="space-y-4 xl:sticky xl:top-20">
-            <IssueDetailPanel issue={selectedIssue} onOpen={() => selectedIssue && goToIssue(selectedIssue.targetPath)} />
+          <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
             <ModulePanel modules={moduleStats} />
           </aside>
         </div>
@@ -177,47 +219,15 @@ export function Consistencia() {
 }
 
 function ConsistencyHero({
-  filteredCount,
   healthScore,
-  issueCount,
-  onExport,
 }: {
-  filteredCount: number;
   healthScore: number;
-  issueCount: number;
-  onExport: () => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-md" style={{ backgroundColor: COLORS.text, boxShadow: "0 18px 42px rgba(17,24,39,0.18)" }}>
-      <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-3 inline-flex items-center gap-2 rounded px-2 py-1" style={{ backgroundColor: "rgba(228,235,96,0.16)", color: COLORS.yellow, border: "1px solid rgba(228,235,96,0.32)", fontSize: 10, fontWeight: 900, textTransform: "uppercase" }}>
-                <ShieldCheck size={12} />
-                Auditoria estrategica
-              </div>
-              <h1 style={{ color: "#fff", fontSize: 30, fontWeight: 950, lineHeight: 1.08 }}>Consistencia estrategica</h1>
-              <p style={{ color: "rgba(255,255,255,0.74)", fontSize: 13, lineHeight: 1.55, marginTop: 9, maxWidth: 760 }}>
-                Revisa relaciones rotas, objetivos sin soporte, proyectos sin trazabilidad y puntos que requieren accion antes del siguiente corte.
-              </p>
-            </div>
-            <button onClick={onExport} className="inline-flex items-center gap-2 rounded-md" style={heroButtonStyle}>
-              <Download size={14} />
-              Exportar CSV
-            </button>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <HeroFact label="Hallazgos totales" value={String(issueCount)} />
-            <HeroFact label="Vista filtrada" value={String(filteredCount)} />
-            <HeroFact label="Estado de salud" value={`${healthScore}%`} />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center p-5" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderLeft: "1px solid rgba(255,255,255,0.12)" }}>
-          <HealthRing value={healthScore} />
-        </div>
+    <section className="rounded-md px-4 py-3" style={{ backgroundColor: COLORS.orange, boxShadow: "0 10px 24px rgba(233,104,59,0.18)" }}>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 950, lineHeight: 1.05 }}>Consistencia estrategica</h1>
+        <HealthRing value={healthScore} />
       </div>
     </section>
   );
@@ -225,56 +235,72 @@ function ConsistencyHero({
 
 function FilterPanel({
   moduleFilter,
-  modules,
   onModuleChange,
+  onExport,
   onReset,
   onSearchChange,
   onSeverityChange,
+  exporting,
+  loading,
   search,
   severity,
 }: {
-  moduleFilter: string;
-  modules: string[];
-  onModuleChange: (value: string) => void;
+  moduleFilter: ConsistencyModule | "todos";
+  onModuleChange: (value: ConsistencyModule | "todos") => void;
+  onExport: () => void;
   onReset: () => void;
   onSearchChange: (value: string) => void;
   onSeverityChange: (value: string) => void;
+  exporting: boolean;
+  loading: boolean;
   search: string;
-  severity: StrategicIssueSeverity | "todas";
+  severity: ConsistencySeverity | "todas";
 }) {
   return (
-    <section className="rounded-md bg-white p-3" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(260px,1fr)_190px_190px_auto]">
-        <div className="flex min-h-[38px] items-center gap-2 rounded-md px-3" style={{ border: `1.5px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
-          <Search size={14} color="#9CA3AF" />
-          <input
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Buscar hallazgo, entidad o accion..."
-            style={{ border: "none", outline: "none", fontSize: 12, flex: 1, backgroundColor: "transparent", color: COLORS.text, fontWeight: 750, minWidth: 0 }}
-          />
+    <div className="sticky top-0 z-30 bg-white px-6 py-3">
+      <section className="rounded-md bg-white p-3" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(260px,1fr)_170px_190px_auto_auto]">
+          <div className="flex min-h-[38px] items-center gap-2 rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
+            <Search size={14} color={COLORS.blue} />
+            <input
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Buscar hallazgo, entidad o accion..."
+              style={{ border: "none", outline: "none", fontSize: 12, flex: 1, backgroundColor: "transparent", color: COLORS.text, fontWeight: 750, minWidth: 0 }}
+            />
+          </div>
+
+          <FilterSelect value={severity} onChange={onSeverityChange} placeholder="Severidad">
+            <SelectItem value="todas" className={selectItemClass}>Todas</SelectItem>
+            <SelectItem value="ALTA" className={selectItemClass}>Alta</SelectItem>
+            <SelectItem value="MEDIA" className={selectItemClass}>Media</SelectItem>
+            <SelectItem value="BAJA" className={selectItemClass}>Baja</SelectItem>
+          </FilterSelect>
+
+          <FilterSelect value={moduleFilter} onChange={(value) => onModuleChange(value as ConsistencyModule | "todos")} placeholder="Modulo">
+            <SelectItem value="todos" className={selectItemClass}>Todos los modulos</SelectItem>
+            {consistencyModules.map((modulo) => (
+              <SelectItem key={modulo} value={modulo} className={selectItemClass}>{modulo}</SelectItem>
+            ))}
+          </FilterSelect>
+
+          <button
+            onClick={onExport}
+            disabled={exporting || loading}
+            className="inline-flex min-h-[38px] items-center justify-center gap-2 rounded-md px-3 disabled:opacity-50"
+            style={exportButtonStyle}
+          >
+            {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            CSV
+          </button>
+
+          <button onClick={onReset} className="inline-flex min-h-[38px] items-center justify-center gap-2 rounded-md px-3" style={resetButtonStyle}>
+            <Filter size={14} />
+            Limpiar
+          </button>
         </div>
-
-        <FilterSelect value={severity} onChange={onSeverityChange} placeholder="Severidad">
-          <SelectItem value="todas" className={selectItemClass}>Todas</SelectItem>
-          <SelectItem value="alta" className={selectItemClass}>Alta</SelectItem>
-          <SelectItem value="media" className={selectItemClass}>Media</SelectItem>
-          <SelectItem value="baja" className={selectItemClass}>Baja</SelectItem>
-        </FilterSelect>
-
-        <FilterSelect value={moduleFilter} onChange={onModuleChange} placeholder="Modulo">
-          <SelectItem value="todos" className={selectItemClass}>Todos los modulos</SelectItem>
-          {modules.map((modulo) => (
-            <SelectItem key={modulo} value={modulo} className={selectItemClass}>{modulo}</SelectItem>
-          ))}
-        </FilterSelect>
-
-        <button onClick={onReset} className="inline-flex min-h-[38px] items-center justify-center gap-2 rounded-md px-3" style={resetButtonStyle}>
-          <Filter size={14} />
-          Limpiar
-        </button>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 
@@ -286,7 +312,7 @@ function IssueCard({
   onSelect,
 }: {
   index: number;
-  issue: StrategicIssue;
+  issue: ConsistencyFinding;
   selected: boolean;
   onOpen: () => void;
   onSelect: () => void;
@@ -297,10 +323,10 @@ function IssueCard({
   return (
     <motion.article
       layout
-      className="cursor-pointer rounded-md bg-white p-4"
+      className="cursor-pointer rounded-md bg-white p-3"
       style={{
         border: `1px solid ${selected ? meta.solid : COLORS.border}`,
-        boxShadow: selected ? `0 0 0 3px ${meta.solid}1F, 0 14px 30px rgba(17,24,39,0.08)` : "0 1px 2px rgba(17,24,39,0.05)",
+        boxShadow: selected ? `0 0 0 2px ${meta.solid}33, 0 10px 20px rgba(17,24,39,0.08)` : "0 1px 2px rgba(17,24,39,0.05)",
       }}
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
@@ -310,18 +336,18 @@ function IssueCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
             <SeverityBadge severity={issue.severity} />
-            <span className="rounded px-2 py-1" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 10, fontWeight: 900 }}>
-              {issue.modulo}
+            <span className="rounded px-2 py-1" style={{ backgroundColor: COLORS.blue, color: "#FFFFFF", fontSize: 10, fontWeight: 900 }}>
+              {issue.module}
             </span>
-            <span style={{ color: "#9CA3AF", fontSize: 10, fontWeight: 850 }}>{issue.entidadId}</span>
+            <span style={{ color: COLORS.text, fontSize: 10, fontWeight: 850 }}>{issue.entityCode}</span>
           </div>
-          <h2 style={{ color: COLORS.text, fontSize: 15, fontWeight: 950, lineHeight: 1.2 }}>{issue.entidad}</h2>
-          <p style={{ color: "#374151", fontSize: 12, lineHeight: 1.55, marginTop: 8 }}>{issue.detalle}</p>
-          <div className="mt-3 rounded-md p-3" style={{ backgroundColor: "#F8FAFC", border: `1px solid ${COLORS.border}` }}>
-            <p style={{ color: "#9CA3AF", fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>Accion sugerida</p>
-            <p style={{ color: COLORS.text, fontSize: 12, fontWeight: 850, lineHeight: 1.45, marginTop: 4 }}>{issue.accion}</p>
+          <h2 style={{ color: COLORS.text, fontSize: 14, fontWeight: 950, lineHeight: 1.2 }}>{issue.entityName}</h2>
+          <p style={{ color: COLORS.gray, fontSize: 11.5, lineHeight: 1.45, marginTop: 5 }}>{issue.description}</p>
+          <div className="mt-2 rounded-md p-2" style={{ backgroundColor: COLORS.subtle, border: `1px solid ${COLORS.border}` }}>
+            <p style={{ color: COLORS.blue, fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>Accion sugerida</p>
+            <p style={{ color: COLORS.text, fontSize: 11.5, fontWeight: 850, lineHeight: 1.35, marginTop: 3 }}>{issue.recommendedAction}</p>
           </div>
         </div>
         <button
@@ -333,45 +359,10 @@ function IssueCard({
           style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: COLORS.blue, fontSize: 11, fontWeight: 900 }}
         >
           <ExternalLink size={12} />
-          Abrir
+          {issue.actionLabel || "Abrir"}
         </button>
       </div>
     </motion.article>
-  );
-}
-
-function IssueDetailPanel({ issue, onOpen }: { issue: StrategicIssue | null; onOpen: () => void }) {
-  if (!issue) {
-    return (
-      <Panel title="Detalle" icon={<Target size={16} />}>
-        <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
-          <ShieldCheck size={30} color="#C7CDD8" />
-          <p style={{ color: COLORS.text, fontSize: 13, fontWeight: 900, marginTop: 12 }}>Sin hallazgos visibles</p>
-          <p style={{ color: "#9CA3AF", fontSize: 11, lineHeight: 1.45, marginTop: 4 }}>Ajusta los filtros para revisar otros resultados.</p>
-        </div>
-      </Panel>
-    );
-  }
-
-  return (
-    <Panel title="Detalle del hallazgo" icon={<Target size={16} />}>
-      <div className="space-y-3">
-        <div>
-          <SeverityBadge severity={issue.severity} />
-          <h3 style={{ color: COLORS.text, fontSize: 16, fontWeight: 950, lineHeight: 1.2, marginTop: 10 }}>{issue.entidad}</h3>
-          <p style={{ color: "#9CA3AF", fontSize: 11, fontWeight: 850, marginTop: 5 }}>{issue.modulo} - {issue.entidadId}</p>
-        </div>
-
-        <DetailBlock label="Hallazgo" value={issue.detalle} />
-        <DetailBlock label="Accion sugerida" value={issue.accion} />
-        <DetailBlock label="Ruta" value={issue.targetPath} />
-
-        <button onClick={onOpen} className="inline-flex w-full items-center justify-center gap-2 rounded-md" style={primaryButtonStyle}>
-          <ExternalLink size={14} />
-          Abrir entidad
-        </button>
-      </div>
-    </Panel>
   );
 }
 
@@ -379,13 +370,13 @@ function ModulePanel({ modules }: { modules: Array<{ module: string; count: numb
   return (
     <Panel title="Modulos impactados" icon={<Layers3 size={16} />}>
       {modules.length === 0 ? (
-        <p style={{ color: "#9CA3AF", fontSize: 12 }}>Sin modulos con hallazgos.</p>
+        <p style={{ color: COLORS.gray, fontSize: 12 }}>Sin modulos con hallazgos.</p>
       ) : (
         <div className="space-y-2">
           {modules.map((item) => (
-            <div key={item.module} className="flex items-center justify-between gap-3 rounded-md p-3" style={{ backgroundColor: "#F8FAFC", border: `1px solid ${COLORS.border}` }}>
+            <div key={item.module} className="flex items-center justify-between gap-3 rounded-md p-2" style={{ backgroundColor: "#FFFFFF", border: `1px solid ${COLORS.border}` }}>
               <span style={{ color: COLORS.text, fontSize: 12, fontWeight: 900 }}>{item.module}</span>
-              <span className="rounded px-2 py-1" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 11, fontWeight: 950 }}>{item.count}</span>
+              <span className="rounded px-2 py-1" style={{ backgroundColor: COLORS.blue, color: "#FFFFFF", fontSize: 11, fontWeight: 950 }}>{item.count}</span>
             </div>
           ))}
         </div>
@@ -396,12 +387,12 @@ function ModulePanel({ modules }: { modules: Array<{ module: string; count: numb
 
 function Panel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
-      <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#FEFCE8", color: "#A16207" }}>
+    <section className="rounded-md bg-white p-3" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+      <div className="mb-3 flex items-center gap-2">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: COLORS.yellow, color: COLORS.text }}>
           {icon}
         </div>
-        <h2 style={{ color: COLORS.text, fontSize: 15, fontWeight: 950, lineHeight: 1.15 }}>{title}</h2>
+        <h2 style={{ color: COLORS.text, fontSize: 14, fontWeight: 950, lineHeight: 1.15 }}>{title}</h2>
       </div>
       {children}
     </section>
@@ -409,15 +400,18 @@ function Panel({ title, icon, children }: { title: string; icon: ReactNode; chil
 }
 
 function MetricCard({ label, value, sub, icon, color }: { label: string; value: number; sub: string; icon: ReactNode; color: string }) {
+  const foreground = color === COLORS.yellow ? COLORS.text : "#FFFFFF";
+  const supporting = color === COLORS.yellow ? COLORS.text : "rgba(255,255,255,0.84)";
+
   return (
-    <div className="rounded-md p-4" style={{ backgroundColor: color, border: `1px solid ${color}`, minHeight: 118, boxShadow: `0 12px 24px ${color}22` }}>
-      <div className="flex items-start justify-between gap-3">
+    <div className="rounded-md px-3 py-2" style={{ backgroundColor: color, border: `1px solid ${color}`, minHeight: 74, boxShadow: "0 8px 18px rgba(17,24,39,0.1)" }}>
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <p style={{ color: "rgba(255,255,255,0.72)", fontSize: 10, fontWeight: 900, textTransform: "uppercase" }}>{label}</p>
-          <p style={{ color: "#fff", fontSize: 30, fontWeight: 950, lineHeight: 1, marginTop: 8 }}>{value}</p>
-          <p style={{ color: "rgba(255,255,255,0.78)", fontSize: 11, lineHeight: 1.35, marginTop: 8 }}>{sub}</p>
+          <p style={{ color: supporting, fontSize: 10, fontWeight: 900, textTransform: "uppercase" }}>{label}</p>
+          <p style={{ color: foreground, fontSize: 24, fontWeight: 950, lineHeight: 1, marginTop: 4 }}>{value}</p>
+          <p style={{ color: supporting, fontSize: 10, lineHeight: 1.25, marginTop: 4 }}>{sub}</p>
         </div>
-        <div className="flex h-9 w-9 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", color: "#fff" }}>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: foreground, color }}>
           {icon}
         </div>
       </div>
@@ -438,7 +432,7 @@ function FilterSelect({ value, onChange, placeholder, children }: { value: strin
   );
 }
 
-function SeverityBadge({ severity }: { severity: StrategicIssueSeverity }) {
+function SeverityBadge({ severity }: { severity: ConsistencySeverity }) {
   const meta = severityMeta[severity];
   return (
     <span className="inline-flex items-center gap-1 rounded px-2 py-1" style={{ backgroundColor: meta.bg, color: meta.color, fontSize: 10, fontWeight: 950 }}>
@@ -448,65 +442,48 @@ function SeverityBadge({ severity }: { severity: StrategicIssueSeverity }) {
   );
 }
 
-function HeroFact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md p-3" style={{ backgroundColor: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.13)" }}>
-      <p style={{ color: "rgba(255,255,255,0.62)", fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>{label}</p>
-      <p style={{ color: "#fff", fontSize: 18, fontWeight: 950, lineHeight: 1.1, marginTop: 5 }}>{value}</p>
-    </div>
-  );
-}
-
 function HealthRing({ value }: { value: number }) {
-  const radius = 48;
+  const radius = 28;
   const circumference = 2 * Math.PI * radius;
   const dash = (Math.max(0, Math.min(100, value)) / 100) * circumference;
   const color = value >= 80 ? COLORS.green : value >= 55 ? COLORS.yellow : COLORS.orange;
 
   return (
-    <div className="relative" style={{ width: 150, height: 150 }}>
-      <svg width="150" height="150" viewBox="0 0 150 150">
-        <circle cx="75" cy="75" r={radius} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="11" />
-        <circle cx="75" cy="75" r={radius} fill="none" stroke={color} strokeWidth="11" strokeDasharray={`${dash} ${circumference}`} strokeLinecap="round" transform="rotate(-90 75 75)" />
+    <div className="relative" style={{ width: 88, height: 88 }}>
+      <svg width="88" height="88" viewBox="0 0 88 88">
+        <circle cx="44" cy="44" r={radius} fill="none" stroke="#FFFFFF" strokeOpacity="0.24" strokeWidth="8" />
+        <circle cx="44" cy="44" r={radius} fill="none" stroke={color} strokeWidth="8" strokeDasharray={`${dash} ${circumference}`} strokeLinecap="round" transform="rotate(-90 44 44)" />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span style={{ color: "#fff", fontSize: 34, fontWeight: 950, lineHeight: 1 }}>{value}%</span>
-        <span style={{ color: "rgba(255,255,255,0.68)", fontSize: 10, fontWeight: 900, textTransform: "uppercase" }}>Salud</span>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span style={{ color: "#fff", fontSize: 20, fontWeight: 950, lineHeight: 1 }}>{value}%</span>
       </div>
-    </div>
-  );
-}
-
-function DetailBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md p-3" style={{ backgroundColor: "#F8FAFC", border: `1px solid ${COLORS.border}` }}>
-      <p style={{ color: "#9CA3AF", fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>{label}</p>
-      <p style={{ color: COLORS.text, fontSize: 12, fontWeight: 850, lineHeight: 1.45, marginTop: 5, overflowWrap: "anywhere" }}>{value}</p>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="flex min-h-[280px] flex-col items-center justify-center rounded-md bg-white px-6 py-12 text-center" style={{ border: `1px dashed ${COLORS.border}` }}>
-      <ShieldCheck size={34} color="#C7CDD8" />
+    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-md bg-white px-6 py-10 text-center" style={{ border: `1px dashed ${COLORS.border}` }}>
+      <ShieldCheck size={34} color={COLORS.green} />
       <p style={{ color: COLORS.text, fontSize: 14, fontWeight: 900, marginTop: 12 }}>No hay hallazgos con los filtros aplicados</p>
-      <p style={{ color: "#9CA3AF", fontSize: 12, lineHeight: 1.45, marginTop: 5 }}>Cambia la busqueda, severidad o modulo para ampliar la revision.</p>
+      <p style={{ color: COLORS.gray, fontSize: 12, lineHeight: 1.45, marginTop: 5 }}>Cambia la busqueda, severidad o modulo para ampliar la revision.</p>
     </div>
   );
 }
 
-function buildStats(issues: StrategicIssue[]) {
-  return {
-    alta: issues.filter((issue) => issue.severity === "alta").length,
-    media: issues.filter((issue) => issue.severity === "media").length,
-    baja: issues.filter((issue) => issue.severity === "baja").length,
-  };
+function LoadingState() {
+  return (
+    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-md bg-white px-6 py-10 text-center" style={{ border: `1px dashed ${COLORS.border}` }}>
+      <Loader2 size={30} color={COLORS.blue} className="animate-spin" />
+      <p style={{ color: COLORS.text, fontSize: 14, fontWeight: 900, marginTop: 12 }}>Cargando hallazgos de consistencia</p>
+      <p style={{ color: COLORS.gray, fontSize: 12, lineHeight: 1.45, marginTop: 5 }}>Consultando la revision del backend.</p>
+    </div>
+  );
 }
 
-function buildModuleStats(issues: StrategicIssue[]) {
+function buildModuleStats(issues: ConsistencyFinding[]) {
   const counts = new Map<string, number>();
-  issues.forEach((issue) => counts.set(issue.modulo, (counts.get(issue.modulo) ?? 0) + 1));
+  issues.forEach((issue) => counts.set(issue.module, (counts.get(issue.module) ?? 0) + 1));
   return [...counts.entries()]
     .map(([module, count]) => ({ module, count }))
     .sort((a, b) => b.count - a.count);
@@ -514,37 +491,29 @@ function buildModuleStats(issues: StrategicIssue[]) {
 
 const selectItemClass = "rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]";
 
-const heroButtonStyle: CSSProperties = {
-  padding: "10px 14px",
-  backgroundColor: "#fff",
-  color: COLORS.text,
-  fontSize: 12,
-  fontWeight: 950,
-};
-
 const selectControlStyle: CSSProperties = {
   width: "100%",
   minHeight: 38,
-  border: `1.5px solid ${COLORS.border}`,
+  border: `1px solid ${COLORS.border}`,
   borderRadius: 8,
   padding: "8px 11px",
   fontSize: 12,
   fontWeight: 750,
-  backgroundColor: "#F8FAFC",
+  backgroundColor: COLORS.subtle,
   color: COLORS.text,
 };
 
 const resetButtonStyle: CSSProperties = {
   border: `1px solid ${COLORS.border}`,
   backgroundColor: "#fff",
-  color: "#374151",
+  color: COLORS.text,
   fontSize: 12,
   fontWeight: 900,
 };
 
-const primaryButtonStyle: CSSProperties = {
-  padding: "10px 12px",
-  backgroundColor: COLORS.text,
+const exportButtonStyle: CSSProperties = {
+  border: `1px solid ${COLORS.blue}`,
+  backgroundColor: COLORS.blue,
   color: "#fff",
   fontSize: 12,
   fontWeight: 900,

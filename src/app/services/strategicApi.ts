@@ -171,6 +171,7 @@ export class ApiError extends Error {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
+const SESSION_KEY = "sgp_session_user";
 
 function getStoredToken() {
   try {
@@ -193,17 +194,105 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   }
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
+    cache: "no-store",
+    credentials: "omit",
     ...options,
     headers,
   });
 
   if (!res.ok) {
     const error = await res.json().catch(() => null);
+    logApiFailure({
+      path,
+      request: options,
+      response: res,
+      token,
+      error,
+    });
     throw new ApiError(error?.message ?? `Error ${res.status}`, res.status);
   }
 
   if (res.status === 204) return undefined as T;
   return res.json();
+}
+
+function logApiFailure({
+  path,
+  request,
+  response,
+  token,
+  error,
+}: {
+  path: string;
+  request: RequestInit;
+  response: Response;
+  token: string | null;
+  error: unknown;
+}) {
+  if (!import.meta.env.DEV || typeof console === "undefined") return;
+
+  const method = request.method ?? "GET";
+  const sessionUser = readSessionUserForDebug();
+
+  console.groupCollapsed(
+    `[MTE API] ${method} ${API_BASE_URL}${path} -> ${response.status} ${response.statusText}`,
+  );
+  console.log("request", {
+    method,
+    path,
+    url: `${API_BASE_URL}${path}`,
+    hasToken: Boolean(token),
+    token: maskToken(token),
+    body: parseDebugBody(request.body),
+  });
+  console.log("session", sessionUser);
+  console.log("backendError", error);
+  console.groupEnd();
+}
+
+function readSessionUserForDebug() {
+  try {
+    const storageHost = typeof window === "undefined" ? globalThis : window;
+    const raw = storageHost.sessionStorage?.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const user = JSON.parse(raw) as {
+      id?: string;
+      nombre?: string;
+      correo?: string;
+      rol?: string;
+      departamento?: string;
+      roles?: string[];
+      permissions?: string[];
+      capabilities?: string[];
+    };
+    return {
+      id: user.id,
+      nombre: user.nombre,
+      correo: user.correo,
+      rol: user.rol,
+      departamento: user.departamento,
+      roles: user.roles,
+      permissions: user.permissions,
+      capabilities: user.capabilities,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "No se pudo leer la sesion" };
+  }
+}
+
+function parseDebugBody(body: BodyInit | null | undefined) {
+  if (typeof body !== "string") return body ?? null;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
+}
+
+function maskToken(token: string | null) {
+  if (!token) return null;
+  if (token.length <= 10) return `${token.slice(0, 3)}...`;
+  return `${token.slice(0, 8)}...${token.slice(-4)}`;
 }
 
 function query(params?: Record<string, number | string | undefined>) {

@@ -173,20 +173,14 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
           )}
 
           <ModalField label="Key Result">
-            <div className="mb-2 flex items-center gap-2 rounded-md" style={searchShellStyle}>
-              <Search size={14} color={COLORS.gray} />
-              <input
-                value={krSearch}
-                onChange={(event) => setKrSearch(event.target.value)}
-                placeholder="Buscar por KR, objetivo, departamento o periodo"
-                style={searchInputStyle}
-              />
-            </div>
             <ModalSelect
               value={keyResultId}
               onChange={setKeyResultId}
               placeholder={filteredKeyResults.length ? "Selecciona un KR" : "Sin resultados"}
               options={filteredKeyResults.map((kr) => ({ value: String(kr.id), label: `${kr.id} - ${kr.name || kr.description} (${kr.objectiveName}, ${kr.departmentName}, ${kr.period})` }))}
+              search={krSearch}
+              onSearchChange={setKrSearch}
+              searchPlaceholder="Buscar por KR, objetivo, departamento o periodo"
             />
           </ModalField>
 
@@ -243,14 +237,47 @@ function ModalField({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-function ModalSelect({ value, onChange, placeholder, options }: { value: string; onChange: (value: string) => void; placeholder: string; options: Array<{ value: string; label: string }> }) {
+function ModalSelect({
+  value,
+  onChange,
+  placeholder,
+  options,
+  search,
+  onSearchChange,
+  searchPlaceholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  options: Array<{ value: string; label: string }>;
+  search?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
+}) {
   return (
     <Select value={value || undefined} onValueChange={onChange}>
       <SelectTrigger className="focus-visible:ring-0" style={modalSelectStyle}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]" onClick={(event) => event.stopPropagation()}>
-        {options.map((option) => (
+        {onSearchChange && (
+          <div className="sticky top-0 z-10 bg-white p-2" onKeyDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+            <div className="flex items-center gap-2 rounded-md" style={searchShellStyle}>
+              <Search size={14} color={COLORS.gray} />
+              <input
+                value={search ?? ""}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder={searchPlaceholder}
+                style={searchInputStyle}
+              />
+            </div>
+          </div>
+        )}
+        {options.length === 0 ? (
+          <SelectItem value="__empty" disabled className="rounded-md px-3 py-2 text-xs font-bold text-[#9CA3AF]">
+            Sin resultados
+          </SelectItem>
+        ) : options.map((option) => (
           <SelectItem key={option.value} value={option.value} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
             {option.label}
           </SelectItem>

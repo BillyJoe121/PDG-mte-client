@@ -18,31 +18,32 @@ import {
 import { IcesiLogo } from "./IcesiLogo";
 import { useAuth } from "../context/AuthContext";
 import { getLabelRol } from "../data/mockData";
+import { hasPermission, type PermissionAction } from "../security/permissions";
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["administrador", "director", "jefe", "tutor"] },
-  { to: "/jerarquia", label: "Jerarquía Estratégica", icon: Layers, roles: ["administrador", "director", "jefe", "tutor"] },
-  { to: "/catalogos", label: "Catálogos", icon: Database, roles: ["administrador"] },
-  { to: "/okrs", label: "Objetivos", icon: Target, roles: ["administrador", "director", "jefe", "tutor"] },
-  { to: "/proyectos", label: "Proyectos", icon: FolderKanban, roles: ["administrador", "director", "jefe", "tutor"] },
-  { to: "/reportes", label: "Reportes y exportaciones", icon: BarChart3, roles: ["administrador", "director", "jefe"] },
-  { to: "/consistencia", label: "Consistencia", icon: ShieldAlert, roles: ["administrador", "director", "jefe"] },
-  { to: "/presentacion", label: "Modo Presentación", icon: Presentation, roles: ["administrador", "director", "jefe", "tutor"] },
-  { to: "/usuarios", label: "Usuarios", icon: Users, roles: ["administrador"] },
-  { to: "/auditoria", label: "Auditoria", icon: ScrollText, roles: ["administrador"] },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, action: "dashboard.view" as PermissionAction },
+  { to: "/jerarquia", label: "Jerarquía Estratégica", icon: Layers, action: "jerarquia.view" as PermissionAction },
+  { to: "/catalogos", label: "Catálogos", icon: Database, action: "catalogos.manage" as PermissionAction },
+  { to: "/okrs", label: "Objetivos", icon: Target, action: "okrs.view" as PermissionAction },
+  { to: "/proyectos", label: "Proyectos", icon: FolderKanban, action: "proyectos.view" as PermissionAction },
+  { to: "/reportes", label: "Reportes y exportaciones", icon: BarChart3, action: "reportes.view" as PermissionAction },
+  { to: "/consistencia", label: "Consistencia", icon: ShieldAlert, action: "consistencia.view" as PermissionAction },
+  { to: "/presentacion", label: "Modo Presentación", icon: Presentation, action: "presentacion.view" as PermissionAction },
+  { to: "/usuarios", label: "Usuarios", icon: Users, action: "usuarios.manage" as PermissionAction },
+  { to: "/auditoria", label: "Auditoria", icon: ScrollText, action: "auditoria.view" as PermissionAction },
 ];
 
 const itemColors: Record<string, string> = {
   "/dashboard": "#E4EB60",     // amarillo
   "/jerarquia": "#5454E9",     // azul
-  "/catalogos": "#9CA3AF",     // gris
-  "/okrs": "#E9683B",          // naranja
-  "/proyectos": "#4CB979",      // verde
-  "/reportes": "#7C3AED",       // morado
-  "/consistencia": "#E4EB60",   // amarillo
-  "/presentacion": "#5454E9",   // azul
-  "/usuarios": "#9CA3AF",       // gris
-  "/auditoria": "#9CA3AF",      // gris
+  "/catalogos": "#E9683B",     // naranja
+  "/okrs": "#4CB979",          // verde
+  "/proyectos": "#E4EB60",     // amarillo
+  "/reportes": "#5454E9",      // azul
+  "/consistencia": "#E9683B",  // naranja
+  "/presentacion": "#4CB979",  // verde
+  "/usuarios": "#E4EB60",      // amarillo
+  "/auditoria": "#5454E9",     // azul
 };
 
 export function Sidebar() {
@@ -55,9 +56,7 @@ export function Sidebar() {
     navigate("/login");
   };
 
-  const filteredItems = navItems.filter(
-    (item) => !usuario || item.roles.includes(usuario.rol)
-  );
+  const filteredItems = navItems.filter((item) => !usuario || hasPermission(usuario, item.action));
 
   return (
     <aside
@@ -117,7 +116,7 @@ export function Sidebar() {
               justifyContent: collapsed ? "center" : "flex-start",
               backgroundColor: isActive ? "#E4EB60" : "transparent",
               color: isActive ? "#000000" : "#FFFFFF",
-              borderLeft: isActive ? `4px solid #000` : `4px solid ${(itemColors[item.to] || "#9CA3AF")}`,
+              borderLeft: isActive ? `4px solid #000` : `4px solid ${(itemColors[item.to] || "#E4EB60")}`,
               textDecoration: "none",
               transition: "background-color 0.15s",
               position: "relative",

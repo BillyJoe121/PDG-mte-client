@@ -9,9 +9,12 @@ export interface DashboardSummary {
   archivedProjects: number;
   objectivesInFollowUp: number;
   lowCompletionObjectives: number;
+  completedObjectives: number;
+  objectivesAbove50: number;
+  objectivesBetween0And50: number;
+  objectivesAtZero: number;
   completedKeyResults: number;
   inProgressKeyResults: number;
-  averageObjectiveCoverage: number;
   averageKeyResultCoverage: number;
 }
 
@@ -45,14 +48,25 @@ export interface DepartmentExecution {
   averageObjectiveCoverage: number;
 }
 
-export interface StrategicBetExecution {
-  strategicBetId: number;
-  strategicBetName: string;
+export interface ObjectiveBucketSummary {
   objectives: number;
+  completedObjectives: number;
+  objectivesAbove50: number;
+  objectivesBetween0And50: number;
+  objectivesAtZero: number;
   keyResults: number;
   completedProjects: number;
   inProgressProjects: number;
-  averageObjectiveCoverage: number;
+}
+
+export interface StrategicBetExecution extends ObjectiveBucketSummary {
+  strategicBetId: number;
+  strategicBetName: string;
+}
+
+export interface GoalExecution extends ObjectiveBucketSummary {
+  goalId: number;
+  goalName: string;
 }
 
 export interface DashboardData {
@@ -61,6 +75,7 @@ export interface DashboardData {
   keyResultsByProgress: ProgressBucketCount[];
   departments: DepartmentExecution[];
   strategicBets: StrategicBetExecution[];
+  goals: GoalExecution[];
 }
 
 function withPeriod(path: string, period?: string) {
@@ -85,6 +100,9 @@ export const dashboardApi = {
   strategicBetsSummary: (period?: string) =>
     api<StrategicBetExecution[]>(withPeriod("/dashboard/strategic-bets/summary", period)),
 
+  goalsSummary: (period?: string) =>
+    api<GoalExecution[]>(withPeriod("/dashboard/goals/summary", period)),
+
   async load(period?: string): Promise<DashboardData> {
     const [
       summary,
@@ -92,12 +110,14 @@ export const dashboardApi = {
       keyResultsByProgress,
       departments,
       strategicBets,
+      goals,
     ] = await Promise.all([
       dashboardApi.summary(period),
       dashboardApi.projectsByStatus(period),
       dashboardApi.keyResultsByProgress(period),
       dashboardApi.departmentsSummary(period),
       dashboardApi.strategicBetsSummary(period),
+      dashboardApi.goalsSummary(period),
     ]);
 
     return {
@@ -106,6 +126,7 @@ export const dashboardApi = {
       keyResultsByProgress,
       departments,
       strategicBets,
+      goals,
     };
   },
 };

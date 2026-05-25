@@ -2,13 +2,14 @@ import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSPropertie
 import { es } from "date-fns/locale/es";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useNavigate } from "react-router";
-import { BookOpen, CalendarDays, ChevronDown, ChevronRight, Flag, FolderKanban, KeyRound, Loader2, Plus, RefreshCw, Save, Target, X } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarDays, ChevronDown, ChevronRight, Flag, FolderKanban, KeyRound, Loader2, Plus, RefreshCw, Save, Search, Target, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { Calendar } from "../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { academicPeriodsApi, measurementUnitsApi, type AcademicPeriod, type MeasurementUnit } from "../services/catalogsApi";
+import { truncateText } from "../utils/text";
 import {
   goalsApi,
   hierarchyApi,
@@ -37,6 +38,7 @@ type View = "arbol" | "apuestas" | "metas";
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 const expandMotionTransition = { duration: 0.18, ease: "easeInOut" } as const;
 const HIERARCHY_DEPTH_INDENT = 48;
+const ROOT_DESCRIPTION_MAX_CHARS = 132;
 const subtleViewMotion = {
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0 },
@@ -59,12 +61,14 @@ export function JerarquiaEstrategica() {
   const [bets, setBets] = useState<StrategicBet[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
-  const [selectedBet, setSelectedBet] = useState<StrategicBet | null>(null);
-  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [selectedHierarchyRootKey, setSelectedHierarchyRootKey] = useState<string | null>(null);
+  const [hierarchySearch, setHierarchySearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [createModal, setCreateModal] = useState<"bet" | "goal" | null>(null);
+  const [editingBet, setEditingBet] = useState<StrategicBet | null>(null);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options?: { resetSelection?: boolean }) => {
     setLoading(true);
     try {
       const selectedPeriod = period || undefined;
@@ -78,9 +82,10 @@ export function JerarquiaEstrategica() {
       setBets(betList);
       setGoals(goalList);
       setPeriods(periodList);
-      setSelectedBet((prev) => prev ? betList.find((bet) => bet.id === prev.id) ?? null : null);
-      setSelectedGoal((prev) => prev ? goalList.find((goal) => goal.id === prev.id) ?? null : null);
-      setExpanded(new Set());
+      if (options?.resetSelection !== false) {
+        setSelectedHierarchyRootKey(null);
+        setExpanded(new Set());
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo cargar la jerarquia");
     } finally {
@@ -95,6 +100,15 @@ export function JerarquiaEstrategica() {
   const totalObjectives = useMemo(() => countNodes(tree, "OBJECTIVE"), [tree]);
   const totalKrs = useMemo(() => countNodes(tree, "KEY_RESULT"), [tree]);
   const totalProjects = useMemo(() => countNodes(tree, "PROJECT"), [tree]);
+  const selectedHierarchyRoot = useMemo(
+    () => tree.find((node) => getTreeNodeKey(node) === selectedHierarchyRootKey) ?? null,
+    [selectedHierarchyRootKey, tree],
+  );
+  const filteredHierarchyRoots = useMemo(
+    () => tree.filter((node) => matchesRootFilter(node, view) && matchesHierarchySearch(node, hierarchySearch)),
+    [hierarchySearch, tree, view],
+  );
+  const isHierarchyDetail = Boolean(selectedHierarchyRoot);
   const viewMotion = reduceMotion ? noMotionProps : subtleViewMotion;
 
   const toggle = (id: string) => {
@@ -107,11 +121,21 @@ export function JerarquiaEstrategica() {
 
   const manageNode = (node: StrategicHierarchyNode, nodeKey: string) => {
     if (node.nodeType === "STRATEGIC_BET") {
-      navigate(`/jerarquia/apuestas/${node.id}/gestionar`);
+      const bet = bets.find((item) => item.id === Number(node.id));
+      if (bet) {
+        setEditingBet(bet);
+      } else {
+        toast.error("No se pudo encontrar la apuesta para editar.");
+      }
       return;
     }
     if (node.nodeType === "GOAL") {
-      navigate(`/jerarquia/metas/${node.id}/gestionar`);
+      const goal = goals.find((item) => item.id === Number(node.id));
+      if (goal) {
+        setEditingGoal(goal);
+      } else {
+        toast.error("No se pudo encontrar la meta para editar.");
+      }
       return;
     }
     if (node.nodeType === "OBJECTIVE") {
@@ -120,14 +144,25 @@ export function JerarquiaEstrategica() {
     }
     if (node.nodeType === "KEY_RESULT") {
       const objectiveId = getParentNodeId(nodeKey, "OBJECTIVE");
-      navigate(objectiveId ? `/okrs/${objectiveId}/krs?krId=${node.id}` : "/okrs");
+      navigate(objectiveId ? `/okrs/${objectiveId}/krs/${node.id}` : "/okrs");
       return;
     }
     navigate(`/proyectos/${node.id}`);
   };
 
+  const openHierarchyRoot = (node: StrategicHierarchyNode) => {
+    const rootKey = getTreeNodeKey(node);
+    setSelectedHierarchyRootKey(rootKey);
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.add(rootKey);
+      return next;
+    });
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {!isHierarchyDetail && (
       <motion.div
         className="flex-shrink-0 px-6 pt-5 pb-4 bg-white"
         style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}
@@ -135,12 +170,52 @@ export function JerarquiaEstrategica() {
         animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         transition={shortMotionTransition}
       >
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="hidden">
             <h1 style={{ fontSize: "22px", fontWeight: 800, color: COLORS.text }}>Jerarquia Estrategica</h1>
             <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 4 }}>
-              {bets.length} apuestas Â· {goals.length} metas Â· {totalObjectives} objetivos Â· {totalKrs} KRs Â· {totalProjects} proyectos
+              {bets.length} apuestas · {goals.length} metas · {totalObjectives} objetivos · {totalKrs} KRs · {totalProjects} proyectos
             </p>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div className="flex items-stretch gap-0 overflow-hidden" style={{ border: `1.5px solid ${COLORS.border}`, borderRadius: 8, height: 38 }}>
+              {[
+                { value: "arbol", label: "Todas" },
+                { value: "apuestas", label: "Apuestas" },
+                { value: "metas", label: "Metas" },
+              ].map((item, idx, arr) => (
+                <button
+                  key={item.value}
+                  onClick={() => setView(item.value as View)}
+                  style={{
+                    padding: "0 14px",
+                    fontSize: "12px",
+                    fontWeight: 750,
+                    backgroundColor: view === item.value ? "#EEF2FF" : "#fff",
+                    color: view === item.value ? COLORS.blue : "#374151",
+                    borderRight: idx === arr.length - 1 ? "none" : `1.5px solid ${COLORS.border}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <PeriodFilterSelect period={period} periods={periods} onChange={setPeriod} />
+            {!selectedHierarchyRoot && (
+              <div className="flex min-h-[38px] min-w-[220px] flex-1 items-center gap-2 rounded-md px-3" style={{ maxWidth: 360, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+                <Search size={15} color={COLORS.gray} />
+                <input
+                  value={hierarchySearch}
+                  onChange={(event) => setHierarchySearch(event.target.value)}
+                  placeholder="Buscar por palabra clave..."
+                  style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
+                />
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {canCreate && (
@@ -159,10 +234,10 @@ export function JerarquiaEstrategica() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden flex-wrap items-center gap-2">
           <div className="flex items-stretch gap-0 overflow-hidden" style={{ border: `1.5px solid ${COLORS.border}`, borderRadius: 8, height: 38 }}>
             {[
-              { value: "arbol", label: "Arbol" },
+              { value: "arbol", label: "Todas" },
               { value: "apuestas", label: "Apuestas" },
               { value: "metas", label: "Metas" },
             ].map((item, idx, arr) => (
@@ -187,8 +262,26 @@ export function JerarquiaEstrategica() {
             ))}
           </div>
           <PeriodFilterSelect period={period} periods={periods} onChange={setPeriod} />
+          {!selectedHierarchyRoot && (
+            <div className="flex min-h-[38px] min-w-[280px] flex-1 items-center gap-2 rounded-md px-3" style={{ maxWidth: 520, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+              <Search size={15} color={COLORS.gray} />
+              <input
+                value={hierarchySearch}
+                onChange={(event) => setHierarchySearch(event.target.value)}
+                placeholder="Buscar por palabra clave..."
+                style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
+              />
+            </div>
+          )}
         </div>
+        <p style={{ display: "none", fontSize: "11px", color: "#9CA3AF", marginTop: 8 }}>
+          {bets.length} apuestas Â· {goals.length} metas Â· {totalObjectives} objetivos Â· {totalKrs} KRs Â· {totalProjects} proyectos
+        </p>
+        <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 8 }}>
+          {bets.length} apuestas {"\u00B7"} {goals.length} metas {"\u00B7"} {totalObjectives} objetivos {"\u00B7"} {totalKrs} KRs {"\u00B7"} {totalProjects} proyectos
+        </p>
       </motion.div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
         <AnimatePresence mode="wait" initial={false}>
@@ -196,87 +289,35 @@ export function JerarquiaEstrategica() {
           <motion.div key="loading" {...viewMotion} className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "13px", fontWeight: 800 }}>
             <Loader2 size={18} className="mr-2 animate-spin" /> Cargando jerarquia...
           </motion.div>
-        ) : view === "arbol" ? (
-          <motion.div key="arbol" {...viewMotion} className="space-y-3">
-            {tree.map((node, index) => (
-              <TreeNode
-                key={getTreeNodeKey(node)}
-                node={node}
-                nodeKey={getTreeNodeKey(node)}
-                depth={0}
-                expanded={expanded}
-                onToggle={toggle}
-                onManage={manageNode}
-                index={index}
-              />
-            ))}
-            {tree.length === 0 && <EmptyState text="No hay nodos en la jerarquia para el filtro seleccionado." />}
-          </motion.div>
-        ) : view === "apuestas" ? (
-          <motion.div key="apuestas" {...viewMotion} className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-5">
-            <div className="space-y-3">
-              {bets.map((bet, index) => (
-                <motion.div
-                  key={bet.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedBet(bet)}
-                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedBet(bet); }}
-                  className="modern-hierarchy-card w-full text-left rounded-md p-4"
-                  style={{ ...getListCardStyle(getNodeTheme("STRATEGIC_BET"), selectedBet?.id === bet.id), cursor: "pointer" }}
-                  initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                  animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                  transition={{ ...shortMotionTransition, delay: Math.min(index * 0.025, 0.12) }}
-                  whileHover={reduceMotion ? undefined : hierarchyHoverMotion}
-                  whileTap={reduceMotion ? undefined : hierarchyTapMotion}
-                  layout
-                >
-                  <div className="flex items-start gap-3">
-                    <Flag size={18} color="#fff" className="mt-1" />
-                    <div className="flex-1">
-                      <p style={{ fontSize: "18px", fontWeight: 850, color: "#fff", lineHeight: 1.25 }}>{bet.name}</p>
-                      <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.84)", marginTop: 5, lineHeight: 1.45 }}>{bet.description}</p>
-                      <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 6 }}>{bet.status} Â· {bet.startDate ?? "Sin inicio"} - {bet.endDate ?? "Sin cierre"}</p>
-                    </div>
-                    <button type="button" onClick={(event) => { event.stopPropagation(); navigate(`/jerarquia/apuestas/${bet.id}/gestionar`); }} className="shrink-0 rounded-md" style={listManageButtonStyle}>Gestionar</button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            <DetailPanel title="Detalle de Apuesta" item={selectedBet} />
-          </motion.div>
         ) : (
-          <motion.div key="metas" {...viewMotion} className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-5">
-            <div className="space-y-3">
-              {goals.map((goal, index) => (
-                <motion.div
-                  key={goal.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedGoal(goal)}
-                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedGoal(goal); }}
-                  className="modern-hierarchy-card w-full text-left rounded-md p-4"
-                  style={{ ...getListCardStyle(getNodeTheme("GOAL"), selectedGoal?.id === goal.id), cursor: "pointer" }}
-                  initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                  animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                  transition={{ ...shortMotionTransition, delay: Math.min(index * 0.025, 0.12) }}
-                  whileHover={reduceMotion ? undefined : hierarchyHoverMotion}
-                  whileTap={reduceMotion ? undefined : hierarchyTapMotion}
-                  layout
-                >
-                  <div className="flex items-start gap-3">
-                    <BookOpen size={18} color="#fff" className="mt-1" />
-                    <div className="flex-1">
-                      <p style={{ fontSize: "18px", fontWeight: 850, color: "#fff", lineHeight: 1.25 }}>{goal.name}</p>
-                      <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.84)", marginTop: 5, lineHeight: 1.45 }}>{goal.description}</p>
-                      <p style={{ fontSize: "10px", color: "#9CA3AF", marginTop: 6 }}>{goal.expectedValue} {goal.measurementUnitName} Â· {goal.status}</p>
-                    </div>
-                    <button type="button" onClick={(event) => { event.stopPropagation(); navigate(`/jerarquia/metas/${goal.id}/gestionar`); }} className="shrink-0 rounded-md" style={listManageButtonStyle}>Gestionar</button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            <GoalDetailPanel goal={selectedGoal} periods={periods} onChanged={load} />
+          <motion.div key={selectedHierarchyRoot ? "arbol-detail" : `arbol-cards-${view}`} {...viewMotion}>
+            {!selectedHierarchyRoot ? (
+              <div className="space-y-5">
+                <HierarchyRootGallery nodes={filteredHierarchyRoots} onSelect={openHierarchyRoot} />
+                {tree.length > 0 && filteredHierarchyRoots.length === 0 && <EmptyState text="No hay apuestas o metas que coincidan con la busqueda." />}
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHierarchyRootKey(null)}
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-2"
+                    style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: "#374151", fontSize: 12, fontWeight: 800, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}
+                  >
+                    <ArrowLeft size={14} /> Ver todas las cards
+                  </button>
+                </div>
+                <HierarchyDetailHeader node={selectedHierarchyRoot} onManage={manageNode} />
+                <HierarchyDetailTree
+                  root={selectedHierarchyRoot}
+                  expanded={expanded}
+                  onToggle={toggle}
+                  onManage={manageNode}
+                />
+              </div>
+            )}
+            {tree.length === 0 && <EmptyState text="No hay nodos en la jerarquia para el filtro seleccionado." />}
           </motion.div>
         )}
         </AnimatePresence>
@@ -301,6 +342,26 @@ export function JerarquiaEstrategica() {
             }}
           />
         )}
+        {editingBet && (
+          <StrategicBetEditModal
+            bet={editingBet}
+            onClose={() => setEditingBet(null)}
+            onSaved={async () => {
+              setEditingBet(null);
+              await load({ resetSelection: false });
+            }}
+          />
+        )}
+        {editingGoal && (
+          <GoalEditModal
+            goal={editingGoal}
+            onClose={() => setEditingGoal(null)}
+            onSaved={async () => {
+              setEditingGoal(null);
+              await load({ resetSelection: false });
+            }}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
@@ -319,6 +380,345 @@ function getParentNodeId(nodeKey: string, type: StrategicHierarchyNode["nodeType
   const parts = nodeKey.split("/").reverse();
   const match = parts.find((part) => part.startsWith(`${type}:`));
   return match?.split(":")[1];
+}
+
+function getRootAccent(node: StrategicHierarchyNode) {
+  return node.nodeType === "GOAL" ? COLORS.green : COLORS.blue;
+}
+
+function getRootTypeLabel(node: StrategicHierarchyNode) {
+  if (node.nodeType === "GOAL") return "Meta institucional";
+  if (node.nodeType === "STRATEGIC_BET") return "Apuesta estrategica";
+  return "Nodo estrategico";
+}
+
+function getContainedMetrics(node: StrategicHierarchyNode) {
+  const children = node.children ?? [];
+  return {
+    objectives: countNodes(children, "OBJECTIVE"),
+    krs: countNodes(children, "KEY_RESULT"),
+    projects: countNodes(children, "PROJECT"),
+  };
+}
+
+function truncateRootDescription(value: string) {
+  const cleanValue = value.trim().replace(/\s+/g, " ");
+  if (cleanValue.length <= ROOT_DESCRIPTION_MAX_CHARS) return cleanValue;
+  return `${cleanValue.slice(0, ROOT_DESCRIPTION_MAX_CHARS).trimEnd()}...`;
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function getNodeSearchText(node: StrategicHierarchyNode): string {
+  const ownText = [
+    node.label,
+    node.description,
+    node.badge,
+    node.executionSummary?.summaryText,
+    String(node.progressPercentage ?? ""),
+  ].filter(Boolean).join(" ");
+  return [ownText, ...(node.children ?? []).map(getNodeSearchText)].join(" ");
+}
+
+function matchesHierarchySearch(node: StrategicHierarchyNode, query: string) {
+  const cleanQuery = normalizeSearchText(query.trim());
+  if (!cleanQuery) return true;
+  return normalizeSearchText(getNodeSearchText(node)).includes(cleanQuery);
+}
+
+function matchesRootFilter(node: StrategicHierarchyNode, view: View) {
+  if (view === "apuestas") return node.nodeType === "STRATEGIC_BET";
+  if (view === "metas") return node.nodeType === "GOAL";
+  return true;
+}
+
+function HierarchyRootGallery({ nodes, onSelect }: { nodes: StrategicHierarchyNode[]; onSelect: (node: StrategicHierarchyNode) => void }) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+      {nodes.map((node, index) => {
+        const accent = getRootAccent(node);
+        const Icon = getNodeIcon(node.nodeType);
+        const description = truncateRootDescription(
+          node.description || "Consulta su despliegue estrategico y el avance de los elementos relacionados.",
+        );
+        return (
+          <motion.button
+            key={getTreeNodeKey(node)}
+            type="button"
+            onClick={() => onSelect(node)}
+            className="hierarchy-root-card overflow-hidden rounded-md text-left"
+            style={{ "--hierarchy-card-accent": accent } as CSSProperties}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ ...shortMotionTransition, delay: Math.min(index * 0.025, 0.12) }}
+          >
+            <div className="hierarchy-root-card__hero flex min-h-[150px] flex-col justify-between p-5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="hierarchy-root-card__label" style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  {getRootTypeLabel(node)}
+                </span>
+                <span className="hierarchy-root-card__icon flex h-9 w-9 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.32)" }}>
+                  <Icon size={17} />
+                </span>
+              </div>
+              <h2 className="hierarchy-root-card__title" style={{ fontSize: 21, fontWeight: 900, lineHeight: 1.15, maxWidth: 380 }}>
+                {truncateText(node.label, 60)}
+              </h2>
+            </div>
+            <div className="p-5">
+              <span className="hierarchy-root-card__divider block" style={{ width: 38, height: 2, marginBottom: 14 }} />
+              <p style={{ color: COLORS.gray, fontSize: 12, lineHeight: 1.55, minHeight: 58 }}>
+                {description}
+              </p>
+              <div className="mt-4" style={{ borderTop: "1px solid #E5E7EB", paddingTop: 14 }}>
+                <HierarchyRootMetrics node={node} />
+              </div>
+              <span className="hierarchy-root-card__cta mt-5 inline-flex items-center gap-2 px-3 py-2" style={{ fontSize: 12, fontWeight: 850 }}>
+                Ver jerarquia <ChevronRight size={14} />
+              </span>
+            </div>
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
+
+function HierarchyRootMetrics({ node, compact = false }: { node: StrategicHierarchyNode; compact?: boolean }) {
+  const metrics = getContainedMetrics(node);
+  const items = [
+    { label: "Objetivos", value: metrics.objectives },
+    { label: "KRs", value: metrics.krs },
+    { label: "Proyectos", value: metrics.projects },
+  ];
+
+  return (
+    <div className={compact ? "flex flex-wrap items-center gap-2" : "grid grid-cols-3 gap-2"}>
+      {items.map((item) => (
+        <span
+          key={item.label}
+          className={compact ? "rounded-md px-3 py-2" : "hierarchy-root-card__metric rounded-md px-2.5 py-2"}
+          style={compact ? { border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: COLORS.text, fontSize: 11, fontWeight: 850 } : { border: "1px solid", display: "block" }}
+        >
+          <span style={{ display: "block", fontSize: compact ? 12 : 16, fontWeight: 900, lineHeight: 1 }}>{item.value}</span>
+          <span style={{ display: "block", fontSize: 10, fontWeight: 850, marginTop: 4, textTransform: "uppercase" }}>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function HierarchyDetailHeader({ node, onManage }: { node: StrategicHierarchyNode; onManage: (node: StrategicHierarchyNode, nodeKey: string) => void }) {
+  const accent = getRootAccent(node);
+  const Icon = getNodeIcon(node.nodeType);
+  const metrics = getContainedMetrics(node);
+  const summaryItems = [
+    { label: "Objetivos", value: metrics.objectives },
+    { label: "KRs", value: metrics.krs },
+    { label: "Proyectos", value: metrics.projects },
+  ];
+  const details = [
+    node.badge ? { label: "Estado", value: node.badge } : null,
+    typeof node.progressPercentage === "number" ? { label: "Avance", value: `${node.progressPercentage}%` } : null,
+    node.executionSummary?.summaryText ? { label: "Resumen", value: node.executionSummary.summaryText } : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
+
+  return (
+    <section
+      className="hierarchy-detail-context overflow-hidden rounded-md bg-white"
+      style={{ "--hierarchy-card-accent": accent } as CSSProperties}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <div className="flex min-h-[230px] flex-col justify-center gap-4 p-7">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "color-mix(in srgb, var(--hierarchy-card-accent) 10%, white)", border: "1px solid color-mix(in srgb, var(--hierarchy-card-accent) 34%, white)", color: accent }}>
+              <Icon size={18} />
+            </span>
+            <span style={{ color: accent, fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              {getRootTypeLabel(node)}
+            </span>
+          </div>
+          <div>
+            <h2 style={{ color: accent, fontSize: 30, fontWeight: 950, lineHeight: 1.12, maxWidth: 820 }}>{node.label}</h2>
+            {node.description && (
+              <p style={{ color: COLORS.gray, fontSize: 13, lineHeight: 1.6, marginTop: 10, maxWidth: 860 }}>
+                {node.description}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center gap-5 p-6" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
+          <div>
+            <div className="grid grid-cols-3 gap-2">
+              {summaryItems.map((item) => (
+                <div key={item.label} className="rounded-md px-3 py-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff" }}>
+                  <span style={{ display: "block", color: accent, fontSize: 24, fontWeight: 950, lineHeight: 1 }}>{item.value}</span>
+                  <span style={{ display: "block", color: "#374151", fontSize: 10, fontWeight: 850, marginTop: 6, textTransform: "uppercase" }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {details.length > 0 && (
+            <div className="space-y-2">
+              {details.map((detail) => (
+                <div key={detail.label} className="flex items-start justify-between gap-3 rounded-md px-3 py-2" style={{ backgroundColor: COLORS.subtle, border: `1px solid ${COLORS.border}` }}>
+                  <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>{detail.label}</span>
+                  <span style={{ color: COLORS.text, fontSize: 11, fontWeight: 850, textAlign: "right", lineHeight: 1.4 }}>{detail.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onManage(node, getTreeNodeKey(node))}
+            className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2"
+            style={{ alignSelf: "flex-start", backgroundColor: accent, color: "#fff", fontSize: 12, fontWeight: 900 }}
+          >
+            Gestionar {node.nodeType === "GOAL" ? "meta" : "apuesta"} <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HierarchyDetailTree({
+  root,
+  expanded,
+  onToggle,
+  onManage,
+}: {
+  root: StrategicHierarchyNode;
+  expanded: Set<string>;
+  onToggle: (id: string) => void;
+  onManage: (node: StrategicHierarchyNode, nodeKey: string) => void;
+}) {
+  const rootKey = getTreeNodeKey(root);
+  const children = root.children ?? [];
+
+  return (
+    <section className="rounded-md bg-white p-5" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p style={{ color: COLORS.text, fontSize: 15, fontWeight: 900 }}>Contenido jerarquico</p>
+          <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>
+            Los elementos se organizan desde el nivel superior hacia los proyectos relacionados.
+          </p>
+        </div>
+        <span style={{ color: COLORS.gray, fontSize: 11, fontWeight: 850 }}>{children.length} elementos directos</span>
+      </div>
+
+      {children.length > 0 ? (
+        <div className="hierarchy-detail-chain">
+          <HierarchyChildSections
+            nodes={children}
+            parentKey={rootKey}
+            depth={0}
+            expanded={expanded}
+            onToggle={onToggle}
+            onManage={onManage}
+          />
+        </div>
+      ) : (
+        <EmptyState text="Este elemento todavia no tiene objetivos, KRs o proyectos asociados." />
+      )}
+    </section>
+  );
+}
+
+function HierarchyChildSections({
+  nodes,
+  parentKey,
+  depth,
+  expanded,
+  onToggle,
+  onManage,
+}: {
+  nodes: StrategicHierarchyNode[];
+  parentKey: string;
+  depth: number;
+  expanded: Set<string>;
+  onToggle: (id: string) => void;
+  onManage: (node: StrategicHierarchyNode, nodeKey: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      {groupHierarchyNodes(nodes).map((group) => (
+        <div key={group.type} className="space-y-2">
+          <HierarchySectionTitle type={group.type} depth={depth} />
+          <div className="space-y-2">
+            {group.nodes.map((child, childIndex) => {
+              const childKey = getTreeNodeKey(child, parentKey);
+              return (
+                <TreeNode
+                  key={childKey}
+                  node={child}
+                  nodeKey={childKey}
+                  depth={depth}
+                  expanded={expanded}
+                  onToggle={onToggle}
+                  onManage={onManage}
+                  index={childIndex}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HierarchySectionTitle({ type, depth }: { type: StrategicHierarchyNode["nodeType"]; depth: number }) {
+  const accent = getNodeTheme(type).background;
+  return (
+    <div
+      className="flex items-center gap-2"
+      style={{
+        marginLeft: depth * HIERARCHY_DEPTH_INDENT,
+        color: accent,
+        fontSize: 11,
+        fontWeight: 950,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+      }}
+    >
+      <span style={{ width: 18, height: 3, borderRadius: 999, backgroundColor: accent }} />
+      {getHierarchySectionLabel(type)}
+    </div>
+  );
+}
+
+function groupHierarchyNodes(nodes: StrategicHierarchyNode[]) {
+  return nodes.reduce<Array<{ type: StrategicHierarchyNode["nodeType"]; nodes: StrategicHierarchyNode[] }>>((groups, node) => {
+    const existingGroup = groups.find((group) => group.type === node.nodeType);
+    if (existingGroup) {
+      existingGroup.nodes.push(node);
+    } else {
+      groups.push({ type: node.nodeType, nodes: [node] });
+    }
+    return groups;
+  }, []);
+}
+
+function getHierarchySectionLabel(type: StrategicHierarchyNode["nodeType"]) {
+  return {
+    STRATEGIC_BET: "Apuestas",
+    GOAL: "Metas",
+    OBJECTIVE: "Objetivos",
+    KEY_RESULT: "KRs",
+    PROJECT: "Proyectos",
+  }[type];
 }
 
 function TreeNode({
@@ -369,14 +769,12 @@ function TreeNode({
         aria-expanded={hasChildren ? isExpanded : undefined}
         onClick={toggleNode}
         onKeyDown={handleKeyDown}
-        className="rounded-md p-4"
+        className="hierarchy-detail-node rounded-md p-4"
         style={{
-          backgroundColor: theme.background,
-          border: `1px solid ${theme.border}`,
-          boxShadow: hasChildren ? "0 1px 2px rgba(17, 24, 39, 0.08)" : "none",
+          "--hierarchy-node-accent": theme.background,
           cursor: hasChildren ? "pointer" : "default",
           marginLeft: depth * HIERARCHY_DEPTH_INDENT,
-        }}
+        } as CSSProperties}
         initial={reduceMotion ? false : { opacity: 0, y: 8 }}
         animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         transition={{ ...shortMotionTransition, delay: Math.min(index * 0.02, 0.1) }}
@@ -385,38 +783,31 @@ function TreeNode({
       >
         <div className="flex items-start gap-3">
           <motion.div
-            className="mt-0.5 flex items-center justify-center"
-            style={{ width: 22, color: theme.text }}
+            className="hierarchy-detail-node__icon mt-0.5 flex items-center justify-center"
+            style={{ width: 22 }}
             animate={reduceMotion ? undefined : { rotate: isExpanded ? 0 : -2 }}
             transition={shortMotionTransition}
           >
             {hasChildren ? (isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />) : null}
           </motion.div>
-          <Icon size={18} color={theme.text} className="mt-0.5" />
+          <Icon size={18} className="hierarchy-detail-node__icon mt-0.5" />
           <div className="flex-1">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2 flex-wrap min-w-0">
-                <p style={{ fontSize: titleSize, fontWeight: 850, color: theme.text, lineHeight: 1.25 }}>{node.label}</p>
-                {node.badge && <span style={{ fontSize: "10px", fontWeight: 850, color: "#fff", backgroundColor: "rgba(255,255,255,0.18)", padding: "2px 6px", borderRadius: 4 }}>{node.badge}</span>}
-                {typeof node.progressPercentage === "number" && <span style={{ fontSize: "11px", fontWeight: 850, color: theme.text }}>{node.progressPercentage}%</span>}
+                <p className="hierarchy-detail-node__title" style={{ fontSize: titleSize, fontWeight: 850, lineHeight: 1.25 }}>{node.label}</p>
+                {node.badge && <span className="hierarchy-detail-node__badge" style={{ fontSize: "10px", fontWeight: 850, padding: "2px 6px", borderRadius: 4 }}>{node.badge}</span>}
+                {typeof node.progressPercentage === "number" && <span className="hierarchy-detail-node__strong" style={{ fontSize: "11px", fontWeight: 850 }}>{node.progressPercentage}%</span>}
               </div>
               <button
                 type="button"
                 onClick={handleManage}
-                className="shrink-0 rounded-md"
-                style={{
-                  border: "1px solid rgba(255,255,255,0.46)",
-                  color: "#fff",
-                  fontSize: "11px",
-                  fontWeight: 850,
-                  padding: "6px 10px",
-                  backgroundColor: "rgba(255,255,255,0.12)",
-                }}
+                className="hierarchy-detail-node__action shrink-0 rounded-md"
+                style={{ fontSize: "11px", fontWeight: 850, padding: "6px 10px" }}
               >
                 Gestionar
               </button>
             </div>
-            {node.description && <p style={{ fontSize: "12px", color: theme.mutedText, marginTop: 5, lineHeight: 1.45 }}>{node.description}</p>}
+            {node.description && <p className="hierarchy-detail-node__description" style={{ fontSize: "12px", marginTop: 5, lineHeight: 1.45 }}>{node.description}</p>}
             {node.executionSummary && <SummaryInline summary={node.executionSummary} theme={theme} />}
           </div>
         </div>
@@ -431,23 +822,14 @@ function TreeNode({
           exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
           transition={expandMotionTransition}
         >
-          <div className="space-y-2">
-          {node.children.map((child, childIndex) => {
-            const childKey = getTreeNodeKey(child, nodeKey);
-            return (
-              <TreeNode
-                key={childKey}
-                node={child}
-                nodeKey={childKey}
-                depth={depth + 1}
-                expanded={expanded}
-                onToggle={onToggle}
-                onManage={onManage}
-                index={childIndex}
-              />
-            );
-          })}
-          </div>
+          <HierarchyChildSections
+            nodes={node.children}
+            parentKey={nodeKey}
+            depth={depth + 1}
+            expanded={expanded}
+            onToggle={onToggle}
+            onManage={onManage}
+          />
         </motion.div>
       )}
       </AnimatePresence>
@@ -520,32 +902,16 @@ function getNodeTheme(type: StrategicHierarchyNode["nodeType"]): NodeTheme {
 }
 
 function SummaryInline({ summary, theme }: { summary: ExecutionSummary; theme: NodeTheme }) {
+  void theme;
   return (
     <div className="flex flex-wrap items-center gap-3 mt-2">
-      <span style={{ fontSize: "10px", color: theme.mutedText }}>{summary.summaryText}</span>
-      <span style={{ fontSize: "10px", color: theme.text, fontWeight: 850 }}>Obj. completos {summary.completedObjectives}</span>
-      <span style={{ fontSize: "10px", color: theme.text, fontWeight: 850 }}>KRs en progreso {summary.inProgressKeyResults}</span>
-      <span style={{ fontSize: "10px", color: theme.text, fontWeight: 850 }}>Proyectos en progreso {summary.inProgressProjects}</span>
+      <span className="hierarchy-detail-node__description" style={{ fontSize: "10px" }}>{summary.summaryText}</span>
+      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>Obj. completos {summary.completedObjectives}</span>
+      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>KRs en progreso {summary.inProgressKeyResults}</span>
+      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>Proyectos en progreso {summary.inProgressProjects}</span>
     </div>
   );
 }
-
-function getListCardStyle(theme: NodeTheme, selected: boolean): CSSProperties {
-  return {
-    backgroundColor: theme.background,
-    border: `1px solid ${selected ? "#FFFFFF" : theme.border}`,
-    boxShadow: selected ? `0 0 0 3px ${theme.background}33, 0 14px 30px rgba(17,24,39,0.12)` : "0 1px 2px rgba(17,24,39,0.08)",
-  };
-}
-
-const listManageButtonStyle: CSSProperties = {
-  border: "1px solid rgba(255,255,255,0.48)",
-  color: "#fff",
-  fontSize: "11px",
-  fontWeight: 850,
-  padding: "7px 11px",
-  backgroundColor: "rgba(255,255,255,0.14)",
-};
 
 const selectControlStyle: CSSProperties = {
   ...modalSelectStyle(false),
@@ -633,6 +999,70 @@ function StrategicBetCreateModal({ onClose, onCreated }: { onClose: () => void; 
           </ModalField>
         </div>
         <ModalActions onClose={onClose} saving={saving} submitLabel="Crear Apuesta" accent={COLORS.purple} />
+      </form>
+    </HierarchyModal>
+  );
+}
+
+function StrategicBetEditModal({ bet, onClose, onSaved }: { bet: StrategicBet; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [form, setForm] = useState({
+    name: bet.name,
+    description: bet.description,
+    startDate: bet.startDate ?? "",
+    endDate: bet.endDate ?? "",
+  });
+  const [errors, setErrors] = useState<Partial<Record<"name" | "description" | "endDate", string>>>({});
+  const [saving, setSaving] = useState(false);
+
+  const set = (field: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const next: Partial<Record<"name" | "description" | "endDate", string>> = {};
+    if (!form.name.trim()) next.name = "El nombre es obligatorio.";
+    if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
+    if (form.startDate && form.endDate && form.endDate <= form.startDate) next.endDate = "La fecha de cierre debe ser posterior al inicio.";
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    setSaving(true);
+    try {
+      await strategicBetsApi.update(bet.id, {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        ...(form.startDate ? { startDate: form.startDate } : {}),
+        ...(form.endDate ? { endDate: form.endDate } : {}),
+      });
+      toast.success("Apuesta actualizada");
+      await onSaved();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar la apuesta");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <HierarchyModal title="Editar Apuesta Estrategica" icon={<Flag size={18} color="#fff" />} accent={COLORS.purple} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-3">
+        <ModalField label="Nombre" error={errors.name}>
+          <input value={form.name} onChange={(event) => set("name", event.target.value)} style={modalInputStyle(Boolean(errors.name))} />
+        </ModalField>
+        <ModalField label="Descripcion" error={errors.description}>
+          <textarea value={form.description} onChange={(event) => set("description", event.target.value)} rows={3} style={{ ...modalInputStyle(Boolean(errors.description)), resize: "vertical" }} />
+        </ModalField>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ModalField label="Fecha inicio">
+            <ModalDatePicker value={form.startDate} onChange={(value) => set("startDate", value)} error={false} />
+          </ModalField>
+          <ModalField label="Fecha cierre" error={errors.endDate}>
+            <ModalDatePicker value={form.endDate} onChange={(value) => set("endDate", value)} error={Boolean(errors.endDate)} />
+          </ModalField>
+        </div>
+        <ModalActions onClose={onClose} saving={saving} submitLabel="Guardar cambios" accent={COLORS.purple} />
       </form>
     </HierarchyModal>
   );
@@ -732,6 +1162,105 @@ function GoalCreateModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </ModalField>
         </div>
         <ModalActions onClose={onClose} saving={saving || loading} submitLabel="Crear Meta" accent={COLORS.green} />
+      </form>
+    </HierarchyModal>
+  );
+}
+
+function GoalEditModal({ goal, onClose, onSaved }: { goal: Goal; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [units, setUnits] = useState<MeasurementUnit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>>>({});
+  const [form, setForm] = useState({
+    name: goal.name,
+    description: goal.description,
+    referenceIndicator: goal.referenceIndicator ?? "",
+    expectedValue: String(goal.expectedValue),
+    measurementUnitId: String(goal.measurementUnitId),
+    startDate: goal.startDate ?? "",
+    endDate: goal.endDate ?? "",
+  });
+
+  useEffect(() => {
+    measurementUnitsApi.list()
+      .then((data) => setUnits(data.filter((unit) => unit.active || unit.id === goal.measurementUnitId)))
+      .catch((error) => toast.error(error instanceof Error ? error.message : "No se pudieron cargar las unidades"))
+      .finally(() => setLoading(false));
+  }, [goal.measurementUnitId]);
+
+  const set = (field: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const next: Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>> = {};
+    if (!form.name.trim()) next.name = "El nombre es obligatorio.";
+    if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
+    if (form.expectedValue === "" || Number.isNaN(Number(form.expectedValue))) next.expectedValue = "El valor esperado debe ser numerico.";
+    if (!form.measurementUnitId) next.measurementUnitId = "La unidad es obligatoria.";
+    if (form.startDate && form.endDate && form.endDate <= form.startDate) next.endDate = "La fecha de cierre debe ser posterior al inicio.";
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    setSaving(true);
+    try {
+      await goalsApi.update(goal.id, {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        ...(form.referenceIndicator.trim() ? { referenceIndicator: form.referenceIndicator.trim() } : {}),
+        expectedValue: Number(form.expectedValue),
+        measurementUnitId: Number(form.measurementUnitId),
+        ...(form.startDate ? { startDate: form.startDate } : {}),
+        ...(form.endDate ? { endDate: form.endDate } : {}),
+      });
+      toast.success("Meta actualizada");
+      await onSaved();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar la meta");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <HierarchyModal title="Editar Meta Institucional" icon={<BookOpen size={18} color="#fff" />} accent={COLORS.green} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-3">
+        <ModalField label="Nombre" error={errors.name}>
+          <input value={form.name} onChange={(event) => set("name", event.target.value)} style={modalInputStyle(Boolean(errors.name))} />
+        </ModalField>
+        <ModalField label="Descripcion" error={errors.description}>
+          <textarea value={form.description} onChange={(event) => set("description", event.target.value)} rows={3} style={{ ...modalInputStyle(Boolean(errors.description)), resize: "vertical" }} />
+        </ModalField>
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_170px] gap-3">
+          <ModalField label="Indicador">
+            <input value={form.referenceIndicator} onChange={(event) => set("referenceIndicator", event.target.value)} style={modalInputStyle(false)} />
+          </ModalField>
+          <ModalField label="Valor" error={errors.expectedValue}>
+            <input type="number" step="0.01" value={form.expectedValue} onChange={(event) => set("expectedValue", event.target.value)} style={modalInputStyle(Boolean(errors.expectedValue))} />
+          </ModalField>
+          <ModalField label="Unidad" error={errors.measurementUnitId}>
+            <ModalSelect
+              value={form.measurementUnitId}
+              onChange={(value) => set("measurementUnitId", value)}
+              disabled={loading}
+              error={Boolean(errors.measurementUnitId)}
+              placeholder={loading ? "Cargando..." : "Selecciona"}
+              options={units.map((unit) => ({ value: String(unit.id), label: unit.name }))}
+            />
+          </ModalField>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ModalField label="Fecha inicio">
+            <ModalDatePicker value={form.startDate} onChange={(value) => set("startDate", value)} error={false} />
+          </ModalField>
+          <ModalField label="Fecha cierre" error={errors.endDate}>
+            <ModalDatePicker value={form.endDate} onChange={(value) => set("endDate", value)} error={Boolean(errors.endDate)} />
+          </ModalField>
+        </div>
+        <ModalActions onClose={onClose} saving={saving || loading} submitLabel="Guardar cambios" accent={COLORS.green} />
       </form>
     </HierarchyModal>
   );
@@ -948,89 +1477,6 @@ function formatModalDate(value: string) {
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   return `${day}/${month}/${date.getFullYear()}`;
-}
-
-function DetailPanel({ title, item }: { title: string; item: StrategicBet | null }) {
-  return (
-    <aside className="bg-white rounded-md p-5 h-fit" style={{ border: `1px solid ${COLORS.border}` }}>
-      <h2 style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text, textTransform: "uppercase", marginBottom: 12 }}>{title}</h2>
-      {!item ? <EmptyState text="Selecciona una apuesta para ver su detalle." /> : (
-        <div className="space-y-3">
-          <p style={{ fontSize: "16px", fontWeight: 800, color: COLORS.text }}>{item.name}</p>
-          <p style={{ fontSize: "12px", color: COLORS.gray, lineHeight: 1.6 }}>{item.description}</p>
-          <p style={{ fontSize: "11px", color: "#374151" }}>{item.status} Â· {item.startDate ?? "Sin inicio"} - {item.endDate ?? "Sin cierre"}</p>
-          <ExecutionSummaryBox summary={item.executionSummary} />
-        </div>
-      )}
-    </aside>
-  );
-}
-
-function GoalDetailPanel({ goal, periods, onChanged }: { goal: Goal | null; periods: AcademicPeriod[]; onChanged: () => Promise<void> }) {
-  const attached = new Set(goal?.periods.map((period) => period.id) ?? []);
-  const togglePeriod = async (period: AcademicPeriod) => {
-    if (!goal) return;
-    try {
-      if (attached.has(period.id)) {
-        await goalsApi.detachPeriod(goal.id, period.id);
-        toast.success("Periodo desasociado");
-      } else {
-        await goalsApi.attachPeriod(goal.id, period.id);
-        toast.success("Periodo asociado");
-      }
-      await onChanged();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo actualizar la asociacion");
-    }
-  };
-
-  return (
-    <aside className="bg-white rounded-md p-5 h-fit" style={{ border: `1px solid ${COLORS.border}` }}>
-      <h2 style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text, textTransform: "uppercase", marginBottom: 12 }}>Detalle de Meta</h2>
-      {!goal ? <EmptyState text="Selecciona una meta para ver su detalle." /> : (
-        <div className="space-y-4">
-          <div>
-            <p style={{ fontSize: "16px", fontWeight: 800, color: COLORS.text }}>{goal.name}</p>
-            <p style={{ fontSize: "12px", color: COLORS.gray, lineHeight: 1.6, marginTop: 4 }}>{goal.description}</p>
-            <p style={{ fontSize: "11px", color: "#374151", marginTop: 6 }}>{goal.expectedValue} {goal.measurementUnitName} Â· {goal.status}</p>
-          </div>
-          <ExecutionSummaryBox summary={goal.executionSummary} />
-          <div>
-            <p style={{ fontSize: "11px", color: COLORS.text, fontWeight: 800, textTransform: "uppercase", marginBottom: 8 }}>Periodos asociados</p>
-            <div className="flex flex-wrap gap-2">
-              {periods.map((period) => (
-                <button key={period.id} onClick={() => void togglePeriod(period)} className="px-2 py-1 rounded" style={{ border: `1px solid ${attached.has(period.id) ? COLORS.blue : "#E5E7EB"}`, backgroundColor: attached.has(period.id) ? "#EEF2FF" : "#fff", color: attached.has(period.id) ? COLORS.blue : "#374151", fontSize: "11px", fontWeight: 800 }}>
-                  {period.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </aside>
-  );
-}
-
-function ExecutionSummaryBox({ summary }: { summary: ExecutionSummary }) {
-  return (
-    <div className="rounded-md p-4" style={{ backgroundColor: COLORS.subtle, border: `1px solid ${COLORS.border}` }}>
-      <p style={{ fontSize: "12px", color: "#374151", lineHeight: 1.5 }}>{summary.summaryText}</p>
-      <div className="grid grid-cols-2 gap-2 mt-3">
-        {[
-          ["Obj. completos", summary.completedObjectives],
-          ["Obj. en progreso", summary.inProgressObjectives],
-          ["KRs completos", summary.completedKeyResults],
-          ["KRs en progreso", summary.inProgressKeyResults],
-          ["Proy. completos", summary.completedProjects],
-          ["Proy. en progreso", summary.inProgressProjects],
-        ].map(([label, value]) => (
-          <div key={label} style={{ fontSize: "11px", color: COLORS.gray }}>
-            <strong style={{ color: COLORS.text }}>{value}</strong> {label}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function EmptyState({ text }: { text: string }) {

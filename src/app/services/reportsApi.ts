@@ -135,7 +135,10 @@ export async function downloadReport(
 ) {
   const token = getStoredToken();
   const res = await fetch(reportsApi.exportUrl(format, params), {
+    cache: "no-store",
+    credentials: "omit",
     headers: {
+      "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });

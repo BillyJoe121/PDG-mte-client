@@ -2,9 +2,590 @@
 @import './tailwind.css';
 @import './theme.css';
 
-.modern-hierarchy-card p,
-.modern-hierarchy-card span {
-  color: #fff !important;
+.hierarchy-root-card {
+  --hierarchy-card-accent: #5454E9;
+  background: #fff;
+  border: 1px solid #D9DEE8;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+  position: relative;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.hierarchy-root-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: var(--hierarchy-card-accent);
+  opacity: 0;
+  transition: opacity 160ms ease;
+  z-index: 1;
+}
+
+.hierarchy-root-card:hover,
+.hierarchy-root-card:focus-visible {
+  border-color: var(--hierarchy-card-accent);
+  box-shadow: 0 18px 36px rgba(17, 24, 39, 0.12);
+  transform: translateY(-2px);
+}
+
+.hierarchy-root-card:hover::before,
+.hierarchy-root-card:focus-visible::before {
+  opacity: 1;
+}
+
+.hierarchy-root-card__hero {
+  background: var(--hierarchy-card-accent);
+  transition: background-color 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__hero,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__hero {
+  background: #fff;
+}
+
+.hierarchy-root-card__label,
+.hierarchy-root-card__title,
+.hierarchy-root-card__icon {
+  color: #fff;
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__label,
+.hierarchy-root-card:hover .hierarchy-root-card__title,
+.hierarchy-root-card:hover .hierarchy-root-card__icon,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__label,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__title,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__icon {
+  color: var(--hierarchy-card-accent);
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__icon,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__icon {
+  background: color-mix(in srgb, var(--hierarchy-card-accent) 8%, white);
+  border-color: color-mix(in srgb, var(--hierarchy-card-accent) 30%, white);
+}
+
+.hierarchy-root-card__divider {
+  background: #111827;
+  transition: background-color 160ms ease, width 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__divider,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__divider {
+  width: 58px;
+  background: var(--hierarchy-card-accent);
+}
+
+.hierarchy-root-card__metric {
+  border-color: #D9DEE8;
+  color: #111827;
+  background: #fff;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__metric,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__metric {
+  border-color: color-mix(in srgb, var(--hierarchy-card-accent) 32%, white);
+  color: var(--hierarchy-card-accent);
+  background: color-mix(in srgb, var(--hierarchy-card-accent) 8%, white);
+}
+
+.hierarchy-root-card__cta {
+  color: #fff;
+  background: #111827;
+  border: 1px solid #111827;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 7px 14px rgba(17, 24, 39, 0.12);
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__cta,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__cta {
+  color: #fff;
+  background: var(--hierarchy-card-accent);
+  border-color: var(--hierarchy-card-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 20px color-mix(in srgb, var(--hierarchy-card-accent) 26%, transparent);
+}
+
+.hierarchy-detail-context {
+  --hierarchy-card-accent: #5454E9;
+  border: 1px solid #D9DEE8;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(17, 24, 39, 0.08);
+  position: relative;
+}
+
+.hierarchy-detail-context::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: var(--hierarchy-card-accent);
+  z-index: 1;
+}
+
+.hierarchy-detail-chain {
+  position: relative;
+}
+
+.hierarchy-detail-chain::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 11px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(84, 84, 233, 0.22), rgba(76, 185, 121, 0.18));
+}
+
+.hierarchy-detail-chain > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hierarchy-detail-node {
+  --hierarchy-node-accent: #5454E9;
+  background: #fff;
+  border: 1px solid #D9DEE8;
+  border-left: 7px solid var(--hierarchy-node-accent);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.hierarchy-detail-node:hover,
+.hierarchy-detail-node:focus-visible {
+  background: var(--hierarchy-node-accent);
+  border-color: var(--hierarchy-node-accent);
+  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.12);
+}
+
+.hierarchy-detail-node__icon,
+.hierarchy-detail-node__title,
+.hierarchy-detail-node__strong {
+  color: var(--hierarchy-node-accent);
+  transition: color 160ms ease;
+}
+
+.hierarchy-detail-node__description {
+  color: #717182;
+  transition: color 160ms ease;
+}
+
+.hierarchy-detail-node__badge {
+  color: var(--hierarchy-node-accent);
+  background: color-mix(in srgb, var(--hierarchy-node-accent) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--hierarchy-node-accent) 28%, white);
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.hierarchy-detail-node__action {
+  color: var(--hierarchy-node-accent);
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--hierarchy-node-accent) 34%, white);
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.hierarchy-detail-node:hover .hierarchy-detail-node__icon,
+.hierarchy-detail-node:hover .hierarchy-detail-node__title,
+.hierarchy-detail-node:hover .hierarchy-detail-node__strong,
+.hierarchy-detail-node:hover .hierarchy-detail-node__description,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__icon,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__title,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__strong,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__description {
+  color: #fff;
+}
+
+.hierarchy-detail-node:hover .hierarchy-detail-node__badge,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__badge {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.hierarchy-detail-node:hover .hierarchy-detail-node__action,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__action {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.46);
+}
+
+.okr-objective-card {
+  --okr-card-accent: #E9683B;
+  background: var(--okr-card-accent);
+  border: 1px solid var(--okr-card-accent);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.okr-objective-card:hover,
+.okr-objective-card:focus-visible {
+  background: #fff;
+  border-color: var(--okr-card-accent);
+  box-shadow: 0 18px 36px rgba(17, 24, 39, 0.12);
+  outline: none;
+}
+
+.okr-objective-card__eyebrow,
+.okr-objective-card__meta,
+.okr-objective-card__title,
+.okr-objective-card__description,
+.okr-objective-card__progress-label {
+  color: #fff;
+  transition: color 160ms ease;
+}
+
+.okr-objective-card__eyebrow {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.okr-objective-card__meta,
+.okr-objective-card__description {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.okr-objective-card:hover .okr-objective-card__eyebrow,
+.okr-objective-card:hover .okr-objective-card__meta,
+.okr-objective-card:hover .okr-objective-card__title,
+.okr-objective-card:hover .okr-objective-card__description,
+.okr-objective-card:hover .okr-objective-card__progress-label,
+.okr-objective-card:focus-visible .okr-objective-card__eyebrow,
+.okr-objective-card:focus-visible .okr-objective-card__meta,
+.okr-objective-card:focus-visible .okr-objective-card__title,
+.okr-objective-card:focus-visible .okr-objective-card__description,
+.okr-objective-card:focus-visible .okr-objective-card__progress-label {
+  color: var(--okr-card-accent);
+}
+
+.okr-objective-card__status {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.okr-objective-card:hover .okr-objective-card__status,
+.okr-objective-card:focus-visible .okr-objective-card__status {
+  color: var(--okr-card-accent);
+  background: color-mix(in srgb, var(--okr-card-accent) 8%, white);
+  border-color: color-mix(in srgb, var(--okr-card-accent) 32%, white);
+}
+
+.okr-objective-card__progress-track {
+  stroke: rgba(255, 255, 255, 0.22);
+  transition: stroke 160ms ease;
+}
+
+.okr-objective-card__progress-ring {
+  stroke: #fff;
+  transition: stroke 160ms ease;
+}
+
+.okr-objective-card:hover .okr-objective-card__progress-track,
+.okr-objective-card:focus-visible .okr-objective-card__progress-track {
+  stroke: color-mix(in srgb, var(--okr-card-accent) 16%, white);
+}
+
+.okr-objective-card:hover .okr-objective-card__progress-ring,
+.okr-objective-card:focus-visible .okr-objective-card__progress-ring {
+  stroke: var(--okr-card-accent);
+}
+
+.project-card {
+  --project-card-accent: #4CB979;
+  --project-card-progress: #fff;
+  background: var(--project-card-accent);
+  border: 1px solid var(--project-card-accent);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.project-card:hover,
+.project-card:focus-visible {
+  --project-card-progress: var(--project-card-accent);
+  background: #fff;
+  border-color: var(--project-card-accent);
+  box-shadow: 0 18px 36px rgba(17, 24, 39, 0.12);
+  outline: none;
+}
+
+.project-card__inner {
+  min-height: 292px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.project-card__eyebrow,
+.project-card__meta,
+.project-card__title,
+.project-card__description,
+.project-card__progress-label {
+  color: #fff;
+  transition: color 160ms ease;
+}
+
+.project-card__eyebrow {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.project-card__meta,
+.project-card__description {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.project-card__meta {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.project-card__title {
+  width: 100%;
+  font-size: 27px;
+  font-weight: 900;
+  line-height: 1.06;
+  overflow-wrap: anywhere;
+}
+
+.project-card__description {
+  font-size: 12px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.project-card:hover .project-card__eyebrow,
+.project-card:hover .project-card__meta,
+.project-card:hover .project-card__title,
+.project-card:hover .project-card__description,
+.project-card:hover .project-card__progress-label,
+.project-card:focus-visible .project-card__eyebrow,
+.project-card:focus-visible .project-card__meta,
+.project-card:focus-visible .project-card__title,
+.project-card:focus-visible .project-card__description,
+.project-card:focus-visible .project-card__progress-label {
+  color: var(--project-card-accent);
+}
+
+.project-card__status {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 10px;
+  font-weight: 850;
+  padding: 4px 7px;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.project-card:hover .project-card__status,
+.project-card:focus-visible .project-card__status {
+  color: var(--project-card-accent);
+  background: color-mix(in srgb, var(--project-card-accent) 8%, white);
+  border-color: color-mix(in srgb, var(--project-card-accent) 32%, white);
+}
+
+.project-card__progress-track {
+  stroke: rgba(255, 255, 255, 0.22);
+  transition: stroke 160ms ease;
+}
+
+.project-card__progress-ring {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+}
+
+.project-card__progress-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.project-card:hover .project-card__progress-track,
+.project-card:focus-visible .project-card__progress-track {
+  stroke: color-mix(in srgb, var(--project-card-accent) 16%, white);
+}
+
+.project-card__icon-button {
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.project-card:hover .project-card__icon-button,
+.project-card:focus-visible .project-card__icon-button {
+  color: var(--project-card-accent);
+  background: color-mix(in srgb, var(--project-card-accent) 8%, white);
+  border-color: color-mix(in srgb, var(--project-card-accent) 32%, white);
+}
+
+.objective-detail-hero {
+  border: 1px solid #D9DEE8;
+  box-shadow: 0 18px 42px rgba(17, 24, 39, 0.08);
+  position: relative;
+}
+
+.objective-detail-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: #E9683B;
+  z-index: 1;
+}
+
+.kr-detail-card {
+  --kr-card-accent: #5454E9;
+  background: #fff;
+  border: 1px solid #D9DEE8;
+  border-left: 7px solid var(--kr-card-accent);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.kr-detail-card:hover,
+.kr-detail-card:focus-within {
+  background: var(--kr-card-accent);
+  border-color: var(--kr-card-accent);
+  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.12);
+}
+
+.kr-detail-card__accent,
+.kr-detail-card__title,
+.kr-detail-card__progress,
+.kr-detail-card__icon-button {
+  color: var(--kr-card-accent);
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.kr-detail-card__description {
+  color: #717182;
+  transition: color 160ms ease;
+}
+
+.kr-detail-card__progress,
+.kr-detail-card__value,
+.kr-detail-card__icon-button {
+  background: color-mix(in srgb, var(--kr-card-accent) 8%, white);
+  border: 1px solid color-mix(in srgb, var(--kr-card-accent) 28%, white);
+}
+
+.kr-detail-card__value {
+  color: #111827;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.kr-detail-card:hover .kr-detail-card__accent,
+.kr-detail-card:hover .kr-detail-card__title,
+.kr-detail-card:hover .kr-detail-card__description,
+.kr-detail-card:hover .kr-detail-card__progress,
+.kr-detail-card:hover .kr-detail-card__value,
+.kr-detail-card:hover .kr-detail-card__icon-button,
+.kr-detail-card:focus-within .kr-detail-card__accent,
+.kr-detail-card:focus-within .kr-detail-card__title,
+.kr-detail-card:focus-within .kr-detail-card__description,
+.kr-detail-card:focus-within .kr-detail-card__progress,
+.kr-detail-card:focus-within .kr-detail-card__value,
+.kr-detail-card:focus-within .kr-detail-card__icon-button {
+  color: #fff;
+}
+
+.kr-detail-card:hover .kr-detail-card__progress,
+.kr-detail-card:hover .kr-detail-card__value,
+.kr-detail-card:hover .kr-detail-card__icon-button,
+.kr-detail-card:focus-within .kr-detail-card__progress,
+.kr-detail-card:focus-within .kr-detail-card__value,
+.kr-detail-card:focus-within .kr-detail-card__icon-button {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.kr-edit-form {
+  background: #fff;
+  border: 1px solid #D9DEE8;
+  border-left: 7px solid #5454E9;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+}
+
+.kr-project-card {
+  --kr-project-accent: #4CB979;
+  background: #fff;
+  border: 1px solid #D9DEE8;
+  border-left: 7px solid var(--kr-project-accent);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.kr-project-card:hover,
+.kr-project-card:focus-within {
+  background: var(--kr-project-accent);
+  border-color: var(--kr-project-accent);
+  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.12);
+}
+
+.kr-project-card__accent,
+.kr-project-card__title,
+.kr-project-card__metric,
+.kr-project-card__button {
+  color: var(--kr-project-accent);
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.kr-project-card__description {
+  color: #717182;
+  transition: color 160ms ease;
+}
+
+.kr-project-card__metric,
+.kr-project-card__value,
+.kr-project-card__button {
+  background: color-mix(in srgb, var(--kr-project-accent) 8%, white);
+  border: 1px solid color-mix(in srgb, var(--kr-project-accent) 28%, white);
+}
+
+.kr-project-card__value {
+  color: #111827;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.kr-project-card:hover .kr-project-card__accent,
+.kr-project-card:hover .kr-project-card__title,
+.kr-project-card:hover .kr-project-card__description,
+.kr-project-card:hover .kr-project-card__metric,
+.kr-project-card:hover .kr-project-card__value,
+.kr-project-card:hover .kr-project-card__button,
+.kr-project-card:focus-within .kr-project-card__accent,
+.kr-project-card:focus-within .kr-project-card__title,
+.kr-project-card:focus-within .kr-project-card__description,
+.kr-project-card:focus-within .kr-project-card__metric,
+.kr-project-card:focus-within .kr-project-card__value,
+.kr-project-card:focus-within .kr-project-card__button {
+  color: #fff;
+}
+
+.kr-project-card:hover .kr-project-card__metric,
+.kr-project-card:hover .kr-project-card__value,
+.kr-project-card:hover .kr-project-card__button,
+.kr-project-card:focus-within .kr-project-card__metric,
+.kr-project-card:focus-within .kr-project-card__value,
+.kr-project-card:focus-within .kr-project-card__button {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.34);
 }
 
 .app-scroll-purple,
