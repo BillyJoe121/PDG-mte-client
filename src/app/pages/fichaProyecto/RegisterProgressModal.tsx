@@ -3,6 +3,7 @@ import { Loader2, Plus, Save, Trash2, TrendingUp, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { projectsApi, type ProjectProgressRequest, type ProjectResponse } from "../../services/projectsApi";
+import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { COLORS, ProgressBar, errorMessage } from "./projectDetailShared";
 
 interface RegisterProgressModalProps {
@@ -46,6 +47,11 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
     setSaving(true);
     try {
       await projectsApi.registerProgress(project.id, payload);
+      signalStrategicDataChanged({
+        projectId: project.id,
+        reason: "project-progress",
+        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
       toast.success("Avance registrado.");
       await onSaved();
       onClose();

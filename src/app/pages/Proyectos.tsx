@@ -5,6 +5,7 @@ import { Loader2, Target } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
+import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { departmentsApi, objectivesApi, type Department, type ObjectiveCard } from "../services/strategicApi";
 import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
 import {
@@ -56,9 +57,11 @@ export function Proyectos() {
     setObjectiveCards(cardsData);
   };
 
-  const loadProjects = async () => {
-    setLoading(true);
-    setError("");
+  const loadProjects = async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setLoading(true);
+      setError("");
+    }
     try {
       const data = await projectsApi.list({
         search: search.trim() || undefined,
@@ -69,9 +72,9 @@ export function Proyectos() {
       });
       setProjects(data);
     } catch (loadError) {
-      setError(errorMessage(loadError));
+      if (!options?.silent) setError(errorMessage(loadError));
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   };
 
@@ -87,6 +90,11 @@ export function Proyectos() {
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [search, status, type, departmentId, period]);
+
+  useStrategicDataRefresh({
+    scopes: ["projects"],
+    onRefresh: () => loadProjects({ silent: true }),
+  });
 
   const stats = useMemo(() => buildProjectStats(projects), [projects]);
   const viewMotion = reduceMotion ? { initial: false } : {

@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Loader2, Target } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { academicPeriodsApi, measurementUnitsApi, type AcademicPeriod, type MeasurementUnit } from "../services/catalogsApi";
 import {
   departmentsApi,
@@ -49,8 +50,8 @@ export function OKRs() {
   const [creatingObjective, setCreatingObjective] = useState(false);
   const [filters, setFilters] = useState<OkrFilters>(emptyFilters);
 
-  const loadCards = useCallback(async () => {
-    setLoading(true);
+  const loadCards = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) setLoading(true);
     try {
       const params = {
         strategicBetId: filters.strategicBetId ? Number(filters.strategicBetId) : undefined,
@@ -76,15 +77,20 @@ export function OKRs() {
         setDepartments(fallbackDepartments);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudieron cargar los objetivos");
+      if (!options?.silent) toast.error(error instanceof Error ? error.message : "No se pudieron cargar los objetivos");
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   }, [filters]);
 
   useEffect(() => {
     void loadCards();
   }, [loadCards]);
+
+  useStrategicDataRefresh({
+    scopes: ["objectives"],
+    onRefresh: () => loadCards({ silent: true }),
+  });
 
   const visibleDepartments = useMemo(() => {
     if (usuario?.rol === "jefe" && usuario.departamento) {

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, BookOpen, CalendarDays, ChevronDown, ChevronRight, Flag, FolderKanban, KeyRound, Loader2, Plus, RefreshCw, Save, Search, Target, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { Calendar } from "../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -68,8 +69,8 @@ export function JerarquiaEstrategica() {
   const [editingBet, setEditingBet] = useState<StrategicBet | null>(null);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
-  const load = useCallback(async (options?: { resetSelection?: boolean }) => {
-    setLoading(true);
+  const load = useCallback(async (options?: { resetSelection?: boolean; silent?: boolean }) => {
+    if (!options?.silent) setLoading(true);
     try {
       const selectedPeriod = period || undefined;
       const [treeData, betList, goalList, periodList] = await Promise.all([
@@ -87,15 +88,20 @@ export function JerarquiaEstrategica() {
         setExpanded(new Set());
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo cargar la jerarquia");
+      if (!options?.silent) toast.error(error instanceof Error ? error.message : "No se pudo cargar la jerarquia");
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   }, [period]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useStrategicDataRefresh({
+    scopes: ["hierarchy"],
+    onRefresh: () => load({ resetSelection: false, silent: true }),
+  });
 
   const totalObjectives = useMemo(() => countNodes(tree, "OBJECTIVE"), [tree]);
   const totalKrs = useMemo(() => countNodes(tree, "KEY_RESULT"), [tree]);

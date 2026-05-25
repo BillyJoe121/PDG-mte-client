@@ -24,6 +24,7 @@ import {
 } from "recharts";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
+import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
 import {
@@ -217,9 +218,11 @@ export function Dashboard() {
     [periods],
   );
 
-  const loadDashboard = useCallback(async (period?: string) => {
-    setLoading(true);
-    setError("");
+  const loadDashboard = useCallback(async (period?: string, options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setLoading(true);
+      setError("");
+    }
     try {
       const [periodList, data] = await Promise.all([
         academicPeriodsApi.list(),
@@ -228,15 +231,20 @@ export function Dashboard() {
       setPeriods(periodList);
       setDashboard(data);
     } catch (err) {
-      setError(getErrorMessage(err));
+      if (!options?.silent) setError(getErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void loadDashboard(selectedPeriod || undefined);
   }, [loadDashboard, selectedPeriod]);
+
+  useStrategicDataRefresh({
+    scopes: ["dashboard"],
+    onRefresh: () => loadDashboard(selectedPeriod || undefined, { silent: true }),
+  });
 
   const handlePeriodChange = (value: string) => {
     const next = value === "__active" ? "" : value;
