@@ -99,31 +99,31 @@ export function GestionKRs() {
   }
 
   return (
-    <div className="min-h-full px-6 py-5" style={{ backgroundColor: "#F8FAFC" }}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="min-h-full px-6 pb-5 pt-3" style={{ backgroundColor: "#F8FAFC" }}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: "#374151", fontSize: 12, fontWeight: 800, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
           <ArrowLeft size={14} /> Volver
         </button>
       </div>
 
       <section className="objective-detail-hero overflow-hidden rounded-md bg-white">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-          <div className="flex min-h-[178px] flex-col justify-center gap-3 p-5">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(320px,1fr)]">
+          <div className="flex min-h-[142px] flex-col justify-center gap-2 p-4" style={{ backgroundColor: COLORS.orange }}>
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "color-mix(in srgb, #E9683B 10%, white)", border: "1px solid color-mix(in srgb, #E9683B 34%, white)", color: COLORS.orange }}>
+              <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.28)", color: "#fff" }}>
                 <Target size={18} />
               </span>
-              <span style={{ color: COLORS.orange, fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              <span style={{ color: "rgba(255,255,255,0.82)", fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 Objetivo #{objective.id}
               </span>
             </div>
             <div>
-              <h1 style={{ color: COLORS.orange, fontSize: 24, fontWeight: 950, lineHeight: 1.12, maxWidth: 860 }}>{objective.name}</h1>
-              <p style={{ color: COLORS.gray, fontSize: 12, lineHeight: 1.5, marginTop: 8, maxWidth: 900 }}>{objective.description}</p>
+              <h1 style={{ color: "#fff", fontSize: 22, fontWeight: 950, lineHeight: 1.12, maxWidth: 860 }}>{objective.name}</h1>
+              <p style={{ color: "rgba(255,255,255,0.86)", fontSize: 12, lineHeight: 1.4, marginTop: 6, maxWidth: 900 }}>{objective.description}</p>
             </div>
           </div>
 
-          <div className="flex flex-col justify-center gap-3 p-5" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
+          <div className="flex flex-col justify-center gap-2 p-4" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
             <div className="grid grid-cols-3 gap-2">
               <MetricTile label="KRs" value={stats.keyResults} color={COLORS.purple} />
               <MetricTile label="Avance" value={`${objective.completionPercentage ?? stats.progress}%`} color={COLORS.orange} />
@@ -144,8 +144,8 @@ export function GestionKRs() {
         </div>
       </section>
 
-      <section className="mt-5 rounded-md bg-white p-5" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <section className="mt-4 rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p style={{ color: COLORS.text, fontSize: 15, fontWeight: 900 }}>Key Results del objetivo</p>
             <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>Gestiona las metricas y valores esperados que evidencian el avance del objetivo.</p>

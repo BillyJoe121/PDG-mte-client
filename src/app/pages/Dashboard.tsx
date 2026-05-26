@@ -26,9 +26,9 @@ import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
+import type { AcademicPeriod } from "../services/catalogsApi";
+import type { ObjectiveCard } from "../services/strategicApi";
 import {
-  dashboardApi,
   type CountByStatus,
   type DashboardData,
   type DashboardSummary,
@@ -36,6 +36,7 @@ import {
   type ProgressBucket,
   type ProgressBucketCount,
 } from "../services/dashboardApi";
+import { loadDashboardScreen, loadObjectiveCards, prefetchStrategicScreens } from "../services/screenDataCache";
 
 const COLORS = {
   blue: "#5454E9",
@@ -92,10 +93,10 @@ const bucketColor: Record<ProgressBucket, string> = {
 };
 
 const objectiveBucketMeta = {
-  completedObjectives: { label: "Completados", color: COLORS.green },
-  objectivesAbove50: { label: "Mas del 50%", color: COLORS.blue },
-  objectivesBetween0And50: { label: "0 a 50%", color: COLORS.orange },
-  objectivesAtZero: { label: "En 0%", color: COLORS.red },
+  completedObjectives: { label: "Objetivos al 100", color: COLORS.green },
+  objectivesAbove50: { label: "50% o mas", color: COLORS.blue },
+  objectivesBetween0And50: { label: "De 0 a 50", color: COLORS.orange },
+  objectivesAtZero: { label: "Al 0", color: COLORS.red },
 } as const;
 
 function getErrorMessage(error: unknown) {
@@ -209,6 +210,7 @@ export function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [objectiveCards, setObjectiveCards] = useState<ObjectiveCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -218,18 +220,20 @@ export function Dashboard() {
     [periods],
   );
 
-  const loadDashboard = useCallback(async (period?: string, options?: { silent?: boolean }) => {
+  const loadDashboard = useCallback(async (period?: string, options?: { force?: boolean; silent?: boolean }) => {
     if (!options?.silent) {
       setLoading(true);
       setError("");
     }
     try {
-      const [periodList, data] = await Promise.all([
-        academicPeriodsApi.list(),
-        dashboardApi.load(period),
-      ]);
-      setPeriods(periodList);
-      setDashboard(data);
+      const data = await loadDashboardScreen(period, { force: options?.force });
+      const periodName = period || data.dashboard.summary.period;
+      const periodId = data.periods.find((item) => item.name === periodName)?.id;
+      const cards = await loadObjectiveCards(periodId ? { periodId } : undefined, { force: options?.force });
+      setPeriods(data.periods);
+      setDashboard(data.dashboard);
+      setObjectiveCards(cards);
+      prefetchStrategicScreens(period);
     } catch (err) {
       if (!options?.silent) setError(getErrorMessage(err));
     } finally {
@@ -243,7 +247,7 @@ export function Dashboard() {
 
   useStrategicDataRefresh({
     scopes: ["dashboard"],
-    onRefresh: () => loadDashboard(selectedPeriod || undefined, { silent: true }),
+    onRefresh: () => loadDashboard(selectedPeriod || undefined, { force: true, silent: true }),
   });
 
   const handlePeriodChange = (value: string) => {
@@ -267,7 +271,7 @@ export function Dashboard() {
         activePeriodName={activePeriodName}
         loading={loading}
         onPeriodChange={handlePeriodChange}
-        onReload={() => void loadDashboard(selectedPeriod || undefined)}
+        onReload={() => void loadDashboard(selectedPeriod || undefined, { force: true })}
         periods={sortedPeriods}
         selectedPeriod={selectedPeriod}
         summary={dashboard?.summary}
@@ -310,10 +314,10 @@ export function Dashboard() {
 
               <DashboardPanel
                 title="Rendimiento por departamento"
-                subtitle="Cobertura promedio, objetivos y volumen de ejecucion por unidad."
+                subtitle="Objetivos agrupados por departamento segun sus rangos de avance."
                 icon={<Layers3 size={16} />}
               >
-                <DepartmentPerformance data={dashboard.departments} />
+                <DepartmentPerformance data={dashboard.departments} objectiveCards={objectiveCards} />
               </DashboardPanel>
 
               <DashboardPanel
@@ -551,41 +555,56 @@ function DistributionRow({ color, label, total, value }: { color: string; label:
   );
 }
 
-function DepartmentPerformance({ data }: { data: DashboardData["departments"] }) {
+function DepartmentPerformance({ data, objectiveCards }: { data: DashboardData["departments"]; objectiveCards: ObjectiveCard[] }) {
   if (!data.length) return <EmptyState text="Sin departamentos para comparar." compact />;
-  const ordered = [...data].sort((a, b) => b.averageObjectiveCoverage - a.averageObjectiveCoverage);
 
-  return (
-    <div className="space-y-2">
-      {ordered.map((department) => {
-        const coverage = clampPercent(department.averageObjectiveCoverage);
-        const color = coverage >= 70 ? COLORS.green : coverage < 35 ? COLORS.orange : COLORS.blue;
-        return (
-          <div key={department.departmentId} className="grid grid-cols-1 gap-3 rounded-md p-3 md:grid-cols-[minmax(0,1fr)_260px]" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
-            <div className="min-w-0">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p style={{ fontSize: 13, fontWeight: 900, color: COLORS.text, lineHeight: 1.25 }}>{department.departmentName}</p>
-                  <p style={{ fontSize: 10, color: "#9CA3AF", marginTop: 4 }}>
-                    {department.objectives} objetivos - {department.completedKeyResults + department.inProgressKeyResults} KRs - {department.activeProjects} activos - {department.completedProjects} finalizados
-                  </p>
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 900, color }}>{coverage}%</span>
-              </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#EEF2F7]">
-                <div style={{ width: `${coverage}%`, height: "100%", backgroundColor: color }} />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <MiniStat label="Activos" value={department.activeProjects} />
-              <MiniStat label="Final." value={department.completedProjects} />
-              <MiniStat label="Objetivos" value={department.objectives} />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+  const itemsByDepartment = new Map<string, CoverageItem>();
+  data.forEach((department) => {
+    itemsByDepartment.set(department.departmentName, {
+      id: department.departmentId,
+      name: department.departmentName,
+      objectives: 0,
+      completedObjectives: 0,
+      objectivesAbove50: 0,
+      objectivesBetween0And50: 0,
+      objectivesAtZero: 0,
+      keyResults: 0,
+      completedProjects: department.completedProjects,
+      inProgressProjects: department.activeProjects,
+    });
+  });
+
+  objectiveCards.forEach((card) => {
+    const name = card.departmentName || "Sin departamento";
+    const current = itemsByDepartment.get(name) ?? {
+      id: card.departmentId,
+      name,
+      objectives: 0,
+      completedObjectives: 0,
+      objectivesAbove50: 0,
+      objectivesBetween0And50: 0,
+      objectivesAtZero: 0,
+      keyResults: 0,
+      completedProjects: 0,
+      inProgressProjects: 0,
+    };
+    const progress = clampPercent(Number.isFinite(card.completionPercentage) ? card.completionPercentage : 0);
+
+    current.objectives += 1;
+    current.keyResults += card.keyResults.length;
+    if (progress >= 100) current.completedObjectives += 1;
+    else if (progress >= 50) current.objectivesAbove50 += 1;
+    else if (progress > 0) current.objectivesBetween0And50 += 1;
+    else current.objectivesAtZero += 1;
+
+    itemsByDepartment.set(name, current);
+  });
+
+  const items = [...itemsByDepartment.values()]
+    .filter((item) => item.objectives > 0)
+    .sort((a, b) => b.objectives - a.objectives || a.name.localeCompare(b.name));
+
+  return <CoverageCharts data={items} emptyText="Sin objetivos por departamento para el periodo." metricLabel="Departamento" showProjects />;
 }
 
 function StrategicBetCoverage({ data }: { data: DashboardData["strategicBets"] }) {
@@ -744,15 +763,6 @@ function CoverageSummaryCard({ item, showProjects }: { item: CoverageItem; showP
           <div style={{ width: "100%", backgroundColor: "#E5E7EB" }} />
         )}
       </div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-md bg-white p-2 text-center" style={{ border: "1px solid #EEF2F7" }}>
-      <p style={{ fontSize: 14, fontWeight: 900, color: COLORS.text }}>{value}</p>
-      <p style={{ fontSize: 9, fontWeight: 850, color: "#9CA3AF", textTransform: "uppercase", marginTop: 2 }}>{label}</p>
     </div>
   );
 }

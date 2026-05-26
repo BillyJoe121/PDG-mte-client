@@ -5,10 +5,12 @@ import { toast } from "sonner";
 import { strategicBetsApi, type StrategicBet } from "../services/strategicApi";
 
 const COLORS = {
-  purple: "#5454E9",
+  blue: "#5454E9",
   orange: "#E9683B",
   gray: "#717182",
+  text: "#111827",
   border: "#E5E7EB",
+  subtle: "#F7F8FB",
 };
 
 type Errors = Partial<Record<"name" | "description" | "endDate", string>>;
@@ -85,23 +87,38 @@ export function GestionApuesta() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="mx-auto max-w-4xl px-6 pb-5 pt-3">
+      <div className="mb-3 flex items-center gap-3">
         <button onClick={() => navigate("/jerarquia")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50" style={{ border: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 800 }}>
           <ArrowLeft size={14} /> Jerarquia
         </button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.purple }}>
-            <Flag size={18} color="#fff" />
-          </div>
-          <div>
-            <p style={{ fontSize: 10, color: COLORS.gray, fontWeight: 800, textTransform: "uppercase" }}>Gestion de apuesta</p>
-            <h1 style={{ fontSize: 22, fontWeight: 900, color: "#111827" }}>{bet.name}</h1>
-          </div>
-        </div>
       </div>
 
-      <form onSubmit={submit} className="bg-white rounded-lg p-6 space-y-5" style={{ border: `1px solid ${COLORS.border}` }}>
+      <section className="objective-detail-hero mb-4 overflow-hidden rounded-md bg-white">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1fr)]">
+          <div className="flex min-h-[136px] flex-col justify-center gap-2 p-4" style={{ backgroundColor: COLORS.blue }}>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.28)", color: "#fff" }}>
+                <Flag size={18} />
+              </span>
+              <span style={{ color: "rgba(255,255,255,0.82)", fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Estrategia #{bet.id}
+              </span>
+            </div>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 950, color: "#fff", lineHeight: 1.12 }}>{bet.name}</h1>
+              <p style={{ color: "rgba(255,255,255,0.86)", fontSize: 12, lineHeight: 1.4, marginTop: 6 }}>{bet.description}</p>
+            </div>
+          </div>
+          <div className="flex flex-col justify-center gap-2 p-4" style={{ backgroundColor: COLORS.subtle, borderLeft: `1px solid ${COLORS.border}` }}>
+            <HeroInfo label="Inicio" value={bet.startDate ?? "Sin fecha"} />
+            <HeroInfo label="Cierre" value={bet.endDate ?? "Sin fecha"} />
+            <HeroInfo label="Estado" value={bet.status ?? "Activa"} />
+          </div>
+        </div>
+      </section>
+
+      <form onSubmit={submit} className="space-y-4 rounded-lg bg-white p-5" style={{ border: `1px solid ${COLORS.border}` }}>
         <Field label="Nombre" error={errors.name}>
           <input value={form.name} onChange={(event) => set("name", event.target.value)} style={inputStyle(Boolean(errors.name))} />
         </Field>
@@ -138,6 +155,15 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   );
 }
 
+function HeroInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-white px-3 py-2.5" style={{ border: `1px solid ${COLORS.border}` }}>
+      <span style={{ display: "block", color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>{label}</span>
+      <span style={{ display: "block", color: COLORS.text, fontSize: 12, fontWeight: 900, marginTop: 4 }}>{value}</span>
+    </div>
+  );
+}
+
 function Loading({ text }: { text: string }) {
   return <div className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: 13, fontWeight: 800 }}><Loader2 size={18} className="mr-2 animate-spin" /> {text}</div>;
 }
@@ -163,7 +189,7 @@ const inputStyle = (error: boolean): CSSProperties => ({
 
 const primaryButtonStyle: CSSProperties = {
   padding: "10px 18px",
-  backgroundColor: COLORS.purple,
+  backgroundColor: COLORS.blue,
   color: "#fff",
   borderRadius: 8,
   fontSize: 13,

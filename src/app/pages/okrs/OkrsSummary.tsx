@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import type { AcademicPeriod, MeasurementUnit } from "../../services/catalogsApi";
 import type { Department, Goal, ObjectiveCard, StrategicBet } from "../../services/strategicApi";
@@ -17,7 +17,9 @@ interface OkrsSummaryProps {
   onCreateObjective: () => void;
   onFilterChange: (key: keyof OkrsSummaryProps["filters"], value: string) => void;
   onResetFilters: () => void;
+  onSearchChange: (value: string) => void;
   periods: AcademicPeriod[];
+  search: string;
   stats: {
     total: number;
     promedio: number;
@@ -35,7 +37,9 @@ export function OkrsSummary({
   onCreateObjective,
   onFilterChange,
   onResetFilters,
+  onSearchChange,
   periods,
+  search,
   stats,
   strategicBets,
   visibleDepartments,
@@ -69,15 +73,24 @@ export function OkrsSummary({
       </div>
 
       <div className="sticky top-0 z-30 -mx-6 mb-5 flex flex-wrap items-center gap-3 bg-[#F8FAFC]/95 px-6 py-3 backdrop-blur" style={{ borderTop: `1px solid ${COLORS.border}`, borderBottom: `1px solid ${COLORS.border}` }}>
-        <FilterSelect label="Apuesta" value={filters.strategicBetId} onChange={(value) => onFilterChange("strategicBetId", value)} options={strategicBets.map((bet) => ({ value: bet.id, label: bet.name }))} />
-        <FilterSelect label="Meta" value={filters.goalId} onChange={(value) => onFilterChange("goalId", value)} options={goals.map((goal) => ({ value: goal.id, label: goal.name }))} />
-        <FilterSelect label="Departamento" value={filters.departmentId} onChange={(value) => onFilterChange("departmentId", value)} options={visibleDepartments.map((department) => ({ value: department.id, label: department.name }))} />
-        <FilterSelect label="Periodo" value={filters.periodId} onChange={(value) => onFilterChange("periodId", value)} options={periods.map((period) => ({ value: period.id, label: period.name }))} />
+        <FilterSelect width={155} label="Apuesta" value={filters.strategicBetId} onChange={(value) => onFilterChange("strategicBetId", value)} options={strategicBets.map((bet) => ({ value: bet.id, label: bet.name }))} />
+        <FilterSelect width={155} label="Meta" value={filters.goalId} onChange={(value) => onFilterChange("goalId", value)} options={goals.map((goal) => ({ value: goal.id, label: goal.name }))} />
+        <FilterSelect width={170} label="Departamento" value={filters.departmentId} onChange={(value) => onFilterChange("departmentId", value)} options={visibleDepartments.map((department) => ({ value: department.id, label: department.name }))} />
+        <FilterSelect width={145} label="Periodo" value={filters.periodId} onChange={(value) => onFilterChange("periodId", value)} options={periods.map((period) => ({ value: period.id, label: period.name }))} />
         <button onClick={onResetFilters} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "8px 11px", fontSize: "12px", fontWeight: 750, backgroundColor: "#fff", color: "#374151", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-          Limpiar filtros
+          Limpiar
         </button>
+        <div className="ml-auto flex min-h-[38px] min-w-[220px] flex-1 items-center gap-2 rounded-md px-3" style={{ maxWidth: 360, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+          <Search size={15} color={COLORS.gray} />
+          <input
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Buscar objetivo, KR o meta..."
+            style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
+          />
+        </div>
         {canEdit && (
-          <button onClick={onCreateObjective} className="ml-auto flex items-center gap-2 px-4 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.orange, color: "#fff", fontSize: "12px", fontWeight: 800, boxShadow: `0 10px 22px ${COLORS.orange}33` }}>
+          <button onClick={onCreateObjective} className="flex items-center gap-2 px-4 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.orange, color: "#fff", fontSize: "12px", fontWeight: 800, boxShadow: `0 10px 22px ${COLORS.orange}33` }}>
             <Plus size={14} /> Nuevo Objetivo
           </button>
         )}
@@ -86,10 +99,10 @@ export function OkrsSummary({
   );
 }
 
-function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: { value: number; label: string }[] }) {
+function FilterSelect({ label, value, onChange, options, width = 155 }: { label: string; value: string; onChange: (value: string) => void; options: { value: number; label: string }[]; width?: number }) {
   return (
     <Select value={value || "__all"} onValueChange={(next) => onChange(next === "__all" ? "" : next)}>
-      <SelectTrigger className="focus-visible:ring-0" title={label} style={filterSelectStyle}>
+      <SelectTrigger className="focus-visible:ring-0" title={label} style={{ ...filterSelectStyle, width }}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
@@ -107,7 +120,7 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
 }
 
 const filterSelectStyle = {
-  width: 220,
+  width: 155,
   minHeight: 38,
   border: `1px solid ${COLORS.border}`,
   borderRadius: 8,

@@ -2,18 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Loader2, Target } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
-import { departmentsApi, objectivesApi, type Department, type ObjectiveCard } from "../services/strategicApi";
-import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
+import type { Department, ObjectiveCard } from "../services/strategicApi";
+import type { AcademicPeriod } from "../services/catalogsApi";
 import {
-  projectsApi,
   type ProjectResponse,
   type ProjectStatus,
   type ProjectType,
 } from "../services/projectsApi";
+import { loadProjectsScreen, prefetchProjectDetails } from "../services/screenDataCache";
 import { KeyResultLinkModal } from "./proyectos/KeyResultLinkModal";
 import { CreateProjectModal } from "./proyectos/CreateProjectModal";
 import { ProjectCardView } from "./proyectos/ProjectCardView";
@@ -46,31 +45,23 @@ export function Proyectos() {
 
   const canCreate = usuario?.rol === "administrador" || usuario?.rol === "director" || usuario?.rol === "jefe";
 
-  const loadCatalogs = async () => {
-    const [departmentsData, periodsData, cardsData] = await Promise.all([
-      departmentsApi.list(),
-      academicPeriodsApi.list(),
-      objectivesApi.cards(),
-    ]);
-    setDepartments(departmentsData);
-    setPeriods(periodsData);
-    setObjectiveCards(cardsData);
-  };
-
-  const loadProjects = async (options?: { silent?: boolean }) => {
+  const loadProjects = async (options?: { force?: boolean; silent?: boolean }) => {
     if (!options?.silent) {
       setLoading(true);
       setError("");
     }
     try {
-      const data = await projectsApi.list({
-        search: search.trim() || undefined,
+      const data = await loadProjectsScreen({
         status: status === "todos" ? undefined : status,
         type: type === "todos" ? undefined : type,
         departmentId: departmentId === "todos" ? undefined : Number(departmentId),
         period: period === "todos" ? undefined : period,
-      });
-      setProjects(data);
+      }, { force: options?.force });
+      setProjects(data.projects);
+      setDepartments(data.departments);
+      setPeriods(data.periods);
+      setObjectiveCards(data.objectiveCards);
+      void prefetchProjectDetails(data.projects);
     } catch (loadError) {
       if (!options?.silent) setError(errorMessage(loadError));
     } finally {
@@ -79,24 +70,19 @@ export function Proyectos() {
   };
 
   useEffect(() => {
-    loadCatalogs().catch((catalogError) => {
-      toast.error(errorMessage(catalogError));
-    });
-  }, []);
-
-  useEffect(() => {
     const timeout = window.setTimeout(() => {
       void loadProjects();
     }, 250);
     return () => window.clearTimeout(timeout);
-  }, [search, status, type, departmentId, period]);
+  }, [status, type, departmentId, period]);
 
   useStrategicDataRefresh({
     scopes: ["projects"],
-    onRefresh: () => loadProjects({ silent: true }),
+    onRefresh: () => loadProjects({ force: true, silent: true }),
   });
 
-  const stats = useMemo(() => buildProjectStats(projects), [projects]);
+  const visibleProjects = useMemo(() => filterProjects(projects, search), [projects, search]);
+  const stats = useMemo(() => buildProjectStats(visibleProjects), [visibleProjects]);
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
@@ -151,14 +137,14 @@ export function Proyectos() {
           <motion.div key="loading" {...viewMotion} className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "13px", fontWeight: 800 }}>
             <Loader2 size={18} className="mr-2 animate-spin" /> Cargando proyectos...
           </motion.div>
-        ) : projects.length === 0 ? (
+        ) : visibleProjects.length === 0 ? (
           <motion.div key="empty" {...viewMotion} className="py-16 text-center">
             <Target size={32} color="#D1D5DB" className="mx-auto mb-3" />
             <p style={{ fontSize: "14px", color: "#9CA3AF" }}>No se encontraron proyectos.</p>
           </motion.div>
         ) : (
           <motion.div key="cards" {...viewMotion} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 items-start">
-            {projects.map((project, index) => (
+            {visibleProjects.map((project, index) => (
               <ProjectCardView
                 key={project.id}
                 project={project}
@@ -181,7 +167,7 @@ export function Proyectos() {
             onClose={() => setCreatingProject(false)}
             onCreated={async (projectId) => {
               setCreatingProject(false);
-              await loadProjects();
+              await loadProjects({ force: true });
               navigate(`/proyectos/${projectId}`);
             }}
           />
@@ -191,10 +177,53 @@ export function Proyectos() {
             project={linkProject}
             objectiveCards={objectiveCards}
             onClose={() => setLinkProject(null)}
-            onChanged={loadProjects}
+            onChanged={() => loadProjects({ force: true })}
           />
         )}
       </AnimatePresence>
     </div>
   );
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function getProjectSearchText(project: ProjectResponse) {
+  const linkedKeyResults = project.linkedKeyResults.map((link) => [
+    link.keyResultId,
+    link.keyResultName,
+    link.keyResultDescription,
+    link.contributionType,
+    link.contributionWeight,
+  ].filter(Boolean).join(" ")).join(" ");
+
+  return [
+    project.id,
+    project.externalProjectId,
+    project.name,
+    project.description,
+    project.type,
+    project.departmentName,
+    project.status,
+    project.startPeriod,
+    project.endPeriod,
+    project.startDate,
+    project.endDate,
+    project.actualEndDate,
+    project.globalProgress,
+    project.origin,
+    project.syncStatus,
+    project.tutors.join(" "),
+    linkedKeyResults,
+  ].filter(Boolean).join(" ");
+}
+
+function filterProjects(projects: ProjectResponse[], query: string) {
+  const cleanQuery = normalizeSearchText(query.trim());
+  if (!cleanQuery) return projects;
+  return projects.filter((project) => normalizeSearchText(getProjectSearchText(project)).includes(cleanQuery));
 }

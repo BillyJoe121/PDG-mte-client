@@ -9,7 +9,9 @@ const COLORS = {
   green: "#4CB979",
   orange: "#E9683B",
   gray: "#717182",
+  text: "#111827",
   border: "#E5E7EB",
+  subtle: "#F7F8FB",
 };
 
 type Errors = Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>>;
@@ -102,23 +104,39 @@ export function GestionMeta() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="mx-auto max-w-4xl px-6 pb-5 pt-3">
+      <div className="mb-3 flex items-center gap-3">
         <button onClick={() => navigate("/jerarquia")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50" style={{ border: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 800 }}>
           <ArrowLeft size={14} /> Jerarquia
         </button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.green }}>
-            <BookOpen size={18} color="#fff" />
-          </div>
-          <div>
-            <p style={{ fontSize: 10, color: COLORS.gray, fontWeight: 800, textTransform: "uppercase" }}>Gestion de meta</p>
-            <h1 style={{ fontSize: 22, fontWeight: 900, color: "#111827" }}>{goal.name}</h1>
-          </div>
-        </div>
       </div>
 
-      <form onSubmit={submit} className="bg-white rounded-lg p-6 space-y-5" style={{ border: `1px solid ${COLORS.border}` }}>
+      <section className="objective-detail-hero mb-4 overflow-hidden rounded-md bg-white">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1fr)]">
+          <div className="flex min-h-[136px] flex-col justify-center gap-2 p-4" style={{ backgroundColor: COLORS.green }}>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.28)", color: "#fff" }}>
+                <BookOpen size={18} />
+              </span>
+              <span style={{ color: "rgba(255,255,255,0.82)", fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Meta #{goal.id}
+              </span>
+            </div>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 950, color: "#fff", lineHeight: 1.12 }}>{goal.name}</h1>
+              <p style={{ color: "rgba(255,255,255,0.86)", fontSize: 12, lineHeight: 1.4, marginTop: 6 }}>{goal.description}</p>
+            </div>
+          </div>
+          <div className="grid content-center gap-2 p-4 sm:grid-cols-2" style={{ backgroundColor: COLORS.subtle, borderLeft: `1px solid ${COLORS.border}` }}>
+            <HeroInfo label="Indicador" value={goal.referenceIndicator ?? "Sin indicador"} />
+            <HeroInfo label="Valor esperado" value={`${goal.expectedValue} ${goal.measurementUnitName}`} />
+            <HeroInfo label="Inicio" value={goal.startDate ?? "Sin fecha"} />
+            <HeroInfo label="Cierre" value={goal.endDate ?? "Sin fecha"} />
+          </div>
+        </div>
+      </section>
+
+      <form onSubmit={submit} className="space-y-4 rounded-lg bg-white p-5" style={{ border: `1px solid ${COLORS.border}` }}>
         <Field label="Nombre" error={errors.name}>
           <input value={form.name} onChange={(event) => set("name", event.target.value)} style={inputStyle(Boolean(errors.name))} />
         </Field>
@@ -166,6 +184,15 @@ function Field({ label, error, children }: { label: string; error?: string; chil
       {children}
       {error && <span style={{ display: "block", marginTop: 4, fontSize: 11, color: COLORS.orange }}>{error}</span>}
     </label>
+  );
+}
+
+function HeroInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-white px-3 py-2.5" style={{ border: `1px solid ${COLORS.border}` }}>
+      <span style={{ display: "block", color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>{label}</span>
+      <span style={{ display: "block", color: COLORS.text, fontSize: 12, fontWeight: 900, marginTop: 4 }}>{value}</span>
+    </div>
   );
 }
 

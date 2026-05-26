@@ -447,6 +447,7 @@
   height: 5px;
   background: #E9683B;
   z-index: 1;
+  display: none;
 }
 
 .kr-detail-card {

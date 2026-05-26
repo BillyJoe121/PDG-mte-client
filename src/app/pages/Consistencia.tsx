@@ -20,6 +20,7 @@ import {
   type ConsistencyResponse,
   type ConsistencySeverity,
 } from "../services/consistencyApi";
+import { loadConsistencyCheck } from "../services/screenDataCache";
 
 const COLORS = {
   blue: "#5454E9",
@@ -75,11 +76,11 @@ export function Consistencia() {
     module: moduleFilter === "todos" ? undefined : moduleFilter,
   }), [moduleFilter, severity]);
 
-  const loadConsistency = useCallback(async () => {
+  const loadConsistency = useCallback(async (options?: { force?: boolean }) => {
     setLoading(true);
     setError("");
     try {
-      setData(await consistencyApi.check(apiFilters));
+      setData(await loadConsistencyCheck(apiFilters, { force: options?.force }));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

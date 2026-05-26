@@ -23,11 +23,11 @@ import {
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useAuth } from "../context/AuthContext";
-import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
-import { departmentsApi, objectivesApi, type Department, type ObjectiveCard } from "../services/strategicApi";
+import type { AcademicPeriod } from "../services/catalogsApi";
+import type { Department, ObjectiveCard } from "../services/strategicApi";
+import { loadProjectDetailScreen } from "../services/screenDataCache";
 import {
   contributionTypeLabel,
-  projectContributionApi,
   projectKeyResultLinksApi,
   projectsApi,
   type ImpactChain,
@@ -83,17 +83,17 @@ export function FichaProyecto() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [unlinkTarget, setUnlinkTarget] = useState<ProjectKeyResultLinkResponse | null>(null);
 
-  const loadDetail = async () => {
+  const loadDetail = async (options?: { force?: boolean }) => {
     if (!Number.isFinite(projectId)) return;
     setLoading(true);
     setError("");
     try {
-      const [data, chain] = await Promise.all([
-        projectsApi.detail(projectId),
-        projectContributionApi.contributionChain(projectId),
-      ]);
-      setDetail(data);
-      setContributionChain(chain);
+      const data = await loadProjectDetailScreen(projectId, { force: options?.force });
+      setDetail(data.detail);
+      setContributionChain(data.contributionChain);
+      setObjectiveCards(data.objectiveCards);
+      setDepartments(data.departments);
+      setPeriods(data.periods);
     } catch (loadError) {
       setError(errorMessage(loadError));
     } finally {
@@ -103,13 +103,6 @@ export function FichaProyecto() {
 
   useEffect(() => {
     void loadDetail();
-    Promise.all([objectivesApi.cards(), departmentsApi.list(), academicPeriodsApi.list()])
-      .then(([cards, departmentList, periodList]) => {
-        setObjectiveCards(cards);
-        setDepartments(departmentList);
-        setPeriods(periodList);
-      })
-      .catch(() => undefined);
   }, [projectId]);
 
   const project = detail?.project;
@@ -166,7 +159,7 @@ export function FichaProyecto() {
     try {
       await projectsApi.updateStatus(project.id, status);
       toast.success(`Estado actualizado a ${STATUS_LABELS[status]}.`);
-      await loadDetail();
+      await loadDetail({ force: true });
     } catch (statusError) {
       toast.error(errorMessage(statusError));
     } finally {
@@ -178,7 +171,7 @@ export function FichaProyecto() {
     try {
       await projectKeyResultLinksApi.remove(linkId);
       toast.success("Vinculo desactivado.");
-      await loadDetail();
+      await loadDetail({ force: true });
     } catch (removeError) {
       toast.error(errorMessage(removeError));
     }
@@ -186,7 +179,7 @@ export function FichaProyecto() {
 
   return (
     <div className="min-h-full bg-[#F8FAFC]">
-      <div className="mx-auto max-w-7xl p-6">
+      <div className="mx-auto max-w-7xl px-6 pb-5 pt-4">
         <Breadcrumb projectName={project.name} onBack={() => navigate("/proyectos")} />
 
         <ProjectHero
@@ -194,8 +187,8 @@ export function FichaProyecto() {
           project={project}
         />
 
-        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <main className="min-w-0 space-y-4">
+        <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_330px]">
+          <main className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-2 rounded-md bg-white p-2" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
               {tabs.map((tab) => (
                 <button
@@ -221,7 +214,7 @@ export function FichaProyecto() {
 
             <AnimatePresence mode="wait" initial={false}>
               {activeTab === "resumen" && (
-                <motion.div key="resumen" {...viewMotion} className="space-y-4">
+                <motion.div key="resumen" {...viewMotion} className="space-y-3">
                   <SummarySection
                     chain={chain}
                     detail={detail}
@@ -274,7 +267,7 @@ export function FichaProyecto() {
         <RegisterProgressModal
           project={project}
           onClose={() => setShowProgressModal(false)}
-          onSaved={loadDetail}
+          onSaved={() => loadDetail({ force: true })}
         />
       )}
       {showEditModal && (
@@ -285,7 +278,7 @@ export function FichaProyecto() {
           onClose={() => setShowEditModal(false)}
           onSaved={async () => {
             setShowEditModal(false);
-            await loadDetail();
+            await loadDetail({ force: true });
           }}
         />
       )}
@@ -294,7 +287,7 @@ export function FichaProyecto() {
           project={project}
           objectiveCards={objectiveCards}
           onClose={() => setShowLinkModal(false)}
-          onSaved={loadDetail}
+          onSaved={() => loadDetail({ force: true })}
         />
       )}
       {unlinkTarget && (
@@ -514,7 +507,7 @@ function ModalSelect({
 
 function Breadcrumb({ projectName, onBack }: { projectName: string; onBack: () => void }) {
   return (
-    <div className="mb-4 flex items-center gap-2">
+    <div className="mb-3 flex items-center gap-2">
       <button onClick={onBack} className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-white" style={{ color: "#6B7280", fontSize: 12, fontWeight: 800 }}>
         <ArrowLeft size={14} />
         Proyectos
@@ -527,10 +520,10 @@ function Breadcrumb({ projectName, onBack }: { projectName: string; onBack: () =
 
 function ProjectHero({ progressColor, project }: { progressColor: string; project: ProjectDetailResponse["project"] }) {
   return (
-    <section className="overflow-hidden rounded-md" style={{ backgroundColor: COLORS.green, boxShadow: `0 18px 42px ${COLORS.green}24` }}>
-      <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="p-5 sm:p-6">
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+    <section className="objective-detail-hero overflow-hidden rounded-md bg-white" style={{ boxShadow: `0 18px 42px ${COLORS.green}24` }}>
+      <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(320px,1fr)]">
+        <div className="flex min-h-[150px] items-center p-4 sm:p-5" style={{ backgroundColor: COLORS.green }}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span style={heroEyebrowStyle}>PROY-{String(project.id).padStart(2, "0")}</span>
@@ -543,15 +536,9 @@ function ProjectHero({ progressColor, project }: { progressColor: string; projec
               <p style={heroDescriptionStyle}>{project.description}</p>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <HeroFact label="Departamento" value={project.departmentName ?? String(project.departmentId ?? "Sin departamento")} />
-            <HeroFact label="Periodo" value={`${project.startPeriod}${project.endPeriod ? ` - ${project.endPeriod}` : ""}`} />
-            <HeroFact label="Tutores" value={project.tutors.length ? project.tutors.join(", ") : "Sin tutores"} />
-          </div>
         </div>
 
-        <div className="flex items-center justify-center p-5" style={{ backgroundColor: "rgba(17,24,39,0.10)", borderLeft: "1px solid rgba(255,255,255,0.16)" }}>
+        <div className="flex min-h-[150px] items-center justify-center p-4" style={{ backgroundColor: COLORS.subtle, borderLeft: `1px solid ${COLORS.border}` }}>
           <RadialProgress value={project.globalProgress} color={progressColor} />
         </div>
       </div>
@@ -576,7 +563,7 @@ function SummarySection({
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Registros de avance" value={detail.kpis.progressEntries} icon={<Clock3 size={16} />} color={COLORS.green} />
         <MetricCard label="KRs vinculados" value={detail.kpis.linkedKeyResults} icon={<Target size={16} />} color={COLORS.blue} />
         <MetricCard label="Peso declarado" value={`${detail.kpis.declaredContributionWeight}%`} icon={<Link2 size={16} />} color={COLORS.purple} />
@@ -589,7 +576,7 @@ function SummarySection({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_310px]">
         <Panel title="Avance global" icon={<TrendingUp size={16} />} subtitle={latestEntry ? `Ultimo registro: ${formatDate(latestEntry.createdAt)}` : "Sin registros de avance todavia."}>
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -820,8 +807,8 @@ function ProjectAside({
 
 function Panel({ title, icon, subtitle, action, children }: { title: string; icon: ReactNode; subtitle?: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-md bg-white p-4 sm:p-5" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <section className="rounded-md bg-white p-3 sm:p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#ECFDF5", color: COLORS.green }}>
             {icon}
@@ -840,11 +827,11 @@ function Panel({ title, icon, subtitle, action, children }: { title: string; ico
 
 function MetricCard({ label, value, icon, color }: { label: string; value: number | string; icon: ReactNode; color: string }) {
   return (
-    <div className="rounded-md p-4" style={{ backgroundColor: color, border: `1px solid ${color}`, minHeight: 118, boxShadow: `0 12px 24px ${color}22` }}>
+    <div className="rounded-md p-3" style={{ backgroundColor: color, border: `1px solid ${color}`, minHeight: 94, boxShadow: `0 12px 24px ${color}22` }}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,0.72)", textTransform: "uppercase" }}>{label}</p>
-          <p style={{ fontSize: 30, fontWeight: 950, color: "#fff", marginTop: 8, lineHeight: 1 }}>{value}</p>
+          <p style={{ fontSize: 26, fontWeight: 950, color: "#fff", marginTop: 6, lineHeight: 1 }}>{value}</p>
         </div>
         <div className="flex h-9 w-9 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", color: "#fff" }}>
           {icon}
@@ -901,30 +888,21 @@ function ImpactCard({ impact, projectProgress }: { impact: ImpactChain["impacts"
 }
 
 function RadialProgress({ value, color }: { value: number; color: string }) {
-  const radius = 72;
-  const center = 105;
+  const radius = 54;
+  const center = 80;
   const circumference = 2 * Math.PI * radius;
   const dash = (Math.max(0, Math.min(100, value)) / 100) * circumference;
 
   return (
-    <div className="relative" style={{ width: 210, height: 210 }}>
-      <svg width="210" height="210" viewBox="0 0 210 210">
-        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="13" />
-        <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth="13" strokeDasharray={`${dash} ${circumference}`} strokeLinecap="round" transform={`rotate(-90 ${center} ${center})`} />
+    <div className="relative" style={{ width: 160, height: 160 }}>
+      <svg width="160" height="160" viewBox="0 0 160 160">
+        <circle cx={center} cy={center} r={radius} fill="none" stroke="#E5E7EB" strokeWidth="11" />
+        <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth="11" strokeDasharray={`${dash} ${circumference}`} strokeLinecap="round" transform={`rotate(-90 ${center} ${center})`} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span style={{ color: "#fff", fontSize: 36, fontWeight: 950, lineHeight: 1 }}>{value}%</span>
-        <span style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, fontWeight: 900, textTransform: "uppercase" }}>Avance global</span>
+        <span style={{ color, fontSize: 30, fontWeight: 950, lineHeight: 1 }}>{value}%</span>
+        <span style={{ color: COLORS.gray, fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>Avance global</span>
       </div>
-    </div>
-  );
-}
-
-function HeroFact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md p-3" style={{ backgroundColor: "rgba(255,255,255,0.13)", border: "1px solid rgba(255,255,255,0.18)", minHeight: 70 }}>
-      <p style={{ fontSize: 9, color: "rgba(255,255,255,0.68)", fontWeight: 900, textTransform: "uppercase" }}>{label}</p>
-      <p style={{ fontSize: 12, color: "#fff", fontWeight: 900, lineHeight: 1.3, marginTop: 5, overflowWrap: "anywhere" }}>{value}</p>
     </div>
   );
 }
@@ -1012,19 +990,19 @@ const heroEyebrowStyle: CSSProperties = {
 
 const heroTitleStyle: CSSProperties = {
   color: "#fff",
-  fontSize: 32,
+  fontSize: 28,
   fontWeight: 950,
-  lineHeight: 1.06,
-  marginTop: 14,
+  lineHeight: 1.08,
+  marginTop: 10,
   maxWidth: 920,
   overflowWrap: "anywhere",
 };
 
 const heroDescriptionStyle: CSSProperties = {
   color: "rgba(255,255,255,0.84)",
-  fontSize: 13,
-  marginTop: 10,
-  lineHeight: 1.55,
+  fontSize: 12,
+  marginTop: 8,
+  lineHeight: 1.45,
   maxWidth: 860,
 };
 

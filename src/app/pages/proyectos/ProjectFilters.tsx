@@ -40,17 +40,22 @@ export function ProjectFilters({
 }: ProjectFiltersProps) {
   return (
     <div className="sticky top-0 z-30 -mx-6 mb-5 flex flex-wrap items-center gap-3 bg-[#F8FAFC]/95 px-6 py-3 backdrop-blur" style={{ borderTop: `1px solid ${COLORS.border}`, borderBottom: `1px solid ${COLORS.border}` }}>
-      <div className="flex items-center gap-2" style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 11px", width: 220, minHeight: 38, backgroundColor: "#F8FAFC", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85)" }}>
-        <Search size={14} color="#717182" />
-        <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar proyecto..." style={{ border: 0, outline: 0, fontSize: 12, flex: 1, backgroundColor: "transparent", color: COLORS.text, fontWeight: 700 }} />
-      </div>
       <FilterSelect value={status} onChange={(value) => onStatusChange(value as ProjectStatus | "todos")} options={STATUS_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Estado" } : option)} />
       <FilterSelect value={type} onChange={(value) => onTypeChange(value as ProjectType | "todos")} options={TYPE_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Tipo" } : option)} />
       <FilterSelect width={170} value={departmentId} onChange={onDepartmentChange} options={[{ value: "todos", label: "Todos: Departamento" }, ...departments.map((department) => ({ value: String(department.id), label: department.name }))]} />
       <FilterSelect value={period} onChange={onPeriodChange} options={[{ value: "todos", label: "Todos: Periodo" }, ...periods.map((item) => ({ value: item.name, label: item.name }))]} />
       <button onClick={onReset} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "8px 11px", fontSize: "12px", fontWeight: 750, backgroundColor: "#fff", color: "#374151", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>Limpiar</button>
+      <div className="ml-auto flex min-h-[38px] min-w-[220px] flex-1 items-center gap-2 rounded-md px-3" style={{ maxWidth: 360, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+        <Search size={15} color={COLORS.gray} />
+        <input
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="Buscar proyecto..."
+          style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
+        />
+      </div>
       {onCreateProject && (
-        <button onClick={onCreateProject} className="ml-auto inline-flex items-center gap-2 hover:opacity-90" style={{ padding: "10px 14px", borderRadius: 6, fontSize: 12, fontWeight: 800, backgroundColor: COLORS.green, color: "#fff", boxShadow: `0 10px 22px ${COLORS.green}33` }}>
+        <button onClick={onCreateProject} className="inline-flex items-center gap-2 hover:opacity-90" style={{ padding: "10px 14px", borderRadius: 6, fontSize: 12, fontWeight: 800, backgroundColor: COLORS.green, color: "#fff", boxShadow: `0 10px 22px ${COLORS.green}33` }}>
           <Plus size={15} />
           Nuevo proyecto
         </button>

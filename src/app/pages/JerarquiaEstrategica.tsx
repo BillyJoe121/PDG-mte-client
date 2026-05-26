@@ -9,11 +9,11 @@ import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { Calendar } from "../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { academicPeriodsApi, measurementUnitsApi, type AcademicPeriod, type MeasurementUnit } from "../services/catalogsApi";
+import { measurementUnitsApi, type AcademicPeriod, type MeasurementUnit } from "../services/catalogsApi";
+import { loadHierarchyScreen } from "../services/screenDataCache";
 import { truncateText } from "../utils/text";
 import {
   goalsApi,
-  hierarchyApi,
   strategicBetsApi,
   type ExecutionSummary,
   type Goal,
@@ -69,20 +69,15 @@ export function JerarquiaEstrategica() {
   const [editingBet, setEditingBet] = useState<StrategicBet | null>(null);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
-  const load = useCallback(async (options?: { resetSelection?: boolean; silent?: boolean }) => {
+  const load = useCallback(async (options?: { force?: boolean; resetSelection?: boolean; silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
     try {
       const selectedPeriod = period || undefined;
-      const [treeData, betList, goalList, periodList] = await Promise.all([
-        hierarchyApi.tree(selectedPeriod),
-        strategicBetsApi.list(selectedPeriod),
-        goalsApi.list(selectedPeriod),
-        academicPeriodsApi.list(),
-      ]);
-      setTree(treeData);
-      setBets(betList);
-      setGoals(goalList);
-      setPeriods(periodList);
+      const data = await loadHierarchyScreen(selectedPeriod, { force: options?.force });
+      setTree(data.tree);
+      setBets(data.bets);
+      setGoals(data.goals);
+      setPeriods(data.periods);
       if (options?.resetSelection !== false) {
         setSelectedHierarchyRootKey(null);
         setExpanded(new Set());
@@ -100,7 +95,7 @@ export function JerarquiaEstrategica() {
 
   useStrategicDataRefresh({
     scopes: ["hierarchy"],
-    onRefresh: () => load({ resetSelection: false, silent: true }),
+    onRefresh: () => load({ force: true, resetSelection: false, silent: true }),
   });
 
   const totalObjectives = useMemo(() => countNodes(tree, "OBJECTIVE"), [tree]);
@@ -234,7 +229,7 @@ export function JerarquiaEstrategica() {
                 </button>
               </>
             )}
-            <button onClick={() => void load()} className="flex items-center justify-center rounded-md" style={{ width: 36, height: 36, border: "1px solid #E5E7EB" }} title="Recargar">
+            <button onClick={() => void load({ force: true })} className="flex items-center justify-center rounded-md" style={{ width: 36, height: 36, border: "1px solid #E5E7EB" }} title="Recargar">
               <RefreshCw size={14} />
             </button>
           </div>
@@ -335,7 +330,7 @@ export function JerarquiaEstrategica() {
             onClose={() => setCreateModal(null)}
             onCreated={async () => {
               setCreateModal(null);
-              await load();
+              await load({ force: true });
             }}
           />
         )}
@@ -344,7 +339,7 @@ export function JerarquiaEstrategica() {
             onClose={() => setCreateModal(null)}
             onCreated={async () => {
               setCreateModal(null);
-              await load();
+              await load({ force: true });
             }}
           />
         )}
@@ -354,7 +349,7 @@ export function JerarquiaEstrategica() {
             onClose={() => setEditingBet(null)}
             onSaved={async () => {
               setEditingBet(null);
-              await load({ resetSelection: false });
+              await load({ force: true, resetSelection: false });
             }}
           />
         )}
@@ -364,7 +359,7 @@ export function JerarquiaEstrategica() {
             onClose={() => setEditingGoal(null)}
             onSaved={async () => {
               setEditingGoal(null);
-              await load({ resetSelection: false });
+              await load({ force: true, resetSelection: false });
             }}
           />
         )}

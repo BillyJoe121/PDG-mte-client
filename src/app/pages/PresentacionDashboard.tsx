@@ -24,11 +24,11 @@ import {
 import { IcesiLogo } from "../components/IcesiLogo";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useGlobalFilters } from "../context/FiltersContext";
-import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
-import { goalsApi, objectivesApi, type Goal, type ObjectiveCard } from "../services/strategicApi";
+import type { AcademicPeriod } from "../services/catalogsApi";
+import type { Goal, ObjectiveCard } from "../services/strategicApi";
+import { loadPresentationScreen } from "../services/screenDataCache";
 import {
   PERIOD_REGEX,
-  presentationApi,
   type PresentationResponse,
   type PresentationSlide,
 } from "../services/reportsApi";
@@ -521,7 +521,7 @@ export function PresentacionDashboard() {
     ? lastUpdatedAt.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
     : "--:--";
 
-  const loadPresentation = useCallback(async (silent = false) => {
+  const loadPresentation = useCallback(async (silent = false, options?: { force?: boolean }) => {
     if (!validatePeriod(period)) {
       setError("El periodo debe tener formato YYYY-Q1..Q4 o YYYY-1..2.");
       setLoading(false);
@@ -531,21 +531,13 @@ export function PresentacionDashboard() {
     if (!silent) setLoading(true);
     setError("");
     try {
-      const periodList = await academicPeriodsApi.list();
-      const selectedPeriodData = period
-        ? periodList.find((item) => item.name === period)
-        : periodList.find((item) => item.status === "ACTIVO");
-      const [presentation, goalList, objectiveCardList] = await Promise.all([
-        presentationApi.get({ period: period || undefined }),
-        goalsApi.list(period || undefined),
-        objectivesApi.cards({ periodId: selectedPeriodData?.id }),
-      ]);
-      setPeriods(periodList);
-      setGoals(goalList);
-      setObjectiveCards(objectiveCardList);
-      setData(presentation);
+      const screen = await loadPresentationScreen(period || undefined, { force: options?.force });
+      setPeriods(screen.periods);
+      setGoals(screen.goals);
+      setObjectiveCards(screen.objectiveCards);
+      setData(screen.presentation);
       setLastUpdatedAt(new Date());
-      setIndex((current) => Math.min(current, Math.max(0, buildDeckSlides(presentation.slides, goalList, objectiveCardList).length - 1)));
+      setIndex((current) => Math.min(current, Math.max(0, buildDeckSlides(screen.presentation.slides, screen.goals, screen.objectiveCards).length - 1)));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -565,7 +557,7 @@ export function PresentacionDashboard() {
   useEffect(() => {
     if (!data) return undefined;
     const timer = window.setInterval(() => {
-      void loadPresentation(true);
+      void loadPresentation(true, { force: true });
     }, AUTO_REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [data, loadPresentation]);
@@ -645,7 +637,7 @@ export function PresentacionDashboard() {
           onNext={goNext}
           onPeriodChange={handlePeriodChange}
           onPrev={goPrev}
-          onReload={() => void loadPresentation()}
+          onReload={() => void loadPresentation(false, { force: true })}
           onToggleFullscreen={toggleFullscreen}
           periods={sortedPeriods}
           selectedPeriod={period}

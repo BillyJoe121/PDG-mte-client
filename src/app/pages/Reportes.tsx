@@ -20,11 +20,11 @@ import { toast } from "sonner";
 import { useAudit } from "../context/AuditContext";
 import { useGlobalFilters } from "../context/FiltersContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
-import { departmentsApi, objectivesApi, type Department, type ObjectiveCard } from "../services/strategicApi";
+import type { AcademicPeriod } from "../services/catalogsApi";
+import type { Department, ObjectiveCard } from "../services/strategicApi";
+import { loadReportComparison, loadReportsScreen } from "../services/screenDataCache";
 import {
   PERIOD_REGEX,
-  reportsApi,
   type ConsolidatedReport,
   type GeneralReport,
   type PeriodComparison,
@@ -631,22 +631,7 @@ export function Reportes() {
     [period, selectedDepartment, selectedObjective],
   );
 
-  const loadCatalogs = useCallback(async () => {
-    const [periodList, departmentList, objectiveList] = await Promise.all([
-      academicPeriodsApi.list(),
-      departmentsApi.list(),
-      objectivesApi.cards(),
-    ]);
-    setPeriods(periodList);
-    setDepartments(departmentList);
-    setObjectives(objectiveList);
-
-    const ordered = [...periodList].sort((a, b) => b.startDate.localeCompare(a.startDate));
-    setBasePeriod((current) => current || ordered[1]?.name || ordered[0]?.name || "");
-    setComparePeriod((current) => current || ordered[0]?.name || "");
-  }, []);
-
-  const loadReport = useCallback(async () => {
+  const loadReport = useCallback(async (options?: { force?: boolean }) => {
     if (!validatePeriod(period)) {
       setError("El periodo debe tener formato YYYY-Q1..Q4 o YYYY-1..2.");
       return;
@@ -655,8 +640,15 @@ export function Reportes() {
     setLoading(true);
     setError("");
     try {
-      const data = await reportsApi.consolidated(params);
-      setReport(data);
+      const data = await loadReportsScreen(params, { force: options?.force });
+      setPeriods(data.periods);
+      setDepartments(data.departments);
+      setObjectives(data.objectives);
+      setReport(data.report);
+
+      const ordered = [...data.periods].sort((a, b) => b.startDate.localeCompare(a.startDate));
+      setBasePeriod((current) => current || ordered[1]?.name || ordered[0]?.name || "");
+      setComparePeriod((current) => current || ordered[0]?.name || "");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -664,7 +656,7 @@ export function Reportes() {
     }
   }, [params, period]);
 
-  const loadComparison = useCallback(async () => {
+  const loadComparison = useCallback(async (options?: { force?: boolean }) => {
     if (!basePeriod || !comparePeriod) return;
     if (!validatePeriod(basePeriod) || !validatePeriod(comparePeriod)) {
       setError("Los periodos de comparativa deben tener formato YYYY-Q1..Q4 o YYYY-1..2.");
@@ -674,12 +666,12 @@ export function Reportes() {
     setComparisonLoading(true);
     setError("");
     try {
-      const data = await reportsApi.periodComparison({
+      const data = await loadReportComparison({
         basePeriod,
         comparePeriod,
         departmentId: params.departmentId,
         objectiveId: params.objectiveId,
-      });
+      }, { force: options?.force });
       setComparison(data);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -692,10 +684,7 @@ export function Reportes() {
     let mounted = true;
     setLoading(true);
     setError("");
-    loadCatalogs()
-      .then(() => {
-        if (mounted) void loadReport();
-      })
+    loadReport()
       .catch((err) => {
         if (mounted) {
           setError(getErrorMessage(err));
@@ -705,7 +694,7 @@ export function Reportes() {
     return () => {
       mounted = false;
     };
-  }, [loadCatalogs, loadReport]);
+  }, [loadReport]);
 
   useEffect(() => {
     if (tab === "comparison") void loadComparison();
@@ -788,7 +777,7 @@ export function Reportes() {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => void loadReport()}
+              onClick={() => void loadReport({ force: true })}
               disabled={loading}
               className="flex items-center justify-center rounded-md disabled:opacity-50"
               style={{ width: 38, height: 38, border: "1px solid #E5E7EB", backgroundColor: "#fff" }}
@@ -904,7 +893,7 @@ export function Reportes() {
                       <label style={{ display: "block", fontSize: 10, fontWeight: 850, color: COLORS.gray, marginBottom: 6, textTransform: "uppercase" }}>Periodo comparado</label>
                       <ReportSelect value={comparePeriod} onChange={setComparePeriod} options={sortedPeriods.map((item) => ({ value: item.name, label: item.name }))} />
                     </div>
-                    <button onClick={() => void loadComparison()} disabled={comparisonLoading || !basePeriod || !comparePeriod} className="flex items-center gap-2 rounded-md disabled:opacity-50" style={{ padding: "9px 13px", backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.blue}33` }}>
+                    <button onClick={() => void loadComparison({ force: true })} disabled={comparisonLoading || !basePeriod || !comparePeriod} className="flex items-center gap-2 rounded-md disabled:opacity-50" style={{ padding: "9px 13px", backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.blue}33` }}>
                       {comparisonLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Comparar
                     </button>
                   </div>
