@@ -65,7 +65,7 @@ export function ProjectCardView({ canManage, index = 0, project, onLink, onOpen 
                 transform="rotate(-90 27 27)"
               />
             </svg>
-            <span className="project-card__progress-label">{project.globalProgress}%</span>
+            <span className="project-card__progress-label">{Math.round(project.globalProgress)}%</span>
           </div>
         </div>
 

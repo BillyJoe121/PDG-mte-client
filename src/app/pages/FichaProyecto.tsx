@@ -189,27 +189,65 @@ export function FichaProyecto() {
 
         <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_330px]">
           <main className="min-w-0 space-y-3">
-            <div className="flex flex-wrap items-center gap-2 rounded-md bg-white p-2" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className="inline-flex items-center gap-2 rounded-md px-3 py-2 transition-colors"
-                  style={{
-                    backgroundColor: activeTab === tab.key ? COLORS.green : "transparent",
-                    color: activeTab === tab.key ? "#fff" : COLORS.gray,
-                    fontSize: 12,
-                    fontWeight: 900,
-                  }}
-                >
-                  {tab.label}
-                  {tab.count !== null && (
-                    <span className="rounded px-1.5 py-0.5" style={{ backgroundColor: activeTab === tab.key ? "rgba(255,255,255,0.2)" : "#EEF2F7", color: activeTab === tab.key ? "#fff" : COLORS.text, fontSize: 10 }}>
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-white p-2" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+              <div className="flex flex-wrap items-center gap-2">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 transition-colors"
+                    style={{
+                      backgroundColor: activeTab === tab.key ? COLORS.green : "transparent",
+                      color: activeTab === tab.key ? "#fff" : COLORS.gray,
+                      fontSize: 12,
+                      fontWeight: 900,
+                    }}
+                  >
+                    {tab.label}
+                    {tab.count !== null && (
+                      <span className="rounded px-1.5 py-0.5" style={{ backgroundColor: activeTab === tab.key ? "rgba(255,255,255,0.2)" : "#EEF2F7", color: activeTab === tab.key ? "#fff" : COLORS.text, fontSize: 10 }}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {statusTransitions.length > 0 ? (
+                  <Select value="" onValueChange={(value) => handleUpdateStatus(value as ProjectStatus)} disabled={savingStatus}>
+                    <SelectTrigger className="focus-visible:ring-0 w-auto bg-white shadow-sm" style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, height: 32, padding: "0 10px", fontSize: 12, fontWeight: 900, color: COLORS.text, opacity: savingStatus ? 0.65 : 1 }}>
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: statusColor(project.status) }} />
+                        <span>{savingStatus ? "Guardando..." : STATUS_LABELS[project.status]}</span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
+                      {statusTransitions.map((nextStatus) => (
+                        <SelectItem key={nextStatus} value={nextStatus} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
+                          Cambiar a {STATUS_LABELS[nextStatus]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center gap-2 bg-white" style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, height: 32, padding: "0 10px", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: statusColor(project.status) }} />
+                    <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 900 }}>{STATUS_LABELS[project.status]}</span>
+                  </div>
+                )}
+
+                {canManageLinks && (
+                  <div className="flex flex-wrap items-center gap-2" style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}>
+                    <button onClick={() => setShowEditModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
+                      <Edit2 size={13} /> Editar proyecto
+                    </button>
+                    <button onClick={() => setShowLinkModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
+                      <Link2 size={13} /> Vincular KR
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <AnimatePresence mode="wait" initial={false}>
@@ -250,15 +288,9 @@ export function FichaProyecto() {
           </main>
 
           <ProjectAside
-            canManageLinks={canManageLinks}
             canRegisterProgress={canRegisterProgress}
-            onEdit={() => setShowEditModal(true)}
-            onLink={() => setShowLinkModal(true)}
             onRegisterProgress={() => setShowProgressModal(true)}
             project={project}
-            savingStatus={savingStatus}
-            statusTransitions={statusTransitions}
-            onStatusChange={(status) => void handleUpdateStatus(status)}
           />
         </div>
       </div>
@@ -576,7 +608,7 @@ function SummarySection({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_310px]">
+      <div className="grid grid-cols-1 gap-3">
         <Panel title="Avance global" icon={<TrendingUp size={16} />} subtitle={latestEntry ? `Ultimo registro: ${formatDate(latestEntry.createdAt)}` : "Sin registros de avance todavia."}>
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -596,15 +628,6 @@ function SummarySection({
               <p style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.5, marginTop: 5 }}>{latestEntry.comment}</p>
             </div>
           )}
-        </Panel>
-
-        <Panel title="Datos generales" icon={<FileText size={16} />}>
-          <div className="space-y-3">
-            <InfoRow icon={<Calendar size={15} />} label="Fechas" value={`${formatDate(project.startDate)} - ${formatDate(project.endDate)}`} />
-            <InfoRow icon={<Users size={15} />} label="Tutores" value={project.tutors.length ? project.tutors.join(", ") : "Sin tutores"} />
-            <InfoRow icon={<FileText size={15} />} label="Creado" value={formatDate(project.createdAt)} />
-            <InfoRow icon={<TrendingUp size={15} />} label="Actualizado" value={formatDate(project.updatedAt)} />
-          </div>
         </Panel>
       </div>
 
@@ -734,71 +757,39 @@ function KeyResultsSection({
 }
 
 function ProjectAside({
-  canManageLinks,
   canRegisterProgress,
-  onEdit,
-  onLink,
   onRegisterProgress,
-  onStatusChange,
   project,
-  savingStatus,
-  statusTransitions,
 }: {
-  canManageLinks: boolean;
   canRegisterProgress: boolean;
-  onEdit: () => void;
-  onLink: () => void;
   onRegisterProgress: () => void;
-  onStatusChange: (status: ProjectStatus) => void;
   project: ProjectDetailResponse["project"];
-  savingStatus: boolean;
-  statusTransitions: ProjectStatus[];
 }) {
   return (
     <aside className="xl:sticky xl:top-20 space-y-4">
-      <Panel title="Gestion" icon={<CheckCircle2 size={16} />}>
-        <div className="space-y-3">
-          <InfoBlock label="Estado actual" value={STATUS_LABELS[project.status]} />
-          {statusTransitions.length > 0 && (
-            <Select value="" onValueChange={(value) => onStatusChange(value as ProjectStatus)} disabled={savingStatus}>
-              <SelectTrigger className="focus-visible:ring-0" style={{ ...selectControlStyle, opacity: savingStatus ? 0.65 : 1 }}>
-                <SelectValue placeholder={savingStatus ? "Guardando..." : "Cambiar estado"} />
-              </SelectTrigger>
-              <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
-                {statusTransitions.map((nextStatus) => (
-                  <SelectItem key={nextStatus} value={nextStatus} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
-                    Cambiar a {STATUS_LABELS[nextStatus]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {canManageLinks && (
-            <button onClick={onEdit} className="inline-flex w-full items-center justify-center gap-2 rounded-md" style={secondaryButtonStyle}>
-              <Edit2 size={14} />
-              Editar proyecto
-            </button>
-          )}
-          {canRegisterProgress && (
+      {canRegisterProgress && (
+        <Panel title="Gestion" icon={<CheckCircle2 size={16} />}>
+          <div className="space-y-3">
             <button onClick={onRegisterProgress} className="inline-flex w-full items-center justify-center gap-2 rounded-md" style={primaryButtonStyle}>
               <Plus size={14} />
               Registrar avance
             </button>
-          )}
-          {canManageLinks && (
-            <button onClick={onLink} className="inline-flex w-full items-center justify-center gap-2 rounded-md" style={secondaryButtonStyle}>
-              <Link2 size={14} />
-              Vincular Key Result
-            </button>
-          )}
-        </div>
-      </Panel>
+          </div>
+        </Panel>
+      )}
 
-      <Panel title="Identidad" icon={<FileText size={16} />}>
+      <Panel title="Identidad y Datos Generales" icon={<FileText size={16} />}>
         <div className="grid grid-cols-1 gap-2">
           <InfoBlock label="Tipo" value={TYPE_LABELS[project.type]} />
           <InfoBlock label="Departamento" value={project.departmentName ?? String(project.departmentId ?? "Sin departamento")} />
           <InfoBlock label="Periodo" value={`${project.startPeriod}${project.endPeriod ? ` - ${project.endPeriod}` : ""}`} />
+        </div>
+        <div style={{ height: 1, backgroundColor: COLORS.border, margin: "16px 0" }} />
+        <div className="space-y-3">
+          <InfoRow icon={<Calendar size={15} />} label="Fechas" value={`${formatDate(project.startDate)} - ${formatDate(project.endDate)}`} />
+          <InfoRow icon={<Users size={15} />} label="Tutores" value={project.tutors.length ? project.tutors.join(", ") : "Sin tutores"} />
+          <InfoRow icon={<FileText size={15} />} label="Creado" value={formatDate(project.createdAt)} />
+          <InfoRow icon={<TrendingUp size={15} />} label="Actualizado" value={formatDate(project.updatedAt)} />
         </div>
       </Panel>
     </aside>
@@ -827,13 +818,13 @@ function Panel({ title, icon, subtitle, action, children }: { title: string; ico
 
 function MetricCard({ label, value, icon, color }: { label: string; value: number | string; icon: ReactNode; color: string }) {
   return (
-    <div className="rounded-md p-3" style={{ backgroundColor: color, border: `1px solid ${color}`, minHeight: 94, boxShadow: `0 12px 24px ${color}22` }}>
-      <div className="flex items-start justify-between gap-3">
+    <div className="rounded-md px-3 py-2.5" style={{ backgroundColor: color, border: `1px solid ${color}`, boxShadow: `0 8px 16px ${color}22` }}>
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <p style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,0.72)", textTransform: "uppercase" }}>{label}</p>
-          <p style={{ fontSize: 26, fontWeight: 950, color: "#fff", marginTop: 6, lineHeight: 1 }}>{value}</p>
+          <p style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.76)", textTransform: "uppercase" }}>{label}</p>
+          <p style={{ fontSize: 20, fontWeight: 950, color: "#fff", marginTop: 2, lineHeight: 1 }}>{value}</p>
         </div>
-        <div className="flex h-9 w-9 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", color: "#fff" }}>
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", color: "#fff" }}>
           {icon}
         </div>
       </div>
@@ -872,11 +863,11 @@ function ImpactCard({ impact, projectProgress }: { impact: ImpactChain["impacts"
   return (
     <article className="rounded-md bg-[#F8FAFC] p-4" style={{ border: `1px solid ${COLORS.border}` }}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Badge color={COLORS.green}>{projectProgress}% proyecto</Badge>
+        <Badge color={COLORS.green}>El proyecto está en {projectProgress}%</Badge>
         <span style={{ color: "#9CA3AF", fontSize: 11, fontWeight: 900 }}>x</span>
-        <Badge color={COLORS.purple}>{impact.contributionWeight}% {contributionTypeLabel[impact.contributionType]}</Badge>
+        <Badge color={COLORS.purple}>Aporta al KR {impact.contributionWeight}%</Badge>
         <span style={{ color: "#9CA3AF", fontSize: 11, fontWeight: 900 }}>=</span>
-        <Badge color={COLORS.orange}>{impact.appliedContribution}% aplicado</Badge>
+        <Badge color={COLORS.orange}>Aporta al objetivo {impact.appliedContribution}%</Badge>
       </div>
       <h3 style={{ fontSize: 13, fontWeight: 900, color: COLORS.text, lineHeight: 1.35 }}>{impact.objectiveName}</h3>
       <p style={{ fontSize: 12, color: COLORS.gray, lineHeight: 1.45, marginTop: 6 }}>{impact.keyResultDescription}</p>
@@ -912,8 +903,8 @@ function InfoRow({ icon, label, value }: { icon: ReactNode; label: string; value
     <div className="flex items-start gap-3 rounded-md p-3" style={{ backgroundColor: "#F8FAFC", border: `1px solid ${COLORS.border}` }}>
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue }}>{icon}</div>
       <div className="min-w-0">
-        <p style={{ fontSize: 10, fontWeight: 900, color: "#9CA3AF", textTransform: "uppercase" }}>{label}</p>
-        <p style={{ fontSize: 12, fontWeight: 850, color: COLORS.text, marginTop: 3, lineHeight: 1.35 }}>{value}</p>
+        <p style={{ fontSize: 10, fontWeight: 800, color: "#9CA3AF", textTransform: "uppercase" }}>{label}</p>
+        <p style={{ fontSize: 12, fontWeight: 500, color: COLORS.text, marginTop: 3, lineHeight: 1.35 }}>{value}</p>
       </div>
     </div>
   );
@@ -922,8 +913,8 @@ function InfoRow({ icon, label, value }: { icon: ReactNode; label: string; value
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md p-3" style={{ backgroundColor: "#F8FAFC", border: `1px solid ${COLORS.border}` }}>
-      <p style={{ fontSize: 9, color: "#9CA3AF", fontWeight: 900, textTransform: "uppercase" }}>{label}</p>
-      <p style={{ fontSize: 12, color: COLORS.text, fontWeight: 900, lineHeight: 1.35, marginTop: 5 }}>{value}</p>
+      <p style={{ fontSize: 9, color: "#9CA3AF", fontWeight: 800, textTransform: "uppercase" }}>{label}</p>
+      <p style={{ fontSize: 12, color: COLORS.text, fontWeight: 500, lineHeight: 1.35, marginTop: 5 }}>{value}</p>
     </div>
   );
 }

@@ -67,7 +67,7 @@ export function EditObjectiveModal({ objective, onClose, onSaved }: EditObjectiv
               <h3 style={{ color: "#fff", fontSize: "20px", fontWeight: 900, lineHeight: 1.15 }}>Editar Objetivo</h3>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="w-9 h-9 rounded-md flex items-center justify-center" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal"><X size={18} color="#fff" /></button>
+          <button type="button" onClick={onClose} className="detail-invert-button detail-invert-button--header detail-invert-button--orange w-9 h-9 rounded-md flex items-center justify-center" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal"><X size={18} color="#fff" /></button>
         </div>
         <div className="p-5 space-y-3" style={{ backgroundColor: "#F8FAFC" }}>
           <ModalField label="Nombre">
@@ -77,8 +77,8 @@ export function EditObjectiveModal({ objective, onClose, onSaved }: EditObjectiv
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} style={{ ...modalInputStyle, resize: "vertical" }} />
           </ModalField>
           <div className="flex justify-end gap-2 pt-3">
-            <button type="button" onClick={onClose} style={{ padding: "10px 16px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontSize: "12px", fontWeight: 800, backgroundColor: "#fff", color: "#374151" }}>Cancelar</button>
-            <button type="submit" disabled={saving} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", backgroundColor: COLORS.orange, color: "#fff", borderRadius: 8, fontSize: "12px", fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.orange}40` }}>
+            <button type="button" onClick={onClose} className="detail-invert-button detail-invert-button--outline detail-invert-button--orange" style={{ padding: "10px 16px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontSize: "12px", fontWeight: 800, backgroundColor: "#fff", color: "#374151" }}>Cancelar</button>
+            <button type="submit" disabled={saving} className="detail-invert-button detail-invert-button--solid detail-invert-button--orange flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", backgroundColor: COLORS.orange, color: "#fff", borderRadius: 8, fontSize: "12px", fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.orange}40` }}>
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Guardar
             </button>
           </div>

@@ -7,10 +7,10 @@ import { useAuth, type UsuarioActual } from './AuthContext';
 const user: UsuarioActual = {
   id: 'U1',
   nombre: 'Hugo Arboleda',
-  correo: 'harboleda@icesi.edu.co',
+  correo: 'hugo.arboleda@icesi.edu.co',
   rol: 'director',
-  departamento: 'Direccion TDI',
-  iniciales: 'HA',
+  departamento: 'Departamento de Computacion y Sistemas inteligentes.',
+  iniciales: "HA",
   token: 'mock-token-ha',
 };
 
@@ -40,7 +40,7 @@ describe('AuthContext', () => {
 
     const getAuth = renderAuthHook();
 
-    expect(getAuth().usuario?.correo).toBe('harboleda@icesi.edu.co');
+    expect(getAuth().usuario?.correo).toBe('hugo.arboleda@icesi.edu.co');
   });
 
   it('ignores malformed session storage', () => {

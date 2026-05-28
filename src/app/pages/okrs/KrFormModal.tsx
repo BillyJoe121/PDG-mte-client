@@ -81,7 +81,7 @@ export function KrFormModal({
               </h3>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
+          <button type="button" onClick={onClose} className="detail-invert-button detail-invert-button--header detail-invert-button--blue flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
             <X size={18} color="#fff" />
           </button>
         </div>

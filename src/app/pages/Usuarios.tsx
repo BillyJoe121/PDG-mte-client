@@ -93,7 +93,7 @@ function UserModal({
                 onChange={(event) => setFormData({ ...formData, departamento: event.target.value })}
                 style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", boxSizing: "border-box" }}
               >
-                {[...DEPARTAMENTOS, "TI Institucional"].map((depto) => <option key={depto} value={depto}>{depto}</option>)}
+                {DEPARTAMENTOS.map((depto) => <option key={depto} value={depto}>{depto}</option>)}
               </select>
             </div>
           </div>
@@ -297,7 +297,7 @@ export function Usuarios() {
 
         <select value={filterDepto} onChange={(event) => setFilterDepto(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
           <option value="todos">Todos los deptos.</option>
-          {[...DEPARTAMENTOS, "TI Institucional"].map((depto) => <option key={depto} value={depto}>{depto}</option>)}
+          {DEPARTAMENTOS.map((depto) => <option key={depto} value={depto}>{depto}</option>)}
         </select>
 
         <div className="flex-1" />

@@ -73,8 +73,8 @@ export function KrForm({ units, initial, saving, onCancel, onSubmit }: KrFormPro
         </Select>
       </div>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} style={{ padding: "8px 13px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontSize: "11px", fontWeight: 750, backgroundColor: "#fff", color: "#374151" }}>Cancelar</button>
-        <button type="submit" disabled={saving} className="flex items-center gap-1 disabled:opacity-60" style={{ padding: "8px 13px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 8, fontSize: "11px", fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.blue}30` }}>
+        <button type="button" onClick={onCancel} className="detail-invert-button detail-invert-button--outline detail-invert-button--blue" style={{ padding: "8px 13px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontSize: "11px", fontWeight: 750, backgroundColor: "#fff", color: "#374151" }}>Cancelar</button>
+        <button type="submit" disabled={saving} className="detail-invert-button detail-invert-button--solid detail-invert-button--blue flex items-center gap-1 disabled:opacity-60" style={{ padding: "8px 13px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 8, fontSize: "11px", fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.blue}30` }}>
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Guardar
         </button>
       </div>

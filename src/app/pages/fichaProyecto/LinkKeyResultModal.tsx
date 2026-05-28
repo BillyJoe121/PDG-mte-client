@@ -98,7 +98,7 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved }
               <h2 style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>{project.name}</h2>
             </div>
           </div>
-          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }}><X size={18} color="#fff" /></button>
+          <button onClick={onClose} className="detail-invert-button detail-invert-button--header detail-invert-button--green flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }}><X size={18} color="#fff" /></button>
         </div>
         <div className="p-5 space-y-4" style={{ backgroundColor: "#F8FAFC" }}>
           <ModalField label="Key Result">
@@ -122,8 +122,8 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved }
           </div>
         </div>
         <div className="flex justify-end gap-3 px-5 pb-5">
-          <button onClick={onClose} style={{ padding: "10px 16px", border: "1px solid #D8DEE8", borderRadius: 8, fontSize: 12, fontWeight: 800, color: "#374151", backgroundColor: "#fff" }}>Cancelar</button>
-          <button disabled={saving} onClick={save} className="inline-flex items-center gap-2" style={{ padding: "10px 16px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 850, opacity: saving ? 0.65 : 1, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
+          <button onClick={onClose} className="detail-invert-button detail-invert-button--outline detail-invert-button--green" style={{ padding: "10px 16px", border: "1px solid #D8DEE8", borderRadius: 8, fontSize: 12, fontWeight: 800, color: "#374151", backgroundColor: "#fff" }}>Cancelar</button>
+          <button disabled={saving} onClick={save} className="detail-invert-button detail-invert-button--solid detail-invert-button--green inline-flex items-center gap-2" style={{ padding: "10px 16px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 850, opacity: saving ? 0.65 : 1, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
             Guardar vinculo
           </button>

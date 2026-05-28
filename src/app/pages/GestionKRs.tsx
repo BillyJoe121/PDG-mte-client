@@ -91,55 +91,90 @@ export function GestionKRs() {
       <div className="flex h-64 flex-col items-center justify-center gap-4 p-8">
         <AlertTriangle size={40} color={COLORS.orange} />
         <p style={{ fontSize: 16, fontWeight: 800, color: COLORS.text }}>Objetivo no encontrado</p>
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 rounded-md px-5 py-2.5" style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 800 }}>
+        <button onClick={() => navigate(-1)} className="detail-invert-button detail-invert-button--solid detail-invert-button--blue flex items-center gap-2 rounded-md px-5 py-2.5" style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 800 }}>
           <ArrowLeft size={14} /> Volver
         </button>
       </div>
     );
   }
 
+  const pillItems = [
+    { label: "KRs", value: stats.keyResults },
+    { label: "Avance", value: `${objective.completionPercentage ?? stats.progress}%` },
+    { label: "Completos", value: stats.completed },
+  ];
+
   return (
     <div className="min-h-full px-6 pb-5 pt-3" style={{ backgroundColor: "#F8FAFC" }}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: "#374151", fontSize: 12, fontWeight: 800, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-          <ArrowLeft size={14} /> Volver
-        </button>
-      </div>
+      <section 
+        className="hierarchy-detail-context overflow-hidden rounded-md bg-white animate-fade-in mb-4"
+        style={{ "--hierarchy-card-accent": COLORS.orange } as CSSProperties}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
+          {/* Left column */}
+          <div className="flex flex-col gap-4 p-5 justify-between">
+            <div className="space-y-4">
+              {/* Back button inside the card */}
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="hierarchy-detail-header-back-btn rounded-md self-start"
+              >
+                <ArrowLeft size={12} style={{ strokeWidth: 3 }} /> Volver
+              </button>
 
-      <section className="objective-detail-hero overflow-hidden rounded-md bg-white">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(320px,1fr)]">
-          <div className="flex min-h-[142px] flex-col justify-center gap-2 p-4" style={{ backgroundColor: COLORS.orange }}>
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.28)", color: "#fff" }}>
-                <Target size={18} />
-              </span>
-              <span style={{ color: "rgba(255,255,255,0.82)", fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Objetivo #{objective.id}
-              </span>
+              {/* Icon + type label */}
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: `color-mix(in srgb, ${COLORS.orange} 10%, white)`, border: `1px solid color-mix(in srgb, ${COLORS.orange} 34%, white)`, color: COLORS.orange }}>
+                  <Target size={13} />
+                </span>
+                <span style={{ color: COLORS.orange, fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Objetivo #{objective.id}
+                </span>
+              </div>
+
+              {/* Title & Description */}
+              <div className="space-y-2">
+                <h1 style={{ color: COLORS.orange, fontSize: 26, fontWeight: 950, lineHeight: 1.12, maxWidth: 820 }}>{objective.name}</h1>
+                {objective.description && (
+                  <p style={{ color: COLORS.text, fontSize: 14, lineHeight: 1.6, fontWeight: 400, maxWidth: 820 }}>
+                    {objective.description}
+                  </p>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 style={{ color: "#fff", fontSize: 22, fontWeight: 950, lineHeight: 1.12, maxWidth: 860 }}>{objective.name}</h1>
-              <p style={{ color: "rgba(255,255,255,0.86)", fontSize: 12, lineHeight: 1.4, marginTop: 6, maxWidth: 900 }}>{objective.description}</p>
+
+            {/* Pills + edit button inline at the bottom */}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              {pillItems.map((item) => (
+                <span
+                  key={item.label}
+                  style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC", color: COLORS.gray, fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 5 }}
+                >
+                  <span style={{ color: COLORS.orange, fontWeight: 900, fontSize: 13 }}>{item.value}</span>
+                  {item.label}
+                </span>
+              ))}
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setEditingObjective(true)}
+                  className="hierarchy-detail-header-manage-btn rounded-md"
+                >
+                  <Edit2 size={12} /> Editar objetivo
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-col justify-center gap-2 p-4" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
-            <div className="grid grid-cols-3 gap-2">
-              <MetricTile label="KRs" value={stats.keyResults} color={COLORS.purple} />
-              <MetricTile label="Avance" value={`${objective.completionPercentage ?? stats.progress}%`} color={COLORS.orange} />
-              <MetricTile label="Completos" value={stats.completed} color={COLORS.green} />
-            </div>
-            <div className="space-y-2">
+          {/* Right column – metadata block */}
+          <div className="flex flex-col justify-center gap-3 p-5" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
+            <div className="space-y-2 w-full">
               <ContextRow icon={<Building2 size={14} />} label="Departamento" value={objective.departmentName} />
               <ContextRow icon={<CalendarDays size={14} />} label="Periodo" value={objective.academicPeriodName} />
-              <ContextRow icon={<Flag size={14} />} label="Apuesta" value={objective.strategicBetName} />
-              <ContextRow icon={<BookOpen size={14} />} label="Meta" value={objective.goalName} />
+              {objective.strategicBetName && <ContextRow icon={<Flag size={14} />} label="Apuesta" value={objective.strategicBetName} />}
+              {objective.goalName && <ContextRow icon={<BookOpen size={14} />} label="Meta" value={objective.goalName} />}
             </div>
-            {canEdit && (
-              <button type="button" onClick={() => setEditingObjective(true)} className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2" style={detailActionButtonStyle(COLORS.orange)}>
-                <Edit2 size={14} /> Editar objetivo
-              </button>
-            )}
           </div>
         </div>
       </section>
@@ -151,7 +186,7 @@ export function GestionKRs() {
             <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>Gestiona las metricas y valores esperados que evidencian el avance del objetivo.</p>
           </div>
           {canEdit ? (
-            <button type="button" onClick={() => setCreatingKr(true)} className="inline-flex items-center gap-2 rounded-md px-4 py-2" style={detailActionButtonStyle(COLORS.purple)}>
+            <button type="button" onClick={() => setCreatingKr(true)} className="hierarchy-detail-header-manage-btn rounded-md" style={{ "--hierarchy-card-accent": COLORS.purple } as CSSProperties}>
               <Plus size={14} /> Crear KR
             </button>
           ) : (
@@ -179,7 +214,7 @@ export function GestionKRs() {
                     <KrValue label="Objetivo" value={`${kr.targetValue} ${kr.measurementUnitName}`} />
                   </div>
                 </div>
-                <button onClick={() => navigate(`/okrs/${objective.id}/krs/${kr.id}`)} className="kr-detail-card__icon-button inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ fontSize: 11, fontWeight: 900 }} title="Gestionar KR">
+                <button onClick={() => navigate(`/okrs/${objective.id}/krs/${kr.id}`)} className="detail-invert-button detail-invert-button--header detail-invert-button--blue kr-detail-card__icon-button inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ fontSize: 11, fontWeight: 900 }} title="Gestionar KR">
                   <Settings size={14} /> Gestionar
                 </button>
               </div>
@@ -242,7 +277,7 @@ function ContextRow({ icon, label, value }: { icon: ReactNode; label: string; va
       <span className="flex items-center gap-2" style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>
         {icon} {label}
       </span>
-      <span style={{ color: COLORS.text, fontSize: 11, fontWeight: 850, textAlign: "right", lineHeight: 1.4 }}>{value}</span>
+      <span style={{ color: COLORS.text, fontSize: 12, fontWeight: 400, textAlign: "right", lineHeight: 1.4 }}>{value}</span>
     </div>
   );
 }

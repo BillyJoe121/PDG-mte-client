@@ -91,7 +91,7 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
               <h2 style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>{project.name}</h2>
             </div>
           </div>
-          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }}>
+          <button onClick={onClose} className="detail-invert-button detail-invert-button--header detail-invert-button--green flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }}>
             <X size={18} color="#fff" />
           </button>
         </div>
@@ -115,7 +115,7 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
           <div className="rounded-md bg-white p-3" style={{ border: "1px solid #EEF2F7" }}>
             <div className="mb-2 flex items-center justify-between gap-3">
               <label style={{ fontSize: 11, fontWeight: 850, textTransform: "uppercase" }}>Hitos opcionales</label>
-              <button type="button" onClick={addMilestone} className="inline-flex items-center gap-1 rounded-md" style={{ padding: "7px 10px", border: "1px solid #D8DEE8", backgroundColor: "#fff", color: COLORS.green, fontSize: 11, fontWeight: 850 }}>
+              <button type="button" onClick={addMilestone} className="detail-invert-button detail-invert-button--outline detail-invert-button--green inline-flex items-center gap-1 rounded-md" style={{ padding: "7px 10px", border: "1px solid #D8DEE8", backgroundColor: "#fff", color: COLORS.green, fontSize: 11, fontWeight: 850 }}>
                 <Plus size={13} />
                 Agregar
               </button>
@@ -129,7 +129,7 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
                     placeholder={index === 0 ? "Entrega de prototipo funcional" : "Nuevo hito"}
                     style={{ width: "100%", minHeight: 38, padding: "8px 11px", border: "1.5px solid #D8DEE8", borderRadius: 8, fontSize: 13, outline: "none", backgroundColor: "#F8FAFC" }}
                   />
-                  <button type="button" onClick={() => removeMilestone(index)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md" style={{ border: "1px solid #FED7AA", backgroundColor: "#fff", color: COLORS.orange }} aria-label="Eliminar hito">
+                  <button type="button" onClick={() => removeMilestone(index)} className="detail-invert-button detail-invert-button--outline detail-invert-button--orange flex h-9 w-9 shrink-0 items-center justify-center rounded-md" style={{ border: "1px solid #FED7AA", backgroundColor: "#fff", color: COLORS.orange }} aria-label="Eliminar hito">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -138,8 +138,8 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
           </div>
         </div>
         <div className="flex justify-end gap-3 px-5 pb-5">
-          <button onClick={onClose} style={{ padding: "10px 16px", border: "1px solid #D8DEE8", borderRadius: 8, fontSize: 12, fontWeight: 800, color: "#374151", backgroundColor: "#fff" }}>Cancelar</button>
-          <button disabled={saving} onClick={save} className="inline-flex items-center gap-2" style={{ padding: "10px 16px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 850, opacity: saving ? 0.65 : 1, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
+          <button onClick={onClose} className="detail-invert-button detail-invert-button--outline detail-invert-button--green" style={{ padding: "10px 16px", border: "1px solid #D8DEE8", borderRadius: 8, fontSize: 12, fontWeight: 800, color: "#374151", backgroundColor: "#fff" }}>Cancelar</button>
+          <button disabled={saving} onClick={save} className="detail-invert-button detail-invert-button--solid detail-invert-button--green inline-flex items-center gap-2" style={{ padding: "10px 16px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 850, opacity: saving ? 0.65 : 1, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             Guardar avance
           </button>

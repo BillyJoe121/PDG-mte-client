@@ -1,0 +1,10 @@
+
+> @figma/my-make-file@0.0.1 dev
+> vite --host 0.0.0.0 --port 5174
+
+
+  [32m[1mVITE[22m v6.3.5[39m  [2mready in [0m[1m1037[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.40.26:[1m5174[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://172.20.64.1:[1m5174[22m/[39m

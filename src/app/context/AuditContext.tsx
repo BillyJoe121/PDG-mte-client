@@ -54,7 +54,7 @@ const seedEntries: AuditEntry[] = [
   {
     id: "AUD-SEED-2",
     fecha: "2026-04-12T14:30:00.000Z",
-    usuario: "Sistemas MTE",
+    usuario: "Profesor Demo",
     rol: "administrador",
     modulo: "Usuarios",
     accion: "Cambio de rol",

@@ -299,17 +299,7 @@ export function JerarquiaEstrategica() {
               </div>
             ) : (
               <div className="space-y-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedHierarchyRootKey(null)}
-                    className="inline-flex items-center gap-2 rounded-md px-3 py-2"
-                    style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: "#374151", fontSize: 12, fontWeight: 800, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}
-                  >
-                    <ArrowLeft size={14} /> Ver todas las cards
-                  </button>
-                </div>
-                <HierarchyDetailHeader node={selectedHierarchyRoot} onManage={manageNode} />
+                <HierarchyDetailHeader node={selectedHierarchyRoot} onManage={manageNode} onBack={() => setSelectedHierarchyRootKey(null)} />
                 <HierarchyDetailTree
                   root={selectedHierarchyRoot}
                   expanded={expanded}
@@ -516,77 +506,108 @@ function HierarchyRootMetrics({ node, compact = false }: { node: StrategicHierar
   );
 }
 
-function HierarchyDetailHeader({ node, onManage }: { node: StrategicHierarchyNode; onManage: (node: StrategicHierarchyNode, nodeKey: string) => void }) {
+function HierarchyDetailHeader({ node, onManage, onBack }: { node: StrategicHierarchyNode; onManage: (node: StrategicHierarchyNode, nodeKey: string) => void; onBack: () => void }) {
   const accent = getRootAccent(node);
   const Icon = getNodeIcon(node.nodeType);
   const metrics = getContainedMetrics(node);
-  const summaryItems = [
+  const pillItems = [
     { label: "Objetivos", value: metrics.objectives },
     { label: "KRs", value: metrics.krs },
     { label: "Proyectos", value: metrics.projects },
   ];
-  const details = [
-    node.badge ? { label: "Estado", value: node.badge } : null,
-    typeof node.progressPercentage === "number" ? { label: "Avance", value: `${node.progressPercentage}%` } : null,
-    node.executionSummary?.summaryText ? { label: "Resumen", value: node.executionSummary.summaryText } : null,
-  ].filter(Boolean) as Array<{ label: string; value: string }>;
+  const summaryText = node.executionSummary?.summaryText;
+  const progressText = typeof node.progressPercentage === "number" ? `${node.progressPercentage}%` : null;
 
   return (
     <section
-      className="hierarchy-detail-context overflow-hidden rounded-md bg-white"
+      className="hierarchy-detail-context overflow-hidden rounded-md bg-white animate-fade-in"
       style={{ "--hierarchy-card-accent": accent } as CSSProperties}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-        <div className="flex min-h-[230px] flex-col justify-center gap-4 p-7">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "color-mix(in srgb, var(--hierarchy-card-accent) 10%, white)", border: "1px solid color-mix(in srgb, var(--hierarchy-card-accent) 34%, white)", color: accent }}>
-              <Icon size={18} />
-            </span>
-            <span style={{ color: accent, fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              {getRootTypeLabel(node)}
-            </span>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.45fr)_minmax(220px,0.55fr)]">
+        {/* Left column */}
+        <div className="flex flex-col gap-4 p-5 justify-between">
+          <div className="space-y-4">
+            {/* Back button with brand main colors */}
+            <button
+              type="button"
+              onClick={onBack}
+              className="hierarchy-detail-header-back-btn rounded-md self-start"
+            >
+              <ArrowLeft size={12} style={{ strokeWidth: 3 }} /> Volver
+            </button>
+
+            {/* Icon + type label */}
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: `color-mix(in srgb, ${accent} 10%, white)`, border: `1px solid color-mix(in srgb, ${accent} 34%, white)`, color: accent }}>
+                <Icon size={13} />
+              </span>
+              <span style={{ color: accent, fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                {getRootTypeLabel(node)}
+              </span>
+            </div>
+
+            {/* Title & Description under title */}
+            <div className="space-y-2">
+              <h2 style={{ color: accent, fontSize: 26, fontWeight: 950, lineHeight: 1.12, maxWidth: 820 }}>{node.label}</h2>
+              {node.description && (
+                <p style={{ color: COLORS.text, fontSize: 14, lineHeight: 1.6, fontWeight: 400, maxWidth: 820 }}>
+                  {node.description}
+                </p>
+              )}
+            </div>
           </div>
-          <div>
-            <h2 style={{ color: accent, fontSize: 30, fontWeight: 950, lineHeight: 1.12, maxWidth: 820 }}>{node.label}</h2>
-            {node.description && (
-              <p style={{ color: COLORS.gray, fontSize: 13, lineHeight: 1.6, marginTop: 10, maxWidth: 860 }}>
-                {node.description}
-              </p>
-            )}
+
+          {/* Pills + manage button below description */}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            {pillItems.map((item) => (
+              <span
+                key={item.label}
+                style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC", color: COLORS.gray, fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 5 }}
+              >
+                <span style={{ color: accent, fontWeight: 900, fontSize: 13 }}>{item.value}</span>
+                {item.label}
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={() => onManage(node, getTreeNodeKey(node))}
+              className="hierarchy-detail-header-manage-btn rounded-md"
+            >
+              Gestionar {node.nodeType === "GOAL" ? "meta" : "apuesta"} <ChevronRight size={12} />
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-col justify-center gap-5 p-6" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
-          <div>
-            <div className="grid grid-cols-3 gap-2">
-              {summaryItems.map((item) => (
-                <div key={item.label} className="rounded-md px-3 py-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff" }}>
-                  <span style={{ display: "block", color: accent, fontSize: 24, fontWeight: 950, lineHeight: 1 }}>{item.value}</span>
-                  <span style={{ display: "block", color: "#374151", fontSize: 10, fontWeight: 850, marginTop: 6, textTransform: "uppercase" }}>{item.label}</span>
-                </div>
-              ))}
+        {/* Right column – summary takes the whole height */}
+        <div className="flex flex-col justify-between gap-3 p-5" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
+          {(node.badge || progressText || summaryText) ? (
+            <div className="space-y-2 w-full flex flex-col h-full justify-between">
+              <div className="space-y-2 flex-grow flex flex-col justify-center">
+                {node.badge && (
+                  <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
+                    <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Estado</span>
+                    <span style={{ color: COLORS.text, fontSize: 12, fontWeight: 400 }}>{node.badge}</span>
+                  </div>
+                )}
+                {progressText && (
+                  <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
+                    <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Avance</span>
+                    <span style={{ color: accent, fontSize: 14, fontWeight: 700 }}>{progressText}</span>
+                  </div>
+                )}
+                {summaryText && (
+                  <div className="rounded-md px-3 py-3 flex-grow flex flex-col justify-start min-h-[130px]" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
+                    <span style={{ display: "block", color: COLORS.gray, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 6 }}>Resumen</span>
+                    <p style={{ color: COLORS.text, fontSize: 14.5, lineHeight: 1.55, fontWeight: 400 }}>{summaryText}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-
-          {details.length > 0 && (
-            <div className="space-y-2">
-              {details.map((detail) => (
-                <div key={detail.label} className="flex items-start justify-between gap-3 rounded-md px-3 py-2" style={{ backgroundColor: COLORS.subtle, border: `1px solid ${COLORS.border}` }}>
-                  <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>{detail.label}</span>
-                  <span style={{ color: COLORS.text, fontSize: 11, fontWeight: 850, textAlign: "right", lineHeight: 1.4 }}>{detail.value}</span>
-                </div>
-              ))}
+          ) : (
+            <div className="text-center py-6 text-xs text-gray-400 m-auto">
+              Sin resumen disponible
             </div>
           )}
-
-          <button
-            type="button"
-            onClick={() => onManage(node, getTreeNodeKey(node))}
-            className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2"
-            style={{ alignSelf: "flex-start", backgroundColor: accent, color: "#fff", fontSize: 12, fontWeight: 900 }}
-          >
-            Gestionar {node.nodeType === "GOAL" ? "meta" : "apuesta"} <ChevronRight size={14} />
-          </button>
         </div>
       </div>
     </section>

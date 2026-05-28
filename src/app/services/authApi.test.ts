@@ -43,11 +43,11 @@ describe("auth API", () => {
         user: {
           externalUserId: 10,
           username: "mte-admin",
-          email: "mte-admin@icesi.edu.co",
+          email: "demo.profesor@icesi.edu.co",
           roles: ["ADMIN"],
           permissions: ["CATALOGS_MANAGE"],
-          professorName: "Sistemas MTE",
-          departmentName: "TI Institucional",
+          professorName: "Profesor Demo",
+          departmentName: "Departamento de Computación y Sistemas inteligentes.",
         },
         capabilities: { manageCatalogs: true, syncExternalProjects: false },
       },
@@ -56,10 +56,10 @@ describe("auth API", () => {
 
     expect(user).toMatchObject({
       id: "10",
-      nombre: "Sistemas MTE",
-      correo: "mte-admin@icesi.edu.co",
+      nombre: "Profesor Demo",
+      correo: "demo.profesor@icesi.edu.co",
       rol: "administrador",
-      departamento: "TI Institucional",
+      departamento: "Departamento de Computación y Sistemas inteligentes.",
       iniciales: "AD",
       token: "mock-token-ad",
       roles: ["ADMIN"],

@@ -22,11 +22,37 @@ interface AuthContextType {
 }
 
 const SESSION_KEY = "sgp_session_user";
+const COMPUTING_DEPARTMENT = "Departamento de Computación y Sistemas inteligentes.";
+
+function migrateLegacyDemoUser(user: UsuarioActual): UsuarioActual {
+  if (user.token === "mock-token-ar" || user.nombre === "Ana Maria Rojas" || user.departamento === "Dirección TDI") {
+    return {
+      ...user,
+      id: "U1",
+      nombre: "Hugo Arboleda",
+      correo: "hugo.arboleda@icesi.edu.co",
+      departamento: COMPUTING_DEPARTMENT,
+      iniciales: "HA",
+      token: "mock-token-ha",
+    };
+  }
+  if (user.nombre === "Sistemas MTE" || user.departamento === "TI Institucional") {
+    return {
+      ...user,
+      id: "U10",
+      nombre: "Profesor Demo",
+      correo: "demo.profesor@icesi.edu.co",
+      departamento: COMPUTING_DEPARTMENT,
+      iniciales: "PD",
+    };
+  }
+  return user;
+}
 
 function readSession(): UsuarioActual | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as UsuarioActual) : null;
+    return raw ? migrateLegacyDemoUser(JSON.parse(raw) as UsuarioActual) : null;
   } catch {
     return null;
   }

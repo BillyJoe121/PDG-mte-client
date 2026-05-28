@@ -106,7 +106,7 @@ export function GestionMeta() {
   return (
     <div className="mx-auto max-w-4xl px-6 pb-5 pt-3">
       <div className="mb-3 flex items-center gap-3">
-        <button onClick={() => navigate("/jerarquia")} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50" style={{ border: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 800 }}>
+        <button onClick={() => navigate("/jerarquia")} className="detail-invert-button detail-invert-button--outline detail-invert-button--green flex items-center gap-2 px-3 py-2 rounded-lg" style={{ border: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 800 }}>
           <ArrowLeft size={14} /> Jerarquia
         </button>
       </div>
@@ -166,8 +166,8 @@ export function GestionMeta() {
           </Field>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: "1px solid #F3F4F6" }}>
-          <button type="button" onClick={() => navigate("/jerarquia")} style={secondaryButtonStyle}>Cancelar</button>
-          <button type="submit" disabled={saving} className="flex items-center gap-2 disabled:opacity-60" style={primaryButtonStyle}>
+          <button type="button" onClick={() => navigate("/jerarquia")} className="detail-invert-button detail-invert-button--outline detail-invert-button--green" style={secondaryButtonStyle}>Cancelar</button>
+          <button type="submit" disabled={saving} className="detail-invert-button detail-invert-button--solid detail-invert-button--green flex items-center gap-2 disabled:opacity-60" style={primaryButtonStyle}>
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             Guardar cambios
           </button>
@@ -205,7 +205,7 @@ function NotFound({ onBack }: { onBack: () => void }) {
     <div className="flex flex-col items-center justify-center h-64 gap-4 p-8">
       <AlertTriangle size={40} color={COLORS.orange} />
       <p style={{ fontSize: 16, fontWeight: 800 }}>Meta no encontrada</p>
-      <button onClick={onBack} className="flex items-center gap-2" style={primaryButtonStyle}><ArrowLeft size={14} /> Volver</button>
+      <button onClick={onBack} className="detail-invert-button detail-invert-button--solid detail-invert-button--green flex items-center gap-2" style={primaryButtonStyle}><ArrowLeft size={14} /> Volver</button>
     </div>
   );
 }

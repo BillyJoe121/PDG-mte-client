@@ -301,7 +301,7 @@ const okrsRaw = [
     id: "OKR4",
     objetivo: "Consolidar alianzas internacionales para movilidad investigativa",
     apuestaId: "A2", metaId: "M4",
-    estado: "activo", cumplimiento: 60, departamento: "Dirección TDI", periodo: "2025-I",
+    estado: "activo", cumplimiento: 60, departamento: "Departamento de Diseño e Innovación", periodo: "2025-I",
     keyResults: [
       { id: "KR4-1", enunciado: "Pasar de 1 a 5 los convenios activos con universidades extranjeras.", metrica: "Convenios activos con universidades extranjeras", valorBase: 1, valorActual: 3, valorObjetivo: 5, unidad: "convenios", estado: "normal", proyectoIds: ["P8"] },
       { id: "KR4-2", enunciado: "Llevar de 0 a 6 los docentes en movilidad internacional en 2025-I.", metrica: "Docentes en movilidad internacional", valorBase: 0, valorActual: 4, valorObjetivo: 6, unidad: "docentes", estado: "normal", proyectoIds: [] },
@@ -351,7 +351,7 @@ const okrsRaw = [
     id: "OKR9",
     objetivo: "Mejorar el clima organizacional y bienestar docente en la Escuela",
     apuestaId: "A3", metaId: "M6",
-    estado: "activo", cumplimiento: 77, departamento: "Dirección TDI", periodo: "2025-I",
+    estado: "activo", cumplimiento: 77, departamento: "Departamento de Diseño e Innovación", periodo: "2025-I",
     keyResults: [
       { id: "KR9-1", enunciado: "Elevar el NPS del cuerpo docente de 60 a 80 puntos durante 2025-I.", metrica: "NPS del cuerpo docente", valorBase: 60, valorActual: 73, valorObjetivo: 80, unidad: "puntos", estado: "normal", proyectoIds: ["P15"] },
       { id: "KR9-2", enunciado: "Realizar de 0 a 8 actividades de bienestar en 2025-I.", metrica: "Actividades de bienestar realizadas", valorBase: 0, valorActual: 7, valorObjetivo: 8, unidad: "actividades", estado: "normal", proyectoIds: ["P16"] },
@@ -383,15 +383,15 @@ const proyectosRaw = [
   { id: "P5", nombre: "Modelos predictivos para deserción académica", descripcion: "Uso de ML para identificar estudiantes en riesgo de abandono temprano.", tipo: "investigacion", departamento: "DCSI", tutores: ["Jorge Vargas"], fechaInicio: "2025-02-15", fechaCierre: "2025-12-31", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR2-2", avanceGlobal: 65, ultimoRegistro: "2026-04-05", contribucionTipo: "directa" },
   { id: "P6", nombre: "Fábrica de software para PYMES de Cali", descripcion: "Extensión universitaria: estudiantes desarrollan software para empresas locales.", tipo: "extension", departamento: "DCSI", tutores: ["Ana López"], fechaInicio: "2025-01-20", fechaCierre: "2025-11-30", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR3-1", avanceGlobal: 85, ultimoRegistro: "2026-04-11", contribucionTipo: "directa" },
   { id: "P7", nombre: "Hackathon Ciudad Inteligente con Alcaldía de Cali", descripcion: "Macroproyecto de extensión con ciudad de Cali para soluciones de movilidad y gobierno.", tipo: "macroproyecto", departamento: "DCSI", tutores: ["Roberto Silva", "Jorge Vargas"], fechaInicio: "2025-03-10", fechaCierre: "2025-09-10", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR3-2", avanceGlobal: 72, ultimoRegistro: "2026-04-09", contribucionTipo: "directa" },
-  { id: "P8", nombre: "Convenio de doble titulación con INSA Lyon", descripcion: "Programa de intercambio académico y doble titulación con Instituto Nacional de Ciencias Aplicadas de Lyon.", tipo: "extension", departamento: "Dirección TDI", tutores: ["Patricia Gómez"], fechaInicio: "2025-01-01", fechaCierre: "2026-12-31", periodoInicio: "2025-I", periodoFin: "2026-II", estado: "activo", krId: "KR4-1", avanceGlobal: 58, ultimoRegistro: "2026-04-01", contribucionTipo: "directa" },
+  { id: "P8", nombre: "Convenio de doble titulación con INSA Lyon", descripcion: "Programa de intercambio académico y doble titulación con Instituto Nacional de Ciencias Aplicadas de Lyon.", tipo: "extension", departamento: "Departamento de Diseño e Innovación", tutores: ["Patricia Gómez"], fechaInicio: "2025-01-01", fechaCierre: "2026-12-31", periodoInicio: "2025-I", periodoFin: "2026-II", estado: "activo", krId: "KR4-1", avanceGlobal: 58, ultimoRegistro: "2026-04-01", contribucionTipo: "directa" },
   { id: "P9", nombre: "App móvil para monitoreo de calidad del aire en Cali", descripcion: "Proyecto de grado con impacto ambiental: sensores IoT y aplicación ciudadana.", tipo: "grado", departamento: "DCSI", tutores: ["Carlos Martínez"], fechaInicio: "2025-02-10", fechaCierre: "2025-08-30", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR5-1", avanceGlobal: 80, ultimoRegistro: "2026-04-07", contribucionTipo: "directa" },
   { id: "P10", nombre: "Prototipo de asistente de voz para estudiantes con discapacidad", descripcion: "Tecnología asistiva para inclusión educativa usando NLP y síntesis de voz.", tipo: "grado", departamento: "DCSI", tutores: ["María Fernández"], fechaInicio: "2025-03-01", fechaCierre: "2025-09-30", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR5-2", avanceGlobal: 67, ultimoRegistro: "2026-04-03", contribucionTipo: "directa" },
   { id: "P11", nombre: "Programa de formación IA para docentes TDI", descripcion: "Certificación interna en inteligencia artificial y ciencia de datos para el cuerpo profesoral.", tipo: "extension", departamento: "DCSI", tutores: ["Jorge Vargas"], fechaInicio: "2025-01-15", fechaCierre: "2025-05-31", periodoInicio: "2025-I", periodoFin: "2025-I", estado: "finalizado", krId: "KR6-1", avanceGlobal: 100, ultimoRegistro: "2025-05-30", contribucionTipo: "directa" },
   { id: "P12", nombre: "Laboratorio de experiencia de usuario (UX Lab)", descripcion: "Creación del primer laboratorio de UX de la Escuela para investigación y proyectos.", tipo: "investigacion", departamento: "DDI", tutores: ["Luisa Torres"], fechaInicio: "2025-02-01", fechaCierre: "2025-10-31", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR7-1", avanceGlobal: 42, ultimoRegistro: "2026-03-15", contribucionTipo: "directa" },
   { id: "P13", nombre: "Proyecto de diseño interdisciplinario Salud-Tecnología", descripcion: "Co-diseño entre estudiantes de diseño, medicina e ingeniería para soluciones en salud.", tipo: "macroproyecto", departamento: "DDI", tutores: ["Luisa Torres", "Patricia Gómez"], fechaInicio: "2025-03-15", fechaCierre: "2025-11-30", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR7-2", avanceGlobal: 35, ultimoRegistro: "2026-02-28", contribucionTipo: "indirecta" },
   { id: "P14", nombre: "Modelado matemático de sistemas epidemiológicos", descripcion: "Investigación en matemática aplicada para modelado de pandemias y enfermedades infecciosas.", tipo: "investigacion", departamento: "DM", tutores: ["Andrés Castillo"], fechaInicio: "2025-01-10", fechaCierre: "2025-12-31", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR8-1", avanceGlobal: 30, ultimoRegistro: "2026-03-01", contribucionTipo: "directa" },
-  { id: "P15", nombre: "Programa de mentoría docente TDI", descripcion: "Pares académicos de acompañamiento para nuevos profesores de la Escuela.", tipo: "extension", departamento: "Dirección TDI", tutores: ["Patricia Gómez"], fechaInicio: "2025-01-01", fechaCierre: "2025-12-31", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR9-1", avanceGlobal: 88, ultimoRegistro: "2026-04-10", contribucionTipo: "directa" },
-  { id: "P16", nombre: "Retiro anual y jornada de bienestar docente", descripcion: "Actividades recreativas y de reflexión estratégica para el cuerpo profesoral.", tipo: "extension", departamento: "Dirección TDI", tutores: ["Patricia Gómez"], fechaInicio: "2025-03-01", fechaCierre: "2025-11-30", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR9-2", avanceGlobal: 65, ultimoRegistro: "2026-04-06", contribucionTipo: "soporte" },
+  { id: "P15", nombre: "Programa de mentoría docente TDI", descripcion: "Pares académicos de acompañamiento para nuevos profesores de la Escuela.", tipo: "extension", departamento: "Departamento de Diseño e Innovación", tutores: ["Patricia Gómez"], fechaInicio: "2025-01-01", fechaCierre: "2025-12-31", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR9-1", avanceGlobal: 88, ultimoRegistro: "2026-04-10", contribucionTipo: "directa" },
+  { id: "P16", nombre: "Retiro anual y jornada de bienestar docente", descripcion: "Actividades recreativas y de reflexión estratégica para el cuerpo profesoral.", tipo: "extension", departamento: "Departamento de Diseño e Innovación", tutores: ["Patricia Gómez"], fechaInicio: "2025-03-01", fechaCierre: "2025-11-30", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "activo", krId: "KR9-2", avanceGlobal: 65, ultimoRegistro: "2026-04-06", contribucionTipo: "soporte" },
   { id: "P17", nombre: "Sistema de gestión de inventario para empresa logística", descripcion: "Proyecto de grado en etapa de definición de alcance.", tipo: "grado", departamento: "DCSI", tutores: ["Ana López"], fechaInicio: "2025-03-20", fechaCierre: "2025-09-20", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "borrador", krId: "", avanceGlobal: 0, ultimoRegistro: "2025-03-20", contribucionTipo: "directa" },
   { id: "P18", nombre: "Análisis de redes sociales para detección de desinformación", descripcion: "Investigación suspendida por falta de datos anonimizados.", tipo: "investigacion", departamento: "DCSI", tutores: ["Jorge Vargas"], fechaInicio: "2025-01-01", fechaCierre: "2025-12-31", periodoInicio: "2025-I", periodoFin: "2025-II", estado: "suspendido", krId: "KR2-3", avanceGlobal: 22, ultimoRegistro: "2025-04-10", contribucionTipo: "indirecta" },
 ];
@@ -414,7 +414,7 @@ okrs.forEach((o) => {
 // USUARIOS
 // ──────────────────────────────────────────
 export const usuarios: Usuario[] = [
-  { id: "U1", nombre: "Hugo Arboleda", correo: "harboleda@icesi.edu.co", rol: "director", departamento: "Dirección TDI", estado: "activo", ultimoAcceso: "2026-04-14" },
+  { id: "U1", nombre: "Hugo Arboleda", correo: "hugo.arboleda@icesi.edu.co", rol: "director", departamento: "Departamento de Computación y Sistemas inteligentes.", estado: "activo", ultimoAcceso: "2026-04-14" },
   { id: "U2", nombre: "Rocío Segovia", correo: "rsegovia@icesi.edu.co", rol: "jefe", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-13" },
   { id: "U3", nombre: "Luisa Torres Arango", correo: "ltorres@icesi.edu.co", rol: "jefe", departamento: "DDI", estado: "activo", ultimoAcceso: "2026-04-12" },
   { id: "U4", nombre: "Andrés Castillo Ríos", correo: "acastillo@icesi.edu.co", rol: "jefe", departamento: "DM", estado: "activo", ultimoAcceso: "2026-04-10" },
@@ -422,8 +422,8 @@ export const usuarios: Usuario[] = [
   { id: "U6", nombre: "Ana López Quintero", correo: "alopez@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-13" },
   { id: "U7", nombre: "Jorge Vargas Peña", correo: "jvargas@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-11" },
   { id: "U8", nombre: "María Fernández Rueda", correo: "mfernandez@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-09" },
-  { id: "U9", nombre: "Patricia Gómez Vidal", correo: "pgomez@icesi.edu.co", rol: "tutor", departamento: "Dirección TDI", estado: "activo", ultimoAcceso: "2026-04-14" },
-  { id: "U10", nombre: "Sistemas MTE", correo: "mte-admin@icesi.edu.co", rol: "administrador", departamento: "TI Institucional", estado: "activo", ultimoAcceso: "2026-04-14" },
+  { id: "U9", nombre: "Patricia Gómez Vidal", correo: "pgomez@icesi.edu.co", rol: "tutor", departamento: "Departamento de Diseño e Innovación", estado: "activo", ultimoAcceso: "2026-04-14" },
+  { id: "U10", nombre: "Profesor Demo", correo: "demo.profesor@icesi.edu.co", rol: "administrador", departamento: "Departamento de Computación y Sistemas inteligentes.", estado: "activo", ultimoAcceso: "2026-04-14" },
   { id: "U11", nombre: "Felipe Morales Castro", correo: "fmorales@icesi.edu.co", rol: "tutor", departamento: "DDI", estado: "inactivo", ultimoAcceso: "2025-11-20" },
   { id: "U12", nombre: "Leonardo Bustamante", correo: "lbustamante@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-14" },
 ];
@@ -435,7 +435,11 @@ export const historicoOKRs: Record<string, HistoricoOKR[]> = {
 };
 
 export const PERIODOS = ["2024-II", "2025-I", "2025-II", "2026-I"];
-export const DEPARTAMENTOS = ["DCSI", "DDI", "DM", "Dirección TDI"];
+export const DEPARTAMENTOS = [
+  "Departamento de Computación y Sistemas inteligentes.",
+  "Departamento de Ciencias Físicas y Exactas.",
+  "Departamento de Diseño e Innovación",
+];
 
 export const periodosAcademicos: PeriodoAcademico[] = [
   { id: "PER-2024-II", nombre: "2024-II", fechaInicio: "2024-07-15", fechaFin: "2024-12-15", estado: "cerrado" },

@@ -54,7 +54,7 @@ const COLORS = {
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 const MAX_COVERAGE_ITEMS_PER_CHART = 6;
-const AXIS_LABEL_MAX_CHARS = 18;
+const AXIS_LABEL_MAX_CHARS = 26;
 const viewMotion = {
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0 },
@@ -127,7 +127,7 @@ function chunkItems<T>(items: T[], size: number) {
   return chunks;
 }
 
-function wrapLabel(value: string, maxChars = AXIS_LABEL_MAX_CHARS) {
+function wrapLabel(value: string, maxChars = AXIS_LABEL_MAX_CHARS, maxLines = 0) {
   const words = value.trim().split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = "";
@@ -146,11 +146,16 @@ function wrapLabel(value: string, maxChars = AXIS_LABEL_MAX_CHARS) {
   });
 
   if (current) lines.push(current);
-  return lines.length > 0 ? lines : [value];
+  const result = lines.length > 0 ? lines : [value];
+
+  if (maxLines > 0 && result.length > maxLines) {
+    return [...result.slice(0, maxLines - 1), result.slice(maxLines - 1).join(" ")];
+  }
+  return result;
 }
 
-function maxWrappedLines(items: CoverageItem[]) {
-  return Math.max(1, ...items.map((item) => wrapLabel(item.name).length));
+function maxWrappedLines(items: CoverageItem[], maxLines: number) {
+  return Math.max(1, ...items.map((item) => wrapLabel(item.name, AXIS_LABEL_MAX_CHARS, maxLines).length));
 }
 
 function buildKpis(summary: DashboardSummary, totalProjects: number) {
@@ -181,7 +186,7 @@ function buildKpis(summary: DashboardSummary, totalProjects: number) {
       value: summary.completedObjectives,
       sub: `${summary.objectivesAbove50} con mas del 50%, ${summary.objectivesBetween0And50} entre 0 y 50%, ${summary.objectivesAtZero} en 0%`,
       icon: Gauge,
-      color: COLORS.purple,
+      color: COLORS.blue,
     },
   ];
 }
@@ -622,7 +627,7 @@ function StrategicBetCoverage({ data }: { data: DashboardData["strategicBets"] }
     inProgressProjects: item.inProgressProjects,
   }));
 
-  return <CoverageCharts data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" showProjects />;
+  return <CoverageCharts data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" showProjects labelMaxLines={3} />;
 }
 
 function GoalCoverage({ data }: { data: GoalExecution[] }) {
@@ -640,7 +645,7 @@ function GoalCoverage({ data }: { data: GoalExecution[] }) {
     inProgressProjects: item.inProgressProjects,
   }));
 
-  return <CoverageCharts data={items} emptyText="Sin metas con objetivos para el periodo." metricLabel="Meta" />;
+  return <CoverageCharts data={items} emptyText="Sin metas con objetivos para el periodo." metricLabel="Meta" labelMaxLines={3} />;
 }
 
 function CoverageCharts({
@@ -648,11 +653,13 @@ function CoverageCharts({
   emptyText,
   metricLabel,
   showProjects = false,
+  labelMaxLines = 2,
 }: {
   data: CoverageItem[];
   emptyText: string;
   metricLabel: string;
   showProjects?: boolean;
+  labelMaxLines?: number;
 }) {
   if (!data.length) return <EmptyState text={emptyText} compact />;
   const chunks = chunkItems(data, MAX_COVERAGE_ITEMS_PER_CHART);
@@ -660,7 +667,7 @@ function CoverageCharts({
   return (
     <div className="space-y-4">
       {chunks.map((chunk, index) => (
-        <CoverageChart key={`${metricLabel}-${index}`} data={chunk} metricLabel={metricLabel} index={index} total={chunks.length} />
+        <CoverageChart key={`${metricLabel}-${index}`} data={chunk} metricLabel={metricLabel} index={index} total={chunks.length} labelMaxLines={labelMaxLines} />
       ))}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -672,9 +679,22 @@ function CoverageCharts({
   );
 }
 
-function CoverageChart({ data, metricLabel, index, total }: { data: CoverageItem[]; metricLabel: string; index: number; total: number }) {
-  const maxLines = maxWrappedLines(data);
-  const axisHeight = Math.max(72, maxLines * 14 + 30);
+function CoverageChart({ data, metricLabel, index, total, labelMaxLines }: { data: CoverageItem[]; metricLabel: string; index: number; total: number; labelMaxLines: number }) {
+  const maxLines = maxWrappedLines(data, labelMaxLines);
+  const axisHeight = Math.max(72, maxLines * 17 + 40);
+
+  const yMax = Math.max(
+    1,
+    ...data.map((item) =>
+      Math.max(
+        item.completedObjectives,
+        item.objectivesAbove50,
+        item.objectivesBetween0And50,
+        item.objectivesAtZero,
+      ),
+    ),
+  );
+  const yDomain: [number, number] = [0, yMax];
 
   return (
     <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
@@ -691,19 +711,19 @@ function CoverageChart({ data, metricLabel, index, total }: { data: CoverageItem
               dataKey="name"
               interval={0}
               height={axisHeight}
-              tick={<WrappedAxisTick />}
+              tick={<WrappedAxisTick maxLines={labelMaxLines} />}
               tickLine={false}
             />
-            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: COLORS.gray }} />
+            <YAxis allowDecimals={false} domain={yDomain} tick={{ fontSize: 11, fill: COLORS.gray }} />
             <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 800, paddingTop: 8 }} />
             <Tooltip
               cursor={{ fill: "#F8FAFC" }}
               formatter={(value, name) => [Number(value), String(name)]}
             />
-            <Bar dataKey="completedObjectives" name={objectiveBucketMeta.completedObjectives.label} fill={objectiveBucketMeta.completedObjectives.color} radius={[5, 5, 0, 0]} />
-            <Bar dataKey="objectivesAbove50" name={objectiveBucketMeta.objectivesAbove50.label} fill={objectiveBucketMeta.objectivesAbove50.color} radius={[5, 5, 0, 0]} />
-            <Bar dataKey="objectivesBetween0And50" name={objectiveBucketMeta.objectivesBetween0And50.label} fill={objectiveBucketMeta.objectivesBetween0And50.color} radius={[5, 5, 0, 0]} />
-            <Bar dataKey="objectivesAtZero" name={objectiveBucketMeta.objectivesAtZero.label} fill={objectiveBucketMeta.objectivesAtZero.color} radius={[5, 5, 0, 0]} />
+            <Bar dataKey="completedObjectives" name={objectiveBucketMeta.completedObjectives.label} fill={objectiveBucketMeta.completedObjectives.color} />
+            <Bar dataKey="objectivesAbove50" name={objectiveBucketMeta.objectivesAbove50.label} fill={objectiveBucketMeta.objectivesAbove50.color} />
+            <Bar dataKey="objectivesBetween0And50" name={objectiveBucketMeta.objectivesBetween0And50.label} fill={objectiveBucketMeta.objectivesBetween0And50.color} />
+            <Bar dataKey="objectivesAtZero" name={objectiveBucketMeta.objectivesAtZero.label} fill={objectiveBucketMeta.objectivesAtZero.color} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -711,19 +731,19 @@ function CoverageChart({ data, metricLabel, index, total }: { data: CoverageItem
   );
 }
 
-function WrappedAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: { value?: string } }) {
-  const lines = wrapLabel(String(payload?.value ?? ""));
+function WrappedAxisTick({ x, y, payload, maxLines = 2 }: { x?: number; y?: number; payload?: { value?: string }; maxLines?: number }) {
+  const lines = wrapLabel(String(payload?.value ?? ""), AXIS_LABEL_MAX_CHARS, maxLines);
   return (
     <g transform={`translate(${x ?? 0},${y ?? 0})`}>
       {lines.map((line, index) => (
         <text
           key={`${line}-${index}`}
           x={0}
-          y={index * 14}
+          y={index * 17 + 14}
           textAnchor="middle"
           fill={COLORS.gray}
-          fontSize={10}
-          fontWeight={800}
+          fontSize={12}
+          fontWeight={700}
         >
           {line}
         </text>
@@ -748,7 +768,7 @@ function CoverageSummaryCard({ item, showProjects }: { item: CoverageItem; showP
       <p style={{ fontSize: 10, color: COLORS.gray, marginTop: 6, lineHeight: 1.45 }}>
         {item.objectives} objetivos - {item.keyResults} KRs{projectText}
       </p>
-      <p style={{ fontSize: 11, color: COLORS.text, fontWeight: 800, marginTop: 8, lineHeight: 1.45 }}>
+      <p style={{ fontSize: 11, color: COLORS.text, fontWeight: 400, marginTop: 8, lineHeight: 1.45 }}>
         {bucketText}
       </p>
       <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-[#EEF2F7]">

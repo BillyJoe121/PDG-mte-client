@@ -135,60 +135,101 @@ export function GestionKR() {
       <div className="flex h-64 flex-col items-center justify-center gap-4 p-8">
         <AlertTriangle size={40} color={COLORS.orange} />
         <p style={{ fontSize: 16, fontWeight: 800, color: COLORS.text }}>Key Result no encontrado</p>
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 rounded-md px-5 py-2.5" style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 800 }}>
+        <button onClick={() => navigate(-1)} className="detail-invert-button detail-invert-button--solid detail-invert-button--blue flex items-center gap-2 rounded-md px-5 py-2.5" style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 800 }}>
           <ArrowLeft size={14} /> Volver
         </button>
       </div>
     );
   }
 
+  const pillItems = [
+    { label: "Avance", value: `${keyResult.progressPercentage}%` },
+    { label: "Proyectos", value: links.length },
+    { label: "Peso", value: `${totalWeight}%` },
+  ];
+
   return (
     <div className="min-h-full px-6 pb-5 pt-3" style={{ backgroundColor: "#F8FAFC" }}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <button onClick={() => navigate(`/okrs/${objective.id}/krs`)} className="inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: "#374151", fontSize: 12, fontWeight: 800, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-          <ArrowLeft size={14} /> Volver al objetivo
-        </button>
-      </div>
+      <section 
+        className="hierarchy-detail-context overflow-hidden rounded-md bg-white animate-fade-in mb-4"
+        style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
+          {/* Left column */}
+          <div className="flex flex-col gap-4 p-5 justify-between">
+            <div className="space-y-4">
+              {/* Back button inside the card */}
+              <button
+                type="button"
+                onClick={() => navigate(`/okrs/${objective.id}/krs`)}
+                className="hierarchy-detail-header-back-btn rounded-md self-start"
+              >
+                <ArrowLeft size={12} style={{ strokeWidth: 3 }} /> Volver al objetivo
+              </button>
 
-      <section className="objective-detail-hero overflow-hidden rounded-md bg-white">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(320px,1fr)]">
-          <div className="flex min-h-[142px] flex-col justify-center gap-2 p-4" style={{ backgroundColor: COLORS.blue }}>
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.28)", color: "#fff" }}>
-                <KeyRound size={18} />
-              </span>
-              <span style={{ color: "rgba(255,255,255,0.82)", fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Key Result #{keyResult.id}
-              </span>
+              {/* Icon + type label */}
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: `color-mix(in srgb, ${COLORS.blue} 10%, white)`, border: `1px solid color-mix(in srgb, ${COLORS.blue} 34%, white)`, color: COLORS.blue }}>
+                  <KeyRound size={13} />
+                </span>
+                <span style={{ color: COLORS.blue, fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Key Result #{keyResult.id}
+                </span>
+              </div>
+
+              {/* Title & Description */}
+              <div className="space-y-2">
+                <h1 style={{ color: COLORS.blue, fontSize: 26, fontWeight: 950, lineHeight: 1.12, maxWidth: 820 }}>{keyResult.name}</h1>
+                {keyResult.description && (
+                  <p style={{ color: COLORS.text, fontSize: 14, lineHeight: 1.6, fontWeight: 400, maxWidth: 820 }}>
+                    {keyResult.description}
+                  </p>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 style={{ color: "#fff", fontSize: 22, fontWeight: 950, lineHeight: 1.12, maxWidth: 860 }}>{keyResult.name}</h1>
-              <p style={{ color: "rgba(255,255,255,0.86)", fontSize: 12, lineHeight: 1.4, marginTop: 6, maxWidth: 900 }}>{keyResult.description}</p>
+
+            {/* Pills + actions inline at the bottom */}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              {pillItems.map((item) => (
+                <span
+                  key={item.label}
+                  style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC", color: COLORS.gray, fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 5 }}
+                >
+                  <span style={{ color: COLORS.blue, fontWeight: 900, fontSize: 13 }}>{item.value}</span>
+                  {item.label}
+                </span>
+              ))}
+              {canEdit && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingKr(true)}
+                    className="hierarchy-detail-header-manage-btn rounded-md"
+                  >
+                    <Edit2 size={12} /> Editar KR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={requestDelete}
+                    disabled={saving}
+                    className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60"
+                    style={{ "--hierarchy-card-accent": COLORS.orange } as CSSProperties}
+                  >
+                    <Trash2 size={12} /> Eliminar
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-col justify-center gap-2 p-4" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
-            <div className="grid grid-cols-3 gap-2">
-              <MetricTile label="Avance" value={`${keyResult.progressPercentage}%`} color={COLORS.purple} />
-              <MetricTile label="Proyectos" value={links.length} color={COLORS.green} />
-              <MetricTile label="Peso" value={`${totalWeight}%`} color={hasOverweight ? COLORS.orange : COLORS.green} />
-            </div>
-            <div className="space-y-2">
+          {/* Right column – metadata block */}
+          <div className="flex flex-col justify-center gap-3 p-5" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
+            <div className="space-y-2 w-full">
               <ContextRow icon={<Target size={14} />} label="Objetivo" value={objective.name} />
               <ContextRow icon={<CalendarDays size={14} />} label="Periodo" value={objective.academicPeriodName} />
               <ContextRow icon={<BarChart3 size={14} />} label="Metrica" value={keyResult.metric} />
               <ContextRow icon={<Scale size={14} />} label="Meta" value={`${keyResult.targetValue} ${keyResult.measurementUnitName}`} />
             </div>
-            {canEdit && (
-              <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setEditingKr(true)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2" style={detailActionButtonStyle(COLORS.purple)}>
-                  <Edit2 size={14} /> Editar KR
-                </button>
-                <button type="button" onClick={requestDelete} disabled={saving} className="inline-flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 disabled:opacity-60" style={detailActionButtonStyle(COLORS.orange)}>
-                  <Trash2 size={14} /> Eliminar
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </section>
@@ -200,7 +241,7 @@ export function GestionKR() {
             <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>Administra los proyectos que aportan a este Key Result y su peso declarado.</p>
           </div>
           {canEdit && (
-            <button type="button" onClick={() => setLinkingProject(true)} className="inline-flex items-center gap-2 rounded-md px-4 py-2" style={detailActionButtonStyle(COLORS.green)}>
+            <button type="button" onClick={() => setLinkingProject(true)} className="hierarchy-detail-header-manage-btn rounded-md" style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}>
               <Link2 size={14} /> Vincular proyecto
             </button>
           )}
@@ -234,12 +275,12 @@ export function GestionKR() {
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         {link.projectId && (
-                          <button type="button" onClick={() => navigate(`/proyectos/${link.projectId}`)} className="kr-project-card__button inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ fontSize: 11, fontWeight: 900 }}>
+                          <button type="button" onClick={() => navigate(`/proyectos/${link.projectId}`)} className="detail-invert-button detail-invert-button--header detail-invert-button--green kr-project-card__button inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ fontSize: 11, fontWeight: 900 }}>
                             <ExternalLink size={13} /> Ver proyecto
                           </button>
                         )}
                         {canEdit && (
-                          <button type="button" onClick={() => setUnlinkTarget(link)} className="kr-project-card__button inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ fontSize: 11, fontWeight: 900 }}>
+                          <button type="button" onClick={() => setUnlinkTarget(link)} className="detail-invert-button detail-invert-button--header detail-invert-button--green kr-project-card__button inline-flex items-center gap-2 rounded-md px-3 py-2" style={{ fontSize: 11, fontWeight: 900 }}>
                             <Unlink size={13} /> Desvincular
                           </button>
                         )}
@@ -376,7 +417,7 @@ function ProjectLinkModal({ keyResult, projects, linkedProjectIds, onClose, onSa
               <h3 style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>Vincular proyecto</h3>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
+          <button type="button" onClick={onClose} className="detail-invert-button detail-invert-button--header detail-invert-button--green flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
             <X size={18} color="#fff" />
           </button>
         </div>
@@ -410,8 +451,8 @@ function ProjectLinkModal({ keyResult, projects, linkedProjectIds, onClose, onSa
             </ModalField>
           </div>
           <div className="flex justify-end gap-2 pt-3">
-            <button type="button" onClick={onClose} style={{ padding: "10px 16px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontSize: 12, fontWeight: 800, backgroundColor: "#fff", color: "#374151" }}>Cancelar</button>
-            <button type="submit" disabled={submitting || !projectId || availableProjects.length === 0} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
+            <button type="button" onClick={onClose} className="detail-invert-button detail-invert-button--outline detail-invert-button--green" style={{ padding: "10px 16px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontSize: 12, fontWeight: 800, backgroundColor: "#fff", color: "#374151" }}>Cancelar</button>
+            <button type="submit" disabled={submitting || !projectId || availableProjects.length === 0} className="detail-invert-button detail-invert-button--solid detail-invert-button--green flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Guardar vinculo
             </button>
           </div>
@@ -433,8 +474,8 @@ function ConfirmActionModal({ title, description, actionLabel, saving, accent, o
           {children}
         </div>
         <div className="flex justify-end gap-2 px-5 pb-5">
-          <button type="button" onClick={onClose} disabled={saving} style={{ padding: "8px 12px", border: `1px solid ${COLORS.border}`, borderRadius: 6, fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>Cancelar</button>
-          <button type="button" onClick={onConfirm} disabled={saving} className="inline-flex items-center gap-2 disabled:opacity-60" style={{ padding: "8px 12px", backgroundColor: accent, color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 900 }}>
+          <button type="button" onClick={onClose} disabled={saving} className="detail-invert-button detail-invert-button--outline detail-invert-button--orange" style={{ padding: "8px 12px", border: `1px solid ${COLORS.border}`, borderRadius: 6, fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>Cancelar</button>
+          <button type="button" onClick={onConfirm} disabled={saving} className="detail-invert-button detail-invert-button--solid detail-invert-button--orange inline-flex items-center gap-2 disabled:opacity-60" style={{ padding: "8px 12px", backgroundColor: accent, color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 900 }}>
             {saving && <Loader2 size={13} className="animate-spin" />}
             {actionLabel}
           </button>
@@ -459,7 +500,7 @@ function ContextRow({ icon, label, value }: { icon: ReactNode; label: string; va
       <span className="flex items-center gap-2" style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>
         {icon} {label}
       </span>
-      <span style={{ color: COLORS.text, fontSize: 11, fontWeight: 850, textAlign: "right", lineHeight: 1.4 }}>{value}</span>
+      <span style={{ color: COLORS.text, fontSize: 12, fontWeight: 400, textAlign: "right", lineHeight: 1.4 }}>{value}</span>
     </div>
   );
 }

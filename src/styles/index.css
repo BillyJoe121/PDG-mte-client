@@ -452,68 +452,31 @@
 
 .kr-detail-card {
   --kr-card-accent: #5454E9;
-  background: #fff;
-  border: 1px solid #D9DEE8;
-  border-left: 7px solid var(--kr-card-accent);
+  background: var(--kr-card-accent);
+  border: 1px solid var(--kr-card-accent);
   box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
-  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  transition: box-shadow 160ms ease;
 }
 
 .kr-detail-card:hover,
 .kr-detail-card:focus-within {
-  background: var(--kr-card-accent);
-  border-color: var(--kr-card-accent);
-  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.12);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.14);
 }
 
 .kr-detail-card__accent,
 .kr-detail-card__title,
 .kr-detail-card__progress,
-.kr-detail-card__icon-button {
-  color: var(--kr-card-accent);
-  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
-}
-
-.kr-detail-card__description {
-  color: #717182;
-  transition: color 160ms ease;
+.kr-detail-card__icon-button,
+.kr-detail-card__description,
+.kr-detail-card__value {
+  color: #fff !important;
 }
 
 .kr-detail-card__progress,
 .kr-detail-card__value,
 .kr-detail-card__icon-button {
-  background: color-mix(in srgb, var(--kr-card-accent) 8%, white);
-  border: 1px solid color-mix(in srgb, var(--kr-card-accent) 28%, white);
-}
-
-.kr-detail-card__value {
-  color: #111827;
-  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
-}
-
-.kr-detail-card:hover .kr-detail-card__accent,
-.kr-detail-card:hover .kr-detail-card__title,
-.kr-detail-card:hover .kr-detail-card__description,
-.kr-detail-card:hover .kr-detail-card__progress,
-.kr-detail-card:hover .kr-detail-card__value,
-.kr-detail-card:hover .kr-detail-card__icon-button,
-.kr-detail-card:focus-within .kr-detail-card__accent,
-.kr-detail-card:focus-within .kr-detail-card__title,
-.kr-detail-card:focus-within .kr-detail-card__description,
-.kr-detail-card:focus-within .kr-detail-card__progress,
-.kr-detail-card:focus-within .kr-detail-card__value,
-.kr-detail-card:focus-within .kr-detail-card__icon-button {
-  color: #fff;
-}
-
-.kr-detail-card:hover .kr-detail-card__progress,
-.kr-detail-card:hover .kr-detail-card__value,
-.kr-detail-card:hover .kr-detail-card__icon-button,
-.kr-detail-card:focus-within .kr-detail-card__progress,
-.kr-detail-card:focus-within .kr-detail-card__value,
-.kr-detail-card:focus-within .kr-detail-card__icon-button {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.34) !important;
 }
 
 .kr-edit-form {
@@ -525,68 +488,123 @@
 
 .kr-project-card {
   --kr-project-accent: #4CB979;
-  background: #fff;
-  border: 1px solid #D9DEE8;
-  border-left: 7px solid var(--kr-project-accent);
+  background: var(--kr-project-accent);
+  border: 1px solid var(--kr-project-accent);
   box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
-  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  transition: box-shadow 160ms ease;
 }
 
 .kr-project-card:hover,
 .kr-project-card:focus-within {
-  background: var(--kr-project-accent);
-  border-color: var(--kr-project-accent);
-  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.12);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.14);
 }
 
 .kr-project-card__accent,
 .kr-project-card__title,
 .kr-project-card__metric,
-.kr-project-card__button {
-  color: var(--kr-project-accent);
-  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
-}
-
+.kr-project-card__value,
+.kr-project-card__button,
 .kr-project-card__description {
-  color: #717182;
-  transition: color 160ms ease;
+  color: #fff !important;
 }
 
 .kr-project-card__metric,
 .kr-project-card__value,
 .kr-project-card__button {
-  background: color-mix(in srgb, var(--kr-project-accent) 8%, white);
-  border: 1px solid color-mix(in srgb, var(--kr-project-accent) 28%, white);
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.34) !important;
 }
 
-.kr-project-card__value {
-  color: #111827;
-  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+.detail-invert-button {
+  --detail-button-accent: #111827;
+  --detail-button-shadow: color-mix(in srgb, var(--detail-button-accent) 24%, transparent);
+  border-color: var(--detail-button-accent);
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.kr-project-card:hover .kr-project-card__accent,
-.kr-project-card:hover .kr-project-card__title,
-.kr-project-card:hover .kr-project-card__description,
-.kr-project-card:hover .kr-project-card__metric,
-.kr-project-card:hover .kr-project-card__value,
-.kr-project-card:hover .kr-project-card__button,
-.kr-project-card:focus-within .kr-project-card__accent,
-.kr-project-card:focus-within .kr-project-card__title,
-.kr-project-card:focus-within .kr-project-card__description,
-.kr-project-card:focus-within .kr-project-card__metric,
-.kr-project-card:focus-within .kr-project-card__value,
-.kr-project-card:focus-within .kr-project-card__button {
-  color: #fff;
+.detail-invert-button--blue,
+.detail-invert-button--purple {
+  --detail-button-accent: #5454E9;
 }
 
-.kr-project-card:hover .kr-project-card__metric,
-.kr-project-card:hover .kr-project-card__value,
-.kr-project-card:hover .kr-project-card__button,
-.kr-project-card:focus-within .kr-project-card__metric,
-.kr-project-card:focus-within .kr-project-card__value,
-.kr-project-card:focus-within .kr-project-card__button {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.34);
+.detail-invert-button--green {
+  --detail-button-accent: #4CB979;
+}
+
+.detail-invert-button--orange {
+  --detail-button-accent: #E9683B;
+}
+
+.detail-invert-button--dark {
+  --detail-button-accent: #111827;
+}
+
+.detail-invert-button--gray {
+  --detail-button-accent: #717182;
+}
+
+.detail-invert-button:hover:not(:disabled),
+.detail-invert-button:focus-visible:not(:disabled) {
+  border-color: var(--detail-button-accent) !important;
+  box-shadow: 0 10px 20px var(--detail-button-shadow) !important;
+  outline: none;
+}
+
+.detail-invert-button--solid:hover:not(:disabled),
+.detail-invert-button--solid:focus-visible:not(:disabled),
+.detail-invert-button--header:hover:not(:disabled),
+.detail-invert-button--header:focus-visible:not(:disabled) {
+  background-color: #fff !important;
+  color: var(--detail-button-accent) !important;
+}
+
+.detail-invert-button--outline:hover:not(:disabled),
+.detail-invert-button--outline:focus-visible:not(:disabled),
+.detail-invert-button--soft:hover:not(:disabled),
+.detail-invert-button--soft:focus-visible:not(:disabled),
+.detail-invert-button--transparent:hover:not(:disabled),
+.detail-invert-button--transparent:focus-visible:not(:disabled) {
+  background-color: var(--detail-button-accent) !important;
+  color: #fff !important;
+}
+
+.detail-invert-button--header:hover:not(:disabled),
+.detail-invert-button--header:focus-visible:not(:disabled) {
+  border-color: #fff !important;
+}
+
+.detail-invert-button svg {
+  transition: color 160ms ease, stroke 160ms ease;
+}
+
+.detail-invert-button > span {
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.detail-invert-button:hover:not(:disabled) svg,
+.detail-invert-button:focus-visible:not(:disabled) svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.detail-invert-button--solid:hover:not(:disabled) > span,
+.detail-invert-button--solid:focus-visible:not(:disabled) > span,
+.detail-invert-button--header:hover:not(:disabled) > span,
+.detail-invert-button--header:focus-visible:not(:disabled) > span {
+  background-color: color-mix(in srgb, var(--detail-button-accent) 10%, white) !important;
+  color: var(--detail-button-accent) !important;
+  border-color: color-mix(in srgb, var(--detail-button-accent) 34%, white) !important;
+}
+
+.detail-invert-button--outline:hover:not(:disabled) > span,
+.detail-invert-button--outline:focus-visible:not(:disabled) > span,
+.detail-invert-button--soft:hover:not(:disabled) > span,
+.detail-invert-button--soft:focus-visible:not(:disabled) > span,
+.detail-invert-button--transparent:hover:not(:disabled) > span,
+.detail-invert-button--transparent:focus-visible:not(:disabled) > span {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.34) !important;
 }
 
 .app-scroll-purple,
@@ -684,6 +702,29 @@
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: content-box;
+}
+
+.hierarchy-detail-header-manage-btn,
+.hierarchy-detail-header-back-btn {
+  background-color: var(--hierarchy-card-accent);
+  color: #fff;
+  border: 1px solid var(--hierarchy-card-accent);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 180ms ease;
+}
+
+.hierarchy-detail-header-manage-btn:hover,
+.hierarchy-detail-header-back-btn:hover {
+  background-color: transparent !important;
+  color: var(--hierarchy-card-accent) !important;
+  border-color: var(--hierarchy-card-accent) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--hierarchy-card-accent) 22%, transparent);
 }
 
 :root {

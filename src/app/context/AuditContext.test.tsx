@@ -48,10 +48,10 @@ describe('AuditContext', () => {
     sessionStorage.setItem('sgp_session_user', JSON.stringify({
       id: 'U1',
       nombre: 'Hugo Arboleda',
-      correo: 'harboleda@icesi.edu.co',
+      correo: 'hugo.arboleda@icesi.edu.co',
       rol: 'director',
-      departamento: 'Direccion TDI',
-      iniciales: 'HA',
+      departamento: 'Departamento de Computacion y Sistemas inteligentes.',
+      iniciales: "HA",
     }));
     vi.spyOn(Math, 'random').mockReturnValue(0.12345);
     const getAudit = renderAuditHook(WithAuth);
