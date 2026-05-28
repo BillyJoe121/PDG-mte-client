@@ -12,6 +12,7 @@ interface OkrsSummaryProps {
     goalId: string;
     departmentId: string;
     periodId: string;
+    progress: string;
   };
   goals: Goal[];
   onCreateObjective: () => void;
@@ -77,6 +78,12 @@ export function OkrsSummary({
         <FilterSelect width={155} label="Meta" value={filters.goalId} onChange={(value) => onFilterChange("goalId", value)} options={goals.map((goal) => ({ value: goal.id, label: goal.name }))} />
         <FilterSelect width={170} label="Departamento" value={filters.departmentId} onChange={(value) => onFilterChange("departmentId", value)} options={visibleDepartments.map((department) => ({ value: department.id, label: department.name }))} />
         <FilterSelect width={145} label="Periodo" value={filters.periodId} onChange={(value) => onFilterChange("periodId", value)} options={periods.map((period) => ({ value: period.id, label: period.name }))} />
+        <FilterSelect width={155} label="Avance" value={filters.progress} onChange={(value) => onFilterChange("progress", value)} options={[
+          { value: "completado", label: "Completado: 100%" },
+          { value: "avanzado", label: "Avanzado: >50%" },
+          { value: "proceso", label: "En proceso: <=50%" },
+          { value: "iniciando", label: "Iniciando: 0%" }
+        ]} />
         <button onClick={onResetFilters} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "8px 11px", fontSize: "12px", fontWeight: 750, backgroundColor: "#fff", color: "#374151", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
           Limpiar
         </button>
@@ -90,7 +97,7 @@ export function OkrsSummary({
           />
         </div>
         {canEdit && (
-          <button onClick={onCreateObjective} className="flex items-center gap-2 px-4 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.orange, color: "#fff", fontSize: "12px", fontWeight: 800, boxShadow: `0 10px 22px ${COLORS.orange}33` }}>
+          <button onClick={onCreateObjective} className="btn-primary-orange active:scale-95">
             <Plus size={14} /> Nuevo Objetivo
           </button>
         )}
@@ -99,7 +106,7 @@ export function OkrsSummary({
   );
 }
 
-function FilterSelect({ label, value, onChange, options, width = 155 }: { label: string; value: string; onChange: (value: string) => void; options: { value: number; label: string }[]; width?: number }) {
+function FilterSelect({ label, value, onChange, options, width = 155 }: { label: string; value: string; onChange: (value: string) => void; options: { value: number | string; label: string }[]; width?: number }) {
   return (
     <Select value={value || "__all"} onValueChange={(next) => onChange(next === "__all" ? "" : next)}>
       <SelectTrigger className="focus-visible:ring-0" title={label} style={{ ...filterSelectStyle, width }}>

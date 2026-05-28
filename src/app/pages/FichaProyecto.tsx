@@ -80,6 +80,11 @@ export function FichaProyecto() {
   const [error, setError] = useState("");
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [editLinkData, setEditLinkData] = useState<{
+    keyResultId: string;
+    weight: number;
+    contributionType: import("../services/projectsApi").ContributionType;
+  } | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [unlinkTarget, setUnlinkTarget] = useState<ProjectKeyResultLinkResponse | null>(null);
 
@@ -242,9 +247,6 @@ export function FichaProyecto() {
                     <button onClick={() => setShowEditModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
                       <Edit2 size={13} /> Editar proyecto
                     </button>
-                    <button onClick={() => setShowLinkModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
-                      <Link2 size={13} /> Vincular KR
-                    </button>
                   </div>
                 )}
               </div>
@@ -278,8 +280,19 @@ export function FichaProyecto() {
                     canManageLinks={canManageLinks}
                     chain={chain}
                     detail={detail}
-                    onLink={() => setShowLinkModal(true)}
-                    onUnlink={setUnlinkTarget}
+                    onLink={() => {
+                      setEditLinkData(null);
+                      setShowLinkModal(true);
+                    }}
+                    onEditLink={(link) => {
+                      setEditLinkData({
+                        keyResultId: String(link.keyResultId),
+                        weight: link.contributionWeight,
+                        contributionType: link.contributionType,
+                      });
+                      setShowLinkModal(true);
+                    }}
+                    onUnlink={(link) => setUnlinkTarget(link)}
                     projectProgress={project.globalProgress}
                   />
                 </motion.div>
@@ -318,7 +331,13 @@ export function FichaProyecto() {
         <LinkKeyResultModal
           project={project}
           objectiveCards={objectiveCards}
-          onClose={() => setShowLinkModal(false)}
+          initialKeyResultId={editLinkData?.keyResultId}
+          initialWeight={editLinkData?.weight}
+          initialContributionType={editLinkData?.contributionType}
+          onClose={() => {
+            setShowLinkModal(false);
+            setEditLinkData(null);
+          }}
           onSaved={() => loadDetail({ force: true })}
         />
       )}
@@ -545,7 +564,9 @@ function Breadcrumb({ projectName, onBack }: { projectName: string; onBack: () =
         Proyectos
       </button>
       <ChevronRight size={12} color="#C7CDD8" />
-      <span className="truncate" style={{ fontSize: 12, color: COLORS.text, fontWeight: 900 }}>{projectName}</span>
+      <span className="truncate" style={{ fontSize: 12, color: COLORS.text, fontWeight: 900 }} title={projectName}>
+        {projectName.length > 22 ? `${projectName.slice(0, 22)}...` : projectName}
+      </span>
     </div>
   );
 }
@@ -553,7 +574,7 @@ function Breadcrumb({ projectName, onBack }: { projectName: string; onBack: () =
 function ProjectHero({ progressColor, project }: { progressColor: string; project: ProjectDetailResponse["project"] }) {
   return (
     <section className="objective-detail-hero overflow-hidden rounded-md bg-white" style={{ boxShadow: `0 18px 42px ${COLORS.green}24` }}>
-      <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(320px,1fr)]">
+      <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,2.5fr)_minmax(220px,1fr)]">
         <div className="flex min-h-[150px] items-center p-4 sm:p-5" style={{ backgroundColor: COLORS.green }}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
@@ -635,7 +656,7 @@ function SummarySection({
         {!chain || chain.impacts.length === 0 ? (
           <EmptyState icon={<GitBranch size={28} />} text="No hay impactos activos en la cadena de contribucion." />
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3">
             {chain.impacts.slice(0, 4).map((impact) => (
               <ImpactCard key={impact.linkId} impact={impact} projectProgress={chain.globalProgress} />
             ))}
@@ -708,6 +729,7 @@ function KeyResultsSection({
   chain,
   detail,
   onLink,
+  onEditLink,
   onUnlink,
   projectProgress,
 }: {
@@ -715,6 +737,7 @@ function KeyResultsSection({
   chain?: ImpactChain | null;
   detail: ProjectDetailResponse;
   onLink: () => void;
+  onEditLink: (link: ProjectKeyResultLinkResponse) => void;
   onUnlink: (link: ProjectKeyResultLinkResponse) => void;
   projectProgress: number;
 }) {
@@ -724,28 +747,39 @@ function KeyResultsSection({
         title="Key Results vinculados"
         icon={<Target size={16} />}
         action={canManageLinks ? (
-          <button onClick={onLink} className="inline-flex items-center gap-2 rounded-md" style={secondaryButtonStyle}>
+          <button onClick={onLink} className="btn-primary-green inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-bold shadow-sm">
             <Link2 size={14} />
-            Agregar KR
+            Vincular KR
           </button>
         ) : null}
       >
         {detail.linkedKeyResults.length === 0 ? (
           <EmptyState icon={<Target size={30} />} text="Este proyecto aun no tiene Key Results vinculados." />
         ) : (
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {detail.linkedKeyResults.map((link) => (
-              <LinkedKrCard key={link.id} canManage={canManageLinks} link={link} onUnlink={() => onUnlink(link)} />
-            ))}
+          <div className="grid grid-cols-1 gap-3">
+            {detail.linkedKeyResults.map((link) => {
+              const impact = chain?.impacts.find((i) => i.linkId === link.id);
+              return (
+                <LinkedKrCard
+                  key={link.id}
+                  canManage={canManageLinks}
+                  link={link}
+                  objectiveId={impact?.objectiveId}
+                  objectiveName={impact?.objectiveName}
+                  onEditLink={() => onEditLink(link)}
+                  onUnlink={() => onUnlink(link)}
+                />
+              );
+            })}
           </div>
         )}
       </Panel>
 
-      <Panel title="Cadena de contribucion" icon={<GitBranch size={16} />} subtitle="Valores devueltos por /projects/{id}/contribution-chain.">
+      <Panel title="Cadena de contribucion" icon={<GitBranch size={16} />}>
         {!chain || chain.impacts.length === 0 ? (
           <EmptyState icon={<GitBranch size={30} />} text="No hay impactos activos en la cadena de contribucion." />
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3">
             {chain.impacts.map((impact) => (
               <ImpactCard key={impact.linkId} impact={impact} projectProgress={projectProgress} />
             ))}
@@ -832,13 +866,23 @@ function MetricCard({ label, value, icon, color }: { label: string; value: numbe
   );
 }
 
-function LinkedKrCard({ canManage, link, onUnlink }: { canManage: boolean; link: ProjectKeyResultLinkResponse; onUnlink: () => void }) {
+function LinkedKrCard({ canManage, link, onEditLink, onUnlink, objectiveId, objectiveName }: { canManage: boolean; link: ProjectKeyResultLinkResponse; onEditLink: () => void; onUnlink: () => void; objectiveId?: number; objectiveName?: string }) {
+  const navigate = useNavigate();
+
   return (
     <article className="rounded-md p-4" style={{ border: `1px solid ${link.overweightWarning ? "#FBBF24" : COLORS.border}`, backgroundColor: link.overweightWarning ? "#FFFBEB" : "#F8FAFC" }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p style={{ fontSize: 10, fontWeight: 950, color: COLORS.green, textTransform: "uppercase" }}>KR {link.keyResultId}</p>
-          <h3 style={{ fontSize: 13, fontWeight: 900, color: COLORS.text, lineHeight: 1.35, marginTop: 4 }}>{link.keyResultDescription}</h3>
+          {objectiveName && (
+            <div className="mb-3">
+              <p style={{ fontSize: 10, fontWeight: 950, color: COLORS.orange, textTransform: "uppercase" }}>Objetivo {objectiveId}</p>
+              <h3 style={{ fontSize: 13, fontWeight: 900, color: COLORS.orange, lineHeight: 1.35, marginTop: 4 }}>{objectiveName}</h3>
+            </div>
+          )}
+          <div className={objectiveName ? "pl-4 border-l-2 border-[#E5E7EB]" : ""}>
+            <p style={{ fontSize: 10, fontWeight: 950, color: COLORS.blue, textTransform: "uppercase" }}>KR {link.keyResultId}</p>
+            <h3 style={{ fontSize: 13, fontWeight: 900, color: COLORS.blue, lineHeight: 1.35, marginTop: 4 }}>{link.keyResultDescription}</h3>
+          </div>
         </div>
         <span className="shrink-0 rounded px-2 py-1" style={{ backgroundColor: link.active ? "#ECFDF5" : "#F3F4F6", color: link.active ? "#065F46" : "#6B7280", fontSize: 10, fontWeight: 900 }}>
           {link.active ? "Activo" : "Inactivo"}
@@ -850,11 +894,29 @@ function LinkedKrCard({ canManage, link, onUnlink }: { canManage: boolean; link:
         <MiniStat label="Total KR" value={`${link.totalWeightForKeyResult}%`} />
       </div>
       {link.overweightWarning && <p style={{ fontSize: 11, color: "#92400E", marginTop: 10, fontWeight: 850 }}>La suma actual para este KR es {link.totalWeightForKeyResult}%.</p>}
-      {canManage && (
-        <button onClick={onUnlink} className="mt-3 inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: "1px solid #FED7AA", color: COLORS.orange, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
-          Desvincular
-        </button>
-      )}
+      
+      <div className="mt-4 flex flex-wrap gap-2">
+        {objectiveId && (
+          <>
+            <button onClick={() => navigate(`/okrs/${objectiveId}/krs/${link.keyResultId}`)} className="inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.blue, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
+              Ir al KR
+            </button>
+            <button onClick={() => navigate(`/okrs/${objectiveId}/krs`)} className="inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.blue, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
+              Ir al Objetivo
+            </button>
+            {canManage && (
+              <button onClick={onEditLink} className="inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.blue, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
+                Gestionar peso
+              </button>
+            )}
+          </>
+        )}
+        {canManage && (
+          <button onClick={onUnlink} className="inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: "1px solid #FED7AA", color: COLORS.orange, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
+            Desvincular
+          </button>
+        )}
+      </div>
     </article>
   );
 }
@@ -865,7 +927,7 @@ function ImpactCard({ impact, projectProgress }: { impact: ImpactChain["impacts"
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Badge color={COLORS.green}>El proyecto está en {projectProgress}%</Badge>
         <span style={{ color: "#9CA3AF", fontSize: 11, fontWeight: 900 }}>x</span>
-        <Badge color={COLORS.purple}>Aporta al KR {impact.contributionWeight}%</Badge>
+        <Badge color={COLORS.blue}>Aporta al KR {impact.contributionWeight}%</Badge>
         <span style={{ color: "#9CA3AF", fontSize: 11, fontWeight: 900 }}>=</span>
         <Badge color={COLORS.orange}>Aporta al objetivo {impact.appliedContribution}%</Badge>
       </div>

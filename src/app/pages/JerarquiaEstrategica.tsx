@@ -10,7 +10,7 @@ import { Calendar } from "../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { measurementUnitsApi, type AcademicPeriod, type MeasurementUnit } from "../services/catalogsApi";
-import { loadHierarchyScreen } from "../services/screenDataCache";
+import { loadHierarchyScreen, loadDepartments, loadMeasurementUnits } from "../services/screenDataCache";
 import { truncateText } from "../utils/text";
 import {
   goalsApi,
@@ -19,7 +19,9 @@ import {
   type Goal,
   type StrategicBet,
   type StrategicHierarchyNode,
+  type Department,
 } from "../services/strategicApi";
+import { CreateObjectiveModal } from "./okrs/CreateObjectiveModal";
 
 const COLORS = {
   blue: "#5454E9",
@@ -62,10 +64,13 @@ export function JerarquiaEstrategica() {
   const [bets, setBets] = useState<StrategicBet[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [selectedHierarchyRootKey, setSelectedHierarchyRootKey] = useState<string | null>(null);
   const [hierarchySearch, setHierarchySearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [createModal, setCreateModal] = useState<"bet" | "goal" | null>(null);
+  const [creatingObjectiveForNode, setCreatingObjectiveForNode] = useState<StrategicHierarchyNode | null>(null);
   const [editingBet, setEditingBet] = useState<StrategicBet | null>(null);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
@@ -74,10 +79,16 @@ export function JerarquiaEstrategica() {
     try {
       const selectedPeriod = period || undefined;
       const data = await loadHierarchyScreen(selectedPeriod, { force: options?.force });
+      const [deps, uns] = await Promise.all([
+        loadDepartments({ force: options?.force }).catch(() => [] as Department[]),
+        loadMeasurementUnits({ force: options?.force }).catch(() => [] as MeasurementUnit[])
+      ]);
       setTree(data.tree);
       setBets(data.bets);
       setGoals(data.goals);
       setPeriods(data.periods);
+      setDepartments(deps);
+      setUnits(uns);
       if (options?.resetSelection !== false) {
         setSelectedHierarchyRootKey(null);
         setExpanded(new Set());
@@ -305,6 +316,16 @@ export function JerarquiaEstrategica() {
                   expanded={expanded}
                   onToggle={toggle}
                   onManage={manageNode}
+                  onCreateChild={
+                    canCreate && (selectedHierarchyRoot.nodeType === "GOAL" || selectedHierarchyRoot.nodeType === "STRATEGIC_BET")
+                      ? () => setCreatingObjectiveForNode(selectedHierarchyRoot)
+                      : undefined
+                  }
+                  createChildLabel={
+                    selectedHierarchyRoot.nodeType === "GOAL" || selectedHierarchyRoot.nodeType === "STRATEGIC_BET"
+                      ? "Crear Objetivo"
+                      : undefined
+                  }
                 />
               </div>
             )}
@@ -349,6 +370,22 @@ export function JerarquiaEstrategica() {
             onClose={() => setEditingGoal(null)}
             onSaved={async () => {
               setEditingGoal(null);
+              await load({ force: true, resetSelection: false });
+            }}
+          />
+        )}
+        {creatingObjectiveForNode && (
+          <CreateObjectiveModal
+            departments={departments}
+            goals={goals}
+            periods={periods}
+            strategicBets={bets}
+            units={units}
+            initialStrategicBetId={creatingObjectiveForNode.nodeType === "STRATEGIC_BET" ? creatingObjectiveForNode.id : ""}
+            initialGoalId={creatingObjectiveForNode.nodeType === "GOAL" ? creatingObjectiveForNode.id : ""}
+            onClose={() => setCreatingObjectiveForNode(null)}
+            onCreated={async () => {
+              setCreatingObjectiveForNode(null);
               await load({ force: true, resetSelection: false });
             }}
           />
@@ -619,11 +656,15 @@ function HierarchyDetailTree({
   expanded,
   onToggle,
   onManage,
+  onCreateChild,
+  createChildLabel,
 }: {
   root: StrategicHierarchyNode;
   expanded: Set<string>;
   onToggle: (id: string) => void;
   onManage: (node: StrategicHierarchyNode, nodeKey: string) => void;
+  onCreateChild?: () => void;
+  createChildLabel?: string;
 }) {
   const rootKey = getTreeNodeKey(root);
   const children = root.children ?? [];
@@ -637,7 +678,14 @@ function HierarchyDetailTree({
             Los elementos se organizan desde el nivel superior hacia los proyectos relacionados.
           </p>
         </div>
-        <span style={{ color: COLORS.gray, fontSize: 11, fontWeight: 850 }}>{children.length} elementos directos</span>
+        <div className="flex flex-col items-end gap-2">
+          {onCreateChild && createChildLabel && (
+            <button onClick={onCreateChild} className="btn-primary-orange active:scale-95">
+              <Plus size={14} /> {createChildLabel}
+            </button>
+          )}
+          <span style={{ color: COLORS.gray, fontSize: 11, fontWeight: 850 }}>{children.length} elementos directos</span>
+        </div>
       </div>
 
       {children.length > 0 ? (

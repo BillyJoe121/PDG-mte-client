@@ -17,13 +17,16 @@ interface LinkKeyResultModalProps {
   project: ProjectResponse;
   onClose: () => void;
   onSaved: () => Promise<void>;
+  initialKeyResultId?: string;
+  initialWeight?: number;
+  initialContributionType?: ContributionType;
 }
 
-export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved }: LinkKeyResultModalProps) {
+export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, initialKeyResultId = "", initialWeight = 30, initialContributionType = "DIRECTA" }: LinkKeyResultModalProps) {
   const reduceMotion = useReducedMotion();
-  const [keyResultId, setKeyResultId] = useState("");
-  const [weight, setWeight] = useState(30);
-  const [contributionType, setContributionType] = useState<ContributionType>("DIRECTA");
+  const [keyResultId, setKeyResultId] = useState(initialKeyResultId);
+  const [weight, setWeight] = useState(initialWeight);
+  const [contributionType, setContributionType] = useState<ContributionType>(initialContributionType);
   const [krSearch, setKrSearch] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -112,12 +115,9 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved }
               searchPlaceholder="Buscar por KR, objetivo, departamento o periodo"
             />
           </ModalField>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <ModalField label="Peso">
               <input type="number" min={0} max={100} value={weight} onChange={(event) => setWeight(Math.max(0, Math.min(100, Number(event.target.value))))} style={modalInputStyle} />
-            </ModalField>
-            <ModalField label="Tipo">
-              <ModalSelect value={contributionType} onChange={(value) => setContributionType(value as ContributionType)} placeholder="Tipo" options={CONTRIBUTION_TYPES} />
             </ModalField>
           </div>
         </div>

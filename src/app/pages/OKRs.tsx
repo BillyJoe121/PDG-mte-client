@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Loader2, Target } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ type OkrFilters = {
   goalId: string;
   departmentId: string;
   periodId: string;
+  progress: string;
 };
 
 const emptyFilters: OkrFilters = {
@@ -30,10 +31,38 @@ const emptyFilters: OkrFilters = {
   goalId: "",
   departmentId: "",
   periodId: "",
+  progress: "",
 };
+
+const progressFilters = new Set(["completado", "avanzado", "proceso", "iniciando"]);
+
+function readFiltersFromSearchParams(params: URLSearchParams): OkrFilters {
+  const progress = params.get("progress") ?? "";
+  return {
+    strategicBetId: params.get("strategicBetId") ?? "",
+    goalId: params.get("goalId") ?? "",
+    departmentId: params.get("departmentId") ?? "",
+    periodId: params.get("periodId") ?? "",
+    progress: progressFilters.has(progress) ? progress : "",
+  };
+}
+
+function buildSearchParams(filters: OkrFilters, search: string) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  if (search.trim()) params.set("q", search.trim());
+  return params;
+}
+
+function areFiltersEqual(left: OkrFilters, right: OkrFilters) {
+  return Object.keys(emptyFilters).every((key) => left[key as keyof OkrFilters] === right[key as keyof OkrFilters]);
+}
 
 export function OKRs() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
   const canEdit = usuario?.rol === "director" || usuario?.rol === "administrador" || usuario?.rol === "jefe";
@@ -45,8 +74,15 @@ export function OKRs() {
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [creatingObjective, setCreatingObjective] = useState(false);
-  const [filters, setFilters] = useState<OkrFilters>(emptyFilters);
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<OkrFilters>(() => readFiltersFromSearchParams(searchParams));
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+
+  useEffect(() => {
+    const nextFilters = readFiltersFromSearchParams(searchParams);
+    const nextSearch = searchParams.get("q") ?? "";
+    setFilters((current) => areFiltersEqual(current, nextFilters) ? current : nextFilters);
+    setSearch((current) => current === nextSearch ? current : nextSearch);
+  }, [searchParams]);
 
   const loadCards = useCallback(async (options?: { force?: boolean; silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
@@ -87,7 +123,7 @@ export function OKRs() {
     return departments;
   }, [departments, usuario]);
 
-  const visibleCards = useMemo(() => filterObjectiveCards(cards, search), [cards, search]);
+  const visibleCards = useMemo(() => filterObjectiveCards(cards, search, filters.progress), [cards, search, filters.progress]);
   const stats = buildOkrStats(visibleCards);
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
@@ -103,12 +139,20 @@ export function OKRs() {
         filters={filters}
         goals={goals}
         onCreateObjective={() => setCreatingObjective(true)}
-        onFilterChange={(key, value) => setFilters((prev) => ({ ...prev, [key]: value }))}
+        onFilterChange={(key, value) => {
+          const next = { ...filters, [key]: value };
+          setFilters(next);
+          setSearchParams(buildSearchParams(next, search), { replace: true });
+        }}
         onResetFilters={() => {
           setFilters(emptyFilters);
           setSearch("");
+          setSearchParams(new URLSearchParams(), { replace: true });
         }}
-        onSearchChange={setSearch}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setSearchParams(buildSearchParams(filters, value), { replace: true });
+        }}
         periods={periods}
         search={search}
         stats={stats}
@@ -190,8 +234,19 @@ function getObjectiveSearchText(card: ObjectiveCard) {
   ].filter(Boolean).join(" ");
 }
 
-function filterObjectiveCards(cards: ObjectiveCard[], query: string) {
+function filterObjectiveCards(cards: ObjectiveCard[], query: string, progress: string) {
+  let filtered = cards;
+  if (progress) {
+    filtered = filtered.filter((card) => {
+      const p = card.completionPercentage || 0;
+      if (progress === "completado") return p === 100;
+      if (progress === "avanzado") return p > 50 && p < 100;
+      if (progress === "proceso") return p > 0 && p <= 50;
+      if (progress === "iniciando") return p === 0;
+      return true;
+    });
+  }
   const cleanQuery = normalizeSearchText(query.trim());
-  if (!cleanQuery) return cards;
-  return cards.filter((card) => normalizeSearchText(getObjectiveSearchText(card)).includes(cleanQuery));
+  if (!cleanQuery) return filtered;
+  return filtered.filter((card) => normalizeSearchText(getObjectiveSearchText(card)).includes(cleanQuery));
 }

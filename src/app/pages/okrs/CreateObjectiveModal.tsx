@@ -21,6 +21,8 @@ interface CreateObjectiveModalProps {
   units: MeasurementUnit[];
   onClose: () => void;
   onCreated: () => Promise<void>;
+  initialStrategicBetId?: string;
+  initialGoalId?: string;
 }
 
 type Errors = Record<string, string>;
@@ -53,6 +55,8 @@ export function CreateObjectiveModal({
   units,
   onClose,
   onCreated,
+  initialStrategicBetId = "",
+  initialGoalId = "",
 }: CreateObjectiveModalProps) {
   const reduceMotion = useReducedMotion();
   const [saving, setSaving] = useState(false);
@@ -64,8 +68,8 @@ export function CreateObjectiveModal({
     description: "",
     departmentId: "",
     academicPeriodId: "",
-    goalId: "",
-    strategicBetId: "",
+    goalId: initialGoalId,
+    strategicBetId: initialStrategicBetId,
   });
   const [krs, setKrs] = useState<KrForm[]>([emptyKr()]);
 

@@ -44,7 +44,7 @@ const severityMeta: Record<ConsistencySeverity, {
   icon: ReactNode;
 }> = {
   ALTA: { bg: COLORS.orange, color: "#FFFFFF", label: "Alta", solid: COLORS.orange, icon: <AlertTriangle size={12} /> },
-  MEDIA: { bg: COLORS.yellow, color: COLORS.text, label: "Media", solid: COLORS.yellow, icon: <ShieldAlert size={12} /> },
+  MEDIA: { bg: COLORS.orange, color: "#FFFFFF", label: "Media", solid: COLORS.orange, icon: <ShieldAlert size={12} /> },
   BAJA: { bg: COLORS.blue, color: "#FFFFFF", label: "Baja", solid: COLORS.blue, icon: <ShieldCheck size={12} /> },
 };
 
@@ -56,6 +56,13 @@ function getErrorMessage(error: unknown) {
     return String((error as { message?: unknown }).message);
   }
   return "No se pudo cargar la consistencia estrategica.";
+}
+
+function getModuleLabel(modulo: string) {
+  if (modulo === "INDICADORES") return "Key Results";
+  if (modulo === "PROYECTOS") return "Proyectos";
+  if (modulo === "OKRS") return "OKRs";
+  return modulo;
 }
 
 export function Consistencia() {
@@ -165,7 +172,7 @@ export function Consistencia() {
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Total hallazgos" value={stats.total} sub={`${filtered.length} visibles con busqueda`} icon={<ShieldAlert size={16} />} color={COLORS.blue} />
           <MetricCard label="Alta severidad" value={stats.high} sub="Requieren accion inmediata" icon={<AlertTriangle size={16} />} color={COLORS.orange} />
-          <MetricCard label="Media severidad" value={stats.medium} sub="Riesgos de seguimiento" icon={<ShieldAlert size={16} />} color={COLORS.yellow} />
+          <MetricCard label="Media severidad" value={stats.medium} sub="Riesgos de seguimiento" icon={<ShieldAlert size={16} />} color={COLORS.orange} />
           <MetricCard label="Baja severidad" value={stats.low} sub="Ajustes de cobertura" icon={<ShieldCheck size={16} />} color={COLORS.blue} />
         </div>
 
@@ -200,9 +207,7 @@ export function Consistencia() {
                       key={issue.id}
                       index={index}
                       issue={issue}
-                      selected={selectedIssue?.id === issue.id}
                       onOpen={() => goToIssue(issue.actionUrl)}
-                      onSelect={() => setSelectedIssueId(issue.id)}
                     />
                   ))}
                 </motion.div>
@@ -281,7 +286,7 @@ function FilterPanel({
           <FilterSelect value={moduleFilter} onChange={(value) => onModuleChange(value as ConsistencyModule | "todos")} placeholder="Modulo">
             <SelectItem value="todos" className={selectItemClass}>Todos los modulos</SelectItem>
             {consistencyModules.map((modulo) => (
-              <SelectItem key={modulo} value={modulo} className={selectItemClass}>{modulo}</SelectItem>
+              <SelectItem key={modulo} value={modulo} className={selectItemClass}>{getModuleLabel(modulo)}</SelectItem>
             ))}
           </FilterSelect>
 
@@ -308,15 +313,11 @@ function FilterPanel({
 function IssueCard({
   index,
   issue,
-  selected,
   onOpen,
-  onSelect,
 }: {
   index: number;
   issue: ConsistencyFinding;
-  selected: boolean;
   onOpen: () => void;
-  onSelect: () => void;
 }) {
   const reduceMotion = useReducedMotion();
   const meta = severityMeta[issue.severity];
@@ -324,31 +325,30 @@ function IssueCard({
   return (
     <motion.article
       layout
-      className="cursor-pointer rounded-md bg-white p-3"
+      className="rounded-md bg-white p-3"
       style={{
-        border: `1px solid ${selected ? meta.solid : COLORS.border}`,
-        boxShadow: selected ? `0 0 0 2px ${meta.solid}33, 0 10px 20px rgba(17,24,39,0.08)` : "0 1px 2px rgba(17,24,39,0.05)",
+        border: `1px solid ${COLORS.border}`,
+        boxShadow: "0 1px 2px rgba(17,24,39,0.05)",
       }}
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.16, ease: "easeOut", delay: Math.min(index * 0.02, 0.1) }}
       whileHover={reduceMotion ? undefined : { y: -1, transition: { duration: 0.12, ease: "easeOut" } }}
-      onClick={onSelect}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <SeverityBadge severity={issue.severity} />
-            <span className="rounded px-2 py-1" style={{ backgroundColor: COLORS.blue, color: "#FFFFFF", fontSize: 10, fontWeight: 900 }}>
-              {issue.module}
+            <span className="rounded px-2 py-1" style={{ backgroundColor: COLORS.blue, color: "#FFFFFF", fontSize: 10 }}>
+              {getModuleLabel(issue.module)}
             </span>
-            <span style={{ color: COLORS.text, fontSize: 10, fontWeight: 850 }}>{issue.entityCode}</span>
+            <span style={{ color: COLORS.text, fontSize: 10 }}>{issue.entityCode}</span>
           </div>
           <h2 style={{ color: COLORS.text, fontSize: 14, fontWeight: 950, lineHeight: 1.2 }}>{issue.entityName}</h2>
           <p style={{ color: COLORS.gray, fontSize: 11.5, lineHeight: 1.45, marginTop: 5 }}>{issue.description}</p>
           <div className="mt-2 rounded-md p-2" style={{ backgroundColor: COLORS.subtle, border: `1px solid ${COLORS.border}` }}>
-            <p style={{ color: COLORS.blue, fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>Accion sugerida</p>
-            <p style={{ color: COLORS.text, fontSize: 11.5, fontWeight: 850, lineHeight: 1.35, marginTop: 3 }}>{issue.recommendedAction}</p>
+            <p style={{ color: COLORS.blue, fontSize: 9, textTransform: "uppercase" }}>Accion sugerida</p>
+            <p style={{ color: COLORS.text, fontSize: 11.5, lineHeight: 1.35, marginTop: 3 }}>{issue.recommendedAction}</p>
           </div>
         </div>
         <button
@@ -357,7 +357,7 @@ function IssueCard({
             onOpen();
           }}
           className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-md px-3"
-          style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: COLORS.blue, fontSize: 11, fontWeight: 900 }}
+          style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: COLORS.blue, fontSize: 11 }}
         >
           <ExternalLink size={12} />
           {issue.actionLabel || "Abrir"}
@@ -376,8 +376,8 @@ function ModulePanel({ modules }: { modules: Array<{ module: string; count: numb
         <div className="space-y-2">
           {modules.map((item) => (
             <div key={item.module} className="flex items-center justify-between gap-3 rounded-md p-2" style={{ backgroundColor: "#FFFFFF", border: `1px solid ${COLORS.border}` }}>
-              <span style={{ color: COLORS.text, fontSize: 12, fontWeight: 900 }}>{item.module}</span>
-              <span className="rounded px-2 py-1" style={{ backgroundColor: COLORS.blue, color: "#FFFFFF", fontSize: 11, fontWeight: 950 }}>{item.count}</span>
+              <span style={{ color: COLORS.text, fontSize: 12 }}>{getModuleLabel(item.module)}</span>
+              <span className="rounded px-2 py-1" style={{ backgroundColor: COLORS.blue, color: "#FFFFFF", fontSize: 11 }}>{item.count}</span>
             </div>
           ))}
         </div>
@@ -436,7 +436,7 @@ function FilterSelect({ value, onChange, placeholder, children }: { value: strin
 function SeverityBadge({ severity }: { severity: ConsistencySeverity }) {
   const meta = severityMeta[severity];
   return (
-    <span className="inline-flex items-center gap-1 rounded px-2 py-1" style={{ backgroundColor: meta.bg, color: meta.color, fontSize: 10, fontWeight: 950 }}>
+    <span className="inline-flex items-center gap-1 rounded px-2 py-1" style={{ backgroundColor: meta.bg, color: meta.color, fontSize: 10 }}>
       {meta.icon}
       {meta.label}
     </span>

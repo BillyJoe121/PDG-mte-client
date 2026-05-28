@@ -727,6 +727,52 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--hierarchy-card-accent) 22%, transparent);
 }
 
+.btn-primary-orange {
+  background-color: #E9683B;
+  color: #fff;
+  border: 1px solid #E9683B;
+  font-size: 12px;
+  font-weight: 850;
+  padding: 9px 15px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 180ms ease;
+  box-shadow: 0 8px 18px color-mix(in srgb, #E9683B 25%, transparent);
+}
+
+.btn-primary-orange:hover {
+  background-color: transparent !important;
+  color: #E9683B !important;
+  border-color: #E9683B !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, #E9683B 22%, transparent);
+}
+
+.btn-primary-green {
+  background-color: #4CB979;
+  color: #fff;
+  border: 1px solid #4CB979;
+  font-size: 12px;
+  font-weight: 850;
+  padding: 9px 15px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 180ms ease;
+  box-shadow: 0 8px 18px color-mix(in srgb, #4CB979 25%, transparent);
+}
+
+.btn-primary-green:hover {
+  background-color: transparent !important;
+  color: #4CB979 !important;
+  border-color: #4CB979 !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, #4CB979 22%, transparent);
+}
+
 :root {
   --radius: 0px;
   --radius-sm: 0px;
@@ -739,4 +785,15 @@
 *::before,
 *::after {
   border-radius: 0 !important;
+}
+
+/* Hide spin buttons for number inputs */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type=number] {
+  -moz-appearance: textfield !important;
 }

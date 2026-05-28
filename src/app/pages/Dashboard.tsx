@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useNavigate } from "react-router";
 import {
   Activity,
   AlertTriangle,
@@ -98,6 +99,16 @@ const objectiveBucketMeta = {
   objectivesBetween0And50: { label: "De 0 a 50", color: COLORS.orange },
   objectivesAtZero: { label: "Al 0", color: COLORS.red },
 } as const;
+
+type ObjectiveBucketKey = keyof typeof objectiveBucketMeta;
+type ObjectiveScope = "department" | "strategicBet" | "goal";
+
+const objectiveBucketToProgressFilter: Record<ObjectiveBucketKey, string> = {
+  completedObjectives: "completado",
+  objectivesAbove50: "avanzado",
+  objectivesBetween0And50: "proceso",
+  objectivesAtZero: "iniciando",
+};
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -209,6 +220,7 @@ interface CoverageItem {
 }
 
 export function Dashboard() {
+  const navigate = useNavigate();
   const { usuario } = useAuth();
   const { filters, setFilter } = useGlobalFilters();
   const initialPeriod = filters.periodo === "todos" ? "" : filters.periodo;
@@ -260,6 +272,20 @@ export function Dashboard() {
     setSelectedPeriod(next);
     setFilter("periodo", next || "todos");
   };
+
+  const openObjectivesFromBucket = useCallback((scope: ObjectiveScope, item: CoverageItem, bucket: ObjectiveBucketKey) => {
+    const params = new URLSearchParams();
+    const periodName = selectedPeriod || dashboard?.summary.period;
+    const periodId = periods.find((period) => period.name === periodName)?.id;
+
+    params.set("progress", objectiveBucketToProgressFilter[bucket]);
+    if (periodId) params.set("periodId", String(periodId));
+    if (scope === "department") params.set("departmentId", String(item.id));
+    if (scope === "strategicBet") params.set("strategicBetId", String(item.id));
+    if (scope === "goal") params.set("goalId", String(item.id));
+
+    navigate(`/okrs?${params.toString()}`);
+  }, [dashboard?.summary.period, navigate, periods, selectedPeriod]);
 
   const derived = useMemo<DashboardDerived | null>(() => {
     if (!dashboard) return null;
@@ -322,7 +348,11 @@ export function Dashboard() {
                 subtitle="Objetivos agrupados por departamento segun sus rangos de avance."
                 icon={<Layers3 size={16} />}
               >
-                <DepartmentPerformance data={dashboard.departments} objectiveCards={objectiveCards} />
+                <DepartmentPerformance
+                  data={dashboard.departments}
+                  objectiveCards={objectiveCards}
+                  onBucketClick={(item, bucket) => openObjectivesFromBucket("department", item, bucket)}
+                />
               </DashboardPanel>
 
               <DashboardPanel
@@ -330,7 +360,10 @@ export function Dashboard() {
                 subtitle="Alineacion de objetivos, KRs y proyectos alrededor de cada apuesta."
                 icon={<BarChart3 size={16} />}
               >
-                <StrategicBetCoverage data={dashboard.strategicBets} />
+                <StrategicBetCoverage
+                  data={dashboard.strategicBets}
+                  onBucketClick={(item, bucket) => openObjectivesFromBucket("strategicBet", item, bucket)}
+                />
               </DashboardPanel>
 
               <DashboardPanel
@@ -338,7 +371,10 @@ export function Dashboard() {
                 subtitle="Objetivos agrupados por meta institucional segun sus buckets de avance."
                 icon={<Target size={16} />}
               >
-                <GoalCoverage data={dashboard.goals} />
+                <GoalCoverage
+                  data={dashboard.goals}
+                  onBucketClick={(item, bucket) => openObjectivesFromBucket("goal", item, bucket)}
+                />
               </DashboardPanel>
             </main>
           </motion.div>
@@ -560,7 +596,15 @@ function DistributionRow({ color, label, total, value }: { color: string; label:
   );
 }
 
-function DepartmentPerformance({ data, objectiveCards }: { data: DashboardData["departments"]; objectiveCards: ObjectiveCard[] }) {
+function DepartmentPerformance({
+  data,
+  objectiveCards,
+  onBucketClick,
+}: {
+  data: DashboardData["departments"];
+  objectiveCards: ObjectiveCard[];
+  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
+}) {
   if (!data.length) return <EmptyState text="Sin departamentos para comparar." compact />;
 
   const itemsByDepartment = new Map<string, CoverageItem>();
@@ -609,10 +653,16 @@ function DepartmentPerformance({ data, objectiveCards }: { data: DashboardData["
     .filter((item) => item.objectives > 0)
     .sort((a, b) => b.objectives - a.objectives || a.name.localeCompare(b.name));
 
-  return <CoverageCharts data={items} emptyText="Sin objetivos por departamento para el periodo." metricLabel="Departamento" showProjects />;
+  return <CoverageCharts data={items} emptyText="Sin objetivos por departamento para el periodo." metricLabel="Departamento" onBucketClick={onBucketClick} showProjects />;
 }
 
-function StrategicBetCoverage({ data }: { data: DashboardData["strategicBets"] }) {
+function StrategicBetCoverage({
+  data,
+  onBucketClick,
+}: {
+  data: DashboardData["strategicBets"];
+  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
+}) {
   if (!data.length) return <EmptyState text="Sin apuestas estrategicas para el periodo." compact />;
   const items = data.map((item) => ({
     id: item.strategicBetId,
@@ -627,10 +677,16 @@ function StrategicBetCoverage({ data }: { data: DashboardData["strategicBets"] }
     inProgressProjects: item.inProgressProjects,
   }));
 
-  return <CoverageCharts data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" showProjects labelMaxLines={3} />;
+  return <CoverageCharts data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" onBucketClick={onBucketClick} showProjects labelMaxLines={3} />;
 }
 
-function GoalCoverage({ data }: { data: GoalExecution[] }) {
+function GoalCoverage({
+  data,
+  onBucketClick,
+}: {
+  data: GoalExecution[];
+  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
+}) {
   if (!data.length) return <EmptyState text="Sin metas con objetivos para el periodo." compact />;
   const items = data.map((item) => ({
     id: item.goalId,
@@ -645,19 +701,21 @@ function GoalCoverage({ data }: { data: GoalExecution[] }) {
     inProgressProjects: item.inProgressProjects,
   }));
 
-  return <CoverageCharts data={items} emptyText="Sin metas con objetivos para el periodo." metricLabel="Meta" labelMaxLines={3} />;
+  return <CoverageCharts data={items} emptyText="Sin metas con objetivos para el periodo." metricLabel="Meta" onBucketClick={onBucketClick} labelMaxLines={3} />;
 }
 
 function CoverageCharts({
   data,
   emptyText,
   metricLabel,
+  onBucketClick,
   showProjects = false,
   labelMaxLines = 2,
 }: {
   data: CoverageItem[];
   emptyText: string;
   metricLabel: string;
+  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
   showProjects?: boolean;
   labelMaxLines?: number;
 }) {
@@ -667,7 +725,15 @@ function CoverageCharts({
   return (
     <div className="space-y-4">
       {chunks.map((chunk, index) => (
-        <CoverageChart key={`${metricLabel}-${index}`} data={chunk} metricLabel={metricLabel} index={index} total={chunks.length} labelMaxLines={labelMaxLines} />
+        <CoverageChart
+          key={`${metricLabel}-${index}`}
+          data={chunk}
+          metricLabel={metricLabel}
+          index={index}
+          total={chunks.length}
+          labelMaxLines={labelMaxLines}
+          onBucketClick={onBucketClick}
+        />
       ))}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -679,9 +745,28 @@ function CoverageCharts({
   );
 }
 
-function CoverageChart({ data, metricLabel, index, total, labelMaxLines }: { data: CoverageItem[]; metricLabel: string; index: number; total: number; labelMaxLines: number }) {
+function CoverageChart({
+  data,
+  metricLabel,
+  index,
+  total,
+  labelMaxLines,
+  onBucketClick,
+}: {
+  data: CoverageItem[];
+  metricLabel: string;
+  index: number;
+  total: number;
+  labelMaxLines: number;
+  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
+}) {
   const maxLines = maxWrappedLines(data, labelMaxLines);
   const axisHeight = Math.max(72, maxLines * 17 + 40);
+  const handleBucketClick = (payload: unknown, bucket: ObjectiveBucketKey) => {
+    const item = (payload as { payload?: CoverageItem } | undefined)?.payload;
+    if (!item || item[bucket] <= 0) return;
+    onBucketClick(item, bucket);
+  };
 
   const yMax = Math.max(
     1,
@@ -718,12 +803,39 @@ function CoverageChart({ data, metricLabel, index, total, labelMaxLines }: { dat
             <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 800, paddingTop: 8 }} />
             <Tooltip
               cursor={{ fill: "#F8FAFC" }}
-              formatter={(value, name) => [Number(value), String(name)]}
+              formatter={(value, name) => [Number(value), `${String(name)} - clic para ver objetivos`]}
+              contentStyle={{ padding: "6px 10px", fontSize: "10px", borderRadius: "6px", lineHeight: "1.2" }}
+              itemStyle={{ padding: 0, margin: "2px 0", fontSize: "10px" }}
+              labelStyle={{ fontSize: "10px", fontWeight: 800, marginBottom: "4px", color: COLORS.text }}
             />
-            <Bar dataKey="completedObjectives" name={objectiveBucketMeta.completedObjectives.label} fill={objectiveBucketMeta.completedObjectives.color} />
-            <Bar dataKey="objectivesAbove50" name={objectiveBucketMeta.objectivesAbove50.label} fill={objectiveBucketMeta.objectivesAbove50.color} />
-            <Bar dataKey="objectivesBetween0And50" name={objectiveBucketMeta.objectivesBetween0And50.label} fill={objectiveBucketMeta.objectivesBetween0And50.color} />
-            <Bar dataKey="objectivesAtZero" name={objectiveBucketMeta.objectivesAtZero.label} fill={objectiveBucketMeta.objectivesAtZero.color} />
+            <Bar
+              className="cursor-pointer"
+              dataKey="completedObjectives"
+              name={objectiveBucketMeta.completedObjectives.label}
+              fill={objectiveBucketMeta.completedObjectives.color}
+              onClick={(payload) => handleBucketClick(payload, "completedObjectives")}
+            />
+            <Bar
+              className="cursor-pointer"
+              dataKey="objectivesAbove50"
+              name={objectiveBucketMeta.objectivesAbove50.label}
+              fill={objectiveBucketMeta.objectivesAbove50.color}
+              onClick={(payload) => handleBucketClick(payload, "objectivesAbove50")}
+            />
+            <Bar
+              className="cursor-pointer"
+              dataKey="objectivesBetween0And50"
+              name={objectiveBucketMeta.objectivesBetween0And50.label}
+              fill={objectiveBucketMeta.objectivesBetween0And50.color}
+              onClick={(payload) => handleBucketClick(payload, "objectivesBetween0And50")}
+            />
+            <Bar
+              className="cursor-pointer"
+              dataKey="objectivesAtZero"
+              name={objectiveBucketMeta.objectivesAtZero.label}
+              fill={objectiveBucketMeta.objectivesAtZero.color}
+              onClick={(payload) => handleBucketClick(payload, "objectivesAtZero")}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

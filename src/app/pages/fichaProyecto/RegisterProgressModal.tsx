@@ -73,7 +73,7 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
       transition={{ duration: 0.16, ease: "easeOut" }}
     >
       <motion.div
-        className="w-full max-w-lg bg-white rounded-lg overflow-hidden"
+        className="w-full max-w-2xl bg-white rounded-lg overflow-hidden"
         style={{ boxShadow: "0 28px 90px rgba(0,0,0,0.28)", border: "1px solid rgba(255,255,255,0.55)" }}
         onClick={(event) => event.stopPropagation()}
         initial={reduceMotion ? false : { opacity: 0, scale: 0.985, y: 8 }}

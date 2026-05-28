@@ -38,6 +38,7 @@ export function Proyectos() {
   const [type, setType] = useState<ProjectType | "todos">("todos");
   const [departmentId, setDepartmentId] = useState("todos");
   const [period, setPeriod] = useState(filters.periodo || "todos");
+  const [progress, setProgress] = useState<string>(filters.avanceProyecto || "todos");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [linkProject, setLinkProject] = useState<ProjectResponse | null>(null);
@@ -74,14 +75,14 @@ export function Proyectos() {
       void loadProjects();
     }, 250);
     return () => window.clearTimeout(timeout);
-  }, [status, type, departmentId, period]);
+  }, [status, type, departmentId, period, progress]);
 
   useStrategicDataRefresh({
     scopes: ["projects"],
     onRefresh: () => loadProjects({ force: true, silent: true }),
   });
 
-  const visibleProjects = useMemo(() => filterProjects(projects, search), [projects, search]);
+  const visibleProjects = useMemo(() => filterProjects(projects, search, progress), [projects, search, progress]);
   const stats = useMemo(() => buildProjectStats(visibleProjects), [visibleProjects]);
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
@@ -97,6 +98,7 @@ export function Proyectos() {
     setType("todos");
     setDepartmentId("todos");
     setPeriod("todos");
+    setProgress("todos");
   };
 
   return (
@@ -124,6 +126,11 @@ export function Proyectos() {
         search={search}
         status={status}
         type={type}
+        progress={progress}
+        onProgressChange={(value) => {
+          setProgress(value);
+          setFilter("avanceProyecto", value);
+        }}
       />
 
       {error && (
@@ -222,8 +229,19 @@ function getProjectSearchText(project: ProjectResponse) {
   ].filter(Boolean).join(" ");
 }
 
-function filterProjects(projects: ProjectResponse[], query: string) {
+function filterProjects(projects: ProjectResponse[], query: string, progress: string) {
+  let filtered = projects;
+  if (progress !== "todos") {
+    filtered = filtered.filter((project) => {
+      const p = project.globalProgress || 0;
+      if (progress === "completado") return p === 100;
+      if (progress === "avanzado") return p > 50 && p < 100;
+      if (progress === "proceso") return p > 0 && p <= 50;
+      if (progress === "iniciando") return p === 0;
+      return true;
+    });
+  }
   const cleanQuery = normalizeSearchText(query.trim());
-  if (!cleanQuery) return projects;
-  return projects.filter((project) => normalizeSearchText(getProjectSearchText(project)).includes(cleanQuery));
+  if (!cleanQuery) return filtered;
+  return filtered.filter((project) => normalizeSearchText(getProjectSearchText(project)).includes(cleanQuery));
 }

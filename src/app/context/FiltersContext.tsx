@@ -4,6 +4,7 @@ export interface GlobalFilters {
   periodo: string;
   departamento: string;
   estadoProyecto: string;
+  avanceProyecto: string;
   okrId: string;
 }
 
@@ -28,6 +29,7 @@ const DEFAULT_FILTERS: GlobalFilters = {
   periodo: "todos",
   departamento: "todos",
   estadoProyecto: "todos",
+  avanceProyecto: "todos",
   okrId: "todos",
 };
 

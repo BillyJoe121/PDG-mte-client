@@ -188,9 +188,9 @@ function GeneralSummary({ report }: { report: GeneralReport }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <MetricCard solid label="Total del corte" value={report.totalProjects} sub={`${report.activeProjects} activos para exportar`} color={COLORS.blue} icon={<FileText size={18} />} />
-      <MetricCard label="Cierres documentados" value={report.completedProjects} sub="Base de evidencias" color={COLORS.green} icon={<Download size={18} />} />
+      <MetricCard solid label="Cierres documentados" value={report.completedProjects} sub="Base de evidencias" color={COLORS.green} icon={<Download size={18} />} />
       <MetricCard solid label="Objetivos incluidos" value={report.totalObjectives} sub={`${report.totalKeyResults} KRs trazables`} color={COLORS.orange} icon={<Target size={18} />} />
-      <MetricCard label="Cobertura reportada" value={formatPercent(report.averageObjectiveCoverage)} sub={`KR reportado: ${formatPercent(report.averageKeyResultCoverage)}`} color={COLORS.purple} icon={<BarChart3 size={18} />} />
+      <MetricCard solid label="Cobertura reportada" value={formatPercent(report.averageObjectiveCoverage)} sub={`KR reportado: ${formatPercent(report.averageKeyResultCoverage)}`} color={COLORS.blue} icon={<BarChart3 size={18} />} />
     </div>
   );
 }
@@ -258,7 +258,7 @@ function ConsolidatedDeepDive({ report }: { report: ConsolidatedReport }) {
           <InsightStrip label="Proyectos activos" value={formatPercent(activeRate)} detail={`${report.general.activeProjects} de ${report.general.totalProjects} proyectos siguen abiertos.`} color={COLORS.blue} icon={<Gauge size={16} />} />
           <InsightStrip label="Cierres" value={formatPercent(completedRate)} detail={`${report.general.completedProjects} proyectos ya quedaron cerrados o documentados.`} color={COLORS.green} icon={<CheckCircle2 size={16} />} />
           <InsightStrip label="KRs por objetivo" value={keyResultsPerObjective.toFixed(1)} detail={`${report.general.totalKeyResults} resultados clave distribuidos en ${report.general.totalObjectives} objetivos.`} color={COLORS.orange} icon={<Layers3 size={16} />} />
-          <InsightStrip label="Cobertura deptos." value={formatPercent(averageDepartmentCoverage)} detail={`${departmentsWithData.length} departamentos con informacion en el corte.`} color={COLORS.purple} icon={<Building2 size={16} />} />
+          <InsightStrip label="Cobertura deptos." value={formatPercent(averageDepartmentCoverage)} detail={`${departmentsWithData.length} departamentos con informacion en el corte.`} color={COLORS.blue} icon={<Building2 size={16} />} />
         </div>
       </ReportPanel>
 
@@ -489,7 +489,7 @@ function ComparisonCard({ title, report, color }: { title: string; report: Gener
         <SmallMetric label="Proyectos" value={report.totalProjects} color={COLORS.blue} />
         <SmallMetric label="Objetivos" value={report.totalObjectives} color={COLORS.orange} />
         <SmallMetric label="Cobertura obj." value={formatPercent(report.averageObjectiveCoverage)} color={COLORS.green} />
-        <SmallMetric label="Cobertura KR" value={formatPercent(report.averageKeyResultCoverage)} color={COLORS.purple} />
+        <SmallMetric label="Cobertura KR" value={formatPercent(report.averageKeyResultCoverage)} color={COLORS.blue} />
       </div>
     </div>
   );
@@ -605,6 +605,7 @@ export function Reportes() {
   const [loading, setLoading] = useState(true);
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
+  const [isPrintingPdf, setIsPrintingPdf] = useState(false);
   const [error, setError] = useState("");
 
   const sortedPeriods = useMemo(
@@ -721,10 +722,16 @@ export function Reportes() {
     setExporting(format);
     try {
       if (format === "pdf") {
-        printPDF(reportTitleForTab(tab), {
+        if (!comparison && basePeriod && comparePeriod) {
+          await loadComparison();
+        }
+        setIsPrintingPdf(true);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        printPDF("Reporte Estrategico Completo", {
           printableSelector: ".report-print-area",
           subtitle: reportSubtitle,
         });
+        setIsPrintingPdf(false);
       } else {
         const rows = buildCsvRows(report, tab, comparison);
         if (!rows.length) throw new Error("No hay filas disponibles para CSV.");
@@ -856,33 +863,51 @@ export function Reportes() {
           <motion.div {...viewMotion} className="report-print-area">
             <div className="sgp-print-title hidden">
               <small>MTE - Modulo de Trazabilidad Estrategica</small>
-              <h1>{reportTitleForTab(tab)}</h1>
+              <h1>{isPrintingPdf ? "Reporte Consolidado Completo" : reportTitleForTab(tab)}</h1>
               <p>{reportSubtitle}</p>
             </div>
-            {tab === "general" && (
+            {(tab === "general" || isPrintingPdf) && (
               <div className="space-y-5">
+                {isPrintingPdf && (
+                  <h2 className="hidden print:block" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, marginTop: 10 }}>Consolidado estrategico</h2>
+                )}
                 <GeneralSummary report={report.general} />
                 <ConsolidatedDeepDive report={report} />
-                <ReportPanel title="Resumen por departamento" subtitle="Insumo tabular para exportacion y revision institucional." icon={<Building2 size={16} />}>
+                {!isPrintingPdf && (
+                  <ReportPanel title="Resumen por departamento" subtitle="Insumo tabular para exportacion y revision institucional." icon={<Building2 size={16} />}>
+                    <DepartmentTable data={report.departments} />
+                  </ReportPanel>
+                )}
+              </div>
+            )}
+
+            {(tab === "departments" || isPrintingPdf) && (
+              <div className={isPrintingPdf ? "mt-8" : ""}>
+                {isPrintingPdf && (
+                  <h2 className="hidden print:block mb-4" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, pageBreakBefore: "always" }}>Desempeño por departamentos</h2>
+                )}
+                <ReportPanel title="Reporte por departamento" subtitle="Detalle operativo para descarga y trazabilidad por unidad." icon={<Building2 size={16} />}>
                   <DepartmentTable data={report.departments} />
                 </ReportPanel>
               </div>
             )}
 
-            {tab === "departments" && (
-              <ReportPanel title="Reporte por departamento" subtitle="Detalle operativo para descarga y trazabilidad por unidad." icon={<Building2 size={16} />}>
-                <DepartmentTable data={report.departments} />
-              </ReportPanel>
+            {(tab === "ranking" || isPrintingPdf) && (
+              <div className={isPrintingPdf ? "mt-8" : ""}>
+                {isPrintingPdf && (
+                  <h2 className="hidden print:block mb-4" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, pageBreakBefore: "always" }}>Ranking de objetivos</h2>
+                )}
+                <ReportPanel title="Ranking de objetivos por cobertura" subtitle="Prioriza objetivos para seguimiento, mejora y documentacion." icon={<Target size={16} />}>
+                  <RankingTable data={report.objectiveRanking} />
+                </ReportPanel>
+              </div>
             )}
 
-            {tab === "ranking" && (
-              <ReportPanel title="Ranking de objetivos por cobertura" subtitle="Prioriza objetivos para seguimiento, mejora y documentacion." icon={<Target size={16} />}>
-                <RankingTable data={report.objectiveRanking} />
-              </ReportPanel>
-            )}
-
-            {tab === "comparison" && (
-              <div className="space-y-5">
+            {(tab === "comparison" || isPrintingPdf) && (
+              <div className={`space-y-5 ${isPrintingPdf ? "mt-8" : ""}`}>
+                {isPrintingPdf && (
+                  <h2 className="hidden print:block mb-4" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, pageBreakBefore: "always" }}>Comparativa de periodos</h2>
+                )}
                 <div className="sgp-screen-only rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
                   <div className="flex flex-wrap items-end gap-3">
                     <div>
