@@ -122,6 +122,12 @@ export interface PresentationScreenData {
 }
 
 const cache = new Map<string, CacheEntry<unknown>>();
+let cacheGeneration = 0;
+
+export function invalidateScreenDataCache() {
+  cacheGeneration += 1;
+  cache.clear();
+}
 
 function getCached<T>(key: string, loader: () => Promise<T>, options: LoadOptions = {}) {
   const maxAgeMs = options.maxAgeMs ?? DEFAULT_MAX_AGE_MS;
@@ -131,17 +137,24 @@ function getCached<T>(key: string, loader: () => Promise<T>, options: LoadOption
   if (!options.force && fresh) return Promise.resolve(cached.data as T);
   if (!options.force && cached?.promise) return cached.promise;
 
+  const generation = cacheGeneration;
   const promise = loader()
     .then((data) => {
-      cache.set(key, { data, updatedAt: Date.now() });
+      if (generation === cacheGeneration) {
+        cache.set(key, { data, updatedAt: Date.now() });
+      }
       return data;
     })
     .catch((error) => {
-      cache.delete(key);
+      if (generation === cacheGeneration) {
+        cache.delete(key);
+      }
       throw error;
     });
 
-  cache.set(key, { data: cached?.data, promise, updatedAt: cached?.updatedAt ?? 0 });
+  if (generation === cacheGeneration) {
+    cache.set(key, { data: cached?.data, promise, updatedAt: cached?.updatedAt ?? 0 });
+  }
   return promise;
 }
 

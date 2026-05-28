@@ -4,12 +4,14 @@ import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import type { ObjectiveCard } from "../../services/strategicApi";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { invalidateScreenDataCache } from "../../services/screenDataCache";
 import {
   projectKeyResultLinksApi,
   validateProjectKeyResultLink,
   type ContributionType,
   type ProjectResponse,
 } from "../../services/projectsApi";
+import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { COLORS, CONTRIBUTION_TYPES, errorMessage } from "./projectDetailShared";
 
 interface LinkKeyResultModalProps {
@@ -79,6 +81,12 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
       } else {
         toast.success("Vinculo creado.");
       }
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        projectId: project.id,
+        reason: "project-key-result-link",
+        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
       await onSaved();
       onClose();
     } catch (saveError) {

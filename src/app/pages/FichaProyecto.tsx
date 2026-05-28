@@ -25,7 +25,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useAuth } from "../context/AuthContext";
 import type { AcademicPeriod } from "../services/catalogsApi";
 import type { Department, ObjectiveCard } from "../services/strategicApi";
-import { loadProjectDetailScreen } from "../services/screenDataCache";
+import { invalidateScreenDataCache, loadProjectDetailScreen } from "../services/screenDataCache";
+import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
 import {
   contributionTypeLabel,
   projectKeyResultLinksApi,
@@ -163,6 +164,12 @@ export function FichaProyecto() {
     setSavingStatus(true);
     try {
       await projectsApi.updateStatus(project.id, status);
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        projectId: project.id,
+        reason: "project-status",
+        scopes: ["projects", "dashboard", "reports", "presentation", "consistency"],
+      });
       toast.success(`Estado actualizado a ${STATUS_LABELS[status]}.`);
       await loadDetail({ force: true });
     } catch (statusError) {
@@ -175,6 +182,12 @@ export function FichaProyecto() {
   const handleRemoveLink = async (linkId: number) => {
     try {
       await projectKeyResultLinksApi.remove(linkId);
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        projectId: project.id,
+        reason: "project-key-result-unlink",
+        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
       toast.success("Vinculo desactivado.");
       await loadDetail({ force: true });
     } catch (removeError) {

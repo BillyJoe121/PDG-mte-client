@@ -3,6 +3,7 @@ import { Loader2, Plus, Save, Trash2, TrendingUp, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { projectsApi, type ProjectProgressRequest, type ProjectResponse } from "../../services/projectsApi";
+import { invalidateScreenDataCache } from "../../services/screenDataCache";
 import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { COLORS, ProgressBar, errorMessage } from "./projectDetailShared";
 
@@ -47,6 +48,7 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
     setSaving(true);
     try {
       await projectsApi.registerProgress(project.id, payload);
+      invalidateScreenDataCache();
       signalStrategicDataChanged({
         projectId: project.id,
         reason: "project-progress",

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { AlertTriangle, ArrowLeft, BarChart3, CalendarDays, Edit2, ExternalLink, FolderKanban, KeyRound, Link2, Loader2, Save, Scale, Search, Target, Trash2, Unlink, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { measurementUnitsApi, type MeasurementUnit } from "../services/catalogsApi";
 import {
   contributionTypeLabel,
@@ -13,7 +14,9 @@ import {
   type ProjectKeyResultLinkResponse,
   type ProjectResponse,
 } from "../services/projectsApi";
+import { invalidateScreenDataCache } from "../services/screenDataCache";
 import { ApiError, keyResultsApi, objectivesApi, type KeyResult, type KeyResultRequest, type Objective } from "../services/strategicApi";
+import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { KrFormModal } from "./okrs/KrFormModal";
 import { COLORS, CONTRIBUTION_TYPES } from "./okrs/okrsShared";
@@ -60,6 +63,11 @@ export function GestionKR() {
   useEffect(() => {
     void load();
   }, [objectiveId, keyResultId]);
+
+  useStrategicDataRefresh({
+    scopes: ["objectives", "projects"],
+    onRefresh: load,
+  });
 
   const keyResult = useMemo(() => objective?.keyResults.find((kr) => kr.id === keyResultId) ?? null, [objective, keyResultId]);
   const totalWeight = links[0]?.totalWeightForKeyResult ?? links.reduce((sum, link) => sum + link.contributionWeight, 0);
@@ -112,6 +120,12 @@ export function GestionKR() {
     setSaving(true);
     try {
       await projectKeyResultLinksApi.remove(link.id);
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        projectId: link.projectId ?? undefined,
+        reason: "project-key-result-unlink",
+        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
       toast.success("Proyecto desvinculado del KR");
       setUnlinkTarget(null);
       await load();
@@ -395,6 +409,12 @@ function ProjectLinkModal({ keyResult, projects, linkedProjectIds, onClose, onSa
       } else {
         toast.success("Proyecto vinculado al Key Result");
       }
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        projectId: payload.projectId,
+        reason: "project-key-result-link",
+        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
       await onSaved();
     } catch (error) {
       const status = typeof error === "object" && error && "status" in error ? Number(error.status) : undefined;

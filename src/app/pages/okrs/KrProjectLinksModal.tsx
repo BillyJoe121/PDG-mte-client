@@ -10,7 +10,9 @@ import {
   type ProjectKeyResultLinkResponse,
   type ProjectResponse,
 } from "../../services/projectsApi";
+import { invalidateScreenDataCache } from "../../services/screenDataCache";
 import type { KeyResult } from "../../services/strategicApi";
+import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { COLORS, CONTRIBUTION_TYPES } from "./okrsShared";
 
 interface KrProjectLinksModalProps {
@@ -73,6 +75,12 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
       } else {
         toast.success("Proyecto vinculado al Key Result.");
       }
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        projectId: Number(projectId),
+        reason: "project-key-result-link",
+        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
       setProjectId("");
       await load();
       await onChanged();
@@ -88,6 +96,12 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
     setSaving(true);
     try {
       await projectKeyResultLinksApi.remove(link.id);
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        projectId: link.projectId ?? undefined,
+        reason: "project-key-result-unlink",
+        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
       toast.success("Vinculo desactivado.");
       setUnlinkTarget(null);
       await load();

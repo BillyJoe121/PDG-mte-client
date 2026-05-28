@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { AlertTriangle, ArrowLeft, BookOpen, Building2, CalendarDays, Edit2, Flag, KeyRound, Loader2, Plus, Settings, Target } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { measurementUnitsApi, type MeasurementUnit } from "../services/catalogsApi";
 import { objectivesApi, type KeyResultRequest, type Objective } from "../services/strategicApi";
 import { EditObjectiveModal } from "./okrs/EditObjectiveModal";
@@ -49,6 +50,11 @@ export function GestionKRs() {
   useEffect(() => {
     void load();
   }, [objectiveId]);
+
+  useStrategicDataRefresh({
+    scopes: ["objectives", "projects"],
+    onRefresh: load,
+  });
 
   const stats = useMemo(() => {
     const keyResults = objective?.keyResults ?? [];
