@@ -16,10 +16,8 @@ const COLORS = {
 };
 
 const ROL_COLORS: Record<RolUsuario, { bg: string; color: string }> = {
-  administrador: { bg: "#FEF3F2", color: "#991B1B" },
-  director: { bg: "#EEF2FF", color: "#3730A3" },
-  jefe: { bg: "#ECFDF5", color: "#065F46" },
-  tutor: { bg: "#F9FAFB", color: "#374151" },
+  admin: { bg: "#FEF3F2", color: "#991B1B" },
+  user: { bg: "#EEF2FF", color: "#3730A3" },
 };
 
 function getInitials(nombre: string) {
@@ -38,7 +36,7 @@ function UserModal({
   mode: "edit" | "create";
 }) {
   const [formData, setFormData] = useState<Partial<Usuario>>(
-    user || { nombre: "", correo: "", rol: "tutor", departamento: "DCSI", estado: "activo" }
+    user || { nombre: "", correo: "", rol: "user", departamento: "DCSI", estado: "activo" }
   );
 
   return (
@@ -80,10 +78,8 @@ function UserModal({
                 onChange={(event) => setFormData({ ...formData, rol: event.target.value as RolUsuario })}
                 style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", boxSizing: "border-box" }}
               >
-                <option value="tutor">Tutor/Profesor</option>
-                <option value="jefe">Jefe de Departamento</option>
-                <option value="director">Director de Escuela</option>
-                <option value="administrador">Administrador</option>
+                <option value="user">Usuario</option>
+                <option value="admin">Administrador</option>
               </select>
             </div>
             <div>
@@ -148,7 +144,7 @@ export function Usuarios() {
   });
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
-  if (usuario?.rol !== "administrador") {
+  if (usuario?.rol !== "admin") {
     return (
       <div className="flex h-full flex-col items-center justify-center py-20">
         <ShieldCheck size={48} color="#E5E7EB" className="mb-4" />
@@ -173,7 +169,7 @@ export function Usuarios() {
     total: users.length,
     activos: users.filter((u) => u.estado === "activo").length,
     inactivos: users.filter((u) => u.estado === "inactivo").length,
-    directores: users.filter((u) => u.rol === "director").length,
+    administradores: users.filter((u) => u.rol === "admin").length,
   };
 
   const handleSave = (formUser: Partial<Usuario>) => {
@@ -261,7 +257,7 @@ export function Usuarios() {
           { label: "Total Usuarios", value: stats.total, color: COLORS.blue },
           { label: "Activos", value: stats.activos, color: COLORS.green },
           { label: "Inactivos", value: stats.inactivos, color: COLORS.orange },
-          { label: "Directores", value: stats.directores, color: "#7C3AED" },
+          { label: "Administradores", value: stats.administradores, color: "#7C3AED" },
         ].map((stat) => (
           <div key={stat.label} className="rounded-lg bg-white p-4" style={{ border: "1.5px solid #E5E7EB" }}>
             <p style={{ fontSize: "24px", fontWeight: 800, color: stat.color }}>{stat.value}</p>
@@ -283,10 +279,8 @@ export function Usuarios() {
 
         <select value={filterRol} onChange={(event) => setFilterRol(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
           <option value="todos">Todos los roles</option>
-          <option value="administrador">Administrador</option>
-          <option value="director">Director de Escuela</option>
-          <option value="jefe">Jefe de Departamento</option>
-          <option value="tutor">Tutor/Profesor</option>
+          <option value="admin">Administrador</option>
+          <option value="user">Usuario</option>
         </select>
 
         <select value={filterEstado} onChange={(event) => setFilterEstado(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>

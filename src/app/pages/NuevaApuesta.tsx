@@ -16,7 +16,7 @@ type Errors = Partial<Record<"name" | "description" | "endDate", string>>;
 export function NuevaApuesta() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const canCreate = usuario?.rol === "director" || usuario?.rol === "administrador";
+  const canCreate = usuario?.rol === "admin";
   const [form, setForm] = useState({ name: "", description: "", startDate: "", endDate: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);

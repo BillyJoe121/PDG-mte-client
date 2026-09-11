@@ -1,8 +1,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { es } from "date-fns/locale/es";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useNavigate } from "react-router";
-import { ArrowLeft, BookOpen, CalendarDays, ChevronDown, ChevronRight, Flag, FolderKanban, KeyRound, Loader2, Plus, RefreshCw, Save, Search, Target, X } from "lucide-react";
+import { useSearchParams } from "react-router";
+import { ArrowLeft, BookOpen, Building2, CalendarDays, ChevronDown, ChevronRight, Edit2, Flag, FolderKanban, KeyRound, Loader2, Plus, RefreshCw, Save, Search, Target, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
@@ -15,13 +15,17 @@ import { truncateText } from "../utils/text";
 import {
   goalsApi,
   strategicBetsApi,
+  objectivesApi,
   type ExecutionSummary,
   type Goal,
+  type Objective,
   type StrategicBet,
   type StrategicHierarchyNode,
   type Department,
 } from "../services/strategicApi";
 import { CreateObjectiveModal } from "./okrs/CreateObjectiveModal";
+import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
+import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
 
 const COLORS = {
   blue: "#5454E9",
@@ -53,10 +57,11 @@ const hierarchyHoverMotion = { y: -2, transition: { duration: 0.12, ease: "easeO
 const hierarchyTapMotion = { scale: 0.997, transition: { duration: 0.08, ease: "easeOut" } } as const;
 
 export function JerarquiaEstrategica() {
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
-  const canCreate = usuario?.rol === "director" || usuario?.rol === "administrador";
+  const canCreate = usuario?.rol === "admin";
+  const canEditObjective = usuario?.rol === "admin" || usuario?.rol === "user";
   const [view, setView] = useState<View>("arbol");
   const [period, setPeriod] = useState("");
   const [loading, setLoading] = useState(true);
@@ -73,6 +78,9 @@ export function JerarquiaEstrategica() {
   const [creatingObjectiveForNode, setCreatingObjectiveForNode] = useState<StrategicHierarchyNode | null>(null);
   const [editingBet, setEditingBet] = useState<StrategicBet | null>(null);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [openObjectiveDetailKeys, setOpenObjectiveDetailKeys] = useState<Set<string>>(new Set());
+  const [viewingKeyResult, setViewingKeyResult] = useState<{ keyResultId: number; objectiveId?: number } | null>(null);
+  const [viewingProjectId, setViewingProjectId] = useState<number | null>(null);
 
   const load = useCallback(async (options?: { force?: boolean; resetSelection?: boolean; silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
@@ -123,10 +131,45 @@ export function JerarquiaEstrategica() {
   const isHierarchyDetail = Boolean(selectedHierarchyRoot);
   const viewMotion = reduceMotion ? noMotionProps : subtleViewMotion;
 
+  useEffect(() => {
+    if (tree.length === 0) return;
+    const rootType = searchParams.get("rootType");
+    const rootId = searchParams.get("rootId");
+    if (isHierarchyRootType(rootType) && rootId) {
+      const rootKey = findHierarchyNodeKey(tree, rootType, rootId);
+      if (rootKey) {
+        setSelectedHierarchyRootKey(rootKey);
+        setExpanded((prev) => {
+          const next = new Set(prev);
+          next.add(rootKey);
+          return next;
+        });
+      }
+    }
+
+    const objectiveId = Number(searchParams.get("objectiveId"));
+    if (Number.isFinite(objectiveId) && objectiveId > 0) {
+      const objectiveKey = findHierarchyNodeKey(tree, "OBJECTIVE", String(objectiveId));
+      if (objectiveKey) {
+        setOpenObjectiveDetailKeys((prev) => new Set(prev).add(objectiveKey));
+        const rootKey = getRootKeyFromNodeKey(objectiveKey);
+        if (rootKey) setSelectedHierarchyRootKey(rootKey);
+      }
+    }
+  }, [searchParams, tree]);
+
   const toggle = (id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleObjectiveDetail = (nodeKey: string) => {
+    setOpenObjectiveDetailKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeKey)) next.delete(nodeKey); else next.add(nodeKey);
       return next;
     });
   };
@@ -150,16 +193,26 @@ export function JerarquiaEstrategica() {
       }
       return;
     }
-    if (node.nodeType === "OBJECTIVE") {
-      navigate(`/okrs/${node.id}/krs`);
-      return;
-    }
     if (node.nodeType === "KEY_RESULT") {
       const objectiveId = getParentNodeId(nodeKey, "OBJECTIVE");
-      navigate(objectiveId ? `/okrs/${objectiveId}/krs/${node.id}` : "/okrs");
+      const keyResultId = Number(node.id);
+      const parsedObjectiveId = objectiveId ? Number(objectiveId) : undefined;
+      if (Number.isFinite(keyResultId)) {
+        setViewingKeyResult({
+          keyResultId,
+          objectiveId: Number.isFinite(parsedObjectiveId) ? parsedObjectiveId : undefined,
+        });
+      } else {
+        toast.error("No se pudo abrir el detalle del KR.");
+      }
       return;
     }
-    navigate(`/proyectos/${node.id}`);
+    const projectId = Number(node.id);
+    if (Number.isFinite(projectId)) {
+      setViewingProjectId(projectId);
+    } else {
+      toast.error("No se pudo abrir el detalle del proyecto.");
+    }
   };
 
   const openHierarchyRoot = (node: StrategicHierarchyNode) => {
@@ -314,8 +367,14 @@ export function JerarquiaEstrategica() {
                 <HierarchyDetailTree
                   root={selectedHierarchyRoot}
                   expanded={expanded}
+                  openObjectiveDetailKeys={openObjectiveDetailKeys}
+                  canEditObjective={canEditObjective}
                   onToggle={toggle}
+                  onToggleObjectiveDetail={toggleObjectiveDetail}
                   onManage={manageNode}
+                  onObjectiveSaved={async () => {
+                    await load({ force: true, resetSelection: false, silent: true });
+                  }}
                   onCreateChild={
                     canCreate && (selectedHierarchyRoot.nodeType === "GOAL" || selectedHierarchyRoot.nodeType === "STRATEGIC_BET")
                       ? () => setCreatingObjectiveForNode(selectedHierarchyRoot)
@@ -374,6 +433,30 @@ export function JerarquiaEstrategica() {
             }}
           />
         )}
+        {viewingKeyResult && (
+          <KeyResultDetailModal
+            keyResultId={viewingKeyResult.keyResultId}
+            objectiveId={viewingKeyResult.objectiveId}
+            canEdit={canEditObjective}
+            onClose={() => setViewingKeyResult(null)}
+            onChanged={async () => {
+              await load({ force: true, resetSelection: false, silent: true });
+            }}
+            onDeleted={async () => {
+              setViewingKeyResult(null);
+              await load({ force: true, resetSelection: false, silent: true });
+            }}
+          />
+        )}
+        {viewingProjectId && (
+          <ProjectDetailModal
+            projectId={viewingProjectId}
+            onClose={async () => {
+              setViewingProjectId(null);
+              await load({ force: true, resetSelection: false, silent: true });
+            }}
+          />
+        )}
         {creatingObjectiveForNode && (
           <CreateObjectiveModal
             departments={departments}
@@ -408,6 +491,24 @@ function getParentNodeId(nodeKey: string, type: StrategicHierarchyNode["nodeType
   const parts = nodeKey.split("/").reverse();
   const match = parts.find((part) => part.startsWith(`${type}:`));
   return match?.split(":")[1];
+}
+
+function getRootKeyFromNodeKey(nodeKey: string) {
+  return nodeKey.split("/")[0] || null;
+}
+
+function isHierarchyRootType(value: string | null): value is "STRATEGIC_BET" | "GOAL" {
+  return value === "STRATEGIC_BET" || value === "GOAL";
+}
+
+function findHierarchyNodeKey(nodes: StrategicHierarchyNode[], type: StrategicHierarchyNode["nodeType"], id: string, parentKey?: string): string | null {
+  for (const node of nodes) {
+    const nodeKey = getTreeNodeKey(node, parentKey);
+    if (node.nodeType === type && node.id === id) return nodeKey;
+    const childKey = findHierarchyNodeKey(node.children ?? [], type, id, nodeKey);
+    if (childKey) return childKey;
+  }
+  return null;
 }
 
 function getRootAccent(node: StrategicHierarchyNode) {
@@ -469,7 +570,7 @@ function HierarchyRootGallery({ nodes, onSelect }: { nodes: StrategicHierarchyNo
   const reduceMotion = useReducedMotion();
 
   return (
-    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {nodes.map((node, index) => {
         const accent = getRootAccent(node);
         const Icon = getNodeIcon(node.nodeType);
@@ -487,29 +588,29 @@ function HierarchyRootGallery({ nodes, onSelect }: { nodes: StrategicHierarchyNo
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             transition={{ ...shortMotionTransition, delay: Math.min(index * 0.025, 0.12) }}
           >
-            <div className="hierarchy-root-card__hero flex min-h-[150px] flex-col justify-between p-5">
-              <div className="flex items-center justify-between gap-3">
-                <span className="hierarchy-root-card__label" style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            <div className="hierarchy-root-card__hero flex h-[112px] flex-col justify-between p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="hierarchy-root-card__label" style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.07em", textTransform: "uppercase" }}>
                   {getRootTypeLabel(node)}
                 </span>
-                <span className="hierarchy-root-card__icon flex h-9 w-9 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.32)" }}>
-                  <Icon size={17} />
+                <span className="hierarchy-root-card__icon flex h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.32)" }}>
+                  <Icon size={14} />
                 </span>
               </div>
-              <h2 className="hierarchy-root-card__title" style={{ fontSize: 21, fontWeight: 900, lineHeight: 1.15, maxWidth: 380 }}>
-                {truncateText(node.label, 60)}
+              <h2 className="hierarchy-root-card__title" style={{ fontSize: 17, fontWeight: 900, lineHeight: 1.13, maxWidth: 300, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                {truncateText(node.label, 54)}
               </h2>
             </div>
-            <div className="p-5">
-              <span className="hierarchy-root-card__divider block" style={{ width: 38, height: 2, marginBottom: 14 }} />
-              <p style={{ color: COLORS.gray, fontSize: 12, lineHeight: 1.55, minHeight: 58 }}>
+            <div className="p-4">
+              <span className="hierarchy-root-card__divider block" style={{ width: 30, height: 2, marginBottom: 11 }} />
+              <p style={{ color: COLORS.gray, fontSize: 10.5, lineHeight: 1.5, minHeight: 48 }}>
                 {description}
               </p>
-              <div className="mt-4" style={{ borderTop: "1px solid #E5E7EB", paddingTop: 14 }}>
+              <div className="mt-3.5" style={{ borderTop: "1px solid #E5E7EB", paddingTop: 11 }}>
                 <HierarchyRootMetrics node={node} />
               </div>
-              <span className="hierarchy-root-card__cta mt-5 inline-flex items-center gap-2 px-3 py-2" style={{ fontSize: 12, fontWeight: 850 }}>
-                Ver jerarquia <ChevronRight size={14} />
+              <span className="hierarchy-root-card__cta mt-4 inline-flex items-center gap-1.5 px-2.5 py-1.5" style={{ fontSize: 11, fontWeight: 850 }}>
+                Ver jerarquia <ChevronRight size={12} />
               </span>
             </div>
           </motion.button>
@@ -532,11 +633,11 @@ function HierarchyRootMetrics({ node, compact = false }: { node: StrategicHierar
       {items.map((item) => (
         <span
           key={item.label}
-          className={compact ? "rounded-md px-3 py-2" : "hierarchy-root-card__metric rounded-md px-2.5 py-2"}
+          className={compact ? "rounded-md px-3 py-2" : "hierarchy-root-card__metric rounded-md px-2 py-1.5"}
           style={compact ? { border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: COLORS.text, fontSize: 11, fontWeight: 850 } : { border: "1px solid", display: "block" }}
         >
-          <span style={{ display: "block", fontSize: compact ? 12 : 16, fontWeight: 900, lineHeight: 1 }}>{item.value}</span>
-          <span style={{ display: "block", fontSize: 10, fontWeight: 850, marginTop: 4, textTransform: "uppercase" }}>{item.label}</span>
+          <span style={{ display: "block", fontSize: compact ? 12 : 13, fontWeight: 900, lineHeight: 1 }}>{item.value}</span>
+          <span style={{ display: "block", fontSize: compact ? 10 : 8.5, fontWeight: 850, marginTop: compact ? 4 : 3, textTransform: "uppercase" }}>{item.label}</span>
         </span>
       ))}
     </div>
@@ -654,15 +755,23 @@ function HierarchyDetailHeader({ node, onManage, onBack }: { node: StrategicHier
 function HierarchyDetailTree({
   root,
   expanded,
+  openObjectiveDetailKeys,
+  canEditObjective,
   onToggle,
+  onToggleObjectiveDetail,
   onManage,
+  onObjectiveSaved,
   onCreateChild,
   createChildLabel,
 }: {
   root: StrategicHierarchyNode;
   expanded: Set<string>;
+  openObjectiveDetailKeys: Set<string>;
+  canEditObjective: boolean;
   onToggle: (id: string) => void;
+  onToggleObjectiveDetail: (id: string) => void;
   onManage: (node: StrategicHierarchyNode, nodeKey: string) => void;
+  onObjectiveSaved: () => Promise<void>;
   onCreateChild?: () => void;
   createChildLabel?: string;
 }) {
@@ -695,8 +804,12 @@ function HierarchyDetailTree({
             parentKey={rootKey}
             depth={0}
             expanded={expanded}
+            openObjectiveDetailKeys={openObjectiveDetailKeys}
+            canEditObjective={canEditObjective}
             onToggle={onToggle}
+            onToggleObjectiveDetail={onToggleObjectiveDetail}
             onManage={onManage}
+            onObjectiveSaved={onObjectiveSaved}
           />
         </div>
       ) : (
@@ -711,15 +824,23 @@ function HierarchyChildSections({
   parentKey,
   depth,
   expanded,
+  openObjectiveDetailKeys,
+  canEditObjective,
   onToggle,
+  onToggleObjectiveDetail,
   onManage,
+  onObjectiveSaved,
 }: {
   nodes: StrategicHierarchyNode[];
   parentKey: string;
   depth: number;
   expanded: Set<string>;
+  openObjectiveDetailKeys: Set<string>;
+  canEditObjective: boolean;
   onToggle: (id: string) => void;
+  onToggleObjectiveDetail: (id: string) => void;
   onManage: (node: StrategicHierarchyNode, nodeKey: string) => void;
+  onObjectiveSaved: () => Promise<void>;
 }) {
   return (
     <div className="space-y-4">
@@ -736,8 +857,12 @@ function HierarchyChildSections({
                   nodeKey={childKey}
                   depth={depth}
                   expanded={expanded}
+                  openObjectiveDetailKeys={openObjectiveDetailKeys}
+                  canEditObjective={canEditObjective}
                   onToggle={onToggle}
+                  onToggleObjectiveDetail={onToggleObjectiveDetail}
                   onManage={onManage}
+                  onObjectiveSaved={onObjectiveSaved}
                   index={childIndex}
                 />
               );
@@ -796,20 +921,30 @@ function TreeNode({
   nodeKey,
   depth,
   expanded,
+  openObjectiveDetailKeys,
+  canEditObjective,
   onToggle,
+  onToggleObjectiveDetail,
   onManage,
+  onObjectiveSaved,
   index = 0,
 }: {
   node: StrategicHierarchyNode;
   nodeKey: string;
   depth: number;
   expanded: Set<string>;
+  openObjectiveDetailKeys: Set<string>;
+  canEditObjective: boolean;
   onToggle: (id: string) => void;
+  onToggleObjectiveDetail: (id: string) => void;
   onManage: (node: StrategicHierarchyNode, nodeKey: string) => void;
+  onObjectiveSaved: () => Promise<void>;
   index?: number;
 }) {
   const reduceMotion = useReducedMotion();
   const isExpanded = expanded.has(nodeKey);
+  const isObjective = node.nodeType === "OBJECTIVE";
+  const isObjectiveDetailOpen = isObjective && openObjectiveDetailKeys.has(nodeKey);
   const hasChildren = node.children.length > 0;
   const icon = getNodeIcon(node.nodeType);
   const theme = getNodeTheme(node.nodeType);
@@ -827,6 +962,10 @@ function TreeNode({
   };
   const handleManage = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
+    if (isObjective) {
+      onToggleObjectiveDetail(nodeKey);
+      return;
+    }
     onManage(node, nodeKey);
   };
 
@@ -839,7 +978,7 @@ function TreeNode({
         aria-expanded={hasChildren ? isExpanded : undefined}
         onClick={toggleNode}
         onKeyDown={handleKeyDown}
-        className="hierarchy-detail-node rounded-md p-4"
+        className={`hierarchy-detail-node rounded-md p-4 ${isObjectiveDetailOpen ? "hierarchy-detail-node--expanded" : ""}`}
         style={{
           "--hierarchy-node-accent": theme.background,
           cursor: hasChildren ? "pointer" : "default",
@@ -874,11 +1013,29 @@ function TreeNode({
                 className="hierarchy-detail-node__action shrink-0 rounded-md"
                 style={{ fontSize: "11px", fontWeight: 850, padding: "6px 10px" }}
               >
-                Gestionar
+                {isObjective ? (isObjectiveDetailOpen ? "Ver menos" : "Ver mas") : "Gestionar"}
               </button>
             </div>
             {node.description && <p className="hierarchy-detail-node__description" style={{ fontSize: "12px", marginTop: 5, lineHeight: 1.45 }}>{node.description}</p>}
             {node.executionSummary && <SummaryInline summary={node.executionSummary} theme={theme} />}
+            <AnimatePresence initial={false}>
+              {isObjectiveDetailOpen && (
+                <motion.div
+                  key="objective-inline-detail"
+                  className="overflow-hidden"
+                  initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+                  animate={reduceMotion ? undefined : { opacity: 1, height: "auto" }}
+                  exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
+                  transition={expandMotionTransition}
+                >
+                  <ObjectiveInlineDetails
+                    objectiveId={Number(node.id)}
+                    canEdit={canEditObjective}
+                    onSaved={onObjectiveSaved}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </motion.div>
@@ -897,14 +1054,201 @@ function TreeNode({
             parentKey={nodeKey}
             depth={depth + 1}
             expanded={expanded}
+            openObjectiveDetailKeys={openObjectiveDetailKeys}
+            canEditObjective={canEditObjective}
             onToggle={onToggle}
+            onToggleObjectiveDetail={onToggleObjectiveDetail}
             onManage={onManage}
+            onObjectiveSaved={onObjectiveSaved}
           />
         </motion.div>
       )}
       </AnimatePresence>
     </div>
   );
+}
+
+function ObjectiveInlineDetails({ objectiveId, canEdit, onSaved }: { objectiveId: number; canEdit: boolean; onSaved: () => Promise<void> }) {
+  const [objective, setObjective] = useState<Objective | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<"name" | "description", string>>>({});
+  const [form, setForm] = useState({ name: "", description: "" });
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    objectivesApi.get(objectiveId)
+      .then((nextObjective) => {
+        if (cancelled) return;
+        setObjective(nextObjective);
+        setForm({ name: nextObjective.name, description: nextObjective.description });
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error(error instanceof Error ? error.message : "No se pudo cargar el objetivo");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [objectiveId]);
+
+  const stats = useMemo(() => {
+    const keyResults = objective?.keyResults ?? [];
+    return {
+      keyResults: keyResults.length,
+      completed: keyResults.filter((kr) => kr.progressPercentage >= 100).length,
+    };
+  }, [objective]);
+
+  const set = (field: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const save = async () => {
+    if (!objective) return;
+    const nextErrors: Partial<Record<"name" | "description", string>> = {};
+    if (!form.name.trim()) nextErrors.name = "El titulo es obligatorio.";
+    if (!form.description.trim()) nextErrors.description = "La descripcion es obligatoria.";
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setSaving(true);
+    try {
+      const updated = await objectivesApi.update(objective.id, {
+        name: form.name.trim(),
+        description: form.description.trim(),
+      });
+      setObjective(updated);
+      setForm({ name: updated.name, description: updated.description });
+      setIsEditing(false);
+      toast.success("Objetivo actualizado");
+      await onSaved();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar el objetivo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mt-4 flex items-center gap-2 rounded-md px-3 py-3" style={{ borderTop: "1px solid #EEF2F7", color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>
+        <Loader2 size={15} className="animate-spin" /> Cargando datos del objetivo...
+      </div>
+    );
+  }
+
+  if (!objective) return null;
+
+  return (
+    <div className="mt-4 space-y-3 pt-4" style={{ borderTop: "1px solid #EEF2F7" }} onClick={(event) => event.stopPropagation()}>
+      <div className="flex flex-wrap items-center gap-2">
+        <ObjectiveInlinePill label="Objetivo" value={`#${objective.id}`} />
+        <ObjectiveInlinePill label="KRs" value={stats.keyResults} />
+        <ObjectiveInlinePill label="Completos" value={stats.completed} />
+        {canEdit && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (isEditing) {
+                void save();
+                return;
+              }
+              setForm({ name: objective.name, description: objective.description });
+              setErrors({});
+              setIsEditing(true);
+            }}
+            disabled={saving}
+            className="hierarchy-detail-node__action rounded-md disabled:opacity-60"
+            style={{ fontSize: 11, fontWeight: 850, padding: "7px 10px" }}
+          >
+            {saving ? <Loader2 size={12} className="inline animate-spin" /> : isEditing ? <Save size={12} className="inline" /> : <Edit2 size={12} className="inline" />}
+            <span className="ml-1">{isEditing ? "Guardar" : "Editar objetivo"}</span>
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <ObjectiveInlineContext icon={<Building2 size={13} />} label="Departamento" value={objective.departmentName} />
+        <ObjectiveInlineContext icon={<CalendarDays size={13} />} label="Periodo" value={objective.academicPeriodName} />
+        <ObjectiveInlineContext icon={<Flag size={13} />} label="Apuesta" value={objective.strategicBetName} />
+        <ObjectiveInlineContext icon={<BookOpen size={13} />} label="Meta" value={objective.goalName} />
+      </div>
+
+      {isEditing && (
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <InlineEditField label="Titulo" error={errors.name}>
+            <input
+              value={form.name}
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => set("name", event.target.value)}
+              style={inlineObjectiveInputStyle(Boolean(errors.name))}
+            />
+          </InlineEditField>
+          <InlineEditField label="Descripcion" error={errors.description}>
+            <textarea
+              value={form.description}
+              rows={3}
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => set("description", event.target.value)}
+              style={{ ...inlineObjectiveInputStyle(Boolean(errors.description)), resize: "vertical" }}
+            />
+          </InlineEditField>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ObjectiveInlinePill({ label, value }: { label: string; value: string | number }) {
+  return (
+    <span className="hierarchy-detail-node__badge" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 850, padding: "5px 8px", borderRadius: 4 }}>
+      <span className="hierarchy-detail-node__strong" style={{ fontSize: 12, fontWeight: 950 }}>{value}</span>
+      {label}
+    </span>
+  );
+}
+
+function ObjectiveInlineContext({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-md px-3 py-2" style={{ backgroundColor: "#F8FAFC", border: `1px solid ${COLORS.border}` }}>
+      <span className="flex items-center gap-1.5" style={{ color: COLORS.gray, fontSize: 9.5, fontWeight: 900, textTransform: "uppercase" }}>
+        {icon} {label}
+      </span>
+      <p style={{ color: COLORS.text, fontSize: 12, fontWeight: 750, lineHeight: 1.35, marginTop: 4 }}>{value || "Sin dato"}</p>
+    </div>
+  );
+}
+
+function InlineEditField({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+  return (
+    <label className="block rounded-md p-3" style={{ backgroundColor: "#F8FAFC", border: `1px solid ${error ? COLORS.orange : COLORS.border}` }}>
+      <span style={{ display: "block", color: COLORS.gray, fontSize: 9.5, fontWeight: 900, marginBottom: 6, textTransform: "uppercase" }}>{label}</span>
+      {children}
+      {error && <span style={{ display: "block", color: COLORS.orange, fontSize: 11, fontWeight: 800, marginTop: 5 }}>{error}</span>}
+    </label>
+  );
+}
+
+function inlineObjectiveInputStyle(error: boolean): CSSProperties {
+  return {
+    width: "100%",
+    border: `1px solid ${error ? COLORS.orange : "#D8DEE8"}`,
+    borderRadius: 6,
+    outline: "none",
+    backgroundColor: "#fff",
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: 700,
+    lineHeight: 1.45,
+    padding: "8px 10px",
+  };
 }
 
 function getNodeIcon(type: StrategicHierarchyNode["nodeType"]) {

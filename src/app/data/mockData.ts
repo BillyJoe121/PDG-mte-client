@@ -2,7 +2,7 @@ export type EstadoApuesta = "activa" | "inactiva";
 export type EstadoOKR = "borrador" | "activo" | "completado" | "cancelado";
 export type EstadoProyecto = "borrador" | "activo" | "finalizado" | "suspendido" | "archivado";
 export type TipoProyecto = "grado" | "investigacion" | "extension" | "macroproyecto";
-export type RolUsuario = "administrador" | "director" | "jefe" | "tutor";
+export type RolUsuario = "admin" | "user";
 export type EstadoPeriodoAcademico = "planificacion" | "activo" | "cerrado";
 export type TipoUnidadMedida = "numerica" | "porcentaje" | "booleana" | "otra";
 
@@ -414,18 +414,18 @@ okrs.forEach((o) => {
 // USUARIOS
 // ──────────────────────────────────────────
 export const usuarios: Usuario[] = [
-  { id: "U1", nombre: "Hugo Arboleda", correo: "hugo.arboleda@icesi.edu.co", rol: "director", departamento: "Departamento de Computación y Sistemas inteligentes.", estado: "activo", ultimoAcceso: "2026-04-14" },
-  { id: "U2", nombre: "Rocío Segovia", correo: "rsegovia@icesi.edu.co", rol: "jefe", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-13" },
-  { id: "U3", nombre: "Luisa Torres Arango", correo: "ltorres@icesi.edu.co", rol: "jefe", departamento: "DDI", estado: "activo", ultimoAcceso: "2026-04-12" },
-  { id: "U4", nombre: "Andrés Castillo Ríos", correo: "acastillo@icesi.edu.co", rol: "jefe", departamento: "DM", estado: "activo", ultimoAcceso: "2026-04-10" },
-  { id: "U5", nombre: "Carlos Martínez Leal", correo: "cmartinez@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-14" },
-  { id: "U6", nombre: "Ana López Quintero", correo: "alopez@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-13" },
-  { id: "U7", nombre: "Jorge Vargas Peña", correo: "jvargas@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-11" },
-  { id: "U8", nombre: "María Fernández Rueda", correo: "mfernandez@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-09" },
-  { id: "U9", nombre: "Patricia Gómez Vidal", correo: "pgomez@icesi.edu.co", rol: "tutor", departamento: "Departamento de Diseño e Innovación", estado: "activo", ultimoAcceso: "2026-04-14" },
-  { id: "U10", nombre: "Profesor Demo", correo: "demo.profesor@icesi.edu.co", rol: "administrador", departamento: "Departamento de Computación y Sistemas inteligentes.", estado: "activo", ultimoAcceso: "2026-04-14" },
-  { id: "U11", nombre: "Felipe Morales Castro", correo: "fmorales@icesi.edu.co", rol: "tutor", departamento: "DDI", estado: "inactivo", ultimoAcceso: "2025-11-20" },
-  { id: "U12", nombre: "Leonardo Bustamante", correo: "lbustamante@icesi.edu.co", rol: "tutor", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-14" },
+  { id: "U1", nombre: "Hugo Arboleda", correo: "hugo.arboleda@icesi.edu.co", rol: "user", departamento: "Departamento de Computación y Sistemas inteligentes.", estado: "activo", ultimoAcceso: "2026-04-14" },
+  { id: "U2", nombre: "Rocío Segovia", correo: "rsegovia@icesi.edu.co", rol: "user", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-13" },
+  { id: "U3", nombre: "Luisa Torres Arango", correo: "ltorres@icesi.edu.co", rol: "user", departamento: "DDI", estado: "activo", ultimoAcceso: "2026-04-12" },
+  { id: "U4", nombre: "Andrés Castillo Ríos", correo: "acastillo@icesi.edu.co", rol: "user", departamento: "DM", estado: "activo", ultimoAcceso: "2026-04-10" },
+  { id: "U5", nombre: "Carlos Martínez Leal", correo: "cmartinez@icesi.edu.co", rol: "user", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-14" },
+  { id: "U6", nombre: "Ana López Quintero", correo: "alopez@icesi.edu.co", rol: "user", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-13" },
+  { id: "U7", nombre: "Jorge Vargas Peña", correo: "jvargas@icesi.edu.co", rol: "user", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-11" },
+  { id: "U8", nombre: "María Fernández Rueda", correo: "mfernandez@icesi.edu.co", rol: "user", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-09" },
+  { id: "U9", nombre: "Patricia Gómez Vidal", correo: "pgomez@icesi.edu.co", rol: "user", departamento: "Departamento de Diseño e Innovación", estado: "activo", ultimoAcceso: "2026-04-14" },
+  { id: "U10", nombre: "Profesor Demo", correo: "demo.profesor@icesi.edu.co", rol: "admin", departamento: "Departamento de Computación y Sistemas inteligentes.", estado: "activo", ultimoAcceso: "2026-04-14" },
+  { id: "U11", nombre: "Felipe Morales Castro", correo: "fmorales@icesi.edu.co", rol: "user", departamento: "DDI", estado: "inactivo", ultimoAcceso: "2025-11-20" },
+  { id: "U12", nombre: "Leonardo Bustamante", correo: "lbustamante@icesi.edu.co", rol: "user", departamento: "DCSI", estado: "activo", ultimoAcceso: "2026-04-14" },
 ];
 
 export const historicoOKRs: Record<string, HistoricoOKR[]> = {
@@ -606,7 +606,7 @@ export const evaluacionesAporte: EvaluacionAporte[] = [
 // ──────────────────────────────────────────
 export const getColorEstadoProyecto = (estado: EstadoProyecto) => ({ activo: "#4CB979", finalizado: "#5454E9", borrador: "#717182", suspendido: "#E9683B", archivado: "#9CA3AF" }[estado]);
 export const getColorEstadoOKR = (estado: EstadoOKR) => ({ activo: "#4CB979", completado: "#5454E9", borrador: "#717182", cancelado: "#E9683B" }[estado]);
-export const getLabelRol = (rol: RolUsuario) => ({ administrador: "Administrador", director: "Director de Escuela", jefe: "Jefe de Departamento", tutor: "Tutor/Profesor" }[rol]);
+export const getLabelRol = (rol: RolUsuario) => ({ admin: "Administrador", user: "Usuario" }[rol]);
 export const getTipoProyectoLabel = (tipo: TipoProyecto) => ({ grado: "Proyecto de Grado", investigacion: "Investigación", extension: "Extensión", macroproyecto: "Macroproyecto" }[tipo]);
 
 export const diasSinRegistro = (ultimoRegistro: string): number => {

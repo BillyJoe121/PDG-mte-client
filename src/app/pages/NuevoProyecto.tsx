@@ -176,7 +176,7 @@ export function NuevoProyecto() {
     try {
       const project = await projectsApi.create(payload);
       toast.success("Proyecto creado correctamente.");
-      navigate(`/proyectos/${project.id}`);
+      navigate(`/proyectos?projectId=${project.id}`);
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {

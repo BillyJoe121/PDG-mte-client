@@ -8,7 +8,7 @@ const user: UsuarioActual = {
   id: 'U1',
   nombre: 'Hugo Arboleda',
   correo: 'hugo.arboleda@icesi.edu.co',
-  rol: 'director',
+  rol: 'user',
   departamento: 'Departamento de Computacion y Sistemas inteligentes.',
   iniciales: "HA",
   token: 'mock-token-ha',
@@ -41,6 +41,14 @@ describe('AuthContext', () => {
     const getAuth = renderAuthHook();
 
     expect(getAuth().usuario?.correo).toBe('hugo.arboleda@icesi.edu.co');
+  });
+
+  it('migrates legacy session roles into the two-role model', () => {
+    sessionStorage.setItem('sgp_session_user', JSON.stringify({ ...user, rol: 'jefe' }));
+
+    const getAuth = renderAuthHook();
+
+    expect(getAuth().usuario?.rol).toBe('user');
   });
 
   it('ignores malformed session storage', () => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useSearchParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Loader2, Target } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -12,16 +12,17 @@ import {
   type ProjectStatus,
   type ProjectType,
 } from "../services/projectsApi";
-import { loadProjectsScreen, prefetchProjectDetails } from "../services/screenDataCache";
+import { loadProjectsScreen } from "../services/screenDataCache";
 import { KeyResultLinkModal } from "./proyectos/KeyResultLinkModal";
 import { CreateProjectModal } from "./proyectos/CreateProjectModal";
+import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
 import { ProjectCardView } from "./proyectos/ProjectCardView";
 import { ProjectFilters } from "./proyectos/ProjectFilters";
 import { ProjectStats, buildProjectStats } from "./proyectos/ProjectStats";
 import { COLORS, STATUS_OPTIONS, errorMessage } from "./proyectos/proyectosShared";
 
 export function Proyectos() {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
   const { filters, setFilter, clearFilters } = useGlobalFilters();
@@ -43,8 +44,12 @@ export function Proyectos() {
   const [error, setError] = useState("");
   const [linkProject, setLinkProject] = useState<ProjectResponse | null>(null);
   const [creatingProject, setCreatingProject] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(() => {
+    const projectId = Number(searchParams.get("projectId"));
+    return Number.isFinite(projectId) && projectId > 0 ? projectId : null;
+  });
 
-  const canCreate = usuario?.rol === "administrador" || usuario?.rol === "director" || usuario?.rol === "jefe";
+  const canCreate = usuario?.rol === "admin";
 
   const loadProjects = async (options?: { force?: boolean; silent?: boolean }) => {
     if (!options?.silent) {
@@ -62,7 +67,6 @@ export function Proyectos() {
       setDepartments(data.departments);
       setPeriods(data.periods);
       setObjectiveCards(data.objectiveCards);
-      void prefetchProjectDetails(data.projects);
     } catch (loadError) {
       if (!options?.silent) setError(errorMessage(loadError));
     } finally {
@@ -82,6 +86,11 @@ export function Proyectos() {
     onRefresh: () => loadProjects({ force: true, silent: true }),
   });
 
+  useEffect(() => {
+    const projectId = Number(searchParams.get("projectId"));
+    setSelectedProjectId(Number.isFinite(projectId) && projectId > 0 ? projectId : null);
+  }, [searchParams]);
+
   const visibleProjects = useMemo(() => filterProjects(projects, search, progress), [projects, search, progress]);
   const stats = useMemo(() => buildProjectStats(visibleProjects), [visibleProjects]);
   const viewMotion = reduceMotion ? { initial: false } : {
@@ -99,6 +108,21 @@ export function Proyectos() {
     setDepartmentId("todos");
     setPeriod("todos");
     setProgress("todos");
+  };
+
+  const openProject = (projectId: number) => {
+    setSelectedProjectId(projectId);
+    const next = new URLSearchParams(searchParams);
+    next.set("projectId", String(projectId));
+    setSearchParams(next, { replace: true });
+  };
+
+  const closeProject = async () => {
+    setSelectedProjectId(null);
+    const next = new URLSearchParams(searchParams);
+    next.delete("projectId");
+    setSearchParams(next, { replace: true });
+    await loadProjects({ force: true, silent: true });
   };
 
   return (
@@ -158,7 +182,7 @@ export function Proyectos() {
                 canManage={Boolean(canCreate)}
                 index={index}
                 onLink={() => setLinkProject(project)}
-                onOpen={() => navigate(`/proyectos/${project.id}`)}
+                onOpen={() => openProject(project.id)}
               />
             ))}
           </motion.div>
@@ -175,8 +199,14 @@ export function Proyectos() {
             onCreated={async (projectId) => {
               setCreatingProject(false);
               await loadProjects({ force: true });
-              navigate(`/proyectos/${projectId}`);
+              openProject(projectId);
             }}
+          />
+        )}
+        {selectedProjectId && (
+          <ProjectDetailModal
+            projectId={selectedProjectId}
+            onClose={closeProject}
           />
         )}
         {linkProject && (

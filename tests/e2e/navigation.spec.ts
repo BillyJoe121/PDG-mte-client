@@ -4,7 +4,7 @@ const adminUser = {
   id: 'U10',
   nombre: 'Sistemas MTE',
   correo: 'mte-admin@icesi.edu.co',
-  rol: 'administrador',
+  rol: 'admin',
   departamento: 'TI Institucional',
   iniciales: 'AD',
 };
@@ -31,5 +31,37 @@ test.describe('admin navigation', () => {
     await page.goto('/consistencia');
 
     await expect(page.getByText(/consistencia/i).first()).toBeVisible();
+  });
+
+  test('happy path: admin reviews a persisted audit event and its snapshots', async ({ page }) => {
+    await page.route('**/api/v1/audit-logs**', async (route) => {
+      const isSummary = new URL(route.request().url()).pathname.endsWith('/summary');
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(isSummary ? {
+          totalEvents: 1,
+          byAction: [{ key: 'UPDATE', count: 1 }],
+          byEntityType: [{ key: 'OBJECTIVE', count: 1 }],
+          byActor: [{ key: 'admin', count: 1 }],
+          trend: [{ date: '2026-09-01', count: 1 }],
+        } : [{
+          id: 31,
+          action: 'UPDATE',
+          entityType: 'OBJECTIVE',
+          entityId: '12',
+          summary: 'Objetivo actualizado',
+          actorUsername: 'admin',
+          actorRoles: 'ADMIN',
+          beforeSnapshot: '{"name":"Objetivo anterior"}',
+          afterSnapshot: '{"name":"Objetivo vigente"}',
+          createdAt: '2026-09-01T14:00:00Z',
+        }]),
+      });
+    });
+
+    await page.goto('/auditoria');
+    await expect(page.getByRole('heading', { name: /Log de auditoría y tendencias/i })).toBeVisible();
+    await page.getByRole('button', { name: /Ver detalle de Objetivo actualizado/i }).click();
+    await expect(page.getByRole('dialog', { name: /Detalle del evento/i })).toContainText('Objetivo vigente');
   });
 });

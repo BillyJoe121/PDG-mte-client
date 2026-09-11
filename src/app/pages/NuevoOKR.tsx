@@ -47,7 +47,7 @@ const emptyKr = (): KrForm => ({
 export function NuevoOKR() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const canCreate = usuario?.rol === "director" || usuario?.rol === "administrador" || usuario?.rol === "jefe";
+  const canCreate = usuario?.rol === "admin" || usuario?.rol === "user";
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -95,11 +95,8 @@ export function NuevoOKR() {
   }, []);
 
   const activeDepartments = useMemo(() => {
-    if (usuario?.rol === "jefe" && usuario.departamento) {
-      return departments.filter((department) => department.name === usuario.departamento);
-    }
     return departments;
-  }, [departments, usuario]);
+  }, [departments]);
 
   useEffect(() => {
     setForm((prev) => ({

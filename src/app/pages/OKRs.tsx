@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Loader2, Target } from "lucide-react";
+import { BookOpen, Flag, Loader2, Target } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
@@ -15,6 +15,7 @@ import {
 import { loadOkrScreen } from "../services/screenDataCache";
 import { CreateObjectiveModal } from "./okrs/CreateObjectiveModal";
 import { ObjectiveCardView } from "./okrs/ObjectiveCardView";
+import { ObjectiveDetailModal } from "./okrs/ObjectiveDetailModal";
 import { OkrsSummary, buildOkrStats } from "./okrs/OkrsSummary";
 import { COLORS, fallbackDepartments } from "./okrs/okrsShared";
 
@@ -65,7 +66,7 @@ export function OKRs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
-  const canEdit = usuario?.rol === "director" || usuario?.rol === "administrador" || usuario?.rol === "jefe";
+  const canEdit = usuario?.rol === "admin" || usuario?.rol === "user";
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState<ObjectiveCard[]>([]);
   const [bets, setBets] = useState<StrategicBet[]>([]);
@@ -74,14 +75,20 @@ export function OKRs() {
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [creatingObjective, setCreatingObjective] = useState(false);
+  const [selectedObjectiveId, setSelectedObjectiveId] = useState<number | null>(() => {
+    const objectiveId = Number(searchParams.get("objectiveId"));
+    return Number.isFinite(objectiveId) && objectiveId > 0 ? objectiveId : null;
+  });
   const [filters, setFilters] = useState<OkrFilters>(() => readFiltersFromSearchParams(searchParams));
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
 
   useEffect(() => {
     const nextFilters = readFiltersFromSearchParams(searchParams);
     const nextSearch = searchParams.get("q") ?? "";
+    const nextObjectiveId = Number(searchParams.get("objectiveId"));
     setFilters((current) => areFiltersEqual(current, nextFilters) ? current : nextFilters);
     setSearch((current) => current === nextSearch ? current : nextSearch);
+    setSelectedObjectiveId(Number.isFinite(nextObjectiveId) && nextObjectiveId > 0 ? nextObjectiveId : null);
   }, [searchParams]);
 
   const loadCards = useCallback(async (options?: { force?: boolean; silent?: boolean }) => {
@@ -117,14 +124,23 @@ export function OKRs() {
   });
 
   const visibleDepartments = useMemo(() => {
-    if (usuario?.rol === "jefe" && usuario.departamento) {
-      return departments.filter((department) => department.name === usuario.departamento);
-    }
     return departments;
-  }, [departments, usuario]);
+  }, [departments]);
 
   const visibleCards = useMemo(() => filterObjectiveCards(cards, search, filters.progress), [cards, search, filters.progress]);
   const stats = buildOkrStats(visibleCards);
+  const openObjective = (objectiveId: number) => {
+    setSelectedObjectiveId(objectiveId);
+    const next = buildSearchParams(filters, search);
+    next.set("objectiveId", String(objectiveId));
+    setSearchParams(next, { replace: true });
+  };
+  const closeObjective = () => {
+    setSelectedObjectiveId(null);
+    const next = new URLSearchParams(searchParams);
+    next.delete("objectiveId");
+    setSearchParams(next, { replace: true });
+  };
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
@@ -177,7 +193,7 @@ export function OKRs() {
                 key={card.id}
                 card={card}
                 index={index}
-                onOpen={() => navigate(`/okrs/${card.id}/krs`)}
+                onOpen={() => openObjective(card.id)}
               />
             ))}
           </motion.div>
@@ -197,6 +213,36 @@ export function OKRs() {
               setCreatingObjective(false);
               await loadCards({ force: true });
             }}
+          />
+        )}
+        {selectedObjectiveId && (
+          <ObjectiveDetailModal
+            objectiveId={selectedObjectiveId}
+            canEdit={canEdit}
+            onClose={closeObjective}
+            onSaved={async () => {
+              await loadCards({ force: true, silent: true });
+            }}
+            renderActions={(objective) => (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/jerarquia?rootType=GOAL&rootId=${objective.goalId}&objectiveId=${objective.id}`)}
+                  className="hierarchy-detail-header-manage-btn rounded-md"
+                  style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}
+                >
+                  <BookOpen size={12} /> Ver en Meta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/jerarquia?rootType=STRATEGIC_BET&rootId=${objective.strategicBetId}&objectiveId=${objective.id}`)}
+                  className="hierarchy-detail-header-manage-btn rounded-md"
+                  style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}
+                >
+                  <Flag size={12} /> Ver en Apuesta
+                </button>
+              </>
+            )}
           />
         )}
       </AnimatePresence>

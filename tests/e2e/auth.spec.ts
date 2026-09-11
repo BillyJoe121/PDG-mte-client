@@ -4,21 +4,21 @@ const adminUser = {
   id: 'U10',
   nombre: 'Sistemas MTE',
   correo: 'mte-admin@icesi.edu.co',
-  rol: 'administrador',
+  rol: 'admin',
   departamento: 'TI Institucional',
   iniciales: 'AD',
 };
 
-const tutorUser = {
+const standardUser = {
   id: 'U12',
   nombre: 'Leonardo Bustamante',
   correo: 'lbustamante@icesi.edu.co',
-  rol: 'tutor',
+  rol: 'user',
   departamento: 'DCSI',
   iniciales: 'LB',
 };
 
-async function seedSession(page: Page, user: typeof adminUser | typeof tutorUser) {
+async function seedSession(page: Page, user: typeof adminUser | typeof standardUser) {
   await page.addInitScript((sessionUser) => {
     window.sessionStorage.setItem('sgp_session_user', JSON.stringify(sessionUser));
   }, user);
@@ -26,8 +26,23 @@ async function seedSession(page: Page, user: typeof adminUser | typeof tutorUser
 
 test.describe('authentication and permissions', () => {
   test('happy path: admin can sign in manually and open the dashboard', async ({ page }) => {
+    await page.route('**/api/v1/auth/me', async (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        user: {
+          externalUserId: 10,
+          username: 'demo.profesor',
+          email: 'demo.profesor@icesi.edu.co',
+          roles: ['ADMIN'],
+          professorName: 'Profesor Demo',
+          departmentName: 'DCSI',
+        },
+        capabilities: { viewDashboard: true, manageCatalogs: true },
+      }),
+    }));
     await page.goto('/login');
-    await page.locator('input[type="email"]').fill('mte-admin@icesi.edu.co');
+    await page.locator('input[type="email"]').fill('demo.profesor@icesi.edu.co');
     await page.locator('input[type="password"]').fill('demo1234');
     await page.getByRole('button', { name: /Ingresar al MTE/i }).click();
 
@@ -58,8 +73,8 @@ test.describe('authentication and permissions', () => {
     await expect(page.getByText(/Credenciales inválidas/i)).toBeVisible();
   });
 
-  test('sad path: tutor cannot open user administration', async ({ page }) => {
-    await seedSession(page, tutorUser);
+  test('sad path: user cannot open user administration', async ({ page }) => {
+    await seedSession(page, standardUser);
     await page.goto('/usuarios');
 
     await expect(page.getByText(/Acceso restringido/i)).toBeVisible();

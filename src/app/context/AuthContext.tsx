@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 
-export type Rol = "administrador" | "director" | "jefe" | "tutor";
+export type Rol = "admin" | "user";
 
 export interface UsuarioActual {
   id: string;
@@ -34,6 +34,7 @@ function migrateLegacyDemoUser(user: UsuarioActual): UsuarioActual {
       departamento: COMPUTING_DEPARTMENT,
       iniciales: "HA",
       token: "mock-token-ha",
+      rol: normalizeRole(user.rol),
     };
   }
   if (user.nombre === "Sistemas MTE" || user.departamento === "TI Institucional") {
@@ -44,9 +45,15 @@ function migrateLegacyDemoUser(user: UsuarioActual): UsuarioActual {
       correo: "demo.profesor@icesi.edu.co",
       departamento: COMPUTING_DEPARTMENT,
       iniciales: "PD",
+      rol: normalizeRole(user.rol),
     };
   }
-  return user;
+  return { ...user, rol: normalizeRole(user.rol) };
+}
+
+function normalizeRole(role: unknown): Rol {
+  const value = String(role ?? "").trim().toLowerCase();
+  return ["admin", "administrador", "role_admin"].includes(value) ? "admin" : "user";
 }
 
 function readSession(): UsuarioActual | null {
@@ -71,11 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioActual | null>(readSession);
 
   const login = (user: UsuarioActual) => {
-    setUsuario(user);
+    const normalizedUser = migrateLegacyDemoUser(user);
+    setUsuario(normalizedUser);
     try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      if (user.token) {
-        sessionStorage.setItem("sgp_access_token", user.token);
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(normalizedUser));
+      if (normalizedUser.token) {
+        sessionStorage.setItem("sgp_access_token", normalizedUser.token);
       } else {
         sessionStorage.removeItem("sgp_access_token");
       }

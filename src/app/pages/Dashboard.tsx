@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import {
   Activity,
@@ -13,16 +13,6 @@ import {
   Target,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
@@ -37,7 +27,7 @@ import {
   type ProgressBucket,
   type ProgressBucketCount,
 } from "../services/dashboardApi";
-import { loadDashboardScreen, loadObjectiveCards, prefetchStrategicScreens } from "../services/screenDataCache";
+import { loadDashboardScreen, loadObjectiveCards } from "../services/screenDataCache";
 
 const COLORS = {
   blue: "#5454E9",
@@ -55,7 +45,7 @@ const COLORS = {
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 const MAX_COVERAGE_ITEMS_PER_CHART = 6;
-const AXIS_LABEL_MAX_CHARS = 26;
+const DashboardCoverageChart = lazy(() => import("./dashboard/DashboardCoverageChart"));
 const viewMotion = {
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0 },
@@ -138,37 +128,6 @@ function chunkItems<T>(items: T[], size: number) {
   return chunks;
 }
 
-function wrapLabel(value: string, maxChars = AXIS_LABEL_MAX_CHARS, maxLines = 0) {
-  const words = value.trim().split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let current = "";
-
-  words.forEach((word) => {
-    if (!current) {
-      current = word;
-      return;
-    }
-    if (`${current} ${word}`.length <= maxChars) {
-      current = `${current} ${word}`;
-      return;
-    }
-    lines.push(current);
-    current = word;
-  });
-
-  if (current) lines.push(current);
-  const result = lines.length > 0 ? lines : [value];
-
-  if (maxLines > 0 && result.length > maxLines) {
-    return [...result.slice(0, maxLines - 1), result.slice(maxLines - 1).join(" ")];
-  }
-  return result;
-}
-
-function maxWrappedLines(items: CoverageItem[], maxLines: number) {
-  return Math.max(1, ...items.map((item) => wrapLabel(item.name, AXIS_LABEL_MAX_CHARS, maxLines).length));
-}
-
 function buildKpis(summary: DashboardSummary, totalProjects: number) {
   return [
     {
@@ -246,11 +205,12 @@ export function Dashboard() {
       const data = await loadDashboardScreen(period, { force: options?.force });
       const periodName = period || data.dashboard.summary.period;
       const periodId = data.periods.find((item) => item.name === periodName)?.id;
-      const cards = await loadObjectiveCards(periodId ? { periodId } : undefined, { force: options?.force });
       setPeriods(data.periods);
       setDashboard(data.dashboard);
-      setObjectiveCards(cards);
-      prefetchStrategicScreens(period);
+      // Objective cards enrich the dashboard but must not delay its KPIs and charts.
+      void loadObjectiveCards(periodId ? { periodId } : undefined, { force: options?.force })
+        .then(setObjectiveCards)
+        .catch(() => setObjectiveCards([]));
     } catch (err) {
       if (!options?.silent) setError(getErrorMessage(err));
     } finally {
@@ -725,15 +685,19 @@ function CoverageCharts({
   return (
     <div className="space-y-4">
       {chunks.map((chunk, index) => (
-        <CoverageChart
+        <Suspense
           key={`${metricLabel}-${index}`}
-          data={chunk}
-          metricLabel={metricLabel}
-          index={index}
-          total={chunks.length}
-          labelMaxLines={labelMaxLines}
-          onBucketClick={onBucketClick}
-        />
+          fallback={<div className="h-[340px] animate-pulse rounded-md border border-[#D9DEE8] bg-[#F8FAFC] motion-reduce:animate-none" aria-label="Cargando gráfico" />}
+        >
+          <DashboardCoverageChart
+            data={chunk}
+            metricLabel={metricLabel}
+            index={index}
+            total={chunks.length}
+            labelMaxLines={labelMaxLines}
+            onBucketClick={onBucketClick}
+          />
+        </Suspense>
       ))}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -742,125 +706,6 @@ function CoverageCharts({
         ))}
       </div>
     </div>
-  );
-}
-
-function CoverageChart({
-  data,
-  metricLabel,
-  index,
-  total,
-  labelMaxLines,
-  onBucketClick,
-}: {
-  data: CoverageItem[];
-  metricLabel: string;
-  index: number;
-  total: number;
-  labelMaxLines: number;
-  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
-}) {
-  const maxLines = maxWrappedLines(data, labelMaxLines);
-  const axisHeight = Math.max(72, maxLines * 17 + 40);
-  const handleBucketClick = (payload: unknown, bucket: ObjectiveBucketKey) => {
-    const item = (payload as { payload?: CoverageItem } | undefined)?.payload;
-    if (!item || item[bucket] <= 0) return;
-    onBucketClick(item, bucket);
-  };
-
-  const yMax = Math.max(
-    1,
-    ...data.map((item) =>
-      Math.max(
-        item.completedObjectives,
-        item.objectivesAbove50,
-        item.objectivesBetween0And50,
-        item.objectivesAtZero,
-      ),
-    ),
-  );
-  const yDomain: [number, number] = [0, yMax];
-
-  return (
-    <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
-      {total > 1 && (
-        <p style={{ fontSize: 10, fontWeight: 850, color: "#9CA3AF", textTransform: "uppercase", marginBottom: 8 }}>
-          {metricLabel}s {index * MAX_COVERAGE_ITEMS_PER_CHART + 1}-{index * MAX_COVERAGE_ITEMS_PER_CHART + data.length}
-        </p>
-      )}
-      <div style={{ width: "100%", height: 260 + axisHeight }}>
-        <ResponsiveContainer>
-          <BarChart data={data} margin={{ top: 8, right: 12, left: -18, bottom: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-            <XAxis
-              dataKey="name"
-              interval={0}
-              height={axisHeight}
-              tick={<WrappedAxisTick maxLines={labelMaxLines} />}
-              tickLine={false}
-            />
-            <YAxis allowDecimals={false} domain={yDomain} tick={{ fontSize: 11, fill: COLORS.gray }} />
-            <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 800, paddingTop: 8 }} />
-            <Tooltip
-              cursor={{ fill: "#F8FAFC" }}
-              formatter={(value, name) => [Number(value), `${String(name)} - clic para ver objetivos`]}
-              contentStyle={{ padding: "6px 10px", fontSize: "10px", borderRadius: "6px", lineHeight: "1.2" }}
-              itemStyle={{ padding: 0, margin: "2px 0", fontSize: "10px" }}
-              labelStyle={{ fontSize: "10px", fontWeight: 800, marginBottom: "4px", color: COLORS.text }}
-            />
-            <Bar
-              className="cursor-pointer"
-              dataKey="completedObjectives"
-              name={objectiveBucketMeta.completedObjectives.label}
-              fill={objectiveBucketMeta.completedObjectives.color}
-              onClick={(payload) => handleBucketClick(payload, "completedObjectives")}
-            />
-            <Bar
-              className="cursor-pointer"
-              dataKey="objectivesAbove50"
-              name={objectiveBucketMeta.objectivesAbove50.label}
-              fill={objectiveBucketMeta.objectivesAbove50.color}
-              onClick={(payload) => handleBucketClick(payload, "objectivesAbove50")}
-            />
-            <Bar
-              className="cursor-pointer"
-              dataKey="objectivesBetween0And50"
-              name={objectiveBucketMeta.objectivesBetween0And50.label}
-              fill={objectiveBucketMeta.objectivesBetween0And50.color}
-              onClick={(payload) => handleBucketClick(payload, "objectivesBetween0And50")}
-            />
-            <Bar
-              className="cursor-pointer"
-              dataKey="objectivesAtZero"
-              name={objectiveBucketMeta.objectivesAtZero.label}
-              fill={objectiveBucketMeta.objectivesAtZero.color}
-              onClick={(payload) => handleBucketClick(payload, "objectivesAtZero")}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-function WrappedAxisTick({ x, y, payload, maxLines = 2 }: { x?: number; y?: number; payload?: { value?: string }; maxLines?: number }) {
-  const lines = wrapLabel(String(payload?.value ?? ""), AXIS_LABEL_MAX_CHARS, maxLines);
-  return (
-    <g transform={`translate(${x ?? 0},${y ?? 0})`}>
-      {lines.map((line, index) => (
-        <text
-          key={`${line}-${index}`}
-          x={0}
-          y={index * 17 + 14}
-          textAnchor="middle"
-          fill={COLORS.gray}
-          fontSize={12}
-          fontWeight={700}
-        >
-          {line}
-        </text>
-      ))}
-    </g>
   );
 }
 

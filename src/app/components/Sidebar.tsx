@@ -5,6 +5,7 @@ import {
   Layers,
   FolderKanban,
   Target,
+  KeyRound,
   BarChart3,
   Users,
   LogOut,
@@ -25,6 +26,7 @@ const navItems = [
   { to: "/jerarquia", label: "Jerarquía Estratégica", icon: Layers, action: "jerarquia.view" as PermissionAction },
   { to: "/catalogos", label: "Catálogos", icon: Database, action: "catalogos.manage" as PermissionAction },
   { to: "/okrs", label: "Objetivos", icon: Target, action: "okrs.view" as PermissionAction },
+  { to: "/krs", label: "KRs", icon: KeyRound, action: "okrs.view" as PermissionAction },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, action: "proyectos.view" as PermissionAction },
   { to: "/reportes", label: "Reportes y exportaciones", icon: BarChart3, action: "reportes.view" as PermissionAction },
   { to: "/consistencia", label: "Consistencia", icon: ShieldAlert, action: "consistencia.view" as PermissionAction },
@@ -38,6 +40,7 @@ const itemColors: Record<string, string> = {
   "/jerarquia": "#5454E9",     // azul
   "/catalogos": "#E9683B",     // naranja
   "/okrs": "#4CB979",          // verde
+  "/krs": "#5454E9",           // azul
   "/proyectos": "#E4EB60",     // amarillo
   "/reportes": "#5454E9",      // azul
   "/consistencia": "#E9683B",  // naranja

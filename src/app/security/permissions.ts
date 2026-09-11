@@ -16,7 +16,7 @@ export type PermissionAction =
   | "auditoria.view";
 
 const rolePermissions: Record<Rol, PermissionAction[]> = {
-  administrador: [
+  admin: [
     "dashboard.view",
     "presentacion.view",
     "jerarquia.view",
@@ -31,35 +31,13 @@ const rolePermissions: Record<Rol, PermissionAction[]> = {
     "usuarios.manage",
     "auditoria.view",
   ],
-  director: [
-    "dashboard.view",
-    "presentacion.view",
-    "jerarquia.view",
-    "jerarquia.manage",
-    "okrs.view",
-    "okrs.manage",
-    "proyectos.view",
-    "proyectos.manage",
-    "reportes.view",
-    "consistencia.view",
-  ],
-  jefe: [
+  user: [
     "dashboard.view",
     "presentacion.view",
     "jerarquia.view",
     "okrs.view",
     "okrs.manage",
-    "proyectos.view",
-    "proyectos.manage",
     "reportes.view",
-    "consistencia.view",
-  ],
-  tutor: [
-    "dashboard.view",
-    "presentacion.view",
-    "jerarquia.view",
-    "okrs.view",
-    "proyectos.view",
   ],
 };
 
@@ -73,9 +51,6 @@ export function hasPermission(usuario: UsuarioActual | null, action: PermissionA
 }
 
 export function canSeeDepartamento(usuario: UsuarioActual | null, departamento?: string) {
-  if (!usuario || !departamento) return true;
-  if (usuario.rol === "administrador" || usuario.rol === "director") return true;
-  if (usuario.rol === "jefe") return usuario.departamento === departamento;
   return true;
 }
 
@@ -116,7 +91,7 @@ const actionAliases: Record<PermissionAction, string[]> = {
     "linkProjectsToKeyResults",
   ],
   "reportes.view": ["reportes.view", "reports_view", "report_view", "view_reports", "export_reports", "viewReports"],
-  "consistencia.view": ["consistencia.view", "consistency_view", "view_consistency", "viewStrategy"],
+  "consistencia.view": ["consistencia.view", "consistency_view", "view_consistency", "viewConsistency"],
   "usuarios.manage": ["usuarios.manage", "users_manage", "user_manage", "manage_users", "user_management", "manageUsers"],
   "auditoria.view": ["auditoria.view", "audit_view", "audit_logs_view", "view_audit", "viewAuditLogs"],
 };
@@ -148,7 +123,7 @@ function normalizeCapability(value: string) {
 
 function hasLegacyUiFallback(usuario: UsuarioActual, action: PermissionAction) {
   if (action === "usuarios.manage") {
-    return usuario.roles?.includes("ADMIN") || usuario.rol === "administrador";
+    return usuario.roles?.includes("ADMIN") || usuario.rol === "admin";
   }
   return false;
 }

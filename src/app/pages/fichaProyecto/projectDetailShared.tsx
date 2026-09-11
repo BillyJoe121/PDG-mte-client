@@ -55,10 +55,10 @@ export function ProgressBar({ value, color }: { value: number; color: string }) 
 }
 
 export function availableStatusTransitions(role: Rol | undefined, current: ProjectStatus): ProjectStatus[] {
-  if (role === "administrador") {
+  if (role === "admin") {
     return (Object.keys(STATUS_LABELS) as ProjectStatus[]).filter((status) => status !== current);
   }
-  if (role !== "director") return [];
+  if (role !== "admin") return [];
   const transitions: Record<ProjectStatus, ProjectStatus[]> = {
     BORRADOR: ["ACTIVO", "SUSPENDIDO", "ARCHIVADO"],
     ACTIVO: ["FINALIZADO", "SUSPENDIDO", "ARCHIVADO"],

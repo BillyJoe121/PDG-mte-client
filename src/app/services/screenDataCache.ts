@@ -116,8 +116,6 @@ export interface ReportsScreenData {
 
 export interface PresentationScreenData {
   periods: AcademicPeriod[];
-  goals: Goal[];
-  objectiveCards: ObjectiveCard[];
   presentation: PresentationResponse;
 }
 
@@ -276,18 +274,6 @@ export function loadProjectDetailScreen(projectId: number, options?: LoadOptions
   }));
 }
 
-export async function prefetchProjectDetails(projects: ProjectResponse[], options?: LoadOptions) {
-  const queue = [...projects];
-  const workerCount = Math.min(3, queue.length);
-
-  await Promise.allSettled(Array.from({ length: workerCount }, async () => {
-    while (queue.length > 0) {
-      const project = queue.shift();
-      if (project) await loadProjectDetailScreen(project.id, options);
-    }
-  }));
-}
-
 export function loadReportsScreen(params?: ReportParams, options?: LoadOptions): Promise<ReportsScreenData> {
   return Promise.all([
     loadAcademicPeriods(options),
@@ -311,33 +297,13 @@ export function loadConsistencyCheck(filters?: ConsistencyFilters, options?: Loa
 }
 
 export async function loadPresentationScreen(period?: string, options?: LoadOptions): Promise<PresentationScreenData> {
-  const periods = await loadAcademicPeriods(options);
-  const selectedPeriodData = period
-    ? periods.find((item) => item.name === period)
-    : periods.find((item) => item.status === "ACTIVO");
-  const [presentation, goals, objectiveCards] = await Promise.all([
+  const [periods, presentation] = await Promise.all([
+    loadAcademicPeriods(options),
     getCached(keys.presentation(period), () => presentationApi.get({ period: period || undefined }), options),
-    loadGoals(period || undefined, options),
-    loadObjectiveCards({ periodId: selectedPeriodData?.id }, options),
   ]);
 
   return {
     periods,
-    goals,
-    objectiveCards,
     presentation,
   };
-}
-
-export function prefetchStrategicScreens(period?: string) {
-  void Promise.allSettled([
-    loadHierarchyScreen(period),
-    loadOkrScreen(),
-    loadProjectsScreen({ period }).then((data) => prefetchProjectDetails(data.projects)),
-    loadProjectsScreen(),
-    loadReportsScreen({ period }),
-    loadConsistencyCheck({ staleDays: 15 }),
-    loadPresentationScreen(period),
-    loadMeasurementUnits(),
-  ]);
 }

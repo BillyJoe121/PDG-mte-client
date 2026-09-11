@@ -36,7 +36,7 @@ export function Catalogos() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const canWrite = usuario?.rol === "administrador";
+  const canWrite = usuario?.rol === "admin";
   const sortedPeriods = useMemo(
     () => [...periods].sort((a, b) => b.startDate.localeCompare(a.startDate)),
     [periods],

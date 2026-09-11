@@ -51,7 +51,7 @@ export function validateStrategicConsistency({
         entidadId: okr.id,
         detalle: "El OKR apunta a una apuesta inexistente.",
         accion: "Editar el OKR y seleccionar una apuesta valida.",
-        targetPath: `/okrs/${okr.id}/krs`,
+        targetPath: `/okrs?objectiveId=${okr.id}`,
       });
     }
 
@@ -64,7 +64,7 @@ export function validateStrategicConsistency({
         entidadId: okr.id,
         detalle: "El OKR apunta a una meta institucional inexistente.",
         accion: "Editar el OKR y seleccionar una meta valida.",
-        targetPath: `/okrs/${okr.id}/krs`,
+        targetPath: `/okrs?objectiveId=${okr.id}`,
       });
     }
 
@@ -77,7 +77,7 @@ export function validateStrategicConsistency({
         entidadId: okr.id,
         detalle: "El OKR esta activo pero no tiene resultados clave.",
         accion: "Agregar al menos un KR para poder medir avance.",
-        targetPath: `/okrs/${okr.id}/krs`,
+        targetPath: `/okrs?objectiveId=${okr.id}`,
       });
     }
 
@@ -91,7 +91,7 @@ export function validateStrategicConsistency({
           entidadId: kr.id,
           detalle: "El KR no tiene proyectos asociados.",
           accion: "Vincular proyectos que aporten al KR.",
-          targetPath: `/okrs/${okr.id}/krs`,
+          targetPath: `/krs?objectiveId=${okr.id}&keyResultId=${kr.id}`,
         });
       }
     });
@@ -110,7 +110,7 @@ export function validateStrategicConsistency({
         entidadId: proyecto.id,
         detalle: "El proyecto esta activo pero no tiene OKR valido vinculado.",
         accion: "Vincular el proyecto a un OKR/KR antes de reportarlo como activo.",
-        targetPath: `/proyectos/${proyecto.id}`,
+        targetPath: `/proyectos?projectId=${proyecto.id}`,
       });
     }
 
@@ -123,7 +123,7 @@ export function validateStrategicConsistency({
         entidadId: proyecto.id,
         detalle: "El proyecto referencia un KR inexistente.",
         accion: "Corregir el KR principal del proyecto.",
-        targetPath: `/proyectos/${proyecto.id}`,
+        targetPath: `/proyectos?projectId=${proyecto.id}`,
       });
     }
 
@@ -136,7 +136,7 @@ export function validateStrategicConsistency({
         entidadId: proyecto.id,
         detalle: "El proyecto activo no registra avance reciente.",
         accion: "Solicitar o registrar una actualizacion de avance.",
-        targetPath: `/proyectos/${proyecto.id}`,
+        targetPath: `/proyectos?projectId=${proyecto.id}`,
       });
     }
 
@@ -150,7 +150,7 @@ export function validateStrategicConsistency({
         entidadId: proyecto.id,
         detalle: "El proyecto activo no tiene indicadores de contribucion.",
         accion: "Crear indicadores para medir su aporte estrategico.",
-        targetPath: `/proyectos/${proyecto.id}`,
+        targetPath: `/proyectos?projectId=${proyecto.id}`,
       });
     }
   });

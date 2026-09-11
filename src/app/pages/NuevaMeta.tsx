@@ -17,7 +17,7 @@ type Errors = Partial<Record<"name" | "description" | "expectedValue" | "measure
 export function NuevaMeta() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const canCreate = usuario?.rol === "director" || usuario?.rol === "administrador";
+  const canCreate = usuario?.rol === "admin";
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

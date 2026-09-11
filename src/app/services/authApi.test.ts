@@ -58,7 +58,7 @@ describe("auth API", () => {
       id: "10",
       nombre: "Profesor Demo",
       correo: "demo.profesor@icesi.edu.co",
-      rol: "administrador",
+      rol: "admin",
       departamento: "Departamento de Computación y Sistemas inteligentes.",
       iniciales: "AD",
       token: "mock-token-ad",
@@ -73,7 +73,7 @@ describe("auth API", () => {
       id: "U12",
       nombre: "Leonardo Bustamante",
       correo: "lbustamante@icesi.edu.co",
-      rol: "tutor",
+      rol: "user",
       departamento: "DCSI",
       iniciales: "LB",
       token: "mock-token-lb",
@@ -82,7 +82,7 @@ describe("auth API", () => {
     expect(user).toMatchObject({
       id: "U12",
       nombre: "Leonardo Bustamante",
-      rol: "tutor",
+      rol: "user",
       token: "mock-token-lb",
     });
   });

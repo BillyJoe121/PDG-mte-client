@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ArrowLeft,
@@ -64,12 +64,9 @@ const PROJECT_TYPE_OPTIONS = Object.entries(TYPE_LABELS).map(([value, label]) =>
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 
-export function FichaProyecto() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+export function ProjectDetailContent({ projectId, onBack }: { projectId: number; onBack: () => void }) {
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
-  const projectId = Number(id);
   const [detail, setDetail] = useState<ProjectDetailResponse | null>(null);
   const [contributionChain, setContributionChain] = useState<ImpactChain | null>(null);
   const [objectiveCards, setObjectiveCards] = useState<ObjectiveCard[]>([]);
@@ -141,7 +138,7 @@ export function FichaProyecto() {
         <div className="max-w-md rounded-md bg-white p-6 text-center" style={{ border: `1px solid ${error ? "#FCA5A5" : COLORS.border}` }}>
           <Target size={30} color={error ? "#DC2626" : "#D1D5DB"} className="mx-auto mb-3" />
           <p style={{ fontSize: 15, color: error ? "#991B1B" : COLORS.gray, fontWeight: 850 }}>{error || "Proyecto no encontrado."}</p>
-          <button onClick={() => navigate("/proyectos")} className="mt-4 inline-flex items-center justify-center gap-2 rounded-md" style={secondaryButtonStyle}>
+          <button onClick={onBack} className="mt-4 inline-flex items-center justify-center gap-2 rounded-md" style={secondaryButtonStyle}>
             <ArrowLeft size={14} />
             Volver a proyectos
           </button>
@@ -151,7 +148,7 @@ export function FichaProyecto() {
   }
 
   const canRegisterProgress = project.status === "ACTIVO";
-  const canManageLinks = usuario?.rol === "administrador" || usuario?.rol === "director" || usuario?.rol === "jefe";
+  const canManageLinks = usuario?.rol === "admin";
   const statusTransitions = availableStatusTransitions(usuario?.rol, project.status);
   const progressColor = getProgressColor(project.globalProgress);
   const tabs = [
@@ -198,7 +195,7 @@ export function FichaProyecto() {
   return (
     <div className="min-h-full bg-[#F8FAFC]">
       <div className="mx-auto max-w-7xl px-6 pb-5 pt-4">
-        <Breadcrumb projectName={project.name} onBack={() => navigate("/proyectos")} />
+        <Breadcrumb projectName={project.name} onBack={onBack} />
 
         <ProjectHero
           progressColor={progressColor}
@@ -911,10 +908,10 @@ function LinkedKrCard({ canManage, link, onEditLink, onUnlink, objectiveId, obje
       <div className="mt-4 flex flex-wrap gap-2">
         {objectiveId && (
           <>
-            <button onClick={() => navigate(`/okrs/${objectiveId}/krs/${link.keyResultId}`)} className="inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.blue, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
+            <button onClick={() => navigate(`/krs?objectiveId=${objectiveId}&keyResultId=${link.keyResultId}`)} className="inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.blue, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
               Ir al KR
             </button>
-            <button onClick={() => navigate(`/okrs/${objectiveId}/krs`)} className="inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.blue, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
+            <button onClick={() => navigate(`/okrs?objectiveId=${objectiveId}`)} className="inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.blue, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
               Ir al Objetivo
             </button>
             {canManage && (

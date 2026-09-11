@@ -19,7 +19,8 @@ describe('mockData helpers', () => {
       .toBe('Pasar de 1 a 4 cursos en: Cursos actualizados');
     expect(getColorEstadoProyecto('activo')).toBe('#4CB979');
     expect(getColorEstadoOKR('cancelado')).toBe('#E9683B');
-    expect(getLabelRol('administrador')).toBe('Administrador');
+    expect(getLabelRol('admin')).toBe('Administrador');
+    expect(getLabelRol('user')).toBe('Usuario');
     expect(getTipoProyectoLabel('macroproyecto')).toBe('Macroproyecto');
   });
 

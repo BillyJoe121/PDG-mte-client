@@ -9,6 +9,7 @@ const breadcrumbMap: Record<string, string> = {
   "/jerarquia": "Jerarquía Estratégica",
   "/objetivos": "Objetivos a Corto Plazo",
   "/okrs": "Gestión de OKRs",
+  "/krs": "Key Results",
   "/proyectos": "Proyectos e Iniciativas",
   "/reportes": "Reportes y exportaciones",
   "/consistencia": "Consistencia Estrategica",

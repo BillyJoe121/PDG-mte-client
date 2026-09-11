@@ -89,12 +89,12 @@ export function errorMessage(error: unknown) {
 }
 
 export function availableStatusTransitions(role: Rol | undefined, current: ProjectStatus): ProjectStatus[] {
-  if (role === "administrador") {
+  if (role === "admin") {
     return STATUS_OPTIONS
       .map((option) => option.value)
       .filter((value): value is ProjectStatus => value !== "todos" && value !== current);
   }
-  if (role !== "director") return [];
+  if (role !== "admin") return [];
   const transitions: Record<ProjectStatus, ProjectStatus[]> = {
     BORRADOR: ["ACTIVO", "SUSPENDIDO", "ARCHIVADO"],
     ACTIVO: ["FINALIZADO", "SUSPENDIDO", "ARCHIVADO"],
