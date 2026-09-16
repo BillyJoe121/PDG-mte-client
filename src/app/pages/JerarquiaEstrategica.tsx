@@ -2,7 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSPropertie
 import { es } from "date-fns/locale/es";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams } from "react-router";
-import { ArrowLeft, BookOpen, Building2, CalendarDays, ChevronDown, ChevronRight, Edit2, Flag, FolderKanban, KeyRound, Loader2, Plus, RefreshCw, Save, Search, Target, X } from "lucide-react";
+import { Archive, ArrowLeft, BookOpen, Building2, CalendarDays, ChevronDown, ChevronRight, Edit2, Flag, FolderKanban, KeyRound, Loader2, Plus, RefreshCw, Save, Search, Target, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { measurementUnitsApi, type AcademicPeriod, type MeasurementUnit } from "../services/catalogsApi";
 import { loadHierarchyScreen, loadDepartments, loadMeasurementUnits } from "../services/screenDataCache";
 import { truncateText } from "../utils/text";
+import { getGoalValueInput, validateGoalForm, type GoalFormErrors, type GoalFormValues } from "../utils/goalForm";
 import {
   goalsApi,
   strategicBetsApi,
@@ -26,6 +27,9 @@ import {
 import { CreateObjectiveModal } from "./okrs/CreateObjectiveModal";
 import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
 import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
+import { HierarchyOverview } from "./jerarquia/HierarchyOverview";
+import { getNodeBadgeLabel, getNodeTheme, hierarchyNodeLabel, type NodeTheme } from "./jerarquia/hierarchyVisualSystem";
+import { ArchivedStrategyModal } from "./jerarquia/ArchivedStrategyModal";
 
 const COLORS = {
   blue: "#5454E9",
@@ -34,7 +38,6 @@ const COLORS = {
   orange: "#E9683B",
   gray: "#717182",
   navy: "#1F2A44",
-  purple: "#5454E9",
   text: "#111827",
   border: "#D9DEE8",
   subtle: "#F7F8FB",
@@ -81,6 +84,7 @@ export function JerarquiaEstrategica() {
   const [openObjectiveDetailKeys, setOpenObjectiveDetailKeys] = useState<Set<string>>(new Set());
   const [viewingKeyResult, setViewingKeyResult] = useState<{ keyResultId: number; objectiveId?: number } | null>(null);
   const [viewingProjectId, setViewingProjectId] = useState<number | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const load = useCallback(async (options?: { force?: boolean; resetSelection?: boolean; silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
@@ -271,7 +275,7 @@ export function JerarquiaEstrategica() {
             </div>
             <PeriodFilterSelect period={period} periods={periods} onChange={setPeriod} />
             {!selectedHierarchyRoot && (
-              <div className="flex min-h-[38px] min-w-[220px] flex-1 items-center gap-2 rounded-md px-3" style={{ maxWidth: 360, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+              <div className="flex min-h-[38px] min-w-0 w-full flex-1 items-center gap-2 rounded-md px-3 sm:min-w-[220px]" style={{ maxWidth: 360, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
                 <Search size={15} color={COLORS.gray} />
                 <input
                   value={hierarchySearch}
@@ -283,12 +287,17 @@ export function JerarquiaEstrategica() {
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {(canCreate || canEditObjective) && (
+              <button onClick={() => setShowArchived(true)} className="flex items-center gap-2 rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-extrabold text-[#374151]">
+                <Archive size={13} /> Archivados
+              </button>
+            )}
             {canCreate && (
               <>
                 <button onClick={() => setCreateModal("goal")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.green, color: "#fff", fontSize: "12px", fontWeight: 750 }}>
                   <Plus size={13} /> Nueva Meta
                 </button>
-                <button onClick={() => setCreateModal("bet")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.purple, color: "#fff", fontSize: "12px", fontWeight: 750 }}>
+                <button onClick={() => setCreateModal("bet")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: getNodeTheme("STRATEGIC_BET").background, color: "#fff", fontSize: "12px", fontWeight: 750 }}>
                   <Plus size={13} /> Nueva Apuesta
                 </button>
               </>
@@ -328,7 +337,7 @@ export function JerarquiaEstrategica() {
           </div>
           <PeriodFilterSelect period={period} periods={periods} onChange={setPeriod} />
           {!selectedHierarchyRoot && (
-            <div className="flex min-h-[38px] min-w-[280px] flex-1 items-center gap-2 rounded-md px-3" style={{ maxWidth: 520, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+            <div className="flex min-h-[38px] min-w-0 w-full flex-1 items-center gap-2 rounded-md px-3 sm:min-w-[280px]" style={{ maxWidth: 520, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
               <Search size={15} color={COLORS.gray} />
               <input
                 value={hierarchySearch}
@@ -358,6 +367,7 @@ export function JerarquiaEstrategica() {
           <motion.div key={selectedHierarchyRoot ? "arbol-detail" : `arbol-cards-${view}`} {...viewMotion}>
             {!selectedHierarchyRoot ? (
               <div className="space-y-5">
+                <HierarchyOverview nodes={tree} />
                 <HierarchyRootGallery nodes={filteredHierarchyRoots} onSelect={openHierarchyRoot} />
                 {tree.length > 0 && filteredHierarchyRoots.length === 0 && <EmptyState text="No hay apuestas o metas que coincidan con la busqueda." />}
               </div>
@@ -395,6 +405,14 @@ export function JerarquiaEstrategica() {
       </div>
 
       <AnimatePresence>
+        {showArchived && (
+          <ArchivedStrategyModal
+            canManageStrategy={canCreate}
+            canManageObjectives={canEditObjective}
+            onClose={() => setShowArchived(false)}
+            onChanged={() => load({ force: true, resetSelection: false, silent: true })}
+          />
+        )}
         {createModal === "bet" && (
           <StrategicBetCreateModal
             onClose={() => setCreateModal(null)}
@@ -512,13 +530,11 @@ function findHierarchyNodeKey(nodes: StrategicHierarchyNode[], type: StrategicHi
 }
 
 function getRootAccent(node: StrategicHierarchyNode) {
-  return node.nodeType === "GOAL" ? COLORS.green : COLORS.blue;
+  return getNodeTheme(node.nodeType).background;
 }
 
 function getRootTypeLabel(node: StrategicHierarchyNode) {
-  if (node.nodeType === "GOAL") return "Meta institucional";
-  if (node.nodeType === "STRATEGIC_BET") return "Apuesta estrategica";
-  return "Nodo estrategico";
+  return hierarchyNodeLabel[node.nodeType];
 }
 
 function getContainedMetrics(node: StrategicHierarchyNode) {
@@ -606,6 +622,11 @@ function HierarchyRootGallery({ nodes, onSelect }: { nodes: StrategicHierarchyNo
               <p style={{ color: COLORS.gray, fontSize: 10.5, lineHeight: 1.5, minHeight: 48 }}>
                 {description}
               </p>
+              {node.badge && (
+                <p className="mt-2 rounded-md bg-[#F8FAFC] px-2.5 py-2 text-[10px] font-bold text-[#374151]" style={{ borderLeft: `3px solid ${accent}` }}>
+                  <span className="mr-1 uppercase text-[#717182]">{getNodeBadgeLabel(node.nodeType)}:</span> {node.badge}
+                </p>
+              )}
               <div className="mt-3.5" style={{ borderTop: "1px solid #E5E7EB", paddingTop: 11 }}>
                 <HierarchyRootMetrics node={node} />
               </div>
@@ -723,7 +744,7 @@ function HierarchyDetailHeader({ node, onManage, onBack }: { node: StrategicHier
               <div className="space-y-2 flex-grow flex flex-col justify-center">
                 {node.badge && (
                   <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
-                    <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Estado</span>
+                    <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>{getNodeBadgeLabel(node.nodeType)}</span>
                     <span style={{ color: COLORS.text, fontSize: 12, fontWeight: 400 }}>{node.badge}</span>
                   </div>
                 )}
@@ -1261,60 +1282,6 @@ function getNodeIcon(type: StrategicHierarchyNode["nodeType"]) {
   }[type];
 }
 
-interface NodeTheme {
-  background: string;
-  border: string;
-  text: string;
-  mutedText: string;
-  badgeBackground: string;
-  badgeText: string;
-}
-
-function getNodeTheme(type: StrategicHierarchyNode["nodeType"]): NodeTheme {
-  return {
-    STRATEGIC_BET: {
-      background: COLORS.purple,
-      border: COLORS.purple,
-      text: "#FFFFFF",
-      mutedText: "rgba(255,255,255,0.82)",
-      badgeBackground: "rgba(255,255,255,0.16)",
-      badgeText: "#FFFFFF",
-    },
-    GOAL: {
-      background: COLORS.green,
-      border: COLORS.green,
-      text: "#FFFFFF",
-      mutedText: "rgba(255,255,255,0.84)",
-      badgeBackground: "rgba(255,255,255,0.18)",
-      badgeText: "#FFFFFF",
-    },
-    OBJECTIVE: {
-      background: COLORS.orange,
-      border: COLORS.orange,
-      text: "#FFFFFF",
-      mutedText: "rgba(255,255,255,0.82)",
-      badgeBackground: "rgba(255,255,255,0.18)",
-      badgeText: "#FFFFFF",
-    },
-    KEY_RESULT: {
-      background: COLORS.purple,
-      border: COLORS.purple,
-      text: "#FFFFFF",
-      mutedText: "rgba(255,255,255,0.84)",
-      badgeBackground: "rgba(255,255,255,0.18)",
-      badgeText: "#FFFFFF",
-    },
-    PROJECT: {
-      background: COLORS.green,
-      border: COLORS.green,
-      text: "#FFFFFF",
-      mutedText: "rgba(255,255,255,0.84)",
-      badgeBackground: "rgba(255,255,255,0.18)",
-      badgeText: "#FFFFFF",
-    },
-  }[type];
-}
-
 function SummaryInline({ summary, theme }: { summary: ExecutionSummary; theme: NodeTheme }) {
   void theme;
   return (
@@ -1396,7 +1363,7 @@ function StrategicBetCreateModal({ onClose, onCreated }: { onClose: () => void; 
   };
 
   return (
-    <HierarchyModal title="Nueva Apuesta Estrategica" icon={<Flag size={18} color="#fff" />} accent={COLORS.purple} onClose={onClose}>
+    <HierarchyModal title="Nueva Apuesta Estrategica" icon={<Flag size={18} color="#fff" />} accent={getNodeTheme("STRATEGIC_BET").background} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
         <ModalField label="Nombre" error={errors.name}>
           <input value={form.name} onChange={(event) => set("name", event.target.value)} placeholder="Ej: Innovacion curricular" style={modalInputStyle(Boolean(errors.name))} />
@@ -1412,7 +1379,7 @@ function StrategicBetCreateModal({ onClose, onCreated }: { onClose: () => void; 
             <ModalDatePicker value={form.endDate} onChange={(value) => set("endDate", value)} error={Boolean(errors.endDate)} />
           </ModalField>
         </div>
-        <ModalActions onClose={onClose} saving={saving} submitLabel="Crear Apuesta" accent={COLORS.purple} />
+        <ModalActions onClose={onClose} saving={saving} submitLabel="Crear Apuesta" accent={getNodeTheme("STRATEGIC_BET").background} />
       </form>
     </HierarchyModal>
   );
@@ -1460,7 +1427,7 @@ function StrategicBetEditModal({ bet, onClose, onSaved }: { bet: StrategicBet; o
   };
 
   return (
-    <HierarchyModal title="Editar Apuesta Estrategica" icon={<Flag size={18} color="#fff" />} accent={COLORS.purple} onClose={onClose}>
+    <HierarchyModal title="Editar Apuesta Estrategica" icon={<Flag size={18} color="#fff" />} accent={getNodeTheme("STRATEGIC_BET").background} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
         <ModalField label="Nombre" error={errors.name}>
           <input value={form.name} onChange={(event) => set("name", event.target.value)} style={modalInputStyle(Boolean(errors.name))} />
@@ -1476,7 +1443,7 @@ function StrategicBetEditModal({ bet, onClose, onSaved }: { bet: StrategicBet; o
             <ModalDatePicker value={form.endDate} onChange={(value) => set("endDate", value)} error={Boolean(errors.endDate)} />
           </ModalField>
         </div>
-        <ModalActions onClose={onClose} saving={saving} submitLabel="Guardar cambios" accent={COLORS.purple} />
+        <ModalActions onClose={onClose} saving={saving} submitLabel="Guardar cambios" accent={getNodeTheme("STRATEGIC_BET").background} />
       </form>
     </HierarchyModal>
   );
@@ -1486,8 +1453,8 @@ function GoalCreateModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>>>({});
-  const [form, setForm] = useState({
+  const [errors, setErrors] = useState<GoalFormErrors>({});
+  const [form, setForm] = useState<GoalFormValues>({
     name: "",
     description: "",
     referenceIndicator: "",
@@ -1511,12 +1478,7 @@ function GoalCreateModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const next: Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>> = {};
-    if (!form.name.trim()) next.name = "El nombre es obligatorio.";
-    if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
-    if (form.expectedValue === "" || Number.isNaN(Number(form.expectedValue))) next.expectedValue = "El valor esperado debe ser numerico.";
-    if (!form.measurementUnitId) next.measurementUnitId = "La unidad es obligatoria.";
-    if (form.startDate && form.endDate && form.endDate <= form.startDate) next.endDate = "La fecha de cierre debe ser posterior al inicio.";
+    const next = validateGoalForm(form, units);
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -1525,7 +1487,7 @@ function GoalCreateModal({ onClose, onCreated }: { onClose: () => void; onCreate
       await goalsApi.create({
         name: form.name.trim(),
         description: form.description.trim(),
-        ...(form.referenceIndicator.trim() ? { referenceIndicator: form.referenceIndicator.trim() } : {}),
+        referenceIndicator: form.referenceIndicator.trim(),
         expectedValue: Number(form.expectedValue),
         measurementUnitId: Number(form.measurementUnitId),
         ...(form.startDate ? { startDate: form.startDate } : {}),
@@ -1550,11 +1512,11 @@ function GoalCreateModal({ onClose, onCreated }: { onClose: () => void; onCreate
           <textarea value={form.description} onChange={(event) => set("description", event.target.value)} rows={3} placeholder="Describe alcance, contexto y relevancia." style={{ ...modalInputStyle(Boolean(errors.description)), resize: "vertical" }} />
         </ModalField>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_170px] gap-3">
-          <ModalField label="Indicador">
-            <input value={form.referenceIndicator} onChange={(event) => set("referenceIndicator", event.target.value)} style={modalInputStyle(false)} />
+          <ModalField label="Indicador" error={errors.referenceIndicator}>
+            <input value={form.referenceIndicator} onChange={(event) => set("referenceIndicator", event.target.value)} style={modalInputStyle(Boolean(errors.referenceIndicator))} />
           </ModalField>
           <ModalField label="Valor" error={errors.expectedValue}>
-            <input type="number" step="0.01" value={form.expectedValue} onChange={(event) => set("expectedValue", event.target.value)} style={modalInputStyle(Boolean(errors.expectedValue))} />
+            <GoalValueControl form={form} units={units} error={Boolean(errors.expectedValue)} onChange={(value) => set("expectedValue", value)} />
           </ModalField>
           <ModalField label="Unidad" error={errors.measurementUnitId}>
             <ModalSelect
@@ -1585,8 +1547,8 @@ function GoalEditModal({ goal, onClose, onSaved }: { goal: Goal; onClose: () => 
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>>>({});
-  const [form, setForm] = useState({
+  const [errors, setErrors] = useState<GoalFormErrors>({});
+  const [form, setForm] = useState<GoalFormValues>({
     name: goal.name,
     description: goal.description,
     referenceIndicator: goal.referenceIndicator ?? "",
@@ -1610,12 +1572,7 @@ function GoalEditModal({ goal, onClose, onSaved }: { goal: Goal; onClose: () => 
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const next: Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>> = {};
-    if (!form.name.trim()) next.name = "El nombre es obligatorio.";
-    if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
-    if (form.expectedValue === "" || Number.isNaN(Number(form.expectedValue))) next.expectedValue = "El valor esperado debe ser numerico.";
-    if (!form.measurementUnitId) next.measurementUnitId = "La unidad es obligatoria.";
-    if (form.startDate && form.endDate && form.endDate <= form.startDate) next.endDate = "La fecha de cierre debe ser posterior al inicio.";
+    const next = validateGoalForm(form, units);
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -1624,7 +1581,7 @@ function GoalEditModal({ goal, onClose, onSaved }: { goal: Goal; onClose: () => 
       await goalsApi.update(goal.id, {
         name: form.name.trim(),
         description: form.description.trim(),
-        ...(form.referenceIndicator.trim() ? { referenceIndicator: form.referenceIndicator.trim() } : {}),
+        referenceIndicator: form.referenceIndicator.trim(),
         expectedValue: Number(form.expectedValue),
         measurementUnitId: Number(form.measurementUnitId),
         ...(form.startDate ? { startDate: form.startDate } : {}),
@@ -1649,11 +1606,11 @@ function GoalEditModal({ goal, onClose, onSaved }: { goal: Goal; onClose: () => 
           <textarea value={form.description} onChange={(event) => set("description", event.target.value)} rows={3} style={{ ...modalInputStyle(Boolean(errors.description)), resize: "vertical" }} />
         </ModalField>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_170px] gap-3">
-          <ModalField label="Indicador">
-            <input value={form.referenceIndicator} onChange={(event) => set("referenceIndicator", event.target.value)} style={modalInputStyle(false)} />
+          <ModalField label="Indicador" error={errors.referenceIndicator}>
+            <input value={form.referenceIndicator} onChange={(event) => set("referenceIndicator", event.target.value)} style={modalInputStyle(Boolean(errors.referenceIndicator))} />
           </ModalField>
           <ModalField label="Valor" error={errors.expectedValue}>
-            <input type="number" step="0.01" value={form.expectedValue} onChange={(event) => set("expectedValue", event.target.value)} style={modalInputStyle(Boolean(errors.expectedValue))} />
+            <GoalValueControl form={form} units={units} error={Boolean(errors.expectedValue)} onChange={(value) => set("expectedValue", value)} />
           </ModalField>
           <ModalField label="Unidad" error={errors.measurementUnitId}>
             <ModalSelect
@@ -1678,6 +1635,23 @@ function GoalEditModal({ goal, onClose, onSaved }: { goal: Goal; onClose: () => 
       </form>
     </HierarchyModal>
   );
+}
+
+function GoalValueControl({ form, units, error, onChange }: { form: GoalFormValues; units: MeasurementUnit[]; error: boolean; onChange: (value: string) => void }) {
+  const selectedUnit = units.find((unit) => String(unit.id) === form.measurementUnitId);
+  const input = getGoalValueInput(selectedUnit);
+
+  if (input.kind === "boolean") {
+    return (
+      <select aria-label="Valor esperado" value={form.expectedValue} onChange={(event) => onChange(event.target.value)} style={{ ...modalInputStyle(error), backgroundColor: "#fff" }}>
+        <option value="">Selecciona</option>
+        <option value="1">Si</option>
+        <option value="0">No</option>
+      </select>
+    );
+  }
+
+  return <input aria-label="Valor esperado" type="number" min={input.min} max={input.max} step={input.step} value={form.expectedValue} onChange={(event) => onChange(event.target.value)} style={modalInputStyle(error)} />;
 }
 
 function HierarchyModal({ title, icon, accent, onClose, children }: { title: string; icon: ReactNode; accent: string; onClose: () => void; children: ReactNode }) {

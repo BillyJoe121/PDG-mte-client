@@ -4,6 +4,8 @@ import { motion, useReducedMotion } from "motion/react";
 import type { MeasurementUnit } from "../../services/catalogsApi";
 import type { KeyResult, KeyResultRequest } from "../../services/strategicApi";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { KeyResultValueField } from "../../components/forms/KeyResultValueField";
+import { toKeyResultRequest, validateKeyResultForm, type KeyResultFormValues } from "../../utils/keyResultForm";
 import { COLORS } from "./okrsShared";
 
 interface KrFormProps {
@@ -16,7 +18,7 @@ interface KrFormProps {
 
 export function KrForm({ units, initial, saving, onCancel, onSubmit }: KrFormProps) {
   const reduceMotion = useReducedMotion();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<KeyResultFormValues>({
     name: initial?.name ?? "",
     description: initial?.description ?? "",
     metric: initial?.metric ?? "",
@@ -28,19 +30,17 @@ export function KrForm({ units, initial, saving, onCancel, onSubmit }: KrFormPro
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!form.name.trim() || !form.description.trim() || !form.metric.trim() || !form.targetValue || !form.measurementUnitId) {
-      setError("Completa nombre, descripcion, metrica, valor objetivo y unidad.");
+    const errors = validateKeyResultForm(form, units);
+    const firstError = Object.values(errors)[0];
+    if (firstError) {
+      setError(firstError);
       return;
     }
-    await onSubmit({
-      name: form.name.trim(),
-      description: form.description.trim(),
-      metric: form.metric.trim(),
-      baseValue: Number(form.baseValue) || 0,
-      targetValue: Number(form.targetValue),
-      measurementUnitId: Number(form.measurementUnitId),
-    });
+    setError("");
+    await onSubmit(toKeyResultRequest(form, initial?.academicPeriodId));
   };
+
+  const selectedUnit = units.find((unit) => String(unit.id) === form.measurementUnitId);
 
   return (
     <motion.form
@@ -57,8 +57,8 @@ export function KrForm({ units, initial, saving, onCancel, onSubmit }: KrFormPro
       <textarea value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Descripcion" rows={2} style={{ ...formControlStyle, resize: "vertical" }} />
       <input value={form.metric} onChange={(e) => setForm((prev) => ({ ...prev, metric: e.target.value }))} placeholder="Metrica" style={formControlStyle} />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <input type="number" value={form.baseValue} onChange={(e) => setForm((prev) => ({ ...prev, baseValue: e.target.value }))} placeholder="Base" style={formControlStyle} />
-        <input type="number" value={form.targetValue} onChange={(e) => setForm((prev) => ({ ...prev, targetValue: e.target.value }))} placeholder="Objetivo" style={formControlStyle} />
+        <KeyResultValueField label="Valor base" value={form.baseValue} unit={selectedUnit} onChange={(value) => setForm((prev) => ({ ...prev, baseValue: value }))} style={formControlStyle} />
+        <KeyResultValueField label="Valor objetivo" value={form.targetValue} unit={selectedUnit} onChange={(value) => setForm((prev) => ({ ...prev, targetValue: value }))} style={formControlStyle} />
         <Select value={form.measurementUnitId || undefined} onValueChange={(value) => setForm((prev) => ({ ...prev, measurementUnitId: value }))}>
           <SelectTrigger className="focus-visible:ring-0" style={formControlStyle}>
             <SelectValue placeholder="Unidad" />

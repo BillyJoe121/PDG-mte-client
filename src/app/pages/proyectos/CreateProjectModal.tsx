@@ -7,6 +7,7 @@ import type { Department, ObjectiveCard } from "../../services/strategicApi";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import {
   projectsApi,
+  validateProjectSchedule,
   type ContributionType,
   type ProjectKeyResultDraftRequest,
   type ProjectRequest,
@@ -90,6 +91,8 @@ export function CreateProjectModal({ departments, objectiveCards, periods, onClo
     if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
     if (!form.departmentId) next.departmentId = "Selecciona un departamento.";
     if (!form.startPeriod.trim()) next.startPeriod = "Selecciona el periodo de inicio.";
+    const scheduleError = validateProjectSchedule(form);
+    if (scheduleError) next.startPeriod = scheduleError;
     if (parseTutors(form.tutors).length === 0) next.tutors = "Ingresa al menos un tutor.";
     const invalidLink = krLinks.some((link) => !link.keyResultId || link.contributionWeight < 0 || link.contributionWeight > 100 || !link.contributionType);
     if (invalidLink) next.keyResults = "Cada vinculo KR debe tener peso entre 0 y 100 y tipo de contribucion.";
@@ -199,7 +202,7 @@ export function CreateProjectModal({ departments, objectiveCards, periods, onClo
                 <input type="date" value={form.startDate} onChange={(event) => setField("startDate", event.target.value)} style={dateInputStyle(false)} />
               </ModalField>
               <ModalField label="Fecha fin">
-                <input type="date" value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={dateInputStyle(false)} />
+                <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={dateInputStyle(false)} />
               </ModalField>
             </div>
 

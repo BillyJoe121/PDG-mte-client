@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { BarChart3, CalendarDays, Edit2, KeyRound, Loader2, Scale, Target, Trash2, X } from "lucide-react";
+import { BarChart3, CalendarDays, CircleCheck, Edit2, KeyRound, Loader2, Play, Save, Scale, Target, Trash2, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { measurementUnitsApi, type MeasurementUnit } from "../../services/catalogsApi";
@@ -10,6 +10,7 @@ import {
 import { invalidateScreenDataCache } from "../../services/screenDataCache";
 import { ApiError, keyResultsApi, objectivesApi, type KeyResult, type KeyResultRequest, type Objective } from "../../services/strategicApi";
 import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
+import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicLifecycle";
 import { KrFormModal } from "./KrFormModal";
 import { COLORS } from "./okrsShared";
 
@@ -32,8 +33,10 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const [editingKr, setEditingKr] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [currentValue, setCurrentValue] = useState("");
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -60,6 +63,8 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
 
   const keyResult = useMemo(() => objective?.keyResults.find((kr) => kr.id === keyResultId) ?? null, [keyResultId, objective]);
   const totalWeight = links[0]?.totalWeightForKeyResult ?? links.reduce((sum, link) => sum + link.contributionWeight, 0);
+  const lifecycleAction = keyResult ? keyResultLifecycleAction(keyResult.status ?? "ACTIVO") : null;
+  const keyResultMutable = keyResult?.status !== "CERRADO" && objective?.status !== "CERRADO" && objective?.status !== "ARCHIVADO";
 
   const updateKr = async (body: KeyResultRequest) => {
     if (!keyResult) return;
@@ -72,6 +77,31 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
       await onChanged?.();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar el Key Result");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateCurrentValue = async () => {
+    if (!keyResult) return;
+    const nextValue = Number(currentValue);
+    if (!Number.isFinite(nextValue)) {
+      toast.error("Ingresa un valor actual válido para el Key Result.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await keyResultsApi.updateCurrentValue(keyResult.id, nextValue);
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        reason: "key-result-current-value",
+        scopes: ["objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
+      toast.success("Avance del Key Result registrado");
+      await load(true);
+      await onChanged?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo registrar el avance del Key Result");
     } finally {
       setSaving(false);
     }
@@ -106,6 +136,22 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
     } finally {
       setSaving(false);
       setDeleteConfirm(false);
+    }
+  };
+
+  const transitionKeyResult = async () => {
+    if (!keyResult || !lifecycleAction) return;
+    if (lifecycleAction.target === "CERRADO" && !window.confirm("Al cerrar el KR se bloquearan sus cambios ordinarios. ¿Deseas continuar?")) return;
+    setTransitioning(true);
+    try {
+      await keyResultsApi.setStatus(keyResult.id, lifecycleAction.target);
+      toast.success(lifecycleAction.target === "ACTIVO" ? "Key Result activado" : "Key Result cerrado");
+      await load(true);
+      await onChanged?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cambiar el estado del Key Result");
+    } finally {
+      setTransitioning(false);
     }
   };
 
@@ -165,6 +211,7 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
 
                     <div className="flex flex-wrap items-center gap-2 pt-2">
                       {[
+                        { label: "Estado", value: lifecycleLabel(keyResult.status ?? "ACTIVO") },
                         { label: "Avance", value: `${keyResult.progressPercentage}%` },
                         { label: "Proyectos", value: links.length },
                         { label: "Peso", value: `${totalWeight}%` },
@@ -177,12 +224,22 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
                       {renderActions?.(keyResult, objective)}
                       {canEdit && (
                         <>
-                          <button type="button" onClick={() => setEditingKr(true)} className="hierarchy-detail-header-manage-btn rounded-md" style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}>
-                            <Edit2 size={12} /> Editar KR
-                          </button>
-                          <button type="button" onClick={requestDelete} disabled={saving} className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60" style={{ "--hierarchy-card-accent": COLORS.orange } as CSSProperties}>
-                            <Trash2 size={12} /> Eliminar
-                          </button>
+                          {lifecycleAction && objective.status === "ACTIVO" && (
+                            <button type="button" onClick={() => void transitionKeyResult()} disabled={saving || transitioning} className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60" style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}>
+                              {transitioning ? <Loader2 size={12} className="animate-spin" /> : lifecycleAction.target === "ACTIVO" ? <Play size={12} /> : <CircleCheck size={12} />}
+                              {lifecycleAction.label}
+                            </button>
+                          )}
+                          {keyResultMutable && (
+                            <>
+                              <button type="button" onClick={() => setEditingKr(true)} className="hierarchy-detail-header-manage-btn rounded-md" style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}>
+                                <Edit2 size={12} /> Editar KR
+                              </button>
+                              <button type="button" onClick={requestDelete} disabled={saving || transitioning} className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60" style={{ "--hierarchy-card-accent": COLORS.orange } as CSSProperties}>
+                                <Trash2 size={12} /> Eliminar
+                              </button>
+                            </>
+                          )}
                         </>
                       )}
                     </div>
@@ -191,9 +248,33 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
                   <div className="flex flex-col justify-center gap-3 p-5" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
                     <div className="w-full space-y-2">
                       <ContextRow icon={<Target size={14} />} label="Objetivo" value={objective.name} />
-                      <ContextRow icon={<CalendarDays size={14} />} label="Periodo" value={objective.academicPeriodName} />
+                      <ContextRow icon={<CalendarDays size={14} />} label="Periodo" value={keyResult.academicPeriodName ?? objective.academicPeriodName} />
                       <ContextRow icon={<BarChart3 size={14} />} label="Metrica" value={keyResult.metric} />
                       <ContextRow icon={<Scale size={14} />} label="Meta" value={`${keyResult.targetValue} ${keyResult.measurementUnitName}`} />
+                    </div>
+                    <div className="rounded-md bg-white p-3" style={{ border: `1px solid ${COLORS.border}` }}>
+                      <p style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Evidencia de avance del KR</p>
+                      <p className="mt-1" style={{ color: COLORS.text, fontSize: 12, lineHeight: 1.45 }}>
+                        Valor actual: <strong>{keyResult.currentValue} {keyResult.measurementUnitName}</strong>. El avance se calcula contra la línea base y la meta; el avance operativo de proyectos no se transfiere automáticamente.
+                      </p>
+                      {canEdit && keyResultMutable && (
+                        <form className="mt-3 flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void updateCurrentValue(); }}>
+                          <label className="sr-only" htmlFor={`kr-current-value-${keyResult.id}`}>Registrar valor actual</label>
+                          <input
+                            id={`kr-current-value-${keyResult.id}`}
+                            type="number"
+                            step="any"
+                            value={currentValue}
+                            onChange={(event) => setCurrentValue(event.target.value)}
+                            placeholder={`Registrar valor en ${keyResult.measurementUnitName}`}
+                            className="min-w-0 flex-1 rounded-md px-3 py-2 text-sm"
+                            style={{ border: `1px solid ${COLORS.border}`, color: COLORS.text }}
+                          />
+                          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-[#5454E9] px-3 py-2 text-sm font-black text-white disabled:opacity-60">
+                            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Registrar
+                          </button>
+                        </form>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -218,10 +299,9 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
 
 async function loadObjectiveForKeyResult(keyResultId: number, objectiveId?: number) {
   if (objectiveId) return objectivesApi.get(objectiveId);
-  const objectives = await objectivesApi.list();
-  const match = objectives.find((objective) => objective.keyResults.some((kr) => kr.id === keyResultId));
-  if (!match) throw new Error("No se encontro el objetivo asociado al KR");
-  return match;
+  const keyResult = await keyResultsApi.get(keyResultId);
+  if (!keyResult.objectiveId) throw new Error("El Key Result no tiene un objetivo principal asociado");
+  return objectivesApi.get(keyResult.objectiveId);
 }
 
 function ConfirmActionModal({ title, description, actionLabel, saving, accent, onClose, onConfirm, children }: { title: string; description: string; actionLabel: string; saving: boolean; accent: string; onClose: () => void; onConfirm: () => void; children?: ReactNode }) {

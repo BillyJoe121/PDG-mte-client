@@ -3,6 +3,8 @@ import { useLocation } from "react-router";
 import { Bell } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { getLabelRol } from "../data/mockData";
+import { ContextualHelp } from "./ContextualHelp";
+import { PlatformTutorial } from "./PlatformTutorial";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -22,6 +24,7 @@ export function Header() {
   const { usuario } = useAuth();
   const location = useLocation();
   const [showNotif, setShowNotif] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const pageTitle = breadcrumbMap[location.pathname] || "MTE";
 
@@ -34,7 +37,7 @@ export function Header() {
 
   return (
     <header
-      className="flex items-center justify-between px-6 py-0"
+      className="flex items-center justify-between gap-3 px-3 py-0 sm:px-6"
       style={{
         backgroundColor: "#FFFFFF",
         borderBottom: "2px solid #000000",
@@ -43,17 +46,18 @@ export function Header() {
       }}
     >
       {/* Left: title */}
-      <div>
+      <div className="min-w-0">
         <p style={{ fontSize: "10px", color: "#717182", letterSpacing: "0.08em", textTransform: "uppercase" }}>
           MTE · Escuela TDI
         </p>
-        <h1 style={{ fontSize: "16px", fontWeight: 700, color: "#000000", lineHeight: 1.2 }}>
+        <h1 className="truncate" style={{ fontSize: "16px", fontWeight: 700, color: "#000000", lineHeight: 1.2 }}>
           {pageTitle}
         </h1>
       </div>
 
       {/* Right: notifications + avatar */}
       <div className="flex items-center gap-3">
+        <ContextualHelp onStartTutorial={() => setShowTutorial(true)} />
         {/* Notifications */}
         <div className="relative">
           <button
@@ -71,7 +75,7 @@ export function Header() {
           {showNotif && (
             <div
               className="absolute top-full right-0 mt-1 rounded shadow-xl z-50 overflow-hidden"
-              style={{ backgroundColor: "#fff", border: "1.5px solid #000", width: 320 }}
+              style={{ backgroundColor: "#fff", border: "1.5px solid #000", width: "min(320px, calc(100vw - 24px))" }}
             >
               <div className="px-4 py-3" style={{ borderBottom: "1px solid #e5e7eb" }}>
                 <span style={{ fontSize: "12px", fontWeight: 700, color: "#000" }}>
@@ -114,6 +118,7 @@ export function Header() {
           </div>
         )}
       </div>
+      <PlatformTutorial open={showTutorial} onOpenChange={setShowTutorial} />
     </header>
   );
 }

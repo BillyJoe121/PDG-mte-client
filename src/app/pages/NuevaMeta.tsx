@@ -5,14 +5,13 @@ import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { measurementUnitsApi, type MeasurementUnit } from "../services/catalogsApi";
 import { goalsApi } from "../services/strategicApi";
+import { getGoalValueInput, validateGoalForm, type GoalFormErrors, type GoalFormValues } from "../utils/goalForm";
 
 const COLORS = {
   blue: "#5454E9",
   green: "#4CB979",
   orange: "#E9683B",
 };
-
-type Errors = Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>>;
 
 export function NuevaMeta() {
   const navigate = useNavigate();
@@ -21,8 +20,8 @@ export function NuevaMeta() {
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Errors>({});
-  const [form, setForm] = useState({
+  const [errors, setErrors] = useState<GoalFormErrors>({});
+  const [form, setForm] = useState<GoalFormValues>({
     name: "",
     description: "",
     referenceIndicator: "",
@@ -45,16 +44,7 @@ export function NuevaMeta() {
   };
 
   const validate = () => {
-    const next: Errors = {};
-    if (!form.name.trim()) next.name = "El nombre es obligatorio.";
-    if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
-    if (form.expectedValue === "" || Number.isNaN(Number(form.expectedValue))) {
-      next.expectedValue = "El valor esperado es obligatorio y debe ser decimal.";
-    }
-    if (!form.measurementUnitId) next.measurementUnitId = "La unidad de medida es obligatoria.";
-    if (form.startDate && form.endDate && form.endDate <= form.startDate) {
-      next.endDate = "La fecha de cierre debe ser posterior al inicio.";
-    }
+    const next = validateGoalForm(form, units);
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -67,7 +57,7 @@ export function NuevaMeta() {
       await goalsApi.create({
         name: form.name.trim(),
         description: form.description.trim(),
-        ...(form.referenceIndicator.trim() ? { referenceIndicator: form.referenceIndicator.trim() } : {}),
+        referenceIndicator: form.referenceIndicator.trim(),
         expectedValue: Number(form.expectedValue),
         measurementUnitId: Number(form.measurementUnitId),
         ...(form.startDate ? { startDate: form.startDate } : {}),
@@ -94,6 +84,9 @@ export function NuevaMeta() {
       </div>
     );
   }
+
+  const selectedUnit = units.find((unit) => String(unit.id) === form.measurementUnitId);
+  const valueInput = getGoalValueInput(selectedUnit);
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -127,12 +120,21 @@ export function NuevaMeta() {
 
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_180px] gap-4">
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Indicador de referencia</label>
-            <input value={form.referenceIndicator} onChange={(e) => set("referenceIndicator", e.target.value)} placeholder="Ej: Cursos renovados" style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none" }} />
+            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Indicador de referencia <span style={{ color: COLORS.orange }}>*</span></label>
+            <input value={form.referenceIndicator} onChange={(e) => set("referenceIndicator", e.target.value)} placeholder="Ej: Cursos renovados" style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.referenceIndicator ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+            {errors.referenceIndicator && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.referenceIndicator}</p>}
           </div>
           <div>
             <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Valor <span style={{ color: COLORS.orange }}>*</span></label>
-            <input type="number" step="0.01" value={form.expectedValue} onChange={(e) => set("expectedValue", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.expectedValue ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+            {valueInput.kind === "boolean" ? (
+              <select aria-label="Valor esperado" value={form.expectedValue} onChange={(e) => set("expectedValue", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.expectedValue ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", backgroundColor: "#fff" }}>
+                <option value="">Selecciona</option>
+                <option value="1">Si</option>
+                <option value="0">No</option>
+              </select>
+            ) : (
+              <input aria-label="Valor esperado" type="number" min={valueInput.min} max={valueInput.max} step={valueInput.step} value={form.expectedValue} onChange={(e) => set("expectedValue", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.expectedValue ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+            )}
             {errors.expectedValue && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.expectedValue}</p>}
           </div>
           <div>

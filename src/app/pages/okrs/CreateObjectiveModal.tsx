@@ -4,6 +4,8 @@ import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import type { AcademicPeriod, MeasurementUnit } from "../../services/catalogsApi";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { KeyResultValueField } from "../../components/forms/KeyResultValueField";
+import { toKeyResultRequest, validateKeyResultForm, type KeyResultFormValues } from "../../utils/keyResultForm";
 import {
   objectivesApi,
   type Department,
@@ -27,14 +29,7 @@ interface CreateObjectiveModalProps {
 
 type Errors = Record<string, string>;
 
-interface KrForm {
-  name: string;
-  description: string;
-  metric: string;
-  baseValue: string;
-  targetValue: string;
-  measurementUnitId: string;
-}
+type KrForm = KeyResultFormValues;
 
 const emptyKr = (): KrForm => ({
   name: "",
@@ -62,7 +57,7 @@ export function CreateObjectiveModal({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const activePeriods = useMemo(() => periods.filter((period) => period.status !== "CERRADO"), [periods]);
-  const activeBets = useMemo(() => strategicBets.filter((bet) => bet.status !== "CERRADA"), [strategicBets]);
+  const activeBets = useMemo(() => strategicBets.filter((bet) => bet.status === "ACTIVA"), [strategicBets]);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -101,25 +96,13 @@ export function CreateObjectiveModal({
     if (!form.strategicBetId) next.strategicBetId = "Selecciona una apuesta estrategica.";
 
     krs.forEach((kr, index) => {
-      if (!kr.name.trim()) next[`kr-${index}`] = "El nombre del KR es obligatorio.";
-      else if (!kr.description.trim()) next[`kr-${index}`] = "La descripcion del KR es obligatoria.";
-      else if (!kr.metric.trim()) next[`kr-${index}`] = "La metrica es obligatoria.";
-      else if (kr.targetValue === "" || Number.isNaN(Number(kr.targetValue))) next[`kr-${index}`] = "El valor objetivo es obligatorio.";
-      else if (!kr.measurementUnitId) next[`kr-${index}`] = "Selecciona una unidad de medida.";
+      const firstError = Object.values(validateKeyResultForm(kr, units))[0];
+      if (firstError) next[`kr-${index}`] = firstError;
     });
 
     setErrors(next);
     return Object.keys(next).length === 0;
   };
-
-  const toKeyResultRequest = (kr: KrForm): KeyResultRequest => ({
-    name: kr.name.trim(),
-    description: kr.description.trim(),
-    metric: kr.metric.trim(),
-    baseValue: Number(kr.baseValue) || 0,
-    targetValue: Number(kr.targetValue),
-    measurementUnitId: Number(kr.measurementUnitId),
-  });
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -133,7 +116,7 @@ export function CreateObjectiveModal({
         academicPeriodId: Number(form.academicPeriodId),
         goalId: Number(form.goalId),
         strategicBetId: Number(form.strategicBetId),
-        keyResults: krs.map(toKeyResultRequest),
+        keyResults: krs.map((kr) => toKeyResultRequest(kr, Number(form.academicPeriodId))),
       });
       toast.success("Objetivo creado");
       await onCreated();
@@ -259,8 +242,8 @@ export function CreateObjectiveModal({
                     </div>
                     <textarea value={kr.description} onChange={(event) => updateKr(index, "description", event.target.value)} placeholder="Descripcion" rows={2} style={{ ...compactInputStyle, marginTop: 8, resize: "vertical" }} />
                     <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-[110px_120px_1fr]">
-                      <input type="number" value={kr.baseValue} onChange={(event) => updateKr(index, "baseValue", event.target.value)} placeholder="Base" style={compactInputStyle} />
-                      <input type="number" value={kr.targetValue} onChange={(event) => updateKr(index, "targetValue", event.target.value)} placeholder="Objetivo" style={compactInputStyle} />
+                      <KeyResultValueField label="Valor base" value={kr.baseValue} unit={units.find((unit) => String(unit.id) === kr.measurementUnitId)} onChange={(value) => updateKr(index, "baseValue", value)} style={compactInputStyle} />
+                      <KeyResultValueField label="Valor objetivo" value={kr.targetValue} unit={units.find((unit) => String(unit.id) === kr.measurementUnitId)} onChange={(value) => updateKr(index, "targetValue", value)} style={compactInputStyle} />
                       <ModalSelect
                         value={kr.measurementUnitId}
                         onChange={(value) => updateKr(index, "measurementUnitId", value)}

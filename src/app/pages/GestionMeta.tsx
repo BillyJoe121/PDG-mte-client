@@ -1,9 +1,10 @@
-import { FormEvent, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { FormEvent, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
-import { AlertTriangle, ArrowLeft, BookOpen, Loader2, Save } from "lucide-react";
+import { AlertTriangle, Archive, ArchiveRestore, ArrowLeft, BookOpen, Loader2, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { measurementUnitsApi, type MeasurementUnit } from "../services/catalogsApi";
 import { goalsApi, type Goal } from "../services/strategicApi";
+import { getGoalValueInput, validateGoalForm, type GoalFormErrors, type GoalFormValues } from "../utils/goalForm";
 
 const COLORS = {
   green: "#4CB979",
@@ -14,8 +15,6 @@ const COLORS = {
   subtle: "#F7F8FB",
 };
 
-type Errors = Partial<Record<"name" | "description" | "expectedValue" | "measurementUnitId" | "endDate", string>>;
-
 export function GestionMeta() {
   const { goalId } = useParams<{ goalId: string }>();
   const navigate = useNavigate();
@@ -23,9 +22,11 @@ export function GestionMeta() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Errors>({});
-  const [form, setForm] = useState({
+  const [changingStatus, setChangingStatus] = useState(false);
+  const [errors, setErrors] = useState<GoalFormErrors>({});
+  const [form, setForm] = useState<GoalFormValues>({
     name: "",
     description: "",
     referenceIndicator: "",
@@ -35,26 +36,38 @@ export function GestionMeta() {
     endDate: "",
   });
 
-  useEffect(() => {
-    if (!id) return;
+  const loadGoal = useCallback(async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    Promise.all([goalsApi.get(id), measurementUnitsApi.list()])
-      .then(([goalData, unitList]) => {
-        setGoal(goalData);
-        setUnits(unitList.filter((unit) => unit.active));
-        setForm({
-          name: goalData.name,
-          description: goalData.description,
-          referenceIndicator: goalData.referenceIndicator ?? "",
-          expectedValue: String(goalData.expectedValue),
-          measurementUnitId: String(goalData.measurementUnitId),
-          startDate: goalData.startDate ?? "",
-          endDate: goalData.endDate ?? "",
-        });
-      })
-      .catch((error) => toast.error(error instanceof Error ? error.message : "No se pudo cargar la meta"))
-      .finally(() => setLoading(false));
+    setLoadError("");
+    try {
+      const [goalData, unitList] = await Promise.all([goalsApi.get(id), measurementUnitsApi.list()]);
+      setGoal(goalData);
+      setUnits(unitList.filter((unit) => unit.active || unit.id === goalData.measurementUnitId));
+      setForm({
+        name: goalData.name,
+        description: goalData.description,
+        referenceIndicator: goalData.referenceIndicator ?? "",
+        expectedValue: String(goalData.expectedValue),
+        measurementUnitId: String(goalData.measurementUnitId),
+        startDate: goalData.startDate ?? "",
+        endDate: goalData.endDate ?? "",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo cargar la meta";
+      setLoadError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    void loadGoal();
+  }, [loadGoal]);
 
   const set = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -62,12 +75,7 @@ export function GestionMeta() {
   };
 
   const validate = () => {
-    const next: Errors = {};
-    if (!form.name.trim()) next.name = "El nombre es obligatorio.";
-    if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
-    if (form.expectedValue === "" || Number.isNaN(Number(form.expectedValue))) next.expectedValue = "El valor esperado debe ser numerico.";
-    if (!form.measurementUnitId) next.measurementUnitId = "La unidad es obligatoria.";
-    if (form.startDate && form.endDate && form.endDate <= form.startDate) next.endDate = "La fecha de cierre debe ser posterior al inicio.";
+    const next = validateGoalForm(form, units);
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -80,7 +88,7 @@ export function GestionMeta() {
       const updated = await goalsApi.update(id, {
         name: form.name.trim(),
         description: form.description.trim(),
-        ...(form.referenceIndicator.trim() ? { referenceIndicator: form.referenceIndicator.trim() } : {}),
+        referenceIndicator: form.referenceIndicator.trim(),
         expectedValue: Number(form.expectedValue),
         measurementUnitId: Number(form.measurementUnitId),
         ...(form.startDate ? { startDate: form.startDate } : {}),
@@ -95,13 +103,36 @@ export function GestionMeta() {
     }
   };
 
+  const changeStatus = async () => {
+    if (!goal) return;
+    const activate = goal.status === "INACTIVA";
+    if (!activate && !window.confirm("La meta dejara de aparecer en la jerarquia activa. Podras restaurarla desde Archivados.")) return;
+    setChangingStatus(true);
+    try {
+      const updated = await goalsApi.setActive(goal.id, activate);
+      setGoal(updated);
+      toast.success(activate ? "Meta restaurada" : "Meta archivada");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cambiar el estado de la meta");
+    } finally {
+      setChangingStatus(false);
+    }
+  };
+
   if (loading) {
     return <Loading text="Cargando meta..." />;
+  }
+
+  if (loadError) {
+    return <LoadError message={loadError} onRetry={() => void loadGoal()} onBack={() => navigate("/jerarquia")} />;
   }
 
   if (!goal) {
     return <NotFound onBack={() => navigate("/jerarquia")} />;
   }
+
+  const selectedUnit = units.find((unit) => String(unit.id) === form.measurementUnitId);
+  const valueInput = getGoalValueInput(selectedUnit);
 
   return (
     <div className="mx-auto max-w-4xl px-6 pb-5 pt-3">
@@ -144,11 +175,19 @@ export function GestionMeta() {
           <textarea value={form.description} onChange={(event) => set("description", event.target.value)} rows={4} style={{ ...inputStyle(Boolean(errors.description)), resize: "vertical" }} />
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_180px] gap-4">
-          <Field label="Indicador">
-            <input value={form.referenceIndicator} onChange={(event) => set("referenceIndicator", event.target.value)} style={inputStyle(false)} />
+          <Field label="Indicador" error={errors.referenceIndicator}>
+            <input value={form.referenceIndicator} onChange={(event) => set("referenceIndicator", event.target.value)} style={inputStyle(Boolean(errors.referenceIndicator))} />
           </Field>
           <Field label="Valor" error={errors.expectedValue}>
-            <input type="number" step="0.01" value={form.expectedValue} onChange={(event) => set("expectedValue", event.target.value)} style={inputStyle(Boolean(errors.expectedValue))} />
+            {valueInput.kind === "boolean" ? (
+              <select aria-label="Valor esperado" value={form.expectedValue} onChange={(event) => set("expectedValue", event.target.value)} style={{ ...inputStyle(Boolean(errors.expectedValue)), backgroundColor: "#fff" }}>
+                <option value="">Selecciona</option>
+                <option value="1">Si</option>
+                <option value="0">No</option>
+              </select>
+            ) : (
+              <input aria-label="Valor esperado" type="number" min={valueInput.min} max={valueInput.max} step={valueInput.step} value={form.expectedValue} onChange={(event) => set("expectedValue", event.target.value)} style={inputStyle(Boolean(errors.expectedValue))} />
+            )}
           </Field>
           <Field label="Unidad" error={errors.measurementUnitId}>
             <select value={form.measurementUnitId} onChange={(event) => set("measurementUnitId", event.target.value)} style={{ ...inputStyle(Boolean(errors.measurementUnitId)), backgroundColor: "#fff" }}>
@@ -166,6 +205,10 @@ export function GestionMeta() {
           </Field>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: "1px solid #F3F4F6" }}>
+          <button type="button" onClick={() => void changeStatus()} disabled={saving || changingStatus} className="mr-auto flex items-center gap-2 disabled:opacity-60" style={{ ...secondaryButtonStyle, color: goal.status === "INACTIVA" ? "#047857" : COLORS.orange }}>
+            {changingStatus ? <Loader2 size={15} className="animate-spin" /> : goal.status === "INACTIVA" ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+            {goal.status === "INACTIVA" ? "Restaurar meta" : "Archivar meta"}
+          </button>
           <button type="button" onClick={() => navigate("/jerarquia")} className="detail-invert-button detail-invert-button--outline detail-invert-button--green" style={secondaryButtonStyle}>Cancelar</button>
           <button type="submit" disabled={saving} className="detail-invert-button detail-invert-button--solid detail-invert-button--green flex items-center gap-2 disabled:opacity-60" style={primaryButtonStyle}>
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
@@ -206,6 +249,22 @@ function NotFound({ onBack }: { onBack: () => void }) {
       <AlertTriangle size={40} color={COLORS.orange} />
       <p style={{ fontSize: 16, fontWeight: 800 }}>Meta no encontrada</p>
       <button onClick={onBack} className="detail-invert-button detail-invert-button--solid detail-invert-button--green flex items-center gap-2" style={primaryButtonStyle}><ArrowLeft size={14} /> Volver</button>
+    </div>
+  );
+}
+
+function LoadError({ message, onRetry, onBack }: { message: string; onRetry: () => void; onBack: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-64 gap-4 p-8 text-center">
+      <AlertTriangle size={40} color={COLORS.orange} />
+      <div>
+        <p style={{ fontSize: 16, fontWeight: 800 }}>No se pudo cargar la meta</p>
+        <p style={{ color: COLORS.gray, fontSize: 12, marginTop: 4 }}>{message}</p>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={onBack} style={secondaryButtonStyle}><ArrowLeft size={14} className="inline mr-1" /> Volver</button>
+        <button onClick={onRetry} style={primaryButtonStyle}><RefreshCw size={14} className="inline mr-1" /> Reintentar</button>
+      </div>
     </div>
   );
 }

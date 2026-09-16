@@ -175,7 +175,7 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
               Este Key Result aun no tiene proyectos vinculados.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} aria-label="Proyectos vinculados; desplácese horizontalmente para ver todas las columnas">
               <table className="w-full" style={{ borderCollapse: "collapse", border: "1px solid #E5E7EB" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#000" }}>

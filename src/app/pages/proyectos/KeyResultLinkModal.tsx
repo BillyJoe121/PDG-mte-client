@@ -43,8 +43,9 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
 
   const filteredKeyResults = useMemo(() => {
     const query = krSearch.trim().toLowerCase();
-    if (!query) return keyResults;
+    const linkedKeyResultIds = new Set(project.linkedKeyResults.filter((link) => link.active).map((link) => link.keyResultId));
     return keyResults.filter((kr) =>
+      !linkedKeyResultIds.has(kr.id) &&
       [
         String(kr.id),
         kr.name,
@@ -53,9 +54,9 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
         kr.objectiveName,
         kr.departmentName,
         kr.period,
-      ].some((value) => value?.toLowerCase().includes(query)),
+      ].some((value) => !query || value?.toLowerCase().includes(query)),
     );
-  }, [keyResults, krSearch]);
+  }, [keyResults, krSearch, project.linkedKeyResults]);
 
   const handleCreate = async () => {
     const validation = validateProjectKeyResultLink({

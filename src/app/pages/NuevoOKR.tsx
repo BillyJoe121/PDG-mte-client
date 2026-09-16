@@ -15,6 +15,8 @@ import {
   type StrategicBet,
 } from "../services/strategicApi";
 import { DEPARTAMENTOS } from "../data/mockData";
+import { KeyResultValueField } from "../components/forms/KeyResultValueField";
+import { toKeyResultRequest, validateKeyResultForm, type KeyResultFormValues } from "../utils/keyResultForm";
 
 const COLORS = {
   blue: "#5454E9",
@@ -26,14 +28,7 @@ const fallbackDepartments: Department[] = DEPARTAMENTOS.map((name, index) => ({ 
 
 type Errors = Record<string, string>;
 
-interface KrForm {
-  name: string;
-  description: string;
-  metric: string;
-  baseValue: string;
-  targetValue: string;
-  measurementUnitId: string;
-}
+type KrForm = KeyResultFormValues;
 
 const emptyKr = (): KrForm => ({
   name: "",
@@ -78,7 +73,7 @@ export function NuevoOKR() {
         ]);
         setPeriods(periodList.filter((period) => period.status !== "CERRADO"));
         setGoals(goalList);
-        setBets(betList.filter((bet) => bet.status !== "CERRADA"));
+        setBets(betList.filter((bet) => bet.status === "ACTIVA"));
         setUnits(unitList.filter((unit) => unit.active));
         try {
           setDepartments(await departmentsApi.list());
@@ -127,25 +122,13 @@ export function NuevoOKR() {
     if (krs.length === 0) next.krs = "Define al menos un Key Result.";
 
     krs.forEach((kr, index) => {
-      if (!kr.name.trim()) next[`kr-${index}`] = "El nombre del KR es obligatorio.";
-      else if (!kr.description.trim()) next[`kr-${index}`] = "La descripcion del KR es obligatoria.";
-      else if (!kr.metric.trim()) next[`kr-${index}`] = "La metrica es obligatoria.";
-      else if (kr.targetValue === "" || Number.isNaN(Number(kr.targetValue))) next[`kr-${index}`] = "El valor objetivo es obligatorio.";
-      else if (!kr.measurementUnitId) next[`kr-${index}`] = "Selecciona una unidad de medida.";
+      const firstError = Object.values(validateKeyResultForm(kr, units))[0];
+      if (firstError) next[`kr-${index}`] = firstError;
     });
 
     setErrors(next);
     return Object.keys(next).length === 0;
   };
-
-  const toKeyResultRequest = (kr: KrForm): KeyResultRequest => ({
-    name: kr.name.trim(),
-    description: kr.description.trim(),
-    metric: kr.metric.trim(),
-    baseValue: Number(kr.baseValue) || 0,
-    targetValue: Number(kr.targetValue),
-    measurementUnitId: Number(kr.measurementUnitId),
-  });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -159,7 +142,7 @@ export function NuevoOKR() {
         academicPeriodId: Number(form.academicPeriodId),
         goalId: Number(form.goalId),
         strategicBetId: Number(form.strategicBetId),
-        keyResults: krs.map(toKeyResultRequest),
+        keyResults: krs.map((kr) => toKeyResultRequest(kr, Number(form.academicPeriodId))),
       });
       toast.success("Objetivo creado");
       navigate("/okrs");
@@ -249,8 +232,8 @@ export function NuevoOKR() {
                 <textarea value={kr.description} onChange={(e) => updateKr(index, "description", e.target.value)} placeholder="Descripcion" rows={2} style={{ width: "100%", padding: "9px 12px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", backgroundColor: "#fff", resize: "vertical" }} />
                 <input value={kr.metric} onChange={(e) => updateKr(index, "metric", e.target.value)} placeholder="Metrica" style={{ width: "100%", padding: "9px 12px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", backgroundColor: "#fff" }} />
                 <div className="grid grid-cols-1 sm:grid-cols-[120px_120px_1fr] gap-3">
-                  <input type="number" value={kr.baseValue} onChange={(e) => updateKr(index, "baseValue", e.target.value)} placeholder="Valor base" style={{ padding: "9px 12px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", backgroundColor: "#fff" }} />
-                  <input type="number" value={kr.targetValue} onChange={(e) => updateKr(index, "targetValue", e.target.value)} placeholder="Valor objetivo" style={{ padding: "9px 12px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", backgroundColor: "#fff" }} />
+                  <KeyResultValueField label="Valor base" value={kr.baseValue} unit={units.find((unit) => String(unit.id) === kr.measurementUnitId)} onChange={(value) => updateKr(index, "baseValue", value)} style={{ padding: "9px 12px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", backgroundColor: "#fff" }} />
+                  <KeyResultValueField label="Valor objetivo" value={kr.targetValue} unit={units.find((unit) => String(unit.id) === kr.measurementUnitId)} onChange={(value) => updateKr(index, "targetValue", value)} style={{ padding: "9px 12px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", backgroundColor: "#fff" }} />
                   <select value={kr.measurementUnitId} onChange={(e) => updateKr(index, "measurementUnitId", e.target.value)} style={{ padding: "9px 12px", fontSize: "12px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none", backgroundColor: "#fff" }}>
                     <option value="">Unidad de medida</option>
                     {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}

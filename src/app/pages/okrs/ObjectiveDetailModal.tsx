@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { BookOpen, Building2, CalendarDays, Edit2, Flag, Loader2, Save, Target, X } from "lucide-react";
+import { Archive, BookOpen, Building2, CalendarDays, CircleCheck, Edit2, Flag, Loader2, Play, Save, Target, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { objectivesApi, type Objective } from "../../services/strategicApi";
+import { lifecycleLabel, objectiveLifecycleAction } from "../../utils/strategicLifecycle";
 import { COLORS } from "./okrsShared";
 
 interface ObjectiveDetailModalProps {
@@ -81,6 +82,8 @@ export function ObjectiveDetailPanel({
   const [objective, setObjective] = useState<Objective | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<"name" | "description", string>>>({});
   const [form, setForm] = useState({ name: "", description: "" });
@@ -121,10 +124,13 @@ export function ObjectiveDetailPanel({
   }, [objective]);
 
   const pillItems = objective ? [
+    { label: "Estado", value: lifecycleLabel(objective.status) },
     { label: "KRs", value: stats.keyResults },
     { label: "Avance", value: `${objective.completionPercentage ?? stats.progress}%` },
     { label: "Completos", value: stats.completed },
   ] : [];
+  const lifecycleAction = objective ? objectiveLifecycleAction(objective.status) : null;
+  const objectiveMutable = objective?.status !== "CERRADO" && objective?.status !== "ARCHIVADO";
 
   const set = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -166,6 +172,37 @@ export function ObjectiveDetailPanel({
       return;
     }
     void saveObjective();
+  };
+
+  const archiveObjective = async () => {
+    if (!objective || !window.confirm("El objetivo dejara de aparecer en las vistas activas. Podras restaurarlo desde la jerarquia.")) return;
+    setArchiving(true);
+    try {
+      await objectivesApi.setArchived(objective.id, true);
+      toast.success("Objetivo archivado");
+      await onSaved?.();
+      onClose?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo archivar el objetivo");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const transitionObjective = async () => {
+    if (!objective || !lifecycleAction) return;
+    if (lifecycleAction.target === "CERRADO" && !window.confirm("Al cerrar el objetivo se bloquearan los cambios ordinarios y se cerraran sus KRs activos. ¿Deseas continuar?")) return;
+    setTransitioning(true);
+    try {
+      const updated = await objectivesApi.setStatus(objective.id, lifecycleAction.target);
+      setObjective(updated);
+      toast.success(lifecycleAction.target === "ACTIVO" ? "Objetivo activado" : "Objetivo cerrado");
+      await onSaved?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cambiar el estado del objetivo");
+    } finally {
+      setTransitioning(false);
+    }
   };
 
   return (
@@ -238,15 +275,28 @@ export function ObjectiveDetailPanel({
                   ))}
                   {renderActions?.(objective)}
                   {canEdit && (
-                    <button
-                      type="button"
-                      onClick={handleEditAction}
-                      disabled={saving}
-                      className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60"
-                    >
-                      {saving ? <Loader2 size={12} className="animate-spin" /> : isEditing ? <Save size={12} /> : <Edit2 size={12} />}
-                      {isEditing ? "Guardar" : "Editar objetivo"}
-                    </button>
+                    <>
+                      {lifecycleAction && (
+                        <button type="button" onClick={() => void transitionObjective()} disabled={saving || archiving || transitioning} className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60">
+                          {transitioning ? <Loader2 size={12} className="animate-spin" /> : lifecycleAction.target === "ACTIVO" ? <Play size={12} /> : <CircleCheck size={12} />}
+                          {lifecycleAction.label}
+                        </button>
+                      )}
+                      <button type="button" onClick={() => void archiveObjective()} disabled={saving || archiving || transitioning} className="flex items-center gap-1.5 rounded-md border border-[#FED7AA] bg-[#FFF7ED] px-3 py-2 text-[11px] font-extrabold text-[#C2410C] disabled:opacity-60">
+                        {archiving ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />} Archivar
+                      </button>
+                      {objectiveMutable && (
+                        <button
+                          type="button"
+                          onClick={handleEditAction}
+                          disabled={saving || archiving || transitioning}
+                          className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60"
+                        >
+                          {saving ? <Loader2 size={12} className="animate-spin" /> : isEditing ? <Save size={12} /> : <Edit2 size={12} />}
+                          {isEditing ? "Guardar" : "Editar objetivo"}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -34,7 +34,7 @@ export function ProjectsTable({
 }: ProjectsTableProps) {
   return (
     <div className="bg-white rounded-lg overflow-hidden" style={{ border: "1.5px solid #E5E7EB" }}>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0} aria-label="Tabla de proyectos; desplácese horizontalmente para ver todas las columnas">
         <table className="w-full" style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ backgroundColor: "#000" }}>

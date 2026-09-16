@@ -19,18 +19,20 @@ interface LinkKeyResultModalProps {
   project: ProjectResponse;
   onClose: () => void;
   onSaved: () => Promise<void>;
+  editingLinkId?: number;
   initialKeyResultId?: string;
   initialWeight?: number;
   initialContributionType?: ContributionType;
 }
 
-export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, initialKeyResultId = "", initialWeight = 30, initialContributionType = "DIRECTA" }: LinkKeyResultModalProps) {
+export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, editingLinkId, initialKeyResultId = "", initialWeight = 30, initialContributionType = "DIRECTA" }: LinkKeyResultModalProps) {
   const reduceMotion = useReducedMotion();
   const [keyResultId, setKeyResultId] = useState(initialKeyResultId);
   const [weight, setWeight] = useState(initialWeight);
   const [contributionType, setContributionType] = useState<ContributionType>(initialContributionType);
   const [krSearch, setKrSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  const isEditing = editingLinkId !== undefined;
 
   const keyResults = useMemo(() => objectiveCards.flatMap((objective) =>
     objective.keyResults.map((kr) => ({
@@ -43,8 +45,9 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
 
   const filteredKeyResults = useMemo(() => {
     const query = krSearch.trim().toLowerCase();
-    if (!query) return keyResults;
+    const linkedKeyResultIds = new Set(project.linkedKeyResults.filter((link) => link.active).map((link) => link.keyResultId));
     return keyResults.filter((kr) =>
+      (isEditing || !linkedKeyResultIds.has(kr.id)) &&
       [
         String(kr.id),
         kr.name,
@@ -53,9 +56,9 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
         kr.objectiveName,
         kr.departmentName,
         kr.period,
-      ].some((value) => value?.toLowerCase().includes(query)),
+      ].some((value) => !query || value?.toLowerCase().includes(query)),
     );
-  }, [keyResults, krSearch]);
+  }, [keyResults, krSearch, project.linkedKeyResults, isEditing]);
 
   const save = async () => {
     const validation = validateProjectKeyResultLink({
@@ -70,16 +73,18 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
     }
     setSaving(true);
     try {
-      const link = await projectKeyResultLinksApi.create({
-        projectId: project.id,
-        keyResultId: Number(keyResultId),
-        contributionWeight: weight,
-        contributionType,
-      });
+      const link = isEditing
+        ? await projectKeyResultLinksApi.update(editingLinkId, { contributionWeight: weight, contributionType })
+        : await projectKeyResultLinksApi.create({
+          projectId: project.id,
+          keyResultId: Number(keyResultId),
+          contributionWeight: weight,
+          contributionType,
+        });
       if (link.overweightWarning) {
         toast.warning(`Los pesos son declarativos. La suma actual es ${link.totalWeightForKeyResult}%.`);
       } else {
-        toast.success("Vinculo creado.");
+        toast.success(isEditing ? "Peso del vinculo actualizado." : "Vinculo creado.");
       }
       invalidateScreenDataCache();
       signalStrategicDataChanged({
@@ -105,7 +110,7 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
               <Link2 size={18} color="#fff" />
             </div>
             <div>
-              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Vincular KR</p>
+              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>{isEditing ? "Gestionar peso" : "Vincular KR"}</p>
               <h2 style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>{project.name}</h2>
             </div>
           </div>
@@ -121,6 +126,7 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
               search={krSearch}
               onSearchChange={setKrSearch}
               searchPlaceholder="Buscar por KR, objetivo, departamento o periodo"
+              disabled={isEditing}
             />
           </ModalField>
           <div className="grid grid-cols-1 gap-3">
@@ -133,7 +139,7 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
           <button onClick={onClose} className="detail-invert-button detail-invert-button--outline detail-invert-button--green" style={{ padding: "10px 16px", border: "1px solid #D8DEE8", borderRadius: 8, fontSize: 12, fontWeight: 800, color: "#374151", backgroundColor: "#fff" }}>Cancelar</button>
           <button disabled={saving} onClick={save} className="detail-invert-button detail-invert-button--solid detail-invert-button--green inline-flex items-center gap-2" style={{ padding: "10px 16px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 850, opacity: saving ? 0.65 : 1, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
-            Guardar vinculo
+            {isEditing ? "Actualizar peso" : "Guardar vinculo"}
           </button>
         </div>
       </motion.div>
@@ -158,6 +164,7 @@ function ModalSelect({
   search,
   onSearchChange,
   searchPlaceholder,
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -166,10 +173,11 @@ function ModalSelect({
   search?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
+  disabled?: boolean;
 }) {
   return (
-    <Select value={value || undefined} onValueChange={onChange}>
-      <SelectTrigger className="focus-visible:ring-0" style={modalSelectStyle}>
+    <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger className="focus-visible:ring-0" style={{ ...modalSelectStyle, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.7 : 1 }}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]" onClick={(event) => event.stopPropagation()}>

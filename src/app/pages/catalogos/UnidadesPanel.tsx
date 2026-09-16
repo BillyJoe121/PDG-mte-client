@@ -1,7 +1,7 @@
 import type { FormEvent } from "react";
 import { Edit2, Loader2, Plus, Power, Save, Trash2, X } from "lucide-react";
 import type { MeasurementUnit, MeasurementUnitType } from "../../services/catalogsApi";
-import { COLORS, UnitBadge, type UnitForm, unitTypeLabel } from "./catalogosShared";
+import { COLORS, UnitBadge, type UnitForm, unitTypeLabel, unitTypeRule } from "./catalogosShared";
 
 interface UnidadesPanelProps {
   editingUnitId: number | null;
@@ -39,28 +39,42 @@ export function UnidadesPanel({
           {editingUnitId ? "Editar unidad" : "Nueva unidad"}
         </h2>
         <div className="space-y-3">
-          <input
-            value={unitForm.name}
-            onChange={(e) => onFormChange((form) => ({ ...form, name: e.target.value }))}
-            placeholder="Nombre, ej: proyectos"
-            style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #000", borderRadius: 8, fontSize: "13px" }}
-          />
-          <select
-            value={unitForm.type}
-            onChange={(e) => onFormChange((form) => ({ ...form, type: e.target.value as MeasurementUnitType }))}
-            style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px", backgroundColor: "#fff" }}
-          >
-            {Object.entries(unitTypeLabel).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-          <textarea
-            value={unitForm.description}
-            onChange={(e) => onFormChange((form) => ({ ...form, description: e.target.value }))}
-            placeholder="Descripcion opcional"
-            rows={3}
-            style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px", resize: "vertical" }}
-          />
+          <label className="block">
+            <span style={labelStyle}>Nombre *</span>
+            <input
+              required
+              value={unitForm.name}
+              onChange={(e) => onFormChange((form) => ({ ...form, name: e.target.value }))}
+              placeholder="Ej. Estudiantes"
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #000", borderRadius: 8, fontSize: "13px" }}
+            />
+          </label>
+          <label className="block">
+            <span style={labelStyle}>Tipo de dato *</span>
+            <select
+              value={unitForm.type}
+              onChange={(e) => onFormChange((form) => ({ ...form, type: e.target.value as MeasurementUnitType }))}
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px", backgroundColor: "#fff" }}
+            >
+              {Object.entries(unitTypeLabel).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <p role="status" style={{ padding: "9px 10px", borderRadius: 8, backgroundColor: "#F5F7FF", color: "#3730A3", fontSize: 11, fontWeight: 700, lineHeight: 1.4 }}>
+            Regla de captura: {unitTypeRule[unitForm.type]}
+            {editingUnitId ? " El tipo no puede cambiarse si la unidad ya esta en uso." : ""}
+          </p>
+          <label className="block">
+            <span style={labelStyle}>Descripcion</span>
+            <textarea
+              value={unitForm.description}
+              onChange={(e) => onFormChange((form) => ({ ...form, description: e.target.value }))}
+              placeholder="Contexto de uso opcional"
+              rows={3}
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px", resize: "vertical" }}
+            />
+          </label>
           <div className="flex justify-end gap-2">
             {editingUnitId && (
               <button type="button" onClick={onCancel} className="flex items-center gap-1" style={{ padding: "9px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: "12px", fontWeight: 800 }}>
@@ -80,7 +94,7 @@ export function UnidadesPanel({
         </div>
       </form>
 
-      <div className="bg-white rounded-lg overflow-x-auto" style={{ border: "1.5px solid #E5E7EB" }}>
+      <div className="bg-white rounded-lg overflow-x-auto" tabIndex={0} aria-label="Tabla de unidades de medida; desplácese horizontalmente para ver todas las columnas" style={{ border: "1.5px solid #E5E7EB" }}>
         <div className="min-w-[780px]">
           <div className="grid grid-cols-[1fr_120px_1fr_100px_120px] gap-3 px-4 py-3" style={{ backgroundColor: "#F9FAFB", borderBottom: "1px solid #E5E7EB", fontSize: "10px", fontWeight: 900, color: COLORS.gray, textTransform: "uppercase" }}>
             <span>Nombre</span><span>Tipo</span><span>Descripcion</span><span>Estado</span><span>Acciones</span>
@@ -92,7 +106,7 @@ export function UnidadesPanel({
           ) : units.map((unit) => (
             <div key={unit.id} className="grid grid-cols-[1fr_120px_1fr_100px_120px] gap-3 items-center px-4 py-3" style={{ borderBottom: "1px solid #F3F4F6" }}>
               <p style={{ fontSize: "13px", fontWeight: 800, color: "#000" }}>{unit.name}</p>
-              <span style={{ fontSize: "12px", color: "#374151" }}>{unitTypeLabel[unit.type]}</span>
+              <span style={{ fontSize: "12px", color: "#374151" }} title={unitTypeRule[unit.type]}>{unitTypeLabel[unit.type]}</span>
               <span style={{ fontSize: "12px", color: COLORS.gray }}>{unit.description ?? "-"}</span>
               <UnitBadge active={unit.active} />
               <div className="flex items-center gap-1">
@@ -113,3 +127,12 @@ export function UnidadesPanel({
     </div>
   );
 }
+
+const labelStyle = {
+  display: "block",
+  marginBottom: 5,
+  color: "#374151",
+  fontSize: 10,
+  fontWeight: 900,
+  textTransform: "uppercase" as const,
+};

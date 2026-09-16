@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { FormEvent, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
-import { AlertTriangle, ArrowLeft, Flag, Loader2, Save } from "lucide-react";
+import { AlertTriangle, Archive, ArchiveRestore, ArrowLeft, Flag, Loader2, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { strategicBetsApi, type StrategicBet } from "../services/strategicApi";
 
@@ -21,26 +21,40 @@ export function GestionApuesta() {
   const id = Number(betId);
   const [bet, setBet] = useState<StrategicBet | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [form, setForm] = useState({ name: "", description: "", startDate: "", endDate: "" });
 
-  useEffect(() => {
-    if (!id) return;
+  const loadBet = useCallback(async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    strategicBetsApi.get(id)
-      .then((data) => {
-        setBet(data);
-        setForm({
-          name: data.name,
-          description: data.description,
-          startDate: data.startDate ?? "",
-          endDate: data.endDate ?? "",
-        });
-      })
-      .catch((error) => toast.error(error instanceof Error ? error.message : "No se pudo cargar la apuesta"))
-      .finally(() => setLoading(false));
+    setLoadError("");
+    try {
+      const data = await strategicBetsApi.get(id);
+      setBet(data);
+      setForm({
+        name: data.name,
+        description: data.description,
+        startDate: data.startDate ?? "",
+        endDate: data.endDate ?? "",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo cargar la apuesta";
+      setLoadError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    void loadBet();
+  }, [loadBet]);
 
   const set = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -78,8 +92,28 @@ export function GestionApuesta() {
     }
   };
 
+  const changeStatus = async () => {
+    if (!bet) return;
+    const activate = bet.status === "INACTIVA";
+    if (!activate && !window.confirm("La apuesta dejara de aparecer en la jerarquia activa. Podras restaurarla desde Archivados.")) return;
+    setChangingStatus(true);
+    try {
+      const updated = await strategicBetsApi.setActive(bet.id, activate);
+      setBet(updated);
+      toast.success(activate ? "Apuesta restaurada" : "Apuesta archivada");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cambiar el estado de la apuesta");
+    } finally {
+      setChangingStatus(false);
+    }
+  };
+
   if (loading) {
     return <Loading text="Cargando apuesta..." />;
+  }
+
+  if (loadError) {
+    return <LoadError message={loadError} onRetry={() => void loadBet()} onBack={() => navigate("/jerarquia")} />;
   }
 
   if (!bet) {
@@ -134,6 +168,10 @@ export function GestionApuesta() {
           </Field>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: "1px solid #F3F4F6" }}>
+          <button type="button" onClick={() => void changeStatus()} disabled={saving || changingStatus} className="mr-auto flex items-center gap-2 disabled:opacity-60" style={{ ...secondaryButtonStyle, color: bet.status === "INACTIVA" ? "#047857" : COLORS.orange }}>
+            {changingStatus ? <Loader2 size={15} className="animate-spin" /> : bet.status === "INACTIVA" ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+            {bet.status === "INACTIVA" ? "Restaurar apuesta" : "Archivar apuesta"}
+          </button>
           <button type="button" onClick={() => navigate("/jerarquia")} className="detail-invert-button detail-invert-button--outline detail-invert-button--blue" style={secondaryButtonStyle}>Cancelar</button>
           <button type="submit" disabled={saving} className="detail-invert-button detail-invert-button--solid detail-invert-button--blue flex items-center gap-2 disabled:opacity-60" style={primaryButtonStyle}>
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
@@ -174,6 +212,22 @@ function NotFound({ onBack }: { onBack: () => void }) {
       <AlertTriangle size={40} color={COLORS.orange} />
       <p style={{ fontSize: 16, fontWeight: 800 }}>Apuesta no encontrada</p>
       <button onClick={onBack} className="detail-invert-button detail-invert-button--solid detail-invert-button--blue flex items-center gap-2" style={primaryButtonStyle}><ArrowLeft size={14} /> Volver</button>
+    </div>
+  );
+}
+
+function LoadError({ message, onRetry, onBack }: { message: string; onRetry: () => void; onBack: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-64 gap-4 p-8 text-center">
+      <AlertTriangle size={40} color={COLORS.orange} />
+      <div>
+        <p style={{ fontSize: 16, fontWeight: 800 }}>No se pudo cargar la apuesta</p>
+        <p style={{ color: COLORS.gray, fontSize: 12, marginTop: 4 }}>{message}</p>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={onBack} style={secondaryButtonStyle}><ArrowLeft size={14} className="inline mr-1" /> Volver</button>
+        <button onClick={onRetry} style={primaryButtonStyle}><RefreshCw size={14} className="inline mr-1" /> Reintentar</button>
+      </div>
     </div>
   );
 }

@@ -267,7 +267,7 @@ export function Auditoria() {
             {entries.length === 0 ? (
               <div className="px-5 py-14 text-center"><ShieldCheck className="mx-auto mb-3 text-gray-300" size={28} /><p className="text-sm font-black text-gray-700">No hay eventos reales para los filtros aplicados.</p><p className="mt-1 text-xs text-gray-400">Amplía el periodo o restablece los filtros.</p></div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto" tabIndex={0} aria-label="Tabla de auditoría; desplácese horizontalmente para ver todas las columnas">
                 <table className="w-full min-w-[850px] border-collapse">
                   <thead className="bg-gray-950 text-white"><tr>{["Fecha", "Usuario", "Acción", "Entidad", "Resumen", "Detalle"].map((header) => <th key={header} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wider">{header}</th>)}</tr></thead>
                   <tbody>{entries.map((entry) => (

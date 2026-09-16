@@ -27,6 +27,13 @@ export const unitTypeLabel: Record<MeasurementUnitType, string> = {
   OTRA: "Otra",
 };
 
+export const unitTypeRule: Record<MeasurementUnitType, string> = {
+  NUMERICA: "Acepta valores numericos, incluidos decimales.",
+  PORCENTAJE: "Acepta valores entre 0 y 100.",
+  BOOLEANA: "Acepta unicamente Si o No.",
+  OTRA: "Acepta un valor numerico con una unidad personalizada.",
+};
+
 export const emptyPeriodForm: PeriodForm = {
   name: "",
   startDate: "",

@@ -89,7 +89,7 @@ export function PeriodosPanel({
         </div>
       </form>
 
-      <div className="bg-white rounded-lg overflow-x-auto" style={{ border: "1.5px solid #E5E7EB" }}>
+      <div className="bg-white rounded-lg overflow-x-auto" tabIndex={0} aria-label="Tabla de períodos; desplácese horizontalmente para ver todas las columnas" style={{ border: "1.5px solid #E5E7EB" }}>
         <div className="min-w-[760px]">
           <div className="grid grid-cols-[1fr_116px_116px_180px_130px] gap-3 px-4 py-3" style={{ backgroundColor: "#F9FAFB", borderBottom: "1px solid #E5E7EB", fontSize: "10px", fontWeight: 900, color: COLORS.gray, textTransform: "uppercase" }}>
             <span>Nombre</span><span>Inicio</span><span>Fin</span><span>Estado</span><span>Acciones</span>

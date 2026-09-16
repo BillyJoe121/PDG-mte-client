@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import {
   LayoutDashboard,
@@ -50,7 +50,7 @@ const itemColors: Record<string, string> = {
 };
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768);
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -60,6 +60,12 @@ export function Sidebar() {
   };
 
   const filteredItems = navItems.filter((item) => !usuario || hasPermission(usuario, item.action));
+
+  useEffect(() => {
+    const adaptToViewport = () => setCollapsed(window.innerWidth < 768);
+    window.addEventListener("resize", adaptToViewport);
+    return () => window.removeEventListener("resize", adaptToViewport);
+  }, []);
 
   return (
     <aside
@@ -84,6 +90,7 @@ export function Sidebar() {
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
           className="flex items-center justify-center rounded-full w-6 h-6 hover:opacity-80 transition-opacity"
           style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", flexShrink: 0 }}
           title={collapsed ? "Expandir menú" : "Colapsar menú"}

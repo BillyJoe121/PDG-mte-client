@@ -21,6 +21,7 @@ import {
   type ConsistencySeverity,
 } from "../services/consistencyApi";
 import { loadConsistencyCheck } from "../services/screenDataCache";
+import { resolveConsistencyActionTarget } from "../utils/consistencyAction";
 
 const COLORS = {
   blue: "#5454E9",
@@ -128,7 +129,14 @@ export function Consistencia() {
     transition: shortMotionTransition,
   };
 
-  const goToIssue = (targetPath: string) => navigate(targetPath.trim());
+  const goToIssue = (targetPath: string) => {
+    const target = resolveConsistencyActionTarget(targetPath);
+    if (!target) {
+      setError("No se pudo abrir la accion correctiva porque su destino no es valido.");
+      return;
+    }
+    navigate(target);
+  };
 
   const exportCsv = async () => {
     setExporting(true);

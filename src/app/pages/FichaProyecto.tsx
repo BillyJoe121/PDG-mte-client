@@ -31,6 +31,7 @@ import {
   contributionTypeLabel,
   projectKeyResultLinksApi,
   projectsApi,
+  validateProjectSchedule,
   type ImpactChain,
   type ProjectDetailResponse,
   type ProjectKeyResultLinkResponse,
@@ -41,6 +42,7 @@ import {
 import { ConfirmUnlinkModal } from "./fichaProyecto/ConfirmUnlinkModal";
 import { LinkKeyResultModal } from "./fichaProyecto/LinkKeyResultModal";
 import { RegisterProgressModal } from "./fichaProyecto/RegisterProgressModal";
+import { ProjectResponsiblesModal } from "./fichaProyecto/ProjectResponsiblesModal";
 import {
   COLORS,
   ProgressBar,
@@ -78,12 +80,14 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
   const [error, setError] = useState("");
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
-  const [editLinkData, setEditLinkData] = useState<{
-    keyResultId: string;
+    const [editLinkData, setEditLinkData] = useState<{
+      linkId: number;
+      keyResultId: string;
     weight: number;
     contributionType: import("../services/projectsApi").ContributionType;
   } | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showResponsiblesModal, setShowResponsiblesModal] = useState(false);
   const [unlinkTarget, setUnlinkTarget] = useState<ProjectKeyResultLinkResponse | null>(null);
 
   const loadDetail = async (options?: { force?: boolean }) => {
@@ -254,6 +258,9 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
 
                 {canManageLinks && (
                   <div className="flex flex-wrap items-center gap-2" style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}>
+                    <button onClick={() => setShowResponsiblesModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
+                      <Users size={13} /> Responsables
+                    </button>
                     <button onClick={() => setShowEditModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
                       <Edit2 size={13} /> Editar proyecto
                     </button>
@@ -294,9 +301,10 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
                       setEditLinkData(null);
                       setShowLinkModal(true);
                     }}
-                    onEditLink={(link) => {
-                      setEditLinkData({
-                        keyResultId: String(link.keyResultId),
+                      onEditLink={(link) => {
+                        setEditLinkData({
+                          linkId: link.id,
+                          keyResultId: String(link.keyResultId),
                         weight: link.contributionWeight,
                         contributionType: link.contributionType,
                       });
@@ -337,10 +345,19 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
           }}
         />
       )}
+      {showResponsiblesModal && (
+        <ProjectResponsiblesModal
+          projectId={project.id}
+          departmentId={project.departmentId}
+          projectName={project.name}
+          onClose={() => setShowResponsiblesModal(false)}
+        />
+      )}
       {showLinkModal && (
         <LinkKeyResultModal
           project={project}
           objectiveCards={objectiveCards}
+          editingLinkId={editLinkData?.linkId}
           initialKeyResultId={editLinkData?.keyResultId}
           initialWeight={editLinkData?.weight}
           initialContributionType={editLinkData?.contributionType}
@@ -397,6 +414,11 @@ function EditProjectModal({
     event.preventDefault();
     if (!form.name.trim() || !form.description.trim() || !form.departmentId || !form.startPeriod) {
       toast.error("Completa nombre, descripcion, departamento y periodo inicial.");
+      return;
+    }
+    const scheduleError = validateProjectSchedule(form);
+    if (scheduleError) {
+      toast.error(scheduleError);
       return;
     }
 
@@ -503,11 +525,11 @@ function EditProjectModal({
             </ModalField>
 
             <ModalField label="Fecha fin">
-              <input type="date" value={form.endDate} onChange={(event) => updateField("endDate", event.target.value)} style={modalInputStyle} />
+                <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => updateField("endDate", event.target.value)} style={modalInputStyle} />
             </ModalField>
 
             <ModalField label="Fecha fin real">
-              <input type="date" value={form.actualEndDate} onChange={(event) => updateField("actualEndDate", event.target.value)} style={modalInputStyle} />
+                <input type="date" min={form.startDate || undefined} value={form.actualEndDate} onChange={(event) => updateField("actualEndDate", event.target.value)} style={modalInputStyle} />
             </ModalField>
 
             <ModalField label="Tutores" className="md:col-span-2">

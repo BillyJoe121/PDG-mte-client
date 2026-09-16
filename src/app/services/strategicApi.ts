@@ -3,8 +3,9 @@ import type {
   MeasurementUnit,
 } from "./catalogsApi";
 
-export type StrategicStatus = "ACTIVA" | "INACTIVA" | "CERRADA";
-export type ObjectiveStatus = "ACTIVO" | "CERRADO";
+export type StrategicStatus = "ACTIVA" | "INACTIVA";
+export type ObjectiveStatus = "BORRADOR" | "ACTIVO" | "CERRADO" | "ARCHIVADO";
+export type KeyResultStatus = "BORRADOR" | "ACTIVO" | "CERRADO";
 
 export interface ExecutionSummary {
   summaryText: string;
@@ -48,7 +49,7 @@ export interface StrategicBet {
 export interface GoalRequest {
   name: string;
   description: string;
-  referenceIndicator?: string;
+  referenceIndicator: string;
   expectedValue: number;
   measurementUnitId: number;
   startDate?: string;
@@ -78,6 +79,7 @@ export interface KeyResultRequest {
   baseValue: number;
   targetValue: number;
   measurementUnitId: number;
+  academicPeriodId?: number;
 }
 
 export interface KeyResult {
@@ -91,6 +93,11 @@ export interface KeyResult {
   progressPercentage: number;
   measurementUnitId: number;
   measurementUnitName: string;
+  academicPeriodId?: number;
+  academicPeriodName?: string;
+  objectiveId: number;
+  objectiveName: string;
+  status: KeyResultStatus;
   createdAt: string;
 }
 
@@ -295,7 +302,7 @@ function maskToken(token: string | null) {
   return `${token.slice(0, 8)}...${token.slice(-4)}`;
 }
 
-function query(params?: Record<string, number | string | undefined>) {
+function query(params?: Record<string, number | string | boolean | undefined>) {
   const qs = new URLSearchParams();
   Object.entries(params ?? {}).forEach(([key, value]) => {
     if (value !== undefined && value !== "") qs.set(key, String(value));
@@ -304,23 +311,29 @@ function query(params?: Record<string, number | string | undefined>) {
 }
 
 export const strategicBetsApi = {
-  list: (period?: string) => api<StrategicBet[]>(`/strategic-bets${period ? `?period=${period}` : ""}`),
+  list: (period?: string, includeInactive = false) =>
+    api<StrategicBet[]>(`/strategic-bets${query({ period, includeInactive: includeInactive ? "true" : undefined })}`),
   create: (body: StrategicBetRequest) =>
     api<StrategicBet>("/strategic-bets", { method: "POST", body: JSON.stringify(body) }),
   get: (id: number, period?: string) =>
     api<StrategicBet>(`/strategic-bets/${id}${period ? `?period=${period}` : ""}`),
   update: (id: number, body: StrategicBetRequest) =>
     api<StrategicBet>(`/strategic-bets/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  setActive: (id: number, active: boolean) =>
+    api<StrategicBet>(`/strategic-bets/${id}/active`, { method: "PATCH", body: JSON.stringify({ active }) }),
 };
 
 export const goalsApi = {
-  list: (period?: string) => api<Goal[]>(`/goals${period ? `?period=${period}` : ""}`),
+  list: (period?: string, includeInactive = false) =>
+    api<Goal[]>(`/goals${query({ period, includeInactive: includeInactive ? "true" : undefined })}`),
   create: (body: GoalRequest) =>
     api<Goal>("/goals", { method: "POST", body: JSON.stringify(body) }),
   get: (id: number, period?: string) =>
     api<Goal>(`/goals/${id}${period ? `?period=${period}` : ""}`),
   update: (id: number, body: GoalRequest) =>
     api<Goal>(`/goals/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  setActive: (id: number, active: boolean) =>
+    api<Goal>(`/goals/${id}/active`, { method: "PATCH", body: JSON.stringify({ active }) }),
   attachPeriod: (goalId: number, periodId: number) =>
     api<Goal>(`/goals/${goalId}/periods/${periodId}`, { method: "POST" }),
   detachPeriod: (goalId: number, periodId: number) =>
@@ -328,15 +341,19 @@ export const goalsApi = {
 };
 
 export const objectivesApi = {
-  list: (params?: { strategicBetId?: number; goalId?: number; departmentId?: number; periodId?: number }) =>
+  list: (params?: { strategicBetId?: number; goalId?: number; departmentId?: number; periodId?: number; includeArchived?: boolean }) =>
     api<Objective[]>(`/objectives${query(params)}`),
-  cards: (params?: { strategicBetId?: number; goalId?: number; departmentId?: number; periodId?: number }) =>
+  cards: (params?: { strategicBetId?: number; goalId?: number; departmentId?: number; periodId?: number; includeArchived?: boolean }) =>
     api<ObjectiveCard[]>(`/objectives/cards${query(params)}`),
   create: (body: ObjectiveRequest) =>
     api<Objective>("/objectives", { method: "POST", body: JSON.stringify(body) }),
   get: (id: number) => api<Objective>(`/objectives/${id}`),
   update: (id: number, body: { name: string; description: string }) =>
     api<Objective>(`/objectives/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  setArchived: (id: number, archived: boolean) =>
+    api<Objective>(`/objectives/${id}/archived`, { method: "PATCH", body: JSON.stringify({ archived }) }),
+  setStatus: (id: number, status: ObjectiveStatus) =>
+    api<Objective>(`/objectives/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   keyResults: (objectiveId: number) => api<KeyResult[]>(`/objectives/${objectiveId}/key-results`),
   addKeyResult: (objectiveId: number, body: KeyResultRequest) =>
     api<KeyResult>(`/objectives/${objectiveId}/key-results`, { method: "POST", body: JSON.stringify(body) }),
@@ -345,8 +362,13 @@ export const objectivesApi = {
 };
 
 export const keyResultsApi = {
+  get: (id: number) => api<KeyResult>(`/key-results/${id}`),
   update: (id: number, body: KeyResultRequest) =>
     api<KeyResult>(`/key-results/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  updateCurrentValue: (id: number, currentValue: number) =>
+    api<KeyResult>(`/key-results/${id}/current-value`, { method: "PATCH", body: JSON.stringify({ currentValue }) }),
+  setStatus: (id: number, status: KeyResultStatus) =>
+    api<KeyResult>(`/key-results/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   remove: (id: number) =>
     api<void>(`/key-results/${id}`, { method: "DELETE" }),
 };

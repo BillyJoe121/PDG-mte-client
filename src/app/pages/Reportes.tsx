@@ -403,7 +403,7 @@ function DepartmentTable({ data }: { data: ConsolidatedReport["departments"] }) 
   if (!data.length) return <EmptyState text="Sin departamentos para los filtros seleccionados." />;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0} aria-label="Tabla del reporte; desplácese horizontalmente para ver todas las columnas">
       <table className="w-full min-w-[760px]" style={{ borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ backgroundColor: COLORS.text }}>

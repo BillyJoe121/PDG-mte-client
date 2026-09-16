@@ -145,6 +145,11 @@ export interface ProjectKeyResultLinkRequest {
   contributionType: ContributionType;
 }
 
+export type ProjectKeyResultLinkUpdateRequest = Pick<
+  ProjectKeyResultLinkRequest,
+  "contributionWeight" | "contributionType"
+>;
+
 export interface ProjectKeyResultLinkResponse {
   id: number;
   projectId: number | null;
@@ -157,6 +162,38 @@ export interface ProjectKeyResultLinkResponse {
   overweightWarning: boolean;
   active: boolean;
   createdAt: string;
+}
+
+export interface ProfessorResponse {
+  id: number;
+  name: string;
+  email: string;
+  departmentId: number;
+  departmentName: string;
+}
+
+export interface RoleResponse {
+  id: number;
+  name: string;
+  description?: string | null;
+}
+
+export interface ProjectTeacherRequest {
+  teacherId: number;
+  roleId: number;
+  joinedAt: string;
+  leftAt?: string | null;
+}
+
+export interface ProjectTeacherResponse {
+  projectId: number;
+  projectName: string;
+  teacherId: number;
+  teacherName: string;
+  roleId: number;
+  roleName: string;
+  joinedAt: string;
+  leftAt?: string | null;
 }
 
 export interface ProjectDetailResponse {
@@ -185,6 +222,35 @@ export function validateProjectKeyResultLink(payload: ProjectKeyResultLinkReques
     return "El peso debe estar entre 0 y 100.";
   }
   if (!payload.contributionType) return "Selecciona el tipo de contribucion.";
+  return null;
+}
+
+export function validateProjectSchedule(schedule: {
+  startPeriod: string;
+  endPeriod?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  actualEndDate?: string | null;
+}) {
+  const periodIndex = (period?: string | null) => {
+    const match = period?.trim().match(/^(\d{4})-(Q[1-4]|[1-2])$/);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const term = match[2];
+    const quarter = term === "1" ? 1 : term === "2" ? 3 : Number(term.slice(1));
+    return year * 4 + quarter;
+  };
+  const startPeriod = periodIndex(schedule.startPeriod);
+  const endPeriod = periodIndex(schedule.endPeriod);
+  if (startPeriod !== null && endPeriod !== null && endPeriod < startPeriod) {
+    return "El periodo final debe ser igual o posterior al periodo inicial.";
+  }
+  if (schedule.startDate && schedule.endDate && schedule.endDate <= schedule.startDate) {
+    return "La fecha de fin debe ser posterior a la fecha de inicio.";
+  }
+  if (schedule.startDate && schedule.actualEndDate && schedule.actualEndDate < schedule.startDate) {
+    return "La fecha de fin real no puede ser anterior a la fecha de inicio.";
+  }
   return null;
 }
 
@@ -260,6 +326,35 @@ export const projectKeyResultLinksApi = {
       body: JSON.stringify(payload),
     }),
 
+  update: (id: number, payload: ProjectKeyResultLinkUpdateRequest) =>
+    api<ProjectKeyResultLinkResponse>(`/project-key-result-links/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
   remove: (id: number) =>
     api<void>(`/project-key-result-links/${id}`, { method: "DELETE" }),
+};
+
+export const projectTeachersApi = {
+  list: (projectId: number) =>
+    api<ProjectTeacherResponse[]>(`/projects/${projectId}/teachers`),
+
+  assign: (projectId: number, payload: ProjectTeacherRequest) =>
+    api<ProjectTeacherResponse>(`/projects/${projectId}/teachers`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  remove: (projectId: number, teacherId: number, roleId: number) =>
+    api<void>(`/projects/${projectId}/teachers/${teacherId}/roles/${roleId}`, {
+      method: "DELETE",
+    }),
+};
+
+export const projectResponsibilityCatalogApi = {
+  professors: (departmentId?: number) =>
+    api<ProfessorResponse[]>(`/professors${departmentId === undefined ? "" : `?departmentId=${departmentId}`}`),
+
+  roles: () => api<RoleResponse[]>("/roles"),
 };

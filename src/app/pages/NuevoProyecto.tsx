@@ -7,6 +7,7 @@ import { departmentsApi, objectivesApi, type Department, type ObjectiveCard } fr
 import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
 import {
   projectsApi,
+  validateProjectSchedule,
   type ContributionType,
   type ProjectKeyResultDraftRequest,
   type ProjectRequest,
@@ -144,6 +145,8 @@ export function NuevoProyecto() {
     if (!form.description.trim()) next.description = "La descripcion es obligatoria.";
     if (!form.departmentId) next.departmentId = "Selecciona un departamento.";
     if (!form.startPeriod.trim()) next.startPeriod = "Selecciona el periodo de inicio.";
+    const scheduleError = validateProjectSchedule(form);
+    if (scheduleError) next.startPeriod = scheduleError;
     if (parseTutors(form.tutors).length === 0) next.tutors = "Ingresa al menos un tutor.";
     const invalidLink = krLinks.some((link) =>
       !link.keyResultId ||
@@ -290,7 +293,7 @@ export function NuevoProyecto() {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Fecha fin</label>
-                <input type="date" value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12 }} />
+                  <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12 }} />
               </div>
             </div>
           </div>

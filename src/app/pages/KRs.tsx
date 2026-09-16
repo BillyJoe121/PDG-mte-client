@@ -110,7 +110,7 @@ export function KRs() {
             <p style={{ color: COLORS.text, fontSize: 17, fontWeight: 950 }}>Key Results</p>
             <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>Resultados clave trazables por objetivo, meta y apuesta estrategica.</p>
           </div>
-          <div className="flex min-h-[38px] min-w-[260px] items-center gap-2 rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+          <div className="flex min-h-[38px] min-w-0 w-full items-center gap-2 rounded-md px-3 sm:min-w-[260px]" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
             <Search size={15} color={COLORS.gray} />
             <input
               value={search}
