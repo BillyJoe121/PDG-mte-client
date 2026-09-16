@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   projectContributionApi,
   projectKeyResultLinksApi,
+  projectResponsibilityCatalogApi,
+  projectTeachersApi,
   projectsApi,
+  validateProjectSchedule,
   validateProjectKeyResultLink,
 } from "./projectsApi";
 
@@ -84,6 +87,7 @@ describe("projects APIs", () => {
   it("calls project-key-result link endpoints", async () => {
     await projectKeyResultLinksApi.list({ projectId: 1, keyResultId: 10 });
     await projectKeyResultLinksApi.create({ projectId: 1, keyResultId: 10, contributionWeight: 35, contributionType: "SOPORTE" });
+    await projectKeyResultLinksApi.update(7, { contributionWeight: 55, contributionType: "INDIRECTA" });
     await projectKeyResultLinksApi.remove(7);
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/project-key-result-links?projectId=1&keyResultId=10`, expect.any(Object));
@@ -91,7 +95,28 @@ describe("projects APIs", () => {
       method: "POST",
       body: JSON.stringify({ projectId: 1, keyResultId: 10, contributionWeight: 35, contributionType: "SOPORTE" }),
     }));
-    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/project-key-result-links/7`, expect.objectContaining({ method: "DELETE" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/project-key-result-links/7`, expect.objectContaining({
+      method: "PATCH",
+      body: JSON.stringify({ contributionWeight: 55, contributionType: "INDIRECTA" }),
+    }));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/project-key-result-links/7`, expect.objectContaining({ method: "DELETE" }));
+  });
+
+  it("calls the project responsibility endpoints", async () => {
+    await projectTeachersApi.list(3);
+    await projectTeachersApi.assign(3, { teacherId: 8, roleId: 2, joinedAt: "2026-09-16", leftAt: null });
+    await projectTeachersApi.remove(3, 8, 2);
+    await projectResponsibilityCatalogApi.professors(4);
+    await projectResponsibilityCatalogApi.roles();
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/projects/3/teachers`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/projects/3/teachers`, expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ teacherId: 8, roleId: 2, joinedAt: "2026-09-16", leftAt: null }),
+    }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/projects/3/teachers/8/roles/2`, expect.objectContaining({ method: "DELETE" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/professors?departmentId=4`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/roles`, expect.any(Object));
   });
 
   it.each([
@@ -107,6 +132,15 @@ describe("projects APIs", () => {
   it("accepts project-key-result links at the inclusive weight boundaries", () => {
     expect(validateProjectKeyResultLink({ projectId: 1, keyResultId: 10, contributionWeight: 0, contributionType: "INDIRECTA" })).toBeNull();
     expect(validateProjectKeyResultLink({ projectId: 1, keyResultId: 10, contributionWeight: 100, contributionType: "SOPORTE" })).toBeNull();
+  });
+
+  it.each([
+    [{ startPeriod: "2026-2", endPeriod: "2026-1" }, "El periodo final debe ser igual o posterior al periodo inicial."],
+    [{ startPeriod: "2026-1", startDate: "2026-06-10", endDate: "2026-06-10" }, "La fecha de fin debe ser posterior a la fecha de inicio."],
+    [{ startPeriod: "2026-1", startDate: "2026-06-10", actualEndDate: "2026-06-09" }, "La fecha de fin real no puede ser anterior a la fecha de inicio."],
+    [{ startPeriod: "2026-1", endPeriod: "2026-Q3", startDate: "2026-06-10", endDate: "2026-06-11" }, null],
+  ])("validates initiative schedule %#", (schedule, expected) => {
+    expect(validateProjectSchedule(schedule)).toBe(expected);
   });
 
   it.each([

@@ -53,7 +53,7 @@ describe("Catalogos", () => {
     await user.click(screen.getByRole("button", { name: /Unidades/i }));
     expect(screen.getAllByText("Porcentaje").length).toBeGreaterThan(1);
 
-    await user.type(screen.getByPlaceholderText("Nombre, ej: proyectos"), "Estudiantes");
+    await user.type(screen.getByRole("textbox", { name: /nombre/i }), "Estudiantes");
     await user.click(screen.getByRole("button", { name: /Crear/i }));
 
     await waitFor(() => expect(api.createUnit).toHaveBeenCalledWith({

@@ -42,9 +42,9 @@ describe("strategic hierarchy APIs", () => {
     await strategicBetsApi.get(7, "2026-1");
     await strategicBetsApi.update(7, { name: "Apuesta editada", description: "Nueva descripcion" });
     await goalsApi.list();
-    await goalsApi.create({ name: "Meta", description: "Desc", expectedValue: 10, measurementUnitId: 2 });
+    await goalsApi.create({ name: "Meta", description: "Desc", referenceIndicator: "Indicador", expectedValue: 10, measurementUnitId: 2 });
     await goalsApi.get(3);
-    await goalsApi.update(3, { name: "Meta editada", description: "Desc editada", expectedValue: 12, measurementUnitId: 2 });
+    await goalsApi.update(3, { name: "Meta editada", description: "Desc editada", referenceIndicator: "Indicador", expectedValue: 12, measurementUnitId: 2 });
     await goalsApi.attachPeriod(3, 1);
     await goalsApi.detachPeriod(3, 1);
 
@@ -75,6 +75,7 @@ describe("strategic hierarchy APIs", () => {
     await objectivesApi.addKeyResult(8, kr);
     await objectivesApi.coverageTrend(8);
     await keyResultsApi.update(9, kr);
+    await keyResultsApi.updateCurrentValue(9, 42);
     await keyResultsApi.remove(9);
     await hierarchyApi.tree("2026-1");
     await departmentsApi.list();
@@ -85,9 +86,39 @@ describe("strategic hierarchy APIs", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/objectives/8`, expect.objectContaining({ method: "PATCH" }));
     expect(fetchMock).toHaveBeenNthCalledWith(7, `${baseUrl}/objectives/8/key-results`, expect.objectContaining({ method: "POST" }));
     expect(fetchMock).toHaveBeenNthCalledWith(9, `${baseUrl}/key-results/9`, expect.objectContaining({ method: "PUT" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(10, `${baseUrl}/key-results/9`, expect.objectContaining({ method: "DELETE" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(11, `${baseUrl}/strategic-hierarchy/tree?period=2026-1`, expect.any(Object));
-    expect(fetchMock).toHaveBeenNthCalledWith(12, `${baseUrl}/departments`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(10, `${baseUrl}/key-results/9/current-value`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ currentValue: 42 }) }));
+    expect(fetchMock).toHaveBeenNthCalledWith(11, `${baseUrl}/key-results/9`, expect.objectContaining({ method: "DELETE" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(12, `${baseUrl}/strategic-hierarchy/tree?period=2026-1`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(13, `${baseUrl}/departments`, expect.any(Object));
+  });
+
+  it("loads a key result through its explicit primary-objective contract", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      id: 9,
+      name: "KR",
+      objectiveId: 8,
+      objectiveName: "Objetivo principal",
+    }));
+
+    const result = await keyResultsApi.get(9);
+
+    expect(result.objectiveId).toBe(8);
+    expect(result.objectiveName).toBe("Objetivo principal");
+    expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/key-results/9`, expect.any(Object));
+  });
+
+  it("changes objective and key result lifecycle status through explicit contracts", async () => {
+    await objectivesApi.setStatus(8, "ACTIVO");
+    await keyResultsApi.setStatus(9, "CERRADO");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/objectives/8/status`, expect.objectContaining({
+      method: "PATCH",
+      body: JSON.stringify({ status: "ACTIVO" }),
+    }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/key-results/9/status`, expect.objectContaining({
+      method: "PATCH",
+      body: JSON.stringify({ status: "CERRADO" }),
+    }));
   });
 
   it("throws ApiError with backend message", async () => {
@@ -128,6 +159,22 @@ describe("strategic hierarchy APIs", () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(null, 204));
 
     await expect(keyResultsApi.remove(9)).resolves.toBeUndefined();
+  });
+
+  it("supports soft delete and recovery endpoints", async () => {
+    await strategicBetsApi.list(undefined, true);
+    await strategicBetsApi.setActive(7, false);
+    await goalsApi.list(undefined, true);
+    await goalsApi.setActive(3, true);
+    await objectivesApi.list({ includeArchived: true });
+    await objectivesApi.setArchived(8, true);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/strategic-bets?includeInactive=true`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/strategic-bets/7/active`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ active: false }) }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/goals?includeInactive=true`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/goals/3/active`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ active: true }) }));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/objectives?includeArchived=true`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(6, `${baseUrl}/objectives/8/archived`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ archived: true }) }));
   });
 
   it("falls back to status when strategic error JSON cannot be read", async () => {
