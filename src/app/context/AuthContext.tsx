@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-export type Rol = "admin" | "user";
+export type Rol = "admin" | "manager" | "contributor";
 
 export interface UsuarioActual {
   id: string;
@@ -13,6 +13,7 @@ export interface UsuarioActual {
   roles?: string[];
   permissions?: string[];
   capabilities?: string[];
+  expiresAt?: number;
 }
 
 interface AuthContextType {
@@ -22,6 +23,7 @@ interface AuthContextType {
 }
 
 const SESSION_KEY = "sgp_session_user";
+const TOKEN_KEY = "sgp_access_token";
 const COMPUTING_DEPARTMENT = "Departamento de Computación y Sistemas inteligentes.";
 
 function migrateLegacyDemoUser(user: UsuarioActual): UsuarioActual {
@@ -53,13 +55,23 @@ function migrateLegacyDemoUser(user: UsuarioActual): UsuarioActual {
 
 function normalizeRole(role: unknown): Rol {
   const value = String(role ?? "").trim().toLowerCase();
-  return ["admin", "administrador", "role_admin"].includes(value) ? "admin" : "user";
+  if (["admin", "administrador", "role_admin"].includes(value)) return "admin";
+  if (["manager", "gestor", "director", "decano", "jefe", "user", "usuario", "role_manager"].includes(value)) return "manager";
+  return "contributor";
 }
 
 function readSession(): UsuarioActual | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? migrateLegacyDemoUser(JSON.parse(raw) as UsuarioActual) : null;
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as UsuarioActual;
+    if (stored.expiresAt && stored.expiresAt <= Date.now()) {
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+      return null;
+    }
+    const token = sessionStorage.getItem(TOKEN_KEY) ?? stored.token;
+    return migrateLegacyDemoUser({ ...stored, token: token ?? undefined });
   } catch {
     return null;
   }
@@ -77,26 +89,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Inicializar desde sessionStorage → recarga no borra la sesión
   const [usuario, setUsuario] = useState<UsuarioActual | null>(readSession);
 
-  const login = (user: UsuarioActual) => {
+  const login = useCallback((user: UsuarioActual) => {
     const normalizedUser = migrateLegacyDemoUser(user);
     setUsuario(normalizedUser);
     try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(normalizedUser));
+      const { token: _token, ...safeSession } = normalizedUser;
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(safeSession));
       if (normalizedUser.token) {
-        sessionStorage.setItem("sgp_access_token", normalizedUser.token);
+        sessionStorage.setItem(TOKEN_KEY, normalizedUser.token);
       } else {
-        sessionStorage.removeItem("sgp_access_token");
+        sessionStorage.removeItem(TOKEN_KEY);
       }
     } catch { /* ignore */ }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUsuario(null);
     try {
       sessionStorage.removeItem(SESSION_KEY);
-      sessionStorage.removeItem("sgp_access_token");
+      sessionStorage.removeItem(TOKEN_KEY);
     } catch { /* ignore */ }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!usuario?.expiresAt) return;
+    const remaining = usuario.expiresAt - Date.now();
+    if (remaining <= 0) {
+      logout();
+      return;
+    }
+    const timer = window.setTimeout(logout, remaining);
+    return () => window.clearTimeout(timer);
+  }, [logout, usuario?.expiresAt]);
 
   return (
     <AuthContext.Provider value={{ usuario, login, logout }}>

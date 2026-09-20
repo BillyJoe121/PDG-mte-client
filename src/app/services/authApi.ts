@@ -21,11 +21,13 @@ export interface AuthMeResponse {
 
 const backendRoleToLocalRole: Record<string, Rol> = {
   ADMIN: "admin",
-  USER: "user",
-  DECANO: "user",
-  DIRECTOR_ESCUELA: "user",
-  JEFE_DPTO: "user",
-  PROFESOR: "user",
+  MANAGER: "manager",
+  CONTRIBUTOR: "contributor",
+  USER: "manager",
+  DECANO: "manager",
+  DIRECTOR_ESCUELA: "manager",
+  JEFE_DPTO: "manager",
+  PROFESOR: "contributor",
 };
 
 export const authApi = {
@@ -65,7 +67,10 @@ export function normalizeAuthMe(
 }
 
 function normalizeFallbackRole(role?: string): Rol {
-  return role === "admin" || role === "administrador" ? "admin" : "user";
+  const normalizedRole = role?.trim().toLowerCase();
+  if (normalizedRole === "admin" || normalizedRole === "administrador") return "admin";
+  if (["manager", "gestor", "director", "decano", "jefe", "user", "usuario"].includes(normalizedRole ?? "")) return "manager";
+  return "contributor";
 }
 
 function toLocalRole(roles: string[]) {

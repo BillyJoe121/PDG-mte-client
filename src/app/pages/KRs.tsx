@@ -23,7 +23,7 @@ export function KRs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
-  const canEdit = usuario?.rol === "admin" || usuario?.rol === "user";
+  const canEdit = usuario?.rol === "admin" || usuario?.rol === "manager";
   const [loading, setLoading] = useState(true);
   const [objectives, setObjectives] = useState<ObjectiveCard[]>([]);
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");

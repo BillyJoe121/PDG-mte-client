@@ -42,7 +42,7 @@ const emptyKr = (): KrForm => ({
 export function NuevoOKR() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const canCreate = usuario?.rol === "admin" || usuario?.rol === "user";
+  const canCreate = usuario?.rol === "admin" || usuario?.rol === "manager";
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);

@@ -2,6 +2,7 @@ import type {
   AcademicPeriod,
   MeasurementUnit,
 } from "./catalogsApi";
+import { getSessionAccessToken } from "./authToken";
 
 export type StrategicStatus = "ACTIVA" | "INACTIVA";
 export type ObjectiveStatus = "BORRADOR" | "ACTIVO" | "CERRADO" | "ARCHIVADO";
@@ -165,6 +166,16 @@ export interface StrategicHierarchyNode {
 export interface Department {
   id: number;
   name: string;
+  description?: string;
+  schoolId?: number;
+  schoolName?: string;
+  externalDepartmentId?: number | null;
+}
+
+export interface School {
+  id: number;
+  name: string;
+  description?: string;
 }
 
 export class ApiError extends Error {
@@ -180,20 +191,8 @@ export class ApiError extends Error {
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
 const SESSION_KEY = "sgp_session_user";
 
-function getStoredToken() {
-  try {
-    const storageHost = typeof window === "undefined" ? globalThis : window;
-    return storageHost.sessionStorage?.getItem("sgp_access_token")
-      ?? storageHost.localStorage?.getItem("sgp_access_token")
-      ?? storageHost.localStorage?.getItem("token")
-      ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getStoredToken();
+  const token = getSessionAccessToken();
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
   if (token && !headers.has("Authorization")) {
@@ -380,6 +379,19 @@ export const hierarchyApi = {
 
 export const departmentsApi = {
   list: () => api<Department[]>("/departments"),
+  create: (request: Omit<Department, "id" | "schoolName">) => api<Department>("/departments", {
+    method: "POST",
+    body: JSON.stringify(request),
+  }),
+  update: (id: number, request: Omit<Department, "id" | "schoolName">) => api<Department>(`/departments/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(request),
+  }),
+  remove: (id: number) => api<void>(`/departments/${id}`, { method: "DELETE" }),
+};
+
+export const schoolsApi = {
+  list: () => api<School[]>("/schools"),
 };
 
 export type { AcademicPeriod, MeasurementUnit };

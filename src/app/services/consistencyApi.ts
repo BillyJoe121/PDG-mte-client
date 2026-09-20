@@ -1,5 +1,6 @@
 import { api } from "./strategicApi";
 import { qs } from "./reportsApi";
+import { getSessionAccessToken } from "./authToken";
 
 export type ConsistencySeverity = "ALTA" | "MEDIA" | "BAJA";
 export type ConsistencyModule = "OKRS" | "INDICADORES" | "PROYECTOS";
@@ -43,24 +44,12 @@ export interface ConsistencyFilters {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
 
-function getStoredToken() {
-  try {
-    const storageHost = typeof window === "undefined" ? globalThis : window;
-    return storageHost.sessionStorage?.getItem("sgp_access_token")
-      ?? storageHost.localStorage?.getItem("sgp_access_token")
-      ?? storageHost.localStorage?.getItem("token")
-      ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export const consistencyApi = {
   check: (filters: ConsistencyFilters = {}) =>
     api<ConsistencyResponse>(`/consistency/check${qs(filters)}`),
 
   async exportCsv(filters: ConsistencyFilters = {}) {
-    const token = getStoredToken();
+    const token = getSessionAccessToken();
     const res = await fetch(`${API_BASE_URL}/consistency/check/export.csv${qs(filters)}`, {
       cache: "no-store",
       credentials: "omit",

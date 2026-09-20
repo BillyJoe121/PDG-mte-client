@@ -9,7 +9,10 @@ export type PermissionAction =
   | "okrs.view"
   | "okrs.manage"
   | "proyectos.view"
+  | "proyectos.create"
   | "proyectos.manage"
+  | "proyectos.progress"
+  | "proyectos.link"
   | "reportes.view"
   | "consistencia.view"
   | "usuarios.manage"
@@ -25,19 +28,37 @@ const rolePermissions: Record<Rol, PermissionAction[]> = {
     "okrs.view",
     "okrs.manage",
     "proyectos.view",
+    "proyectos.create",
     "proyectos.manage",
+    "proyectos.progress",
+    "proyectos.link",
     "reportes.view",
     "consistencia.view",
     "usuarios.manage",
     "auditoria.view",
   ],
-  user: [
+  manager: [
+    "dashboard.view",
+    "presentacion.view",
+    "jerarquia.view",
+    "jerarquia.manage",
+    "okrs.view",
+    "okrs.manage",
+    "proyectos.view",
+    "proyectos.create",
+    "proyectos.manage",
+    "proyectos.progress",
+    "proyectos.link",
+    "reportes.view",
+    "consistencia.view",
+  ],
+  contributor: [
     "dashboard.view",
     "presentacion.view",
     "jerarquia.view",
     "okrs.view",
-    "okrs.manage",
-    "reportes.view",
+    "proyectos.view",
+    "proyectos.progress",
   ],
 };
 
@@ -78,16 +99,28 @@ const actionAliases: Record<PermissionAction, string[]> = {
     "manageKeyResults",
   ],
   "proyectos.view": ["proyectos.view", "projects_view", "project_view", "view_projects", "viewProjects"],
+  "proyectos.create": ["proyectos.create", "projects_create", "project_create", "create_projects", "createProjects"],
   "proyectos.manage": [
     "proyectos.manage",
     "projects_manage",
     "project_manage",
     "manage_projects",
-    "createProjects",
     "updateProjects",
-    "registerProjectProgress",
     "changeProjectStatus",
     "syncExternalProjects",
+  ],
+  "proyectos.progress": [
+    "proyectos.progress",
+    "projects_progress",
+    "project_progress",
+    "register_project_progress",
+    "registerProjectProgress",
+  ],
+  "proyectos.link": [
+    "proyectos.link",
+    "projects_link",
+    "project_link",
+    "link_projects",
     "linkProjectsToKeyResults",
   ],
   "reportes.view": ["reportes.view", "reports_view", "report_view", "view_reports", "export_reports", "viewReports"],

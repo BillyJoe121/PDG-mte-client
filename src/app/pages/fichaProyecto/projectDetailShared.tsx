@@ -58,12 +58,12 @@ export function availableStatusTransitions(role: Rol | undefined, current: Proje
   if (role === "admin") {
     return (Object.keys(STATUS_LABELS) as ProjectStatus[]).filter((status) => status !== current);
   }
-  if (role !== "admin") return [];
+  if (role !== "manager") return [];
   const transitions: Record<ProjectStatus, ProjectStatus[]> = {
-    BORRADOR: ["ACTIVO", "SUSPENDIDO", "ARCHIVADO"],
-    ACTIVO: ["FINALIZADO", "SUSPENDIDO", "ARCHIVADO"],
-    SUSPENDIDO: ["ACTIVO", "ARCHIVADO"],
-    FINALIZADO: ["ARCHIVADO"],
+    BORRADOR: ["ACTIVO", "SUSPENDIDO"],
+    ACTIVO: ["FINALIZADO", "SUSPENDIDO"],
+    SUSPENDIDO: ["ACTIVO"],
+    FINALIZADO: [],
     ARCHIVADO: [],
   };
   return transitions[current];

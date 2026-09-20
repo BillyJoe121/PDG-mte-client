@@ -6,7 +6,7 @@ const baseUser: UsuarioActual = {
   id: 'U1',
   nombre: 'Usuario Base',
   correo: 'usuario@example.com',
-  rol: 'user',
+  rol: 'manager',
   departamento: 'Ingenieria',
   iniciales: 'UB',
 };
@@ -22,20 +22,33 @@ describe('permissions', () => {
     expect(hasPermission({ ...baseUser, rol: 'admin' }, 'proyectos.manage')).toBe(true);
   });
 
-  it('limits user to reports and objective/key-result management', () => {
+  it('allows managers to manage strategy and projects without platform administration', () => {
     expect(hasPermission(baseUser, 'dashboard.view')).toBe(true);
     expect(hasPermission(baseUser, 'jerarquia.view')).toBe(true);
     expect(hasPermission(baseUser, 'okrs.manage')).toBe(true);
     expect(hasPermission(baseUser, 'reportes.view')).toBe(true);
     expect(hasPermission(baseUser, 'catalogos.manage')).toBe(false);
-    expect(hasPermission(baseUser, 'proyectos.view')).toBe(false);
+    expect(hasPermission(baseUser, 'proyectos.view')).toBe(true);
+    expect(hasPermission(baseUser, 'proyectos.create')).toBe(true);
     expect(hasPermission(baseUser, 'usuarios.manage')).toBe(false);
+  });
+
+  it('limits contributors to consultation and project progress', () => {
+    const contributor = { ...baseUser, rol: 'contributor' as const };
+
+    expect(hasPermission(contributor, 'dashboard.view')).toBe(true);
+    expect(hasPermission(contributor, 'proyectos.view')).toBe(true);
+    expect(hasPermission(contributor, 'proyectos.progress')).toBe(true);
+    expect(hasPermission(contributor, 'proyectos.create')).toBe(false);
+    expect(hasPermission(contributor, 'proyectos.manage')).toBe(false);
+    expect(hasPermission(contributor, 'proyectos.link')).toBe(false);
+    expect(hasPermission(contributor, 'okrs.manage')).toBe(false);
   });
 
   it('uses backend capabilities when they are present', () => {
     const userWithCapabilities = {
       ...baseUser,
-      rol: 'user' as const,
+      rol: 'manager' as const,
       capabilities: ['USERS_MANAGE'],
     };
 
@@ -50,6 +63,8 @@ describe('permissions', () => {
   it('matches camelCase capabilities returned by auth/me', () => {
     expect(hasPermission({ ...baseUser, capabilities: ['viewDashboard'] }, 'dashboard.view')).toBe(true);
     expect(hasPermission({ ...baseUser, capabilities: ['manageCatalogs'] }, 'catalogos.manage')).toBe(true);
+    expect(hasPermission({ ...baseUser, capabilities: ['registerProjectProgress'] }, 'proyectos.progress')).toBe(true);
+    expect(hasPermission({ ...baseUser, capabilities: ['registerProjectProgress'] }, 'proyectos.create')).toBe(false);
   });
 
   it('does not apply legacy department restrictions to user', () => {

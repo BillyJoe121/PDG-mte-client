@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useAuth } from "../context/AuthContext";
+import { hasPermission } from "../security/permissions";
 import type { AcademicPeriod } from "../services/catalogsApi";
 import type { Department, ObjectiveCard } from "../services/strategicApi";
 import { invalidateScreenDataCache, loadProjectDetailScreen } from "../services/screenDataCache";
@@ -151,9 +152,10 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
     );
   }
 
-  const canRegisterProgress = project.status === "ACTIVO";
-  const canManageLinks = usuario?.rol === "admin";
-  const statusTransitions = availableStatusTransitions(usuario?.rol, project.status);
+  const canRegisterProgress = project.status === "ACTIVO" && hasPermission(usuario, "proyectos.progress");
+  const canManageProject = hasPermission(usuario, "proyectos.manage");
+  const canManageLinks = hasPermission(usuario, "proyectos.link");
+  const statusTransitions = canManageProject ? availableStatusTransitions(usuario?.rol, project.status) : [];
   const progressColor = getProgressColor(project.globalProgress);
   const tabs = [
     { key: "resumen", label: "Resumen", count: null },
@@ -256,7 +258,7 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
                   </div>
                 )}
 
-                {canManageLinks && (
+                {canManageProject && (
                   <div className="flex flex-wrap items-center gap-2" style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}>
                     <button onClick={() => setShowResponsiblesModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
                       <Users size={13} /> Responsables

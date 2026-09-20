@@ -3,4 +3,5 @@ dist/
 coverage/
 playwright-report/
 test-results/
+graphify-out/
 .env.local

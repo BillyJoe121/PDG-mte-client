@@ -74,6 +74,12 @@ Compilar para produccion:
 npm run build
 ```
 
+Compilar y verificar los presupuestos de rendimiento:
+
+```bash
+npm run build:verified
+```
+
 Previsualizar localmente el build generado:
 
 ```bash
@@ -132,6 +138,17 @@ Reporte HTML de Playwright:
 playwright-report/index.html
 ```
 
+## Inicio de sesión institucional
+
+El cliente obtiene la configuración pública desde `GET /api/v1/auth/sso/config`; las URLs y credenciales del proveedor se configuran únicamente en el backend. El flujo usa Authorization Code + PKCE S256:
+
+1. El navegador genera `state`, verificador y desafío PKCE de un solo uso.
+2. El proveedor retorna a `/auth/callback`.
+3. El backend intercambia el código con el redirect fijo configurado.
+4. El cliente valida el bearer en `/api/v1/auth/me` antes de abrir la sesión.
+
+El access token vive solo en `sessionStorage`, se elimina al cerrar sesión o expirar y nunca se acepta desde `localStorage`. MTE no almacena contraseñas ni refresh tokens. El acceso demo continúa disponible cuando el backend opera en `MTE_AUTH_MODE=mock`.
+
 Ejecutar cobertura y pruebas e2e en secuencia:
 
 ```bash
@@ -147,6 +164,7 @@ npm run test:all
 | `npx playwright install` | Instala navegadores requeridos por Playwright. |
 | `npm run dev` | Levanta el servidor de desarrollo. |
 | `npm run build` | Genera el build de produccion en `dist/`. |
+| `npm run build:verified` | Genera el build y valida presupuestos gzip. |
 | `npx vite preview` | Sirve localmente el build generado. |
 | `npm test` | Ejecuta Vitest en modo watch. |
 | `npm run test:run` | Ejecuta Vitest una sola vez. |

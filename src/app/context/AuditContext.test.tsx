@@ -49,7 +49,7 @@ describe('AuditContext', () => {
       id: 'U1',
       nombre: 'Hugo Arboleda',
       correo: 'hugo.arboleda@icesi.edu.co',
-      rol: 'user',
+      rol: 'manager',
       departamento: 'Departamento de Computacion y Sistemas inteligentes.',
       iniciales: "HA",
     }));
@@ -67,7 +67,7 @@ describe('AuditContext', () => {
     expect(getAudit().entries[0]).toMatchObject({
       fecha: '2026-04-14T12:00:00.000Z',
       usuario: 'Hugo Arboleda',
-      rol: 'user',
+      rol: 'manager',
       modulo: 'OKRs',
       resultado: 'ok',
     });

@@ -1,438 +1,259 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  Plus, Search, Edit2, UserX, UserCheck, Download, ShieldCheck,
-  MoreVertical, Mail, Calendar, UploadCloud
-} from "lucide-react";
-import { usuarios as usuariosSeed, Usuario, RolUsuario, getLabelRol, DEPARTAMENTOS } from "../data/mockData";
+import { Building2, Download, Edit2, Loader2, Plus, Search, ShieldCheck, Trash2, UserCheck, UserX, Users } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useAudit } from "../context/AuditContext";
+import { hasPermission } from "../security/permissions";
+import { directoryUsersApi, type DirectoryAccessRole, type DirectoryUser, type DirectoryUserRequest } from "../services/peopleApi";
+import { departmentsApi, schoolsApi, type Department, type School } from "../services/strategicApi";
 import { downloadCSV, getDateStamp } from "../utils/exportUtils";
 
-const COLORS = {
-  blue: "#5454E9",
-  green: "#4CB979",
-  orange: "#E9683B",
+const ROLE_LABELS: Record<DirectoryAccessRole, string> = {
+  ADMIN: "Administrador",
+  MANAGER: "Gestor estratégico",
+  CONTRIBUTOR: "Colaborador",
 };
 
-const ROL_COLORS: Record<RolUsuario, { bg: string; color: string }> = {
-  admin: { bg: "#FEF3F2", color: "#991B1B" },
-  user: { bg: "#EEF2FF", color: "#3730A3" },
+const ROLE_STYLES: Record<DirectoryAccessRole, { background: string; color: string }> = {
+  ADMIN: { background: "#FEF2F2", color: "#991B1B" },
+  MANAGER: { background: "#EEF2FF", color: "#3730A3" },
+  CONTRIBUTOR: { background: "#ECFDF5", color: "#065F46" },
 };
 
-function getInitials(nombre: string) {
-  return nombre.split(" ").map((part) => part[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+function message(error: unknown) {
+  return error instanceof Error ? error.message : "No se pudo completar la operación.";
 }
 
-function UserModal({
-  user,
-  onClose,
-  onSave,
-  mode,
-}: {
-  user: Usuario | null;
-  onClose: () => void;
-  onSave: (user: Partial<Usuario>) => void;
-  mode: "edit" | "create";
-}) {
-  const [formData, setFormData] = useState<Partial<Usuario>>(
-    user || { nombre: "", correo: "", rol: "user", departamento: "DCSI", estado: "activo" }
-  );
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={onClose}>
-      <div className="w-full max-w-md overflow-hidden rounded-lg bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <div style={{ backgroundColor: "#000", padding: "20px 24px" }}>
-          <div className="flex items-center justify-between">
-            <h2 style={{ color: "#fff", fontSize: "16px", fontWeight: 800 }}>
-              {mode === "create" ? "Nuevo Usuario" : "Editar Usuario"}
-            </h2>
-            <button onClick={onClose} style={{ color: "rgba(255,255,255,0.6)", fontSize: "20px" }}>x</button>
-          </div>
-        </div>
-
-        <div className="space-y-4 p-6">
-          {[
-            { label: "Nombre completo", key: "nombre", type: "text", placeholder: "Ej: Maria Claudia Ospina" },
-            { label: "Correo institucional", key: "correo", type: "email", placeholder: "usuario@icesi.edu.co" },
-          ].map((field) => (
-            <div key={field.key}>
-              <label style={{ fontSize: "11px", fontWeight: 700, color: "#000", display: "block", marginBottom: 5 }}>
-                {field.label} *
-              </label>
-              <input
-                type={field.type}
-                value={(formData as Record<string, any>)[field.key] || ""}
-                onChange={(event) => setFormData({ ...formData, [field.key]: event.target.value })}
-                placeholder={field.placeholder}
-                style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", outline: "none", boxSizing: "border-box" }}
-              />
-            </div>
-          ))}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label style={{ fontSize: "11px", fontWeight: 700, color: "#000", display: "block", marginBottom: 5 }}>Rol *</label>
-              <select
-                value={formData.rol}
-                onChange={(event) => setFormData({ ...formData, rol: event.target.value as RolUsuario })}
-                style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", boxSizing: "border-box" }}
-              >
-                <option value="user">Usuario</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: "11px", fontWeight: 700, color: "#000", display: "block", marginBottom: 5 }}>Departamento</label>
-              <select
-                value={formData.departamento}
-                onChange={(event) => setFormData({ ...formData, departamento: event.target.value })}
-                style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", boxSizing: "border-box" }}
-              >
-                {DEPARTAMENTOS.map((depto) => <option key={depto} value={depto}>{depto}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: "11px", fontWeight: 700, color: "#000", display: "block", marginBottom: 5 }}>Estado</label>
-            <div className="flex items-center gap-4">
-              {["activo", "inactivo"].map((estado) => (
-                <label key={estado} className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="radio"
-                    name="estado"
-                    value={estado}
-                    checked={formData.estado === estado}
-                    onChange={() => setFormData({ ...formData, estado: estado as "activo" | "inactivo" })}
-                    style={{ accentColor: "#5454E9" }}
-                  />
-                  <span style={{ fontSize: "12px", textTransform: "capitalize" }}>{estado}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: "1px solid #E5E7EB" }}>
-          <button onClick={onClose} className="rounded border px-4 py-2 hover:bg-gray-50" style={{ fontSize: "12px", fontWeight: 600 }}>
-            Cancelar
-          </button>
-          <button
-            onClick={() => onSave(formData)}
-            className="rounded px-4 py-2 hover:opacity-90"
-            style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: "12px", fontWeight: 700 }}
-          >
-            {mode === "create" ? "Crear Usuario" : "Guardar Cambios"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+function initials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 }
 
 export function Usuarios() {
   const { usuario } = useAuth();
-  const { entries, logAudit } = useAudit();
-  const [users, setUsers] = useState<Usuario[]>(usuariosSeed);
+  const [users, setUsers] = useState<DirectoryUser[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [tab, setTab] = useState<"users" | "departments">("users");
   const [search, setSearch] = useState("");
-  const [filterRol, setFilterRol] = useState("todos");
-  const [filterEstado, setFilterEstado] = useState("todos");
-  const [filterDepto, setFilterDepto] = useState("todos");
-  const [modal, setModal] = useState<{ open: boolean; user: Usuario | null; mode: "edit" | "create" }>({
-    open: false, user: null, mode: "create",
-  });
-  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [role, setRole] = useState<"ALL" | DirectoryAccessRole>("ALL");
+  const [departmentId, setDepartmentId] = useState("ALL");
+  const [active, setActive] = useState("ALL");
+  const [editingUser, setEditingUser] = useState<DirectoryUser | null | undefined>(undefined);
+  const [editingDepartment, setEditingDepartment] = useState<Department | null | undefined>(undefined);
 
-  if (usuario?.rol !== "admin") {
-    return (
-      <div className="flex h-full flex-col items-center justify-center py-20">
-        <ShieldCheck size={48} color="#E5E7EB" className="mb-4" />
-        <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#374151" }}>Acceso Restringido</h2>
-        <p style={{ fontSize: "13px", color: "#9CA3AF", marginTop: 6 }}>
-          Solo el Administrador del sistema puede gestionar usuarios.
-        </p>
-      </div>
-    );
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [nextUsers, nextDepartments, nextSchools] = await Promise.all([
+        directoryUsersApi.list(),
+        departmentsApi.list(),
+        schoolsApi.list(),
+      ]);
+      setUsers(nextUsers);
+      setDepartments(nextDepartments);
+      setSchools(nextSchools);
+    } catch (loadError) {
+      setError(message(loadError));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const visibleUsers = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return users.filter((entry) => {
+      if (term && !entry.name.toLowerCase().includes(term) && !entry.email.toLowerCase().includes(term)) return false;
+      if (role !== "ALL" && entry.accessRole !== role) return false;
+      if (departmentId !== "ALL" && entry.departmentId !== Number(departmentId)) return false;
+      if (active !== "ALL" && entry.active !== (active === "true")) return false;
+      return true;
+    });
+  }, [active, departmentId, role, search, users]);
+
+  if (!hasPermission(usuario, "usuarios.manage")) {
+    return <Restricted />;
   }
 
-  const filtered = users
-    .filter((u) => filterRol === "todos" || u.rol === filterRol)
-    .filter((u) => filterEstado === "todos" || u.estado === filterEstado)
-    .filter((u) => filterDepto === "todos" || u.departamento === filterDepto)
-    .filter((u) => {
-      const q = search.trim().toLowerCase();
-      return !q || u.nombre.toLowerCase().includes(q) || u.correo.toLowerCase().includes(q);
-    });
-
-  const stats = {
-    total: users.length,
-    activos: users.filter((u) => u.estado === "activo").length,
-    inactivos: users.filter((u) => u.estado === "inactivo").length,
-    administradores: users.filter((u) => u.rol === "admin").length,
-  };
-
-  const handleSave = (formUser: Partial<Usuario>) => {
-    if (!formUser.nombre?.trim() || !formUser.correo?.trim() || !formUser.rol) {
-      toast.error("Completa nombre, correo y rol.");
-      return;
+  const setUserActive = async (entry: DirectoryUser) => {
+    try {
+      const updated = await directoryUsersApi.setActive(entry.id, !entry.active);
+      setUsers((current) => current.map((user) => user.id === updated.id ? updated : user));
+      toast.success(updated.active ? "Usuario activado" : "Usuario desactivado");
+    } catch (actionError) {
+      toast.error(message(actionError));
     }
+  };
 
-    if (modal.mode === "create") {
-      const nextNumber = Math.max(...users.map((u) => Number(u.id.replace("U", ""))).filter(Number.isFinite), 0) + 1;
-      const newUser: Usuario = {
-        id: `U${nextNumber}`,
-        nombre: formUser.nombre.trim(),
-        correo: formUser.correo.trim(),
-        rol: formUser.rol,
-        departamento: formUser.departamento || "DCSI",
-        estado: formUser.estado || "activo",
-        ultimoAcceso: getDateStamp(),
-      };
-      setUsers((current) => [newUser, ...current]);
-      logAudit({
-        modulo: "Usuarios",
-        accion: "Creacion",
-        entidad: newUser.nombre,
-        entidadId: newUser.id,
-        detalle: `Usuario creado con rol ${newUser.rol}.`,
-        resultado: "ok",
-      });
-      toast.success("Usuario creado");
-    } else if (modal.user) {
-      const updatedUser = { ...modal.user, ...formUser } as Usuario;
-      setUsers((current) => current.map((u) => u.id === updatedUser.id ? updatedUser : u));
-      logAudit({
-        modulo: "Usuarios",
-        accion: "Edicion",
-        entidad: updatedUser.nombre,
-        entidadId: updatedUser.id,
-        detalle: `Se actualizaron datos del usuario con rol ${updatedUser.rol}.`,
-        resultado: "ok",
-      });
-      toast.success("Usuario actualizado");
+  const removeUser = async (entry: DirectoryUser) => {
+    if (!window.confirm(`¿Eliminar a ${entry.name}? Esta acción se bloqueará si conserva responsabilidades.`)) return;
+    try {
+      await directoryUsersApi.remove(entry.id);
+      setUsers((current) => current.filter((user) => user.id !== entry.id));
+      toast.success("Usuario eliminado");
+    } catch (actionError) {
+      toast.error(message(actionError));
     }
-
-    setModal({ open: false, user: null, mode: "create" });
   };
 
-  const toggleUserStatus = (target: Usuario) => {
-    const nextStatus = target.estado === "activo" ? "inactivo" : "activo";
-    setUsers((current) => current.map((u) => u.id === target.id ? { ...u, estado: nextStatus } : u));
-    setMenuOpen(null);
-    logAudit({
-      modulo: "Usuarios",
-      accion: nextStatus === "activo" ? "Activacion" : "Desactivacion",
-      entidad: target.nombre,
-      entidadId: target.id,
-      detalle: `Estado cambiado de ${target.estado} a ${nextStatus}.`,
-      resultado: "ok",
-    });
-    toast.success(nextStatus === "activo" ? "Usuario activado" : "Usuario desactivado");
+  const removeDepartment = async (entry: Department) => {
+    if (!window.confirm(`¿Eliminar el departamento ${entry.name}?`)) return;
+    try {
+      await departmentsApi.remove(entry.id);
+      setDepartments((current) => current.filter((department) => department.id !== entry.id));
+      toast.success("Departamento eliminado");
+    } catch (actionError) {
+      toast.error(message(actionError));
+    }
   };
 
-  const exportUsers = () => {
-    downloadCSV(filtered.map((u) => ({
-      ID: u.id,
-      Nombre: u.nombre,
-      Correo: u.correo,
-      Rol: getLabelRol(u.rol),
-      Departamento: u.departamento,
-      Estado: u.estado,
-      UltimoAcceso: u.ultimoAcceso,
-    })), `Usuarios_MTE_${getDateStamp()}`);
-    logAudit({
-      modulo: "Usuarios",
-      accion: "Exportacion",
-      entidad: "Listado de usuarios",
-      detalle: `${filtered.length} usuarios exportados.`,
-      resultado: "info",
-    });
-  };
+  const exportUsers = () => downloadCSV(visibleUsers.map((entry) => ({
+    ID: entry.id,
+    Nombre: entry.name,
+    Correo: entry.email,
+    Rol: ROLE_LABELS[entry.accessRole],
+    Departamento: entry.departmentName,
+    Estado: entry.active ? "Activo" : "Inactivo",
+    UltimoAcceso: entry.lastAccessAt ?? "Sin registro",
+  })), `Usuarios_MTE_${getDateStamp()}`);
 
   return (
-    <div className="p-6">
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          { label: "Total Usuarios", value: stats.total, color: COLORS.blue },
-          { label: "Activos", value: stats.activos, color: COLORS.green },
-          { label: "Inactivos", value: stats.inactivos, color: COLORS.orange },
-          { label: "Administradores", value: stats.administradores, color: "#7C3AED" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-lg bg-white p-4" style={{ border: "1.5px solid #E5E7EB" }}>
-            <p style={{ fontSize: "24px", fontWeight: 800, color: stat.color }}>{stat.value}</p>
-            <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 2 }}>{stat.label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <div className="flex min-w-[200px] flex-1 items-center gap-2 rounded-md px-3 py-2" style={{ border: "1.5px solid #000", maxWidth: 280 }}>
-          <Search size={14} color="#9CA3AF" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por nombre o correo..."
-            style={{ border: "none", outline: "none", fontSize: "12px", flex: 1, backgroundColor: "transparent" }}
-          />
+    <div className="space-y-5 p-4 sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#5454E9]">Directorio institucional</p>
+          <h2 className="mt-1 text-xl font-extrabold text-black">Usuarios, departamentos y responsables</h2>
+          <p className="mt-1 text-xs text-gray-500">Administra identidades persistidas que también pueden asignarse como responsables de iniciativas.</p>
         </div>
-
-        <select value={filterRol} onChange={(event) => setFilterRol(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
-          <option value="todos">Todos los roles</option>
-          <option value="admin">Administrador</option>
-          <option value="user">Usuario</option>
-        </select>
-
-        <select value={filterEstado} onChange={(event) => setFilterEstado(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
-          <option value="todos">Todos los estados</option>
-          <option value="activo">Activo</option>
-          <option value="inactivo">Inactivo</option>
-        </select>
-
-        <select value={filterDepto} onChange={(event) => setFilterDepto(event.target.value)} style={{ border: "1.5px solid #000", borderRadius: 6, padding: "8px 10px", fontSize: "12px", fontWeight: 700, backgroundColor: "#fff" }}>
-          <option value="todos">Todos los deptos.</option>
-          {DEPARTAMENTOS.map((depto) => <option key={depto} value={depto}>{depto}</option>)}
-        </select>
-
-        <div className="flex-1" />
-
-        <button
-          onClick={() => {
-            toast.info("Sincronizacion simulada con directorio institucional.");
-            logAudit({ modulo: "Usuarios", accion: "Sincronizacion", entidad: "Directorio institucional", detalle: "Accion mock de importacion desde directorio.", resultado: "info" });
-          }}
-          className="flex items-center gap-1 rounded border px-3 py-2 hover:bg-gray-50"
-          style={{ fontSize: "11px", fontWeight: 700 }}
-        >
-          <UploadCloud size={13} /> Importar
-        </button>
-        <button onClick={exportUsers} className="flex items-center gap-1 rounded border px-3 py-2 hover:bg-gray-50" style={{ fontSize: "11px", fontWeight: 700 }}>
-          <Download size={13} /> Exportar
-        </button>
-        <button
-          onClick={() => setModal({ open: true, user: null, mode: "create" })}
-          className="flex items-center gap-2 rounded-lg px-4 py-2 hover:opacity-90"
-          style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: "12px", fontWeight: 700 }}
-        >
-          <Plus size={14} /> Nuevo Usuario
-        </button>
-      </div>
-
-      <div className="overflow-hidden rounded-lg bg-white" style={{ border: "1.5px solid #E5E7EB" }}>
-        <table className="w-full" style={{ borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid #1F2937", backgroundColor: "#000" }}>
-              {["Usuario", "Correo", "Rol", "Departamento", "Estado", "Ultimo acceso", ""].map((header) => (
-                <th key={header} style={{ textAlign: "left", padding: "12px 14px", fontSize: "10px", fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((u, index) => {
-              const rolColors = ROL_COLORS[u.rol];
-              return (
-                <tr key={u.id} style={{ borderBottom: "1px solid #F3F4F6", backgroundColor: u.estado === "inactivo" ? "#FAFAFA" : index % 2 === 0 ? "#fff" : "#FAFAFA", opacity: u.estado === "inactivo" ? 0.7 : 1 }}>
-                  <td style={{ padding: "12px 14px" }}>
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-shrink-0 items-center justify-center rounded-full" style={{ width: 36, height: 36, backgroundColor: u.estado === "inactivo" ? "#E5E7EB" : COLORS.blue, color: "#fff", fontSize: "11px", fontWeight: 700 }}>
-                        {getInitials(u.nombre)}
-                      </div>
-                      <div>
-                        <p style={{ fontSize: "13px", fontWeight: 700, color: "#000" }}>{u.nombre}</p>
-                        <p style={{ fontSize: "10px", color: "#9CA3AF" }}>{u.id}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: "12px 14px" }}>
-                    <div className="flex items-center gap-1">
-                      <Mail size={11} color="#9CA3AF" />
-                      <span style={{ fontSize: "12px", color: "#374151" }}>{u.correo}</span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "12px 14px" }}>
-                    <span className="rounded px-2 py-1" style={{ backgroundColor: rolColors.bg, color: rolColors.color, fontSize: "10px", fontWeight: 700 }}>
-                      {getLabelRol(u.rol)}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 14px", fontSize: "12px", color: "#374151" }}>{u.departamento}</td>
-                  <td style={{ padding: "12px 14px" }}>
-                    <span className="flex w-fit items-center gap-1 rounded px-2 py-0.5" style={{ backgroundColor: u.estado === "activo" ? "#ECFDF5" : "#F9FAFB", color: u.estado === "activo" ? "#065F46" : "#9CA3AF", fontSize: "10px", fontWeight: 700, textTransform: "capitalize" }}>
-                      {u.estado === "activo" ? <UserCheck size={10} /> : <UserX size={10} />}
-                      {u.estado}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 14px" }}>
-                    <div className="flex items-center gap-1">
-                      <Calendar size={10} color="#9CA3AF" />
-                      <span style={{ fontSize: "11px", color: "#374151" }}>{u.ultimoAcceso}</span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "12px 14px" }}>
-                    <div className="relative">
-                      <button onClick={() => setMenuOpen(menuOpen === u.id ? null : u.id)} className="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100">
-                        <MoreVertical size={14} color="#9CA3AF" />
-                      </button>
-                      {menuOpen === u.id && (
-                        <div className="absolute right-0 top-8 z-20 overflow-hidden rounded shadow-lg" style={{ backgroundColor: "#fff", border: "1.5px solid #000", minWidth: 160 }}>
-                          <button
-                            onClick={() => { setModal({ open: true, user: u, mode: "edit" }); setMenuOpen(null); }}
-                            className="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
-                            style={{ fontSize: "12px", color: "#000" }}
-                          >
-                            <Edit2 size={12} /> Editar
-                          </button>
-                          <button
-                            onClick={() => toggleUserStatus(u)}
-                            className="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
-                            style={{ fontSize: "12px", color: u.estado === "activo" ? COLORS.orange : COLORS.green }}
-                          >
-                            {u.estado === "activo" ? <UserX size={12} /> : <UserCheck size={12} />}
-                            {u.estado === "activo" ? "Desactivar" : "Activar"}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
-          <div className="py-12 text-center">
-            <p style={{ fontSize: "14px", color: "#9CA3AF" }}>No se encontraron usuarios con los filtros aplicados.</p>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6 rounded-lg bg-white p-5" style={{ border: "1.5px solid #E5E7EB" }}>
-        <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#000", marginBottom: 12 }}>
-          Log de Auditoria Reciente
-        </h3>
-        <div className="space-y-2">
-          {entries.slice(0, 4).map((log) => (
-            <div key={log.id} className="flex items-center gap-4 rounded px-3 py-2" style={{ backgroundColor: "#F9FAFB", border: "1px solid #F3F4F6" }}>
-              <span className="flex-shrink-0 rounded px-1.5 py-0.5" style={{ backgroundColor: log.resultado === "bloqueado" ? "#FEF3F2" : "#EEF2FF", color: log.resultado === "bloqueado" ? COLORS.orange : COLORS.blue, fontSize: "9px", fontWeight: 700 }}>
-                {log.accion}
-              </span>
-              <p style={{ fontSize: "11px", color: "#374151", flex: 1 }}>{log.entidad}</p>
-              <p style={{ fontSize: "10px", color: "#9CA3AF", whiteSpace: "nowrap" }}>{log.usuario}</p>
-              <p style={{ fontSize: "10px", color: "#9CA3AF", whiteSpace: "nowrap" }}>{new Date(log.fecha).toLocaleString("es-CO")}</p>
-            </div>
-          ))}
+        <div className="flex rounded-lg border border-gray-200 bg-white p-1" role="tablist" aria-label="Secciones del directorio">
+          <TabButton active={tab === "users"} onClick={() => setTab("users")} icon={<Users size={14} />} label="Usuarios" />
+          <TabButton active={tab === "departments"} onClick={() => setTab("departments")} icon={<Building2 size={14} />} label="Departamentos" />
         </div>
       </div>
 
-      {modal.open && (
-        <UserModal
-          user={modal.user}
-          mode={modal.mode}
-          onClose={() => setModal({ open: false, user: null, mode: "create" })}
-          onSave={handleSave}
-        />
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+          <span>{error}</span>
+          <button onClick={() => void load()} className="font-bold underline">Reintentar</button>
+        </div>
       )}
+
+      {loading ? (
+        <div className="flex min-h-64 items-center justify-center rounded-lg border border-gray-200 bg-white" role="status">
+          <Loader2 className="animate-spin text-[#5454E9]" size={24} />
+          <span className="ml-3 text-sm font-semibold text-gray-600">Cargando directorio…</span>
+        </div>
+      ) : tab === "users" ? (
+        <section className="space-y-4" aria-label="Gestión de usuarios">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label="Usuarios" value={users.length} />
+            <Stat label="Activos" value={users.filter((entry) => entry.active).length} />
+            <Stat label="Gestores" value={users.filter((entry) => entry.accessRole === "MANAGER").length} />
+            <Stat label="Colaboradores" value={users.filter((entry) => entry.accessRole === "CONTRIBUTOR").length} />
+          </div>
+
+          <div className="flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white p-3">
+            <label className="flex min-w-52 flex-1 items-center gap-2 rounded-md border border-gray-300 px-3">
+              <Search size={14} className="text-gray-400" />
+              <span className="sr-only">Buscar usuarios</span>
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o correo" className="h-9 min-w-0 flex-1 border-0 text-xs outline-none" />
+            </label>
+            <select value={role} onChange={(event) => setRole(event.target.value as typeof role)} className="h-9 rounded-md border border-gray-300 bg-white px-3 text-xs" aria-label="Filtrar por rol">
+              <option value="ALL">Todos los roles</option>
+              {Object.entries(ROLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} className="h-9 max-w-60 rounded-md border border-gray-300 bg-white px-3 text-xs" aria-label="Filtrar por departamento">
+              <option value="ALL">Todos los departamentos</option>
+              {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+            </select>
+            <select value={active} onChange={(event) => setActive(event.target.value)} className="h-9 rounded-md border border-gray-300 bg-white px-3 text-xs" aria-label="Filtrar por estado">
+              <option value="ALL">Todos los estados</option>
+              <option value="true">Activos</option>
+              <option value="false">Inactivos</option>
+            </select>
+            <button onClick={exportUsers} className="inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 px-3 text-xs font-bold"><Download size={14} /> Exportar</button>
+            <button onClick={() => setEditingUser(null)} className="inline-flex h-9 items-center gap-2 rounded-md bg-[#5454E9] px-4 text-xs font-bold text-white"><Plus size={14} /> Nuevo usuario</button>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white" tabIndex={0} aria-label="Tabla de usuarios del directorio">
+            <table className="w-full min-w-[820px] border-collapse text-left">
+              <thead className="bg-black text-[10px] uppercase tracking-wide text-white"><tr>{["Usuario", "Rol", "Departamento", "Estado", "Último acceso", "Acciones"].map((label) => <th key={label} className="px-4 py-3">{label}</th>)}</tr></thead>
+              <tbody>
+                {visibleUsers.map((entry) => (
+                  <tr key={entry.id} className="border-t border-gray-100">
+                    <td className="px-4 py-3"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#5454E9] text-[10px] font-extrabold text-white">{initials(entry.name)}</span><div><p className="text-xs font-bold text-black">{entry.name}</p><p className="text-[11px] text-gray-500">{entry.email}</p></div></div></td>
+                    <td className="px-4 py-3"><span className="rounded px-2 py-1 text-[10px] font-bold" style={ROLE_STYLES[entry.accessRole]}>{ROLE_LABELS[entry.accessRole]}</span></td>
+                    <td className="max-w-64 px-4 py-3 text-xs text-gray-700">{entry.departmentName}</td>
+                    <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 text-xs font-bold ${entry.active ? "text-emerald-700" : "text-gray-400"}`}>{entry.active ? <UserCheck size={13} /> : <UserX size={13} />}{entry.active ? "Activo" : "Inactivo"}</span></td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{entry.lastAccessAt ? new Date(entry.lastAccessAt).toLocaleString("es-CO") : "Sin registro"}</td>
+                    <td className="px-4 py-3"><div className="flex gap-1"><IconButton label="Editar usuario" onClick={() => setEditingUser(entry)}><Edit2 size={14} /></IconButton><IconButton label={entry.active ? "Desactivar usuario" : "Activar usuario"} onClick={() => void setUserActive(entry)}>{entry.active ? <UserX size={14} /> : <UserCheck size={14} />}</IconButton><IconButton label="Eliminar usuario" onClick={() => void removeUser(entry)} danger><Trash2 size={14} /></IconButton></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!visibleUsers.length && <p className="p-10 text-center text-sm text-gray-500">No hay usuarios que coincidan con los filtros.</p>}
+          </div>
+        </section>
+      ) : (
+        <section className="space-y-4" aria-label="Gestión de departamentos">
+          <div className="flex justify-end"><button onClick={() => setEditingDepartment(null)} className="inline-flex h-9 items-center gap-2 rounded-md bg-[#5454E9] px-4 text-xs font-bold text-white"><Plus size={14} /> Nuevo departamento</button></div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {departments.map((department) => (
+              <article key={department.id} className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-extrabold text-black">{department.name}</p><p className="mt-1 text-[11px] font-semibold text-[#5454E9]">{department.schoolName ?? "Escuela sin nombre"}</p></div><Building2 size={18} className="text-gray-400" /></div>
+                <p className="mt-3 min-h-10 text-xs leading-5 text-gray-600">{department.description || "Sin descripción."}</p>
+                <div className="mt-4 flex justify-end gap-2"><IconButton label="Editar departamento" onClick={() => setEditingDepartment(department)}><Edit2 size={14} /></IconButton><IconButton label="Eliminar departamento" onClick={() => void removeDepartment(department)} danger><Trash2 size={14} /></IconButton></div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {editingUser !== undefined && <UserDialog user={editingUser} departments={departments} onClose={() => setEditingUser(undefined)} onSaved={(saved) => { setUsers((current) => editingUser ? current.map((entry) => entry.id === saved.id ? saved : entry) : [saved, ...current]); setEditingUser(undefined); }} />}
+      {editingDepartment !== undefined && <DepartmentDialog department={editingDepartment} schools={schools} onClose={() => setEditingDepartment(undefined)} onSaved={(saved) => { setDepartments((current) => editingDepartment ? current.map((entry) => entry.id === saved.id ? saved : entry) : [...current, saved].sort((a, b) => a.name.localeCompare(b.name))); setEditingDepartment(undefined); }} />}
     </div>
   );
 }
+
+function UserDialog({ user, departments, onClose, onSaved }: { user: DirectoryUser | null; departments: Department[]; onClose: () => void; onSaved: (user: DirectoryUser) => void }) {
+  const [form, setForm] = useState<DirectoryUserRequest>({ name: user?.name ?? "", email: user?.email ?? "", departmentId: user?.departmentId ?? departments[0]?.id ?? 0, accessRole: user?.accessRole ?? "CONTRIBUTOR", active: user?.active ?? true });
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (!form.name.trim() || !form.email.trim() || !form.departmentId) return toast.error("Completa nombre, correo y departamento.");
+    setSaving(true);
+    try {
+      const saved = user ? await directoryUsersApi.update(user.id, form) : await directoryUsersApi.create(form);
+      toast.success(user ? "Usuario actualizado" : "Usuario creado");
+      onSaved(saved);
+    } catch (error) { toast.error(message(error)); } finally { setSaving(false); }
+  };
+  return <Dialog title={user ? "Editar usuario" : "Nuevo usuario"} onClose={onClose}><div className="space-y-4"><Field label="Nombre"><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field><Field label="Correo institucional"><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></Field><Field label="Rol de acceso"><select value={form.accessRole} onChange={(event) => setForm({ ...form, accessRole: event.target.value as DirectoryAccessRole })}>{Object.entries(ROLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field label="Departamento"><select value={form.departmentId} onChange={(event) => setForm({ ...form, departmentId: Number(event.target.value) })}>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></Field><label className="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /> Usuario activo</label><DialogActions saving={saving} onClose={onClose} onSave={() => void save()} /></div></Dialog>;
+}
+
+function DepartmentDialog({ department, schools, onClose, onSaved }: { department: Department | null; schools: School[]; onClose: () => void; onSaved: (department: Department) => void }) {
+  const [name, setName] = useState(department?.name ?? "");
+  const [description, setDescription] = useState(department?.description ?? "");
+  const [schoolId, setSchoolId] = useState(department?.schoolId ?? schools[0]?.id ?? 0);
+  const [externalId, setExternalId] = useState(department?.externalDepartmentId?.toString() ?? "");
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (!name.trim() || !schoolId) return toast.error("Completa nombre y escuela.");
+    setSaving(true);
+    const request = { name: name.trim(), description: description.trim(), schoolId, externalDepartmentId: externalId ? Number(externalId) : null };
+    try { const saved = department ? await departmentsApi.update(department.id, request) : await departmentsApi.create(request); toast.success(department ? "Departamento actualizado" : "Departamento creado"); onSaved(saved); } catch (error) { toast.error(message(error)); } finally { setSaving(false); }
+  };
+  return <Dialog title={department ? "Editar departamento" : "Nuevo departamento"} onClose={onClose}><div className="space-y-4"><Field label="Nombre"><input value={name} onChange={(event) => setName(event.target.value)} /></Field><Field label="Descripción"><textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} /></Field><Field label="Escuela"><select value={schoolId} onChange={(event) => setSchoolId(Number(event.target.value))}>{schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></Field><Field label="ID externo (opcional)"><input type="number" min="1" value={externalId} onChange={(event) => setExternalId(event.target.value)} /></Field><DialogActions saving={saving} onClose={onClose} onSave={() => void save()} /></div></Dialog>;
+}
+
+function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"><h3 className="mb-5 text-lg font-extrabold">{title}</h3>{children}</div></div>; }
+function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block text-xs font-bold text-gray-800">{label}<div className="mt-1 [&>*]:w-full [&>*]:rounded-md [&>*]:border [&>*]:border-gray-300 [&>*]:px-3 [&>*]:py-2 [&>*]:text-sm [&>*]:outline-none focus-within:[&>*]:border-[#5454E9]">{children}</div></label>; }
+function DialogActions({ saving, onClose, onSave }: { saving: boolean; onClose: () => void; onSave: () => void }) { return <div className="flex justify-end gap-2 pt-2"><button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-xs font-bold">Cancelar</button><button disabled={saving} onClick={onSave} className="rounded-md bg-[#5454E9] px-4 py-2 text-xs font-bold text-white disabled:opacity-60">{saving ? "Guardando…" : "Guardar"}</button></div>; }
+function IconButton({ label, onClick, danger, children }: { label: string; onClick: () => void; danger?: boolean; children: React.ReactNode }) { return <button onClick={onClick} title={label} aria-label={label} className={`flex h-8 w-8 items-center justify-center rounded-md border ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>{children}</button>; }
+function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) { return <button role="tab" aria-selected={active} onClick={onClick} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-bold ${active ? "bg-black text-white" : "text-gray-600"}`}>{icon}{label}</button>; }
+function Stat({ label, value }: { label: string; value: number }) { return <div className="rounded-lg border border-gray-200 bg-white p-4"><p className="text-2xl font-black text-[#5454E9]">{value}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">{label}</p></div>; }
+function Restricted() { return <div className="flex h-full flex-col items-center justify-center py-20"><ShieldCheck size={48} className="mb-4 text-gray-300" /><h2 className="text-base font-bold text-gray-700">Acceso restringido</h2><p className="mt-2 text-sm text-gray-500">Sólo el Administrador puede gestionar el directorio institucional.</p></div>; }

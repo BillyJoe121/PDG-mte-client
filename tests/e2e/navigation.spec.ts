@@ -21,9 +21,22 @@ test.describe('admin navigation', () => {
   });
 
   test('happy path: admin opens user management', async ({ page }) => {
+    await page.route('**/api/v1/directory-users**', (route) => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{ id: 10, name: 'Sistemas MTE', email: 'mte-admin@icesi.edu.co', departmentId: 1, departmentName: 'TI Institucional', accessRole: 'ADMIN', active: true, lastAccessAt: null }]),
+    }));
+    await page.route('**/api/v1/departments**', (route) => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{ id: 1, name: 'TI Institucional', description: 'Tecnología', schoolId: 1, schoolName: 'Escuela TDI' }]),
+    }));
+    await page.route('**/api/v1/schools**', (route) => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{ id: 1, name: 'Escuela TDI' }]),
+    }));
     await page.goto('/usuarios');
 
-    await expect(page.getByText(/Total Usuarios/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Usuarios, departamentos y responsables/i })).toBeVisible();
+    await expect(page.getByText('Sistemas MTE')).toBeVisible();
     await expect(page.getByRole('button', { name: /Nuevo Usuario/i })).toBeVisible();
   });
 

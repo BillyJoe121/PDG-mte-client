@@ -91,7 +91,7 @@ export function RubricaOKR() {
     );
   }
 
-  const canEdit = usuario?.rol === "admin" || usuario?.rol === "user";
+  const canEdit = usuario?.rol === "admin" || usuario?.rol === "manager";
   const proyectosVinculados = proyectos.filter(p =>
     p.okrIds.includes(okr.id) ||
     okr.proyectoIds.includes(p.id) ||

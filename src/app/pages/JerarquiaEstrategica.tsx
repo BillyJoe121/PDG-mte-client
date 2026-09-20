@@ -64,7 +64,7 @@ export function JerarquiaEstrategica() {
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
   const canCreate = usuario?.rol === "admin";
-  const canEditObjective = usuario?.rol === "admin" || usuario?.rol === "user";
+  const canEditObjective = usuario?.rol === "admin" || usuario?.rol === "manager";
   const [view, setView] = useState<View>("arbol");
   const [period, setPeriod] = useState("");
   const [loading, setLoading] = useState(true);

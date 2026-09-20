@@ -66,7 +66,7 @@ export function OKRs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
-  const canEdit = usuario?.rol === "admin" || usuario?.rol === "user";
+  const canEdit = usuario?.rol === "admin" || usuario?.rol === "manager";
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState<ObjectiveCard[]>([]);
   const [bets, setBets] = useState<StrategicBet[]>([]);

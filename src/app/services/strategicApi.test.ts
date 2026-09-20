@@ -200,22 +200,22 @@ describe("strategic hierarchy APIs", () => {
     expect((options.headers as Headers).get("Authorization")).toBe("Bearer session-token");
   });
 
-  it("uses app local storage auth when session auth is missing", async () => {
+  it("ignores app local storage auth when session auth is missing", async () => {
     localStorage.setItem("sgp_access_token", "app-local-token");
 
     await departmentsApi.list();
 
     const [, options] = fetchMock.mock.calls[0];
-    expect((options.headers as Headers).get("Authorization")).toBe("Bearer app-local-token");
+    expect((options.headers as Headers).has("Authorization")).toBe(false);
   });
 
-  it("uses legacy local storage auth as the final token fallback", async () => {
+  it("ignores legacy local storage auth", async () => {
     localStorage.setItem("token", "legacy-token");
 
     await departmentsApi.list();
 
     const [, options] = fetchMock.mock.calls[0];
-    expect((options.headers as Headers).get("Authorization")).toBe("Bearer legacy-token");
+    expect((options.headers as Headers).has("Authorization")).toBe(false);
   });
 
   it("does not add auth when storage access throws", async () => {

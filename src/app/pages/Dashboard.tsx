@@ -17,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { DeferredRender } from "../components/DeferredRender";
 import type { AcademicPeriod } from "../services/catalogsApi";
 import type { ObjectiveCard } from "../services/strategicApi";
 import {
@@ -685,19 +686,18 @@ function CoverageCharts({
   return (
     <div className="space-y-4">
       {chunks.map((chunk, index) => (
-        <Suspense
-          key={`${metricLabel}-${index}`}
-          fallback={<div className="h-[340px] animate-pulse rounded-md border border-[#D9DEE8] bg-[#F8FAFC] motion-reduce:animate-none" aria-label="Cargando gráfico" />}
-        >
-          <DashboardCoverageChart
-            data={chunk}
-            metricLabel={metricLabel}
-            index={index}
-            total={chunks.length}
-            labelMaxLines={labelMaxLines}
-            onBucketClick={onBucketClick}
-          />
-        </Suspense>
+        <DeferredRender key={`${metricLabel}-${index}`} minHeight={340}>
+          <Suspense fallback={<div className="h-[340px] animate-pulse rounded-md border border-[#D9DEE8] bg-[#F8FAFC] motion-reduce:animate-none" aria-label="Cargando gráfico" />}>
+            <DashboardCoverageChart
+              data={chunk}
+              metricLabel={metricLabel}
+              index={index}
+              total={chunks.length}
+              labelMaxLines={labelMaxLines}
+              onBucketClick={onBucketClick}
+            />
+          </Suspense>
+        </DeferredRender>
       ))}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">

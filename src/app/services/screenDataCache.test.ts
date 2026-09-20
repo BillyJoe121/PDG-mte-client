@@ -29,7 +29,7 @@ vi.mock("./strategicApi", () => ({
   strategicBetsApi: { list: vi.fn() },
 }));
 
-import { invalidateScreenDataCache, loadPresentationScreen } from "./screenDataCache";
+import { getScreenDataCacheDiagnostics, invalidateScreenDataCache, loadPresentationScreen } from "./screenDataCache";
 
 describe("presentation screen data", () => {
   beforeEach(() => {
@@ -56,5 +56,13 @@ describe("presentation screen data", () => {
     expect(mocks.getPresentation).toHaveBeenCalledWith({ period: "2026-1" });
     expect(mocks.listGoals).not.toHaveBeenCalled();
     expect(mocks.listObjectiveCards).not.toHaveBeenCalled();
+  });
+
+  it("bounds filter variants so a long session cannot grow the cache indefinitely", async () => {
+    await Promise.all(Array.from({ length: 120 }, (_, index) => loadPresentationScreen(`2026-${index}`)));
+
+    const diagnostics = getScreenDataCacheDiagnostics();
+    expect(diagnostics.entries).toBeLessThanOrEqual(diagnostics.maxEntries);
+    expect(diagnostics.maxEntries).toBe(80);
   });
 });

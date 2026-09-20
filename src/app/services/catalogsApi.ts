@@ -1,3 +1,5 @@
+import { getSessionAccessToken } from "./authToken";
+
 export type PeriodStatus = "ACTIVO" | "CERRADO" | "PLANIFICACION";
 
 export type MeasurementUnitType = "NUMERICA" | "PORCENTAJE" | "BOOLEANA" | "OTRA";
@@ -43,20 +45,8 @@ export class ApiError extends Error {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
 
-function getStoredToken() {
-  try {
-    const storageHost = typeof window === "undefined" ? globalThis : window;
-    return storageHost.sessionStorage?.getItem("sgp_access_token")
-      ?? storageHost.localStorage?.getItem("sgp_access_token")
-      ?? storageHost.localStorage?.getItem("token")
-      ?? null;
-  } catch {
-    return null;
-  }
-}
-
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getStoredToken();
+  const token = getSessionAccessToken();
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
   if (token && !headers.has("Authorization")) {

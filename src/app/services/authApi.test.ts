@@ -73,7 +73,7 @@ describe("auth API", () => {
       id: "U12",
       nombre: "Leonardo Bustamante",
       correo: "lbustamante@icesi.edu.co",
-      rol: "user",
+      rol: "contributor",
       departamento: "DCSI",
       iniciales: "LB",
       token: "mock-token-lb",
@@ -82,7 +82,7 @@ describe("auth API", () => {
     expect(user).toMatchObject({
       id: "U12",
       nombre: "Leonardo Bustamante",
-      rol: "user",
+      rol: "contributor",
       token: "mock-token-lb",
     });
   });

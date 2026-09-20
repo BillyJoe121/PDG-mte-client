@@ -20,7 +20,8 @@ describe('mockData helpers', () => {
     expect(getColorEstadoProyecto('activo')).toBe('#4CB979');
     expect(getColorEstadoOKR('cancelado')).toBe('#E9683B');
     expect(getLabelRol('admin')).toBe('Administrador');
-    expect(getLabelRol('user')).toBe('Usuario');
+    expect(getLabelRol('manager')).toBe('Gestor estratégico');
+    expect(getLabelRol('contributor')).toBe('Colaborador');
     expect(getTipoProyectoLabel('macroproyecto')).toBe('Macroproyecto');
   });
 

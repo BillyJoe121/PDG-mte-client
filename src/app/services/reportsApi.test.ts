@@ -58,7 +58,7 @@ describe("reports and presentation APIs", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/presentation?period=2026-Q3`, expect.any(Object));
   });
 
-  it("downloads exported reports with auth header", async () => {
+  it("does not reuse a persistent legacy token for exported reports", async () => {
     const click = vi.fn();
     const anchor = { click, href: "", download: "" };
     localStorage.setItem("token", "legacy-token");
@@ -71,10 +71,7 @@ describe("reports and presentation APIs", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       `${baseUrl}/reports/export.csv?period=2026-1&departmentId=7`,
-      expect.objectContaining({
-        cache: "no-store",
-        headers: expect.objectContaining({ Authorization: "Bearer legacy-token" }),
-      }),
+      expect.objectContaining({ cache: "no-store", headers: { "Content-Type": "application/json" } }),
     );
     expect(anchor.download).toBe("msp-report.csv");
     expect(click).toHaveBeenCalled();

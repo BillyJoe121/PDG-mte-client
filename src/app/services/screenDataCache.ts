@@ -31,6 +31,7 @@ import {
 } from "./strategicApi";
 
 const DEFAULT_MAX_AGE_MS = 5 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 80;
 
 type CacheEntry<T> = {
   data?: T;
@@ -122,6 +123,20 @@ export interface PresentationScreenData {
 const cache = new Map<string, CacheEntry<unknown>>();
 let cacheGeneration = 0;
 
+function writeCache<T>(key: string, entry: CacheEntry<T>) {
+  cache.delete(key);
+  cache.set(key, entry as CacheEntry<unknown>);
+  while (cache.size > MAX_CACHE_ENTRIES) {
+    const oldestKey = cache.keys().next().value as string | undefined;
+    if (!oldestKey) break;
+    cache.delete(oldestKey);
+  }
+}
+
+export function getScreenDataCacheDiagnostics() {
+  return { entries: cache.size, maxEntries: MAX_CACHE_ENTRIES };
+}
+
 export function invalidateScreenDataCache() {
   cacheGeneration += 1;
   cache.clear();
@@ -132,14 +147,20 @@ function getCached<T>(key: string, loader: () => Promise<T>, options: LoadOption
   const cached = cache.get(key) as CacheEntry<T> | undefined;
   const fresh = cached?.data !== undefined && Date.now() - cached.updatedAt <= maxAgeMs;
 
-  if (!options.force && fresh) return Promise.resolve(cached.data as T);
-  if (!options.force && cached?.promise) return cached.promise;
+  if (!options.force && fresh) {
+    writeCache(key, cached);
+    return Promise.resolve(cached.data as T);
+  }
+  if (!options.force && cached?.promise) {
+    writeCache(key, cached);
+    return cached.promise;
+  }
 
   const generation = cacheGeneration;
   const promise = loader()
     .then((data) => {
       if (generation === cacheGeneration) {
-        cache.set(key, { data, updatedAt: Date.now() });
+        writeCache(key, { data, updatedAt: Date.now() });
       }
       return data;
     })
@@ -151,7 +172,7 @@ function getCached<T>(key: string, loader: () => Promise<T>, options: LoadOption
     });
 
   if (generation === cacheGeneration) {
-    cache.set(key, { data: cached?.data, promise, updatedAt: cached?.updatedAt ?? 0 });
+    writeCache(key, { data: cached?.data, promise, updatedAt: cached?.updatedAt ?? 0 });
   }
   return promise;
 }

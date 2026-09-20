@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { IcesiLogo } from "../components/IcesiLogo";
 import { useAuth, Rol, type UsuarioActual } from "../context/AuthContext";
 import { authApi, normalizeAuthMe } from "../services/authApi";
+import { createSsoAuthorizationUrl, ssoApi, type SsoConfig } from "../services/ssoApi";
 
 const DEMO_USERS = [
   {
     id: "U1",
     nombre: "Hugo Arboleda",
     correo: "hugo.arboleda@icesi.edu.co",
-    rol: "user" as Rol,
+    rol: "manager" as Rol,
     departamento: "Departamento de Computación y Sistemas inteligentes.",
     iniciales: "HA",
-    descripcion: "Usuario",
+    descripcion: "Gestor estratégico",
     token: "mock-token-ha",
     color: "#5454E9",
   },
@@ -21,10 +22,10 @@ const DEMO_USERS = [
     id: "U2",
     nombre: "Rocío Segovia",
     correo: "rsegovia@icesi.edu.co",
-    rol: "user" as Rol,
+    rol: "contributor" as Rol,
     departamento: "DCSI",
     iniciales: "RS",
-    descripcion: "Usuario",
+    descripcion: "Colaboradora",
     token: "mock-token-rs",
     color: "#4CB979",
   },
@@ -32,10 +33,10 @@ const DEMO_USERS = [
     id: "U12",
     nombre: "Leonardo Bustamante",
     correo: "lbustamante@icesi.edu.co",
-    rol: "user" as Rol,
+    rol: "contributor" as Rol,
     departamento: "DCSI",
     iniciales: "LB",
-    descripcion: "Usuario",
+    descripcion: "Colaborador",
     token: "mock-token-lb",
     color: "#E9683B",
   },
@@ -60,8 +61,32 @@ export function Login() {
   const [focusField, setFocusField] = useState<string | null>(null);
   const [showDemo, setShowDemo] = useState(false);
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
+  const [ssoConfig, setSsoConfig] = useState<SsoConfig | null>(null);
+  const [ssoStarting, setSsoStarting] = useState(false);
+  const [ssoMessage, setSsoMessage] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let active = true;
+    ssoApi.config()
+      .then((config) => { if (active) setSsoConfig(config); })
+      .catch(() => { if (active) setSsoConfig({ enabled: false, providerName: "ICESI", scopes: [] }); });
+    return () => { active = false; };
+  }, []);
+
+  const beginInstitutionalLogin = async () => {
+    if (!ssoConfig?.enabled) return;
+    setSsoStarting(true);
+    setSsoMessage("");
+    try {
+      const authorizationUrl = await createSsoAuthorizationUrl(ssoConfig);
+      window.location.assign(authorizationUrl);
+    } catch (startError) {
+      setSsoMessage(startError instanceof Error ? startError.message : "No se pudo iniciar el acceso institucional.");
+      setSsoStarting(false);
+    }
+  };
 
   const authenticateDemoUser = async (demoUser: typeof DEMO_USERS[0]) => {
     setError("");
@@ -190,6 +215,27 @@ export function Login() {
         </div>
 
         <div className="w-full max-w-sm">
+          <div className="mb-5 rounded-xl border border-[#DDE3FF] bg-[#F7F8FF] p-4">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#5454E9]">Acceso institucional seguro</p>
+            <p className="mt-2 text-xs leading-5 text-gray-600">
+              {ssoConfig === null
+                ? "Consultando el proveedor de identidad…"
+                : ssoConfig.enabled
+                  ? `Continúa con ${ssoConfig.providerName}; MTE no recibe ni almacena tu contraseña.`
+                  : "El SSO no está configurado en este entorno. El acceso demo permanece disponible para desarrollo."}
+            </p>
+            <button
+              type="button"
+              onClick={() => void beginInstitutionalLogin()}
+              disabled={!ssoConfig?.enabled || ssoStarting}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#5454E9] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+            >
+              {ssoStarting ? "Redirigiendo…" : `Continuar con ${ssoConfig?.providerName ?? "ICESI"}`}
+              {!ssoStarting && <ArrowRight size={15} aria-hidden="true" />}
+            </button>
+            {ssoMessage && <p className="mt-3 text-xs font-semibold text-red-700" role="alert">{ssoMessage}</p>}
+          </div>
+
           {/* Demo access toggle */}
           <div className="mb-8">
             <button
@@ -314,7 +360,7 @@ export function Login() {
               Inicia sesión
             </h1>
             <p style={{ color: "#717182", fontSize: "14px", lineHeight: 1.5 }}>
-              Accede con tus credenciales institucionales ICESI.
+              Usa el acceso institucional o, en desarrollo, una cuenta demo autorizada.
             </p>
           </div>
 

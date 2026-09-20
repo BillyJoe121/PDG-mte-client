@@ -137,22 +137,22 @@ describe("catalog APIs", () => {
     expect((options.headers as Headers).get("Authorization")).toBe("Bearer abc123");
   });
 
-  it("uses app local storage token when the session token is absent", async () => {
+  it("ignores app local storage tokens when the session token is absent", async () => {
     localStorage.setItem("sgp_access_token", "local-app-token");
 
     await measurementUnitsApi.list();
 
     const [, options] = fetchMock.mock.calls[0];
-    expect((options.headers as Headers).get("Authorization")).toBe("Bearer local-app-token");
+    expect((options.headers as Headers).has("Authorization")).toBe(false);
   });
 
-  it("uses the legacy local storage token when newer token keys are absent", async () => {
+  it("ignores legacy local storage tokens", async () => {
     localStorage.setItem("token", "legacy-token");
 
     await academicPeriodsApi.list();
 
     const [, options] = fetchMock.mock.calls[0];
-    expect((options.headers as Headers).get("Authorization")).toBe("Bearer legacy-token");
+    expect((options.headers as Headers).has("Authorization")).toBe(false);
   });
 
   it("adds bearer auth on catalog writes as well", async () => {

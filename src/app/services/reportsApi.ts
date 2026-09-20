@@ -1,4 +1,5 @@
 import { api } from "./strategicApi";
+import { getSessionAccessToken } from "./authToken";
 
 export type Period = string;
 
@@ -75,18 +76,6 @@ export const PERIOD_REGEX = /^\d{4}-(Q[1-4]|[1-2])$/;
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
 
-function getStoredToken() {
-  try {
-    const storageHost = typeof window === "undefined" ? globalThis : window;
-    return storageHost.sessionStorage?.getItem("sgp_access_token")
-      ?? storageHost.localStorage?.getItem("sgp_access_token")
-      ?? storageHost.localStorage?.getItem("token")
-      ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export function qs(params: Record<string, string | number | null | undefined> = {}) {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -133,7 +122,7 @@ export async function downloadReport(
   format: "csv" | "pdf",
   params: { period?: Period; departmentId?: number; objectiveId?: number } = {},
 ) {
-  const token = getStoredToken();
+  const token = getSessionAccessToken();
   const res = await fetch(reportsApi.exportUrl(format, params), {
     cache: "no-store",
     credentials: "omit",

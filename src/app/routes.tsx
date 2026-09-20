@@ -1,11 +1,13 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
-import { Layout } from "./components/Layout";
 import { RequirePermission } from "./components/RequirePermission";
 import { RouteLoading } from "./components/RouteLoading";
+import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import type { PermissionAction } from "./security/permissions";
 
+const Layout = lazy(() => import("./components/Layout").then((module) => ({ default: module.Layout })));
 const Login = lazy(() => import("./pages/Login").then((module) => ({ default: module.Login })));
+const SsoCallback = lazy(() => import("./pages/SsoCallback").then((module) => ({ default: module.SsoCallback })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })));
 const JerarquiaEstrategica = lazy(() => import("./pages/JerarquiaEstrategica").then((module) => ({ default: module.JerarquiaEstrategica })));
 const Proyectos = lazy(() => import("./pages/Proyectos").then((module) => ({ default: module.Proyectos })));
@@ -26,7 +28,11 @@ const RubricaOKR = lazy(() => import("./pages/RubricaOKR").then((module) => ({ d
 const Catalogos = lazy(() => import("./pages/Catalogos").then((module) => ({ default: module.Catalogos })));
 
 function lazyPage(children: ReactNode) {
-  return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
+  return (
+    <RouteErrorBoundary>
+      <Suspense fallback={<RouteLoading />}>{children}</Suspense>
+    </RouteErrorBoundary>
+  );
 }
 
 function protectedPage(action: PermissionAction, children: ReactNode) {
@@ -35,10 +41,11 @@ function protectedPage(action: PermissionAction, children: ReactNode) {
 
 export const router = createBrowserRouter([
   { path: "/login", element: lazyPage(<Login />) },
+  { path: "/auth/callback", element: lazyPage(<SsoCallback />) },
   { path: "/presentacion", element: protectedPage("presentacion.view", <PresentacionDashboard />) },
   {
     path: "/",
-    Component: Layout,
+    element: lazyPage(<Layout />),
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: "dashboard", element: protectedPage("dashboard.view", <Dashboard />) },
@@ -52,7 +59,7 @@ export const router = createBrowserRouter([
       { path: "objetivos", element: <Navigate to="/okrs" replace /> },
       { path: "objetivos/:id", element: <Navigate to="/okrs" replace /> },
       { path: "proyectos", element: protectedPage("proyectos.view", <Proyectos />) },
-      { path: "proyectos/nuevo", element: protectedPage("proyectos.manage", <NuevoProyecto />) },
+      { path: "proyectos/nuevo", element: protectedPage("proyectos.create", <NuevoProyecto />) },
       { path: "okrs", element: protectedPage("okrs.view", <OKRs />) },
       { path: "okrs/nuevo", element: protectedPage("okrs.manage", <NuevoOKR />) },
       { path: "krs", element: protectedPage("okrs.view", <KRs />) },
