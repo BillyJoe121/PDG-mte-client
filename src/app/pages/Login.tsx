@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { IcesiLogo } from "../components/IcesiLogo";
-import { useAuth, Rol, type UsuarioActual } from "../context/AuthContext";
-import { authApi, normalizeAuthMe } from "../services/authApi";
+import { useAuth, Rol } from "../context/AuthContext";
 import { createSsoAuthorizationUrl, ssoApi, type SsoConfig } from "../services/ssoApi";
 
 const DEMO_USERS = [
@@ -17,17 +16,6 @@ const DEMO_USERS = [
     descripcion: "Gestor estratégico",
     token: "mock-token-ha",
     color: "#5454E9",
-  },
-  {
-    id: "U2",
-    nombre: "Rocío Segovia",
-    correo: "rsegovia@icesi.edu.co",
-    rol: "contributor" as Rol,
-    departamento: "DCSI",
-    iniciales: "RS",
-    descripcion: "Colaboradora",
-    token: "mock-token-rs",
-    color: "#4CB979",
   },
   {
     id: "U12",
@@ -60,7 +48,6 @@ export function Login() {
   const [error, setError] = useState("");
   const [focusField, setFocusField] = useState<string | null>(null);
   const [showDemo, setShowDemo] = useState(false);
-  const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [ssoConfig, setSsoConfig] = useState<SsoConfig | null>(null);
   const [ssoStarting, setSsoStarting] = useState(false);
   const [ssoMessage, setSsoMessage] = useState("");
@@ -88,24 +75,14 @@ export function Login() {
     }
   };
 
-  const authenticateDemoUser = async (demoUser: typeof DEMO_USERS[0]) => {
+  const authenticateDemoUser = (demoUser: typeof DEMO_USERS[0]) => {
     setError("");
-    setLoadingUserId(demoUser.id);
-    try {
-      sessionStorage.setItem("sgp_access_token", demoUser.token);
-      const me = await authApi.me();
-      login(normalizeAuthMe(me, demoUser as UsuarioActual));
-      navigate("/dashboard");
-    } catch {
-      sessionStorage.removeItem("sgp_access_token");
-      setError("No se pudo validar el usuario demo con el backend. Verifica que Render este en modo mock.");
-    } finally {
-      setLoadingUserId(null);
-    }
+    login(demoUser);
+    navigate("/dashboard");
   };
 
   const handleDemoLogin = (demoUser: typeof DEMO_USERS[0]) => {
-    void authenticateDemoUser(demoUser);
+    authenticateDemoUser(demoUser);
   };
 
   const handleManualLogin = (e: React.FormEvent) => {
@@ -116,7 +93,7 @@ export function Login() {
     }
     const found = DEMO_USERS.find((u) => u.correo === correo);
     if (found && password.length >= 4) {
-      void authenticateDemoUser(found);
+      authenticateDemoUser(found);
     } else {
       setError("Credenciales inválidas. Usa un correo de la lista de demo.");
     }
@@ -279,11 +256,9 @@ export function Login() {
                   <button
                     key={u.id}
                     onClick={() => handleDemoLogin(u)}
-                    disabled={loadingUserId !== null}
                     className="w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors group"
                     style={{
                       border: "1px solid transparent",
-                      opacity: loadingUserId && loadingUserId !== u.id ? 0.55 : 1,
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = "#FAFAFA";
@@ -497,7 +472,6 @@ export function Login() {
 
             <button
               type="submit"
-              disabled={loadingUserId !== null}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-lg group"
               style={{
                 backgroundColor: "#000000",
@@ -505,7 +479,6 @@ export function Login() {
                 fontSize: "13px",
                 fontWeight: 600,
                 letterSpacing: "0.01em",
-                opacity: loadingUserId ? 0.72 : 1,
                 transition: "background-color 0.15s, transform 0.05s",
               }}
               onMouseEnter={(e) =>
@@ -515,7 +488,7 @@ export function Login() {
                 (e.currentTarget.style.backgroundColor = "#000000")
               }
             >
-              {loadingUserId ? "Validando sesion..." : "Ingresar al MTE"}
+              Ingresar al MTE
               <ArrowRight
                 size={15}
                 style={{ transition: "transform 0.15s" }}

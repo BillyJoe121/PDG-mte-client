@@ -13,7 +13,6 @@ const JerarquiaEstrategica = lazy(() => import("./pages/JerarquiaEstrategica").t
 const Proyectos = lazy(() => import("./pages/Proyectos").then((module) => ({ default: module.Proyectos })));
 const OKRs = lazy(() => import("./pages/OKRs").then((module) => ({ default: module.OKRs })));
 const KRs = lazy(() => import("./pages/KRs").then((module) => ({ default: module.KRs })));
-const Reportes = lazy(() => import("./pages/Reportes").then((module) => ({ default: module.Reportes })));
 const Consistencia = lazy(() => import("./pages/Consistencia").then((module) => ({ default: module.Consistencia })));
 const Usuarios = lazy(() => import("./pages/Usuarios").then((module) => ({ default: module.Usuarios })));
 const Auditoria = lazy(() => import("./pages/Auditoria").then((module) => ({ default: module.Auditoria })));
@@ -26,6 +25,14 @@ const NuevoOKR = lazy(() => import("./pages/NuevoOKR").then((module) => ({ defau
 const NuevoProyecto = lazy(() => import("./pages/NuevoProyecto").then((module) => ({ default: module.NuevoProyecto })));
 const RubricaOKR = lazy(() => import("./pages/RubricaOKR").then((module) => ({ default: module.RubricaOKR })));
 const Catalogos = lazy(() => import("./pages/Catalogos").then((module) => ({ default: module.Catalogos })));
+const CiclosEstrategicos = lazy(() => import("./pages/CiclosEstrategicos").then((module) => ({ default: module.CiclosEstrategicos })));
+const FichasMetricas = lazy(() => import("./pages/FichasMetricas").then((module) => ({ default: module.FichasMetricas })));
+const SeguimientoKRs = lazy(() => import("./pages/SeguimientoKRs").then((module) => ({ default: module.SeguimientoKRs })));
+const Iniciativas = lazy(() => import("./pages/Iniciativas").then((module) => ({ default: module.Iniciativas })));
+const ResultadosClave = lazy(() => import("./pages/ResultadosClave").then((module) => ({ default: module.ResultadosClave })));
+const PoliticasInstitucionales = lazy(() => import("./pages/PoliticasInstitucionales").then((module) => ({ default: module.PoliticasInstitucionales })));
+const Monitoreo = lazy(() => import("./pages/Monitoreo").then((module) => ({ default: module.Monitoreo })));
+const ConsistenciaEstrategica = lazy(() => import("./pages/ConsistenciaEstrategica").then((module) => ({ default: module.ConsistenciaEstrategica })));
 
 function lazyPage(children: ReactNode) {
   return (
@@ -56,6 +63,13 @@ export const router = createBrowserRouter([
       { path: "jerarquia/apuestas/:betId/gestionar", element: protectedPage("jerarquia.manage", <GestionApuesta />) },
       { path: "jerarquia/metas/:goalId/gestionar", element: protectedPage("jerarquia.manage", <GestionMeta />) },
       { path: "catalogos", element: protectedPage("catalogos.manage", <Catalogos />) },
+      { path: "ciclos", element: protectedPage("jerarquia.view", <CiclosEstrategicos />) },
+      { path: "metricas", element: protectedPage("jerarquia.view", <FichasMetricas />) },
+      { path: "seguimiento", element: protectedPage("okrs.view", <SeguimientoKRs />) },
+      { path: "iniciativas", element: protectedPage("proyectos.view", <Iniciativas />) },
+      { path: "resultados", element: protectedPage("okrs.view", <ResultadosClave />) },
+      { path: "politicas", element: protectedPage("jerarquia.view", <PoliticasInstitucionales />) },
+      { path: "monitoreo", element: protectedPage("jerarquia.view", <Monitoreo />) },
       { path: "objetivos", element: <Navigate to="/okrs" replace /> },
       { path: "objetivos/:id", element: <Navigate to="/okrs" replace /> },
       { path: "proyectos", element: protectedPage("proyectos.view", <Proyectos />) },
@@ -64,8 +78,9 @@ export const router = createBrowserRouter([
       { path: "okrs/nuevo", element: protectedPage("okrs.manage", <NuevoOKR />) },
       { path: "krs", element: protectedPage("okrs.view", <KRs />) },
       { path: "okrs/:okrId/rubrica", element: protectedPage("okrs.view", <RubricaOKR />) },
-      { path: "reportes", element: protectedPage("reportes.view", <Reportes />) },
+      { path: "reportes", element: <Navigate to="/presentacion" replace /> },
       { path: "consistencia", element: protectedPage("consistencia.view", <Consistencia />) },
+      { path: "consistencia-estrategica", element: protectedPage("consistencia.view", <ConsistenciaEstrategica />) },
       { path: "usuarios", element: protectedPage("usuarios.manage", <Usuarios />) },
       { path: "auditoria", element: protectedPage("auditoria.view", <Auditoria />) },
       { path: "*", element: <Navigate to="/dashboard" replace /> },

@@ -1,0 +1,45 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
+import { beforeEach, expect, it, vi } from "vitest";
+import { ResultadosClave } from "./ResultadosClave";
+const mocks = vi.hoisted(() => ({ search: vi.fn(), create: vi.fn(), revise: vi.fn(), choices: vi.fn(), versionPage: vi.fn(), metrics: vi.fn(), cycles: vi.fn(), responsibles: vi.fn() }));
+vi.mock("../services/keyResultsV2Api", () => ({ keyResultsV2Api: mocks }));
+vi.mock("../services/governanceApi", async importOriginal => ({ ...await importOriginal<typeof import("../services/governanceApi")>(), governanceApi: { metrics: mocks.metrics, cycles: mocks.cycles } }));
+vi.mock("../services/trackingApi", () => ({ trackingApi: { responsibles: mocks.responsibles } }));
+vi.mock("../context/AuthContext", () => ({ useAuth: () => ({ usuario: { rol: "manager" } }) }));
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.search.mockResolvedValue({ items: [], totalElements: 0, totalPages: 0, currentPage: 0, pageSize: 20 });
+  mocks.metrics.mockResolvedValue([{ id: 1, name: "Retención", active: true }]);
+  mocks.cycles.mockResolvedValue([{ id: 1, name: "Ciclo anual", status: "ACTIVE" }]);
+  mocks.responsibles.mockResolvedValue([{ id: 2, name: "Profesora", departmentName: "D1" }]);
+  mocks.choices.mockResolvedValue({ goals: [{ id: 3, name: "Permanencia" }], bets: [{ id: 4, name: "Bienestar" }] });
+  mocks.versionPage.mockResolvedValue({ items: [], totalElements: 0, totalPages: 0, currentPage: 0, pageSize: 20 });
+});
+it("creates a draft KR with independent strategy links and no Objective field", async () => {
+  mocks.create.mockResolvedValue({ id: 8 });
+  render(<MemoryRouter><ResultadosClave /></MemoryRouter>);
+  const user = userEvent.setup();
+  await user.type(await screen.findByLabelText("Nombre"), "Retener estudiantes");
+  await user.type(screen.getByLabelText("Descripción"), "Tasa anual");
+  await user.selectOptions(screen.getByLabelText("Ficha métrica"), "1");
+  await user.type(screen.getByLabelText("Línea base"), "40");
+  await user.type(screen.getByLabelText("Valor esperado"), "70");
+  await user.selectOptions(screen.getByLabelText("Ciclo estratégico"), "1");
+  await user.selectOptions(screen.getByLabelText("Responsable"), "2");
+  await user.click(screen.getByLabelText("Permanencia")); await user.click(screen.getByLabelText("Bienestar"));
+  await user.click(screen.getByRole("button", { name: "Registrar KR" }));
+  await waitFor(() => expect(mocks.create).toHaveBeenCalledWith({ name: "Retener estudiantes", description: "Tasa anual", metricDefinitionId: 1, baseValue: 40, targetValue: 70, strategicCycleId: 1, responsibleId: 2, type: "COMMITTED", goalIds: [3], betIds: [4] }, expect.any(String)));
+  expect(screen.queryByLabelText("Objetivo")).not.toBeInTheDocument();
+  expect(await screen.findByText(/KR registrado en borrador/)).toBeInTheDocument();
+});
+it("resets pagination when the cycle filter changes", async () => {
+  mocks.search.mockResolvedValue({ items: [], totalElements: 40, totalPages: 2, currentPage: 0, pageSize: 20 });
+  render(<MemoryRouter><ResultadosClave /></MemoryRouter>);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "Siguiente" }));
+  await waitFor(() => expect(mocks.search).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 })));
+  await user.selectOptions(await screen.findByLabelText("Ciclo"), "1");
+  await waitFor(() => expect(mocks.search).toHaveBeenLastCalledWith(expect.objectContaining({ cycleId: 1, page: 0 })));
+});

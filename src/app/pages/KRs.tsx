@@ -10,6 +10,7 @@ import type { KeyResult, ObjectiveCard } from "../services/strategicApi";
 import { truncateText } from "../utils/text";
 import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
 import { COLORS } from "./okrs/okrsShared";
+import { PlannerButton } from "../components/planner/PlannerButton";
 
 interface KeyResultCardItem {
   keyResult: KeyResult;
@@ -108,7 +109,6 @@ export function KRs() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p style={{ color: COLORS.text, fontSize: 17, fontWeight: 950 }}>Key Results</p>
-            <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>Resultados clave trazables por objetivo, meta y apuesta estrategica.</p>
           </div>
           <div className="flex min-h-[38px] min-w-0 w-full items-center gap-2 rounded-md px-3 sm:min-w-[260px]" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
             <Search size={15} color={COLORS.gray} />
@@ -261,6 +261,15 @@ function KeyResultCard({ item, index, onOpen }: { item: KeyResultCardItem; index
         <div className="mt-auto pt-3">
           <p className="kr-detail-card__description" style={{ fontSize: 12, lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.keyResult.description}</p>
           <p className="kr-detail-card__description" style={{ fontSize: 11, fontWeight: 850, marginTop: 10 }}>{truncateText(item.objective.name, 70)}</p>
+          <div className="mt-3 flex items-center justify-between gap-2 pt-2" style={{ borderTop: "1px solid rgba(0,0,0,0.08)" }}>
+            <span className="kr-detail-card__description" style={{ fontSize: 10, fontWeight: 800 }}>Meta #{item.objective.goalId}</span>
+            <PlannerButton
+              type="KEY_RESULT"
+              entity={{ id: item.keyResult.id, name: item.keyResult.name }}
+              size="sm"
+              variant="outline"
+            />
+          </div>
         </div>
       </div>
     </motion.div>

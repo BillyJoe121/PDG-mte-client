@@ -18,9 +18,16 @@ const tree: StrategicHierarchyNode[] = [
 ];
 
 describe("hierarchy visual system", () => {
-  it("uses a distinct semantic color for every node type", () => {
-    const colors = Object.values(hierarchyNodeTheme).map((theme) => theme.background);
-    expect(new Set(colors).size).toBe(5);
+  it("uses the approved colors for each node type (Objetivo, KR, Proyecto)", () => {
+    expect(hierarchyNodeTheme.OBJECTIVE.background).toBe("#E9683B");
+    expect(hierarchyNodeTheme.KEY_RESULT.background).toBe("#5454E9");
+    expect(hierarchyNodeTheme.PROJECT.background).toBe("#4CB979");
+    expect(hierarchyNodeTheme.GOAL.background).toBe("#4CB979");
+    expect(hierarchyNodeTheme.STRATEGIC_BET.background).toBe("#4F46E5");
+  });
+
+  it("uses the approved green for institutional-goal cards", () => {
+    expect(hierarchyNodeTheme.GOAL.background).toBe("#4CB979");
   });
 
   it("counts duplicated nodes only once per type", () => {

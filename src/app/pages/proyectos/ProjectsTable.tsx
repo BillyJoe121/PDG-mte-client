@@ -8,6 +8,7 @@ import {
   statusLabel,
   typeBadge,
 } from "./proyectosShared";
+import { PlannerButton } from "../../components/planner/PlannerButton";
 
 interface ProjectsTableProps {
   loading: boolean;

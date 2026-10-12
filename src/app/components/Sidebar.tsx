@@ -6,7 +6,6 @@ import {
   FolderKanban,
   Target,
   KeyRound,
-  BarChart3,
   Users,
   LogOut,
   ChevronLeft,
@@ -25,11 +24,18 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, action: "dashboard.view" as PermissionAction },
   { to: "/jerarquia", label: "Jerarquía Estratégica", icon: Layers, action: "jerarquia.view" as PermissionAction },
   { to: "/catalogos", label: "Catálogos", icon: Database, action: "catalogos.manage" as PermissionAction },
+  { to: "/ciclos", label: "Ciclos estratégicos", icon: Layers, action: "jerarquia.view" as PermissionAction },
+  { to: "/metricas", label: "Fichas métricas", icon: Database, action: "jerarquia.view" as PermissionAction },
+  { to: "/politicas", label: "Políticas institucionales", icon: ScrollText, action: "jerarquia.view" as PermissionAction },
+  { to: "/monitoreo", label: "Monitoreo por ramas", icon: Target, action: "jerarquia.view" as PermissionAction },
   { to: "/okrs", label: "Objetivos", icon: Target, action: "okrs.view" as PermissionAction },
   { to: "/krs", label: "KRs", icon: KeyRound, action: "okrs.view" as PermissionAction },
+  { to: "/resultados", label: "Definir KRs", icon: KeyRound, action: "okrs.view" as PermissionAction },
+  { to: "/seguimiento", label: "Seguimiento de KRs", icon: Target, action: "okrs.view" as PermissionAction },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, action: "proyectos.view" as PermissionAction },
-  { to: "/reportes", label: "Reportes y exportaciones", icon: BarChart3, action: "reportes.view" as PermissionAction },
+  { to: "/iniciativas", label: "Iniciativas", icon: FolderKanban, action: "proyectos.view" as PermissionAction },
   { to: "/consistencia", label: "Consistencia", icon: ShieldAlert, action: "consistencia.view" as PermissionAction },
+  { to: "/consistencia-estrategica", label: "Consistencia V2", icon: ShieldAlert, action: "consistencia.view" as PermissionAction },
   { to: "/presentacion", label: "Modo Presentación", icon: Presentation, action: "presentacion.view" as PermissionAction },
   { to: "/usuarios", label: "Usuarios", icon: Users, action: "usuarios.manage" as PermissionAction },
   { to: "/auditoria", label: "Auditoria", icon: ScrollText, action: "auditoria.view" as PermissionAction },
@@ -42,7 +48,6 @@ const itemColors: Record<string, string> = {
   "/okrs": "#4CB979",          // verde
   "/krs": "#5454E9",           // azul
   "/proyectos": "#E4EB60",     // amarillo
-  "/reportes": "#5454E9",      // azul
   "/consistencia": "#E9683B",  // naranja
   "/presentacion": "#4CB979",  // verde
   "/usuarios": "#E4EB60",      // amarillo

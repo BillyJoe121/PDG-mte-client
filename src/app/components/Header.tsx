@@ -7,13 +7,20 @@ import { ContextualHelp } from "./ContextualHelp";
 import { PlatformTutorial } from "./PlatformTutorial";
 
 const breadcrumbMap: Record<string, string> = {
+  "/ciclos": "Ciclos estratégicos",
+  "/metricas": "Fichas métricas",
+  "/seguimiento": "Seguimiento de KRs",
+  "/iniciativas": "Iniciativas",
+  "/resultados": "Definir resultados clave",
+  "/politicas": "Políticas institucionales",
+  "/monitoreo": "Monitoreo por ramas",
+  "/consistencia-estrategica": "Consistencia estratégica V2",
   "/dashboard": "Dashboard",
   "/jerarquia": "Jerarquía Estratégica",
   "/objetivos": "Objetivos a Corto Plazo",
   "/okrs": "Gestión de OKRs",
   "/krs": "Key Results",
   "/proyectos": "Proyectos e Iniciativas",
-  "/reportes": "Reportes y exportaciones",
   "/consistencia": "Consistencia Estrategica",
   "/catalogos": "Catalogos",
   "/auditoria": "Auditoria",

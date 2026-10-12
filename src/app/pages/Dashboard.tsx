@@ -367,7 +367,6 @@ function DashboardHeader({
   userName?: string;
 }) {
   const reduceMotion = useReducedMotion();
-  const firstName = userName?.split(" ")[0] ?? "el equipo";
 
   return (
     <motion.div
@@ -381,14 +380,6 @@ function DashboardHeader({
         <div>
           <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>Centro de mando estrategico</p>
           <h1 style={{ fontSize: 22, fontWeight: 900, color: COLORS.text, lineHeight: 1.15, marginTop: 3 }}>Dashboard de impacto</h1>
-          <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 5 }}>
-            Seguimiento ejecutivo del portafolio para {firstName}.
-            {summary && (
-              <>
-                {" "}{summary.activeProjects} activos - {summary.objectivesInFollowUp} objetivos - {summary.completedKeyResults + summary.inProgressKeyResults} KRs - {summary.completedObjectives} objetivos completados
-              </>
-            )}
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

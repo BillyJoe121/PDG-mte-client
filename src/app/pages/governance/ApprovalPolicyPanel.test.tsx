@@ -1,0 +1,13 @@
+import {beforeEach,expect,it,vi} from "vitest";
+import {render,screen} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import {ApprovalPolicyPanel} from "./ApprovalPolicyPanel";
+const mocks=vi.hoisted(()=>({policies:vi.fn(),record:vi.fn(),cycles:vi.fn()}));
+vi.mock("../../services/targetApprovalV2Api",()=>({targetApprovalV2Api:mocks}));vi.mock("../../services/governanceApi",async importOriginal=>({...await importOriginal<typeof import("../../services/governanceApi")>(),governanceApi:{cycles:mocks.cycles}}));
+beforeEach(()=>{vi.resetAllMocks();mocks.policies.mockResolvedValue({items:[],totalElements:0,totalPages:0,latestVersion:0});mocks.cycles.mockResolvedValue([{id:1,name:"Ciclo"}]);});
+it("no propone una aprobación institucional y conserva la decisión al fallar",async()=>{
+  mocks.record.mockRejectedValue(new Error("Conflicto matriz"));const user=userEvent.setup();render(<ApprovalPolicyPanel canRecord/>);await screen.findByText(/No hay matriz registrada/);expect(screen.getByLabelText("Estado KR de regla 1")).toHaveValue("");expect(screen.getByLabelText("Aprobación de regla 1")).toHaveValue("");expect(screen.getByRole("button",{name:"Registrar matriz aprobada"})).toBeDisabled();await user.selectOptions(screen.getByLabelText("Estado KR de regla 1"),"ACTIVE");await user.selectOptions(screen.getByLabelText("Ciclo de regla 1"),"1");await user.selectOptions(screen.getByLabelText("Aprobación de regla 1"),"yes");await user.click(screen.getByLabelText("Rector"));await user.selectOptions(screen.getByLabelText("Autoaprobación de regla 1"),"no");await user.type(screen.getByLabelText("Referencia de decisión de la matriz"),"https://example.org/matrix");await user.type(screen.getByLabelText("Motivo de la matriz"),"Decisión externa");await user.click(screen.getByLabelText(/Confirmo que estas reglas/));await user.click(screen.getByRole("button",{name:"Registrar matriz aprobada"}));await screen.findByText("Conflicto matriz");expect(screen.getByLabelText("Motivo de la matriz")).toHaveValue("Decisión externa");expect(mocks.record).toHaveBeenCalledWith({rules:[{status:"ACTIVE",cycleId:1,requiresApproval:true,approverRoles:["RECTOR"],allowSelfApproval:false}],decisionRef:"https://example.org/matrix",reason:"Decisión externa",confirmed:true},0);
+});
+it("ofrece consulta sin controles de escritura a lectores",async()=>{
+  render(<ApprovalPolicyPanel canRecord={false}/>);await screen.findByText(/No hay matriz registrada/);expect(screen.queryByRole("button",{name:"Registrar matriz aprobada"})).not.toBeInTheDocument();expect(mocks.record).not.toHaveBeenCalled();
+});

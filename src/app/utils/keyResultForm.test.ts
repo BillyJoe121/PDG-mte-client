@@ -46,4 +46,21 @@ describe("key result form rules", () => {
   it("associates the objective period when serializing a nested key result", () => {
     expect(toKeyResultRequest(validForm, 7).academicPeriodId).toBe(7);
   });
+
+  it("validates required and numeric fields without a selected unit", () => {
+    const errors = validateKeyResultForm({
+      name: "", description: " ", metric: "", baseValue: "", targetValue: "not-a-number", measurementUnitId: "",
+    }, [percentage]);
+    expect(errors).toMatchObject({
+      name: expect.any(String), description: expect.any(String), metric: expect.any(String),
+      measurementUnitId: expect.any(String), baseValue: expect.any(String), targetValue: expect.any(String),
+    });
+    expect(getKeyResultValueInput()).toEqual({ kind: "number", step: 0.01 });
+  });
+
+  it("omits an inherited period and serializes trimmed values", () => {
+    const request = toKeyResultRequest({ ...validForm, name: "  KR  ", description: " Desc ", metric: " Metric " });
+    expect(request).toMatchObject({ name: "KR", description: "Desc", metric: "Metric" });
+    expect(request).not.toHaveProperty("academicPeriodId");
+  });
 });

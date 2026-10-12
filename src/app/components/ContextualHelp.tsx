@@ -82,19 +82,6 @@ const helpByRoute: Array<{ match: (pathname: string) => boolean; content: HelpCo
     },
   },
   {
-    match: (pathname) => pathname.startsWith("/reportes"),
-    content: {
-      title: "Reportes y exportaciones",
-      purpose: "Prepara vistas consolidadas para seguimiento, análisis y socialización institucional.",
-      steps: [
-        "Define los filtros que deben aparecer en el reporte.",
-        "Verifica los totales y la tabla de detalle antes de exportar.",
-        "Usa la exportación apropiada para compartir una instantánea del estado consultado.",
-      ],
-      tip: "Los reportes reflejan los filtros activos; verifica el período antes de compartirlos.",
-    },
-  },
-  {
     match: (pathname) => pathname.startsWith("/catalogos"),
     content: {
       title: "Catálogos institucionales",

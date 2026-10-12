@@ -30,6 +30,7 @@ import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
 import { HierarchyOverview } from "./jerarquia/HierarchyOverview";
 import { getNodeBadgeLabel, getNodeTheme, hierarchyNodeLabel, type NodeTheme } from "./jerarquia/hierarchyVisualSystem";
 import { ArchivedStrategyModal } from "./jerarquia/ArchivedStrategyModal";
+import { PlannerButton } from "../components/planner/PlannerButton";
 
 const COLORS = {
   blue: "#5454E9",
@@ -242,10 +243,7 @@ export function JerarquiaEstrategica() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="hidden">
             <h1 style={{ fontSize: "22px", fontWeight: 800, color: COLORS.text }}>Jerarquia Estrategica</h1>
-            <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 4 }}>
-              {bets.length} apuestas · {goals.length} metas · {totalObjectives} objetivos · {totalKrs} KRs · {totalProjects} proyectos
-            </p>
-          </div>
+            </div>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <div className="flex items-stretch gap-0 overflow-hidden" style={{ border: `1.5px solid ${COLORS.border}`, borderRadius: 8, height: 38 }}>
               {[
@@ -287,11 +285,6 @@ export function JerarquiaEstrategica() {
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {(canCreate || canEditObjective) && (
-              <button onClick={() => setShowArchived(true)} className="flex items-center gap-2 rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-extrabold text-[#374151]">
-                <Archive size={13} /> Archivados
-              </button>
-            )}
             {canCreate && (
               <>
                 <button onClick={() => setCreateModal("goal")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.green, color: "#fff", fontSize: "12px", fontWeight: 750 }}>
@@ -348,13 +341,7 @@ export function JerarquiaEstrategica() {
             </div>
           )}
         </div>
-        <p style={{ display: "none", fontSize: "11px", color: "#9CA3AF", marginTop: 8 }}>
-          {bets.length} apuestas Â· {goals.length} metas Â· {totalObjectives} objetivos Â· {totalKrs} KRs Â· {totalProjects} proyectos
-        </p>
-        <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 8 }}>
-          {bets.length} apuestas {"\u00B7"} {goals.length} metas {"\u00B7"} {totalObjectives} objetivos {"\u00B7"} {totalKrs} KRs {"\u00B7"} {totalProjects} proyectos
-        </p>
-      </motion.div>
+        </motion.div>
       )}
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
@@ -586,7 +573,7 @@ function HierarchyRootGallery({ nodes, onSelect }: { nodes: StrategicHierarchyNo
   const reduceMotion = useReducedMotion();
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
       {nodes.map((node, index) => {
         const accent = getRootAccent(node);
         const Icon = getNodeIcon(node.nodeType);
@@ -604,34 +591,34 @@ function HierarchyRootGallery({ nodes, onSelect }: { nodes: StrategicHierarchyNo
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             transition={{ ...shortMotionTransition, delay: Math.min(index * 0.025, 0.12) }}
           >
-            <div className="hierarchy-root-card__hero flex h-[112px] flex-col justify-between p-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="hierarchy-root-card__label" style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.07em", textTransform: "uppercase" }}>
+            <div className="hierarchy-root-card__hero flex h-[88px] flex-col justify-between p-2.5 sm:p-3">
+              <div className="flex items-center justify-between gap-1.5">
+                <span className="hierarchy-root-card__label" style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                   {getRootTypeLabel(node)}
                 </span>
-                <span className="hierarchy-root-card__icon flex h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.32)" }}>
-                  <Icon size={14} />
+                <span className="hierarchy-root-card__icon flex h-6 w-6 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.32)" }}>
+                  <Icon size={12} />
                 </span>
               </div>
-              <h2 className="hierarchy-root-card__title" style={{ fontSize: 17, fontWeight: 900, lineHeight: 1.13, maxWidth: 300, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                {truncateText(node.label, 54)}
+              <h2 className="hierarchy-root-card__title" style={{ fontSize: 13, fontWeight: 900, lineHeight: 1.18, maxWidth: 280, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                {truncateText(node.label, 48)}
               </h2>
             </div>
-            <div className="p-4">
-              <span className="hierarchy-root-card__divider block" style={{ width: 30, height: 2, marginBottom: 11 }} />
-              <p style={{ color: COLORS.gray, fontSize: 10.5, lineHeight: 1.5, minHeight: 48 }}>
+            <div className="p-2.5 sm:p-3">
+              <span className="hierarchy-root-card__divider block" style={{ width: 24, height: 2, marginBottom: 8 }} />
+              <p style={{ color: COLORS.gray, fontSize: 10, lineHeight: 1.4, minHeight: 40, maxHeight: 40, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
                 {description}
               </p>
               {node.badge && (
-                <p className="mt-2 rounded-md bg-[#F8FAFC] px-2.5 py-2 text-[10px] font-bold text-[#374151]" style={{ borderLeft: `3px solid ${accent}` }}>
+                <p className="mt-2 rounded bg-[#F8FAFC] px-2 py-1 text-[9px] font-bold text-[#374151]" style={{ borderLeft: `3px solid ${accent}` }}>
                   <span className="mr-1 uppercase text-[#717182]">{getNodeBadgeLabel(node.nodeType)}:</span> {node.badge}
                 </p>
               )}
-              <div className="mt-3.5" style={{ borderTop: "1px solid #E5E7EB", paddingTop: 11 }}>
+              <div className="mt-2.5" style={{ borderTop: "1px solid #E5E7EB", paddingTop: 8 }}>
                 <HierarchyRootMetrics node={node} />
               </div>
-              <span className="hierarchy-root-card__cta mt-4 inline-flex items-center gap-1.5 px-2.5 py-1.5" style={{ fontSize: 11, fontWeight: 850 }}>
-                Ver jerarquia <ChevronRight size={12} />
+              <span className="hierarchy-root-card__cta mt-3 flex items-center justify-between w-full px-2 py-1" style={{ fontSize: 10.5, fontWeight: 850 }}>
+                <span>Ver jerarquia</span> <ChevronRight size={11} />
               </span>
             </div>
           </motion.button>
@@ -650,15 +637,15 @@ function HierarchyRootMetrics({ node, compact = false }: { node: StrategicHierar
   ];
 
   return (
-    <div className={compact ? "flex flex-wrap items-center gap-2" : "grid grid-cols-3 gap-2"}>
+    <div className={compact ? "flex flex-wrap items-center gap-1.5" : "grid grid-cols-3 gap-1"}>
       {items.map((item) => (
         <span
           key={item.label}
-          className={compact ? "rounded-md px-3 py-2" : "hierarchy-root-card__metric rounded-md px-2 py-1.5"}
-          style={compact ? { border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: COLORS.text, fontSize: 11, fontWeight: 850 } : { border: "1px solid", display: "block" }}
+          className={compact ? "rounded-md px-2.5 py-1.5" : "hierarchy-root-card__metric rounded px-1 py-1 text-center"}
+          style={compact ? { border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", color: COLORS.text, fontSize: 10.5, fontWeight: 850 } : { border: "1px solid", display: "block" }}
         >
-          <span style={{ display: "block", fontSize: compact ? 12 : 13, fontWeight: 900, lineHeight: 1 }}>{item.value}</span>
-          <span style={{ display: "block", fontSize: compact ? 10 : 8.5, fontWeight: 850, marginTop: compact ? 4 : 3, textTransform: "uppercase" }}>{item.label}</span>
+          <span style={{ display: "block", fontSize: compact ? 12 : 11.5, fontWeight: 900, lineHeight: 1 }}>{item.value}</span>
+          <span style={{ display: "block", fontSize: compact ? 9.5 : 7.5, fontWeight: 850, marginTop: compact ? 3 : 2, letterSpacing: "0.02em", textTransform: "uppercase" }}>{item.label}</span>
         </span>
       ))}
     </div>
@@ -1028,14 +1015,24 @@ function TreeNode({
                 {node.badge && <span className="hierarchy-detail-node__badge" style={{ fontSize: "10px", fontWeight: 850, padding: "2px 6px", borderRadius: 4 }}>{node.badge}</span>}
                 {typeof node.progressPercentage === "number" && <span className="hierarchy-detail-node__strong" style={{ fontSize: "11px", fontWeight: 850 }}>{node.progressPercentage}%</span>}
               </div>
-              <button
-                type="button"
-                onClick={handleManage}
-                className="hierarchy-detail-node__action shrink-0 rounded-md"
-                style={{ fontSize: "11px", fontWeight: 850, padding: "6px 10px" }}
-              >
-                {isObjective ? (isObjectiveDetailOpen ? "Ver menos" : "Ver mas") : "Gestionar"}
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {(node.nodeType === "KEY_RESULT" || node.nodeType === "PROJECT") && (
+                  <PlannerButton
+                    type={node.nodeType}
+                    entity={{ id: node.id, name: node.label }}
+                    size="sm"
+                    variant="outline"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={handleManage}
+                  className="hierarchy-detail-node__action shrink-0 rounded-md"
+                  style={{ fontSize: "11px", fontWeight: 850, padding: "6px 10px" }}
+                >
+                  {isObjective ? (isObjectiveDetailOpen ? "Ver menos" : "Ver mas") : "Gestionar"}
+                </button>
+              </div>
             </div>
             {node.description && <p className="hierarchy-detail-node__description" style={{ fontSize: "12px", marginTop: 5, lineHeight: 1.45 }}>{node.description}</p>}
             {node.executionSummary && <SummaryInline summary={node.executionSummary} theme={theme} />}
