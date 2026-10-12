@@ -35,6 +35,40 @@ describe("SSO PKCE flow", () => {
     expect(transaction.codeVerifier.length).toBeGreaterThanOrEqual(43);
   });
 
+  it("rejects incomplete, insecure and foreign SSO configuration", async () => {
+    await expect(createSsoAuthorizationUrl({ enabled: false, providerName: "ICESI", scopes: [] }))
+      .rejects.toThrow(/no está configurado/i);
+    await expect(createSsoAuthorizationUrl({
+      enabled: true,
+      providerName: "ICESI",
+      authorizationUri: "http://identity.example/authorize",
+      clientId: "mte",
+      redirectUri: `${window.location.origin}/auth/callback`,
+      scopes: ["openid"],
+    })).rejects.toThrow(/HTTPS/i);
+    await expect(createSsoAuthorizationUrl({
+      enabled: true,
+      providerName: "ICESI",
+      authorizationUri: "https://identity.example/authorize",
+      clientId: "mte",
+      redirectUri: "https://attacker.example/callback",
+      scopes: ["openid"],
+    })).rejects.toThrow(/no pertenece/i);
+  });
+
+  it("confines unsafe return targets to the dashboard", async () => {
+    await createSsoAuthorizationUrl({
+      enabled: true,
+      providerName: "ICESI",
+      authorizationUri: "https://identity.example/authorize",
+      clientId: "mte",
+      redirectUri: `${window.location.origin}/auth/callback`,
+      scopes: ["openid"],
+    }, "//attacker.example");
+
+    expect(JSON.parse(sessionStorage.getItem("mte_sso_transaction") ?? "{}").returnTo).toBe("/dashboard");
+  });
+
   it("consumes a matching callback once", () => {
     sessionStorage.setItem("mte_sso_transaction", JSON.stringify({
       state: "expected-state",
@@ -63,5 +97,32 @@ describe("SSO PKCE flow", () => {
 
     sessionStorage.setItem("mte_sso_transaction", JSON.stringify(transaction));
     expect(() => consumeSsoCallback("?code=code&state=expected-state", 700_001)).toThrow(/expiró/i);
+  });
+
+  it("maps provider errors without retaining the transaction", () => {
+    sessionStorage.setItem("mte_sso_transaction", "pending");
+    expect(() => consumeSsoCallback("?error=access_denied")).toThrow(/cancelado/i);
+    expect(sessionStorage.getItem("mte_sso_transaction")).toBeNull();
+
+    sessionStorage.setItem("mte_sso_transaction", "pending");
+    expect(() => consumeSsoCallback("?error=server_error")).toThrow(/proveedor/i);
+  });
+
+  it("rejects malformed, incomplete, future and invalid-PKCE transactions", () => {
+    sessionStorage.setItem("mte_sso_transaction", "{");
+    expect(() => consumeSsoCallback("?code=x&state=y", 1_000)).toThrow(/no es válida/i);
+
+    const valid = { state: "state", codeVerifier: "a".repeat(43), returnTo: "/dashboard", startedAt: 1_000 };
+    sessionStorage.setItem("mte_sso_transaction", JSON.stringify(valid));
+    expect(() => consumeSsoCallback("?state=state", 2_000)).toThrow(/no coincide/i);
+
+    sessionStorage.setItem("mte_sso_transaction", JSON.stringify({ ...valid, startedAt: 40_001 }));
+    expect(() => consumeSsoCallback("?code=x&state=state", 1_000)).toThrow(/expiró/i);
+
+    sessionStorage.setItem("mte_sso_transaction", JSON.stringify({ ...valid, codeVerifier: "short" }));
+    expect(() => consumeSsoCallback("?code=x&state=state", 2_000)).toThrow(/PKCE/i);
+
+    sessionStorage.setItem("mte_sso_transaction", JSON.stringify({ ...valid, codeVerifier: "a".repeat(129) }));
+    expect(() => consumeSsoCallback("?code=x&state=state", 2_000)).toThrow(/PKCE/i);
   });
 });

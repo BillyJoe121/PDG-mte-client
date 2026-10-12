@@ -67,6 +67,12 @@ describe('permissions', () => {
     expect(hasPermission({ ...baseUser, capabilities: ['registerProjectProgress'] }, 'proyectos.create')).toBe(false);
   });
 
+  it('lets manage capabilities imply view and preserves the legacy admin fallback', () => {
+    expect(hasPermission({ ...baseUser, capabilities: ['proyectos.manage'] }, 'proyectos.view')).toBe(true);
+    expect(hasPermission({ ...baseUser, rol: 'admin', capabilities: ['viewDashboard'] }, 'usuarios.manage')).toBe(true);
+    expect(hasPermission({ ...baseUser, roles: ['ADMIN'], capabilities: ['viewDashboard'] }, 'usuarios.manage')).toBe(true);
+  });
+
   it('does not apply legacy department restrictions to user', () => {
     expect(canSeeDepartamento(baseUser, 'Ingenieria')).toBe(true);
     expect(canSeeDepartamento(baseUser, 'Medicina')).toBe(true);

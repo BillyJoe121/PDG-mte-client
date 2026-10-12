@@ -49,10 +49,9 @@ export function normalizeAuthMe(
     id: String(
       context.externalUserId
         ?? context.externalProfessorId
-        ?? fallback.id
-        ?? context.username
-        ?? correo
-        ?? "mte-user",
+      ?? fallback.id
+      ?? context.username
+      ?? (correo || "mte-user"),
     ),
     nombre,
     correo,

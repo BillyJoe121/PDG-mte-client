@@ -86,4 +86,39 @@ describe("auth API", () => {
       token: "mock-token-lb",
     });
   });
+
+  it.each([
+    ["ADMIN", "admin"],
+    ["DIRECTOR_ESCUELA", "manager"],
+    ["JEFE_DPTO", "manager"],
+    ["unknown", "contributor"],
+  ] as const)("normalizes the %s role", (role, expected) => {
+    expect(normalizeAuthMe({ user: { roles: [role] } }).rol).toBe(expected);
+  });
+
+  it("deduplicates nullable arrays and accepts capability lists", () => {
+    const user = normalizeAuthMe({
+      user: { roles: ["MANAGER", null, "MANAGER"], permissions: ["READ", undefined, "READ"] },
+      capabilities: ["viewDashboard", null, "viewDashboard"],
+    });
+
+    expect(user.roles).toEqual(["MANAGER"]);
+    expect(user.permissions).toEqual(["READ"]);
+    expect(user.capabilities).toEqual(["viewDashboard"]);
+  });
+
+  it("uses each supported identity fallback and derives initials", () => {
+    expect(normalizeAuthMe({ user: { externalProfessorId: 22, professorName: "Laura" } }).id).toBe("22");
+    expect(normalizeAuthMe({ user: { username: "mte.user" } }).id).toBe("mte.user");
+    expect(normalizeAuthMe({ user: { email: "mte@example.com" } }).id).toBe("mte@example.com");
+    expect(normalizeAuthMe({}, { id: "fallback", nombre: "  Ana Maria  " })).toMatchObject({ id: "fallback", iniciales: "AM" });
+    expect(normalizeAuthMe({})).toMatchObject({ id: "mte-user", nombre: "Usuario MTE", iniciales: "UM" });
+  });
+
+  it("normalizes fallback roles and empty capabilities", () => {
+    expect(normalizeAuthMe({}, { rol: "administrador" as never }).rol).toBe("admin");
+    expect(normalizeAuthMe({}, { rol: "gestor" as never }).rol).toBe("manager");
+    expect(normalizeAuthMe({}, { rol: "otro" as never }).rol).toBe("contributor");
+    expect(normalizeAuthMe({ capabilities: null }).capabilities).toEqual([]);
+  });
 });

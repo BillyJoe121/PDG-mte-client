@@ -57,9 +57,22 @@ export interface PresentationControls {
   exitKeys: string[];
 }
 
+export type PresentationSlideType =
+  | "COVER"
+  | "STRATEGIC_BET"
+  | "CLOSING"
+  | "CONSOLIDATED_SUMMARY"
+  | "CONSOLIDATED_EXECUTIVE"
+  | "CONSOLIDATED_HEALTH"
+  | "CONSOLIDATED_CAPACITY"
+  | "CONSOLIDATED_TOP_DEPTS"
+  | "CONSOLIDATED_ATTENTION"
+  | "CONSOLIDATED_DEPTS_SUMMARY"
+  | (string & {});
+
 export interface PresentationSlide {
   order: number;
-  type: "COVER" | "STRATEGIC_BET" | "CLOSING";
+  type: PresentationSlideType;
   title: string;
   subtitle: string;
   content: Record<string, unknown>;

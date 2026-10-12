@@ -118,6 +118,9 @@ export interface ReportsScreenData {
 export interface PresentationScreenData {
   periods: AcademicPeriod[];
   presentation: PresentationResponse;
+  bets?: StrategicBet[];
+  goals?: Goal[];
+  consolidatedReport?: ConsolidatedReport;
 }
 
 const cache = new Map<string, CacheEntry<unknown>>();
@@ -318,13 +321,19 @@ export function loadConsistencyCheck(filters?: ConsistencyFilters, options?: Loa
 }
 
 export async function loadPresentationScreen(period?: string, options?: LoadOptions): Promise<PresentationScreenData> {
-  const [periods, presentation] = await Promise.all([
+  const [periods, presentation, bets, goals, consolidatedReport] = await Promise.all([
     loadAcademicPeriods(options),
     getCached(keys.presentation(period), () => presentationApi.get({ period: period || undefined }), options),
+    loadStrategicBets(period, options).catch(() => [] as StrategicBet[]),
+    loadGoals(period, options).catch(() => [] as Goal[]),
+    getCached(keys.report({ period: period || undefined }), () => reportsApi.consolidated({ period: period || undefined }), options).catch(() => null),
   ]);
 
   return {
     periods,
     presentation,
+    bets,
+    goals,
+    consolidatedReport: consolidatedReport ?? undefined,
   };
 }

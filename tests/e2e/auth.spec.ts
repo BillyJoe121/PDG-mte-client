@@ -98,6 +98,34 @@ test.describe('authentication and permissions', () => {
     await expect(page.getByRole('heading', { name: /Dashboard de impacto/i })).toBeVisible();
   });
 
+  test('happy path: quick demo access works offline for each supported role', async ({ page }) => {
+    let authMeCalls = 0;
+    await page.route('**/api/v1/**', (route) => route.fulfill({ contentType: 'application/json', body: '[]' }));
+    await page.route('**/api/v1/auth/me', (route) => {
+      authMeCalls += 1;
+      return route.abort();
+    });
+    await page.goto('/login');
+    await page.getByRole('button', { name: /Acceso rápido demo/i }).click();
+
+    await expect(page.getByRole('button', { name: /Hugo Arboleda.*Gestor estratégico/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Leonardo Bustamante.*Colaborador/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Profesor Demo.*Administrador/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Rocío Segovia/i })).toHaveCount(0);
+
+    for (const accountName of ['Hugo Arboleda', 'Leonardo Bustamante', 'Profesor Demo']) {
+      await page.getByRole('button', { name: new RegExp(accountName, 'i') }).click();
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await expect(page.getByRole('heading', { name: /Dashboard de impacto/i })).toBeVisible();
+
+      await page.getByRole('button', { name: /Cerrar sesión/i }).click();
+      await expect(page).toHaveURL(/\/login$/);
+      await page.getByRole('button', { name: /Acceso rápido demo/i }).click();
+    }
+
+    expect(authMeCalls).toBe(0);
+  });
+
   test('sad path: protected routes redirect anonymous users to login', async ({ page }) => {
     await page.goto('/dashboard');
 

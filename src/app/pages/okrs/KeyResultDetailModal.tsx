@@ -13,6 +13,7 @@ import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicLifecycle";
 import { KrFormModal } from "./KrFormModal";
 import { COLORS } from "./okrsShared";
+import { PlannerButton } from "../../components/planner/PlannerButton";
 
 interface KeyResultDetailModalProps {
   keyResultId: number;
@@ -221,6 +222,12 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
                           {item.label}
                         </span>
                       ))}
+                      <PlannerButton
+                        type="KEY_RESULT"
+                        entity={{ id: keyResult.id, name: keyResult.name }}
+                        size="sm"
+                        variant="outline"
+                      />
                       {renderActions?.(keyResult, objective)}
                       {canEdit && (
                         <>

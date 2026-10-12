@@ -62,4 +62,17 @@ describe("goal form rules", () => {
   it("accepts a complete valid goal", () => {
     expect(validateGoalForm(validForm, [percentage, booleanUnit])).toEqual({});
   });
+
+  it("validates required, numeric, non-negative and chronological fields", () => {
+    const required = validateGoalForm({
+      name: " ", description: "", referenceIndicator: " ", expectedValue: "abc",
+      measurementUnitId: "", startDate: "2026-06-30", endDate: "2026-01-01",
+    }, [percentage]);
+    expect(required).toMatchObject({
+      name: expect.any(String), description: expect.any(String), referenceIndicator: expect.any(String),
+      expectedValue: expect.any(String), measurementUnitId: expect.any(String), endDate: expect.any(String),
+    });
+    expect(validateGoalForm({ ...validForm, expectedValue: "-1" }, [percentage]).expectedValue).toMatch(/cero/i);
+    expect(getGoalValueInput()).toEqual({ kind: "number", min: 0, step: 0.01 });
+  });
 });

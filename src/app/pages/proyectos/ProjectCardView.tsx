@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import type { ProjectResponse } from "../../services/projectsApi";
 import { truncateText } from "../../utils/text";
 import { COLORS, statusLabel, typeLabel } from "./proyectosShared";
+import { PlannerButton } from "../../components/planner/PlannerButton";
 
 interface ProjectCardViewProps {
   canManage: boolean;
@@ -77,19 +78,27 @@ export function ProjectCardView({ canManage, index = 0, project, onLink, onOpen 
           <p className="project-card__description">{project.description}</p>
           <div className="mt-3 flex items-center justify-between gap-2">
             <span className="project-card__meta">{typeLabel(project.type)}</span>
-            {canManage && (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onLink();
-                }}
-                className="project-card__icon-button flex items-center justify-center rounded-md"
-                title="Vincular KR"
-              >
-                <Link2 size={13} />
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              <PlannerButton
+                type="PROJECT"
+                entity={{ id: project.id, name: project.name }}
+                size="sm"
+                variant="outline"
+              />
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onLink();
+                  }}
+                  className="project-card__icon-button flex items-center justify-center rounded-md"
+                  title="Vincular KR"
+                >
+                  <Link2 size={13} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

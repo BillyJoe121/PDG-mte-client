@@ -1,68 +1,150 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  listPeriods: vi.fn(),
-  getPresentation: vi.fn(),
-  listGoals: vi.fn(),
-  listObjectiveCards: vi.fn(),
+  listPeriods: vi.fn(), listUnits: vi.fn(), listDepartments: vi.fn(), loadDashboard: vi.fn(),
+  tree: vi.fn(), listBets: vi.fn(), listGoals: vi.fn(), listObjectiveCards: vi.fn(),
+  listProjects: vi.fn(), projectDetail: vi.fn(), contributionChain: vi.fn(),
+  consolidated: vi.fn(), periodComparison: vi.fn(), consistencyCheck: vi.fn(), getPresentation: vi.fn(),
 }));
 
 vi.mock("./catalogsApi", () => ({
   academicPeriodsApi: { list: mocks.listPeriods },
-  measurementUnitsApi: { list: vi.fn() },
+  measurementUnitsApi: { list: mocks.listUnits },
 }));
-vi.mock("./consistencyApi", () => ({ consistencyApi: { check: vi.fn() } }));
-vi.mock("./dashboardApi", () => ({ dashboardApi: { load: vi.fn() } }));
+vi.mock("./consistencyApi", () => ({ consistencyApi: { check: mocks.consistencyCheck } }));
+vi.mock("./dashboardApi", () => ({ dashboardApi: { load: mocks.loadDashboard } }));
 vi.mock("./projectsApi", () => ({
-  projectContributionApi: { contributionChain: vi.fn() },
-  projectsApi: { list: vi.fn(), detail: vi.fn() },
+  projectContributionApi: { contributionChain: mocks.contributionChain },
+  projectsApi: { list: mocks.listProjects, detail: mocks.projectDetail },
 }));
 vi.mock("./reportsApi", () => ({
   presentationApi: { get: mocks.getPresentation },
-  reportsApi: { consolidated: vi.fn(), periodComparison: vi.fn() },
+  reportsApi: { consolidated: mocks.consolidated, periodComparison: mocks.periodComparison },
 }));
 vi.mock("./strategicApi", () => ({
-  departmentsApi: { list: vi.fn() },
-  goalsApi: { list: mocks.listGoals },
-  hierarchyApi: { tree: vi.fn() },
-  objectivesApi: { cards: mocks.listObjectiveCards },
-  strategicBetsApi: { list: vi.fn() },
+  departmentsApi: { list: mocks.listDepartments }, goalsApi: { list: mocks.listGoals },
+  hierarchyApi: { tree: mocks.tree }, objectivesApi: { cards: mocks.listObjectiveCards },
+  strategicBetsApi: { list: mocks.listBets },
 }));
 
-import { getScreenDataCacheDiagnostics, invalidateScreenDataCache, loadPresentationScreen } from "./screenDataCache";
+import {
+  getScreenDataCacheDiagnostics, invalidateScreenDataCache, loadAcademicPeriods, loadConsistencyCheck,
+  loadDashboardScreen, loadDepartments, loadGoals, loadHierarchyScreen, loadMeasurementUnits,
+  loadObjectiveCards, loadOkrScreen, loadPresentationScreen, loadProjectDetailScreen, loadProjects,
+  loadProjectsScreen, loadReportComparison, loadReportsScreen, loadStrategicBets,
+} from "./screenDataCache";
 
-describe("presentation screen data", () => {
+describe("screen data cache", () => {
   beforeEach(() => {
     invalidateScreenDataCache();
     vi.clearAllMocks();
-    mocks.listPeriods.mockResolvedValue([
-      { id: 1, name: "2026-1", status: "ACTIVO", startDate: "2026-01-01", endDate: "2026-06-30" },
-    ]);
-    mocks.getPresentation.mockResolvedValue({
-      period: "2026-1",
-      title: "Modo presentación",
-      controls: { fullscreenEnabled: true, keyboardNavigationEnabled: true, nextKeys: ["ArrowRight"], previousKeys: ["ArrowLeft"], exitKeys: ["Escape"] },
-      slides: [],
-    });
-    mocks.listGoals.mockResolvedValue([]);
-    mocks.listObjectiveCards.mockResolvedValue([]);
+    mocks.listPeriods.mockResolvedValue([{ id: 1, name: "2026-1" }]);
+    mocks.listUnits.mockResolvedValue([{ id: 1, name: "Porcentaje" }]);
+    mocks.listDepartments.mockResolvedValue([{ id: 1, name: "DCSI" }]);
+    mocks.loadDashboard.mockResolvedValue({ period: "2026-1" });
+    mocks.tree.mockResolvedValue([{ id: 1 }]);
+    mocks.listBets.mockResolvedValue([{ id: 1 }]);
+    mocks.listGoals.mockResolvedValue([{ id: 2 }]);
+    mocks.listObjectiveCards.mockResolvedValue([{ id: 3 }]);
+    mocks.listProjects.mockResolvedValue([{ id: 4 }]);
+    mocks.projectDetail.mockResolvedValue({ project: { id: 4 } });
+    mocks.contributionChain.mockResolvedValue({ projectId: 4 });
+    mocks.consolidated.mockResolvedValue({ rows: [] });
+    mocks.periodComparison.mockResolvedValue({ periods: [] });
+    mocks.consistencyCheck.mockResolvedValue({ summary: { total: 0 }, findings: [] });
+    mocks.getPresentation.mockResolvedValue({ period: "2026-1", slides: [] });
   });
 
-  it("loads only periods and the presentation contract", async () => {
-    const result = await loadPresentationScreen("2026-1");
+  it("reuses fresh values and in-flight requests, but force reloads", async () => {
+    let release!: (value: unknown[]) => void;
+    mocks.listPeriods.mockReturnValueOnce(new Promise((resolve) => { release = resolve; }));
+    const first = loadAcademicPeriods();
+    const concurrent = loadAcademicPeriods();
+    expect(concurrent).toBe(first);
+    release([{ id: 1 }]);
+    await first;
+    await loadAcademicPeriods();
+    expect(mocks.listPeriods).toHaveBeenCalledTimes(1);
+    await loadAcademicPeriods({ force: true });
+    expect(mocks.listPeriods).toHaveBeenCalledTimes(2);
+  });
 
-    expect(result.periods).toHaveLength(1);
+  it("expires old entries and removes failed loads so they can retry", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(100);
+    await loadMeasurementUnits({ maxAgeMs: 10 });
+    now.mockReturnValue(200);
+    await loadMeasurementUnits({ maxAgeMs: 10 });
+    expect(mocks.listUnits).toHaveBeenCalledTimes(2);
+    mocks.listDepartments.mockRejectedValueOnce(new Error("offline"));
+    await expect(loadDepartments()).rejects.toThrow("offline");
+    await expect(loadDepartments()).resolves.toEqual([{ id: 1, name: "DCSI" }]);
+    expect(mocks.listDepartments).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not repopulate entries invalidated while a request is in flight", async () => {
+    let release!: (value: unknown[]) => void;
+    mocks.listGoals.mockReturnValueOnce(new Promise((resolve) => { release = resolve; }));
+    const pending = loadGoals("2026-1");
+    invalidateScreenDataCache();
+    release([{ id: 1 }]);
+    await pending;
+    await loadGoals("2026-1");
+    expect(mocks.listGoals).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses stable filter keys and distinguishes meaningful variants", async () => {
+    await loadProjects({ search: "MTE", departmentId: 2 });
+    await loadProjects({ departmentId: 2, search: "MTE" });
+    await loadProjects({ search: "" });
+    await loadProjects();
+    await loadObjectiveCards({ strategicBetId: 1 });
+    await loadObjectiveCards({ strategicBetId: 2 });
+    expect(mocks.listProjects).toHaveBeenCalledTimes(2);
+    expect(mocks.listObjectiveCards).toHaveBeenCalledTimes(2);
+  });
+
+  it("assembles dashboard, hierarchy and OKR screen contracts", async () => {
+    const dashboard = await loadDashboardScreen("2026-1");
+    const hierarchy = await loadHierarchyScreen();
+    const okrs = await loadOkrScreen({ periodId: 1 });
+    expect(dashboard).toMatchObject({ periods: [{ id: 1 }], dashboard: { period: "2026-1" } });
+    expect(hierarchy).toMatchObject({ tree: [{ id: 1 }], bets: [{ id: 1 }], goals: [{ id: 2 }] });
+    expect(okrs).toMatchObject({ cards: [{ id: 3 }], units: [{ id: 1 }], departments: [{ id: 1 }] });
+  });
+
+  it("keeps OKR and project detail usable when departments are unavailable", async () => {
+    mocks.listDepartments.mockRejectedValue(new Error("catalog unavailable"));
+    const okrs = await loadOkrScreen();
+    invalidateScreenDataCache();
+    const detail = await loadProjectDetailScreen(4);
+    expect(okrs.departments).toEqual([]);
+    expect(detail).toMatchObject({ detail: { project: { id: 4 } }, contributionChain: { projectId: 4 }, departments: [] });
+  });
+
+  it("assembles projects, reports, comparisons and consistency data", async () => {
+    const projects = await loadProjectsScreen({ period: "2026-1" });
+    const reports = await loadReportsScreen({ period: "2026-1" });
+    const comparison = await loadReportComparison({ basePeriod: "2026-1", comparePeriod: "2026-2" });
+    const consistency = await loadConsistencyCheck({ staleDays: 15 });
+    expect(projects).toMatchObject({ projects: [{ id: 4 }], objectiveCards: [{ id: 3 }] });
+    expect(reports).toMatchObject({ report: { rows: [] }, objectives: [{ id: 3 }] });
+    expect(comparison).toEqual({ periods: [] });
+    expect(consistency.summary.total).toBe(0);
+  });
+
+  it("loads presentation defaults and bounds filter variants", async () => {
+    const result = await loadPresentationScreen();
     expect(result.presentation.period).toBe("2026-1");
-    expect(mocks.getPresentation).toHaveBeenCalledWith({ period: "2026-1" });
-    expect(mocks.listGoals).not.toHaveBeenCalled();
-    expect(mocks.listObjectiveCards).not.toHaveBeenCalled();
-  });
-
-  it("bounds filter variants so a long session cannot grow the cache indefinitely", async () => {
+    expect(mocks.getPresentation).toHaveBeenCalledWith({ period: undefined });
     await Promise.all(Array.from({ length: 120 }, (_, index) => loadPresentationScreen(`2026-${index}`)));
-
     const diagnostics = getScreenDataCacheDiagnostics();
     expect(diagnostics.entries).toBeLessThanOrEqual(diagnostics.maxEntries);
     expect(diagnostics.maxEntries).toBe(80);
+  });
+
+  it("loads direct catalog and strategy collections", async () => {
+    await expect(loadStrategicBets("2026-1")).resolves.toEqual([{ id: 1 }]);
+    await expect(loadGoals()).resolves.toEqual([{ id: 2 }]);
+    await expect(loadMeasurementUnits()).resolves.toEqual([{ id: 1, name: "Porcentaje" }]);
   });
 });
