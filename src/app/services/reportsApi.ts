@@ -6,13 +6,10 @@ export type Period = string;
 export interface GeneralReport {
   period: string | null;
   departmentId: number | null;
-  objectiveId: number | null;
   totalProjects: number;
   activeProjects: number;
   completedProjects: number;
-  totalObjectives: number;
   totalKeyResults: number;
-  averageObjectiveCoverage: string;
   averageKeyResultCoverage: string;
 }
 
@@ -20,18 +17,18 @@ export interface DepartmentReport {
   departmentId: number;
   departmentName: string;
   projects: number;
-  objectives: number;
   keyResults: number;
-  averageObjectiveCoverage: string;
+  averageKeyResultCoverage: string;
 }
 
-export interface ObjectiveRanking {
-  objectiveId: number;
-  objectiveName: string;
-  departmentName: string;
+export interface KeyResultRanking {
+  keyResultId: number;
+  keyResultName: string;
+  goalNames: string[];
+  strategicBetNames: string[];
   period: string;
   coveragePercentage: string;
-  keyResults: number;
+  linkedProjects: number;
 }
 
 export interface PeriodComparison {
@@ -39,14 +36,13 @@ export interface PeriodComparison {
   comparePeriod: string;
   base: GeneralReport;
   compare: GeneralReport;
-  objectiveCoverageDelta: string;
   keyResultCoverageDelta: string;
 }
 
 export interface ConsolidatedReport {
   general: GeneralReport;
   departments: DepartmentReport[];
-  objectiveRanking: ObjectiveRanking[];
+  keyResultRanking: KeyResultRanking[];
 }
 
 export interface PresentationControls {
@@ -101,28 +97,27 @@ export function qs(params: Record<string, string | number | null | undefined> = 
 }
 
 export const reportsApi = {
-  general: (params: { period?: Period; departmentId?: number; objectiveId?: number } = {}) =>
+  general: (params: { period?: Period; departmentId?: number } = {}) =>
     api<GeneralReport>(`/reports/general${qs(params)}`),
 
   departments: (params: { period?: Period } = {}) =>
     api<DepartmentReport[]>(`/reports/departments${qs(params)}`),
 
-  objectiveRanking: (params: { period?: Period; departmentId?: number } = {}) =>
-    api<ObjectiveRanking[]>(`/reports/objectives/ranking${qs(params)}`),
+  keyResultRanking: (params: { period?: Period; departmentId?: number } = {}) =>
+    api<KeyResultRanking[]>(`/reports/key-results/ranking${qs(params)}`),
 
   periodComparison: (params: {
     basePeriod: Period;
     comparePeriod: Period;
     departmentId?: number;
-    objectiveId?: number;
   }) => api<PeriodComparison>(`/reports/period-comparison${qs(params)}`),
 
-  consolidated: (params: { period?: Period; departmentId?: number; objectiveId?: number } = {}) =>
+  consolidated: (params: { period?: Period; departmentId?: number } = {}) =>
     api<ConsolidatedReport>(`/reports${qs(params)}`),
 
   exportUrl: (
     format: "csv" | "pdf",
-    params: { period?: Period; departmentId?: number; objectiveId?: number } = {},
+    params: { period?: Period; departmentId?: number } = {},
   ) => `${API_BASE_URL}/reports/export.${format}${qs(params)}`,
 };
 
@@ -133,7 +128,7 @@ export const presentationApi = {
 
 export async function downloadReport(
   format: "csv" | "pdf",
-  params: { period?: Period; departmentId?: number; objectiveId?: number } = {},
+  params: { period?: Period; departmentId?: number } = {},
 ) {
   const token = getSessionAccessToken();
   const res = await fetch(reportsApi.exportUrl(format, params), {

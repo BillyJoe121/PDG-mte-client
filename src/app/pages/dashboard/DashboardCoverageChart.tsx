@@ -1,14 +1,14 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-type BucketKey = "completedObjectives" | "objectivesAbove50" | "objectivesBetween0And50" | "objectivesAtZero";
+type BucketKey = "completedKeyResults" | "keyResultsAbove50" | "keyResultsBetween0And50" | "keyResultsAtZero";
 
 type CoverageItem = {
   id: number;
   name: string;
-  completedObjectives: number;
-  objectivesAbove50: number;
-  objectivesBetween0And50: number;
-  objectivesAtZero: number;
+  completedKeyResults: number;
+  keyResultsAbove50: number;
+  keyResultsBetween0And50: number;
+  keyResultsAtZero: number;
 };
 
 type Props = {
@@ -21,10 +21,10 @@ type Props = {
 };
 
 const meta = {
-  completedObjectives: { label: "Objetivos al 100", color: "#4CB979" },
-  objectivesAbove50: { label: "50% o más", color: "#5454E9" },
-  objectivesBetween0And50: { label: "De 0 a 50", color: "#E9683B" },
-  objectivesAtZero: { label: "Al 0", color: "#DC2626" },
+  completedKeyResults: { label: "KRs al 100", color: "#4CB979" },
+  keyResultsAbove50: { label: "50% o más", color: "#5454E9" },
+  keyResultsBetween0And50: { label: "De 0 a 50", color: "#E9683B" },
+  keyResultsAtZero: { label: "Al 0", color: "#DC2626" },
 } as const;
 
 function wrapLabel(value: string, maxLines: number) {
@@ -53,7 +53,7 @@ function AxisTick({ x, y, payload, maxLines }: { x?: number; y?: number; payload
 export default function DashboardCoverageChart({ data, metricLabel, index, total, labelMaxLines, onBucketClick }: Props) {
   const maxLines = Math.max(1, ...data.map((item) => wrapLabel(item.name, labelMaxLines).length));
   const axisHeight = Math.max(72, maxLines * 17 + 40);
-  const yMax = Math.max(1, ...data.map((item) => Math.max(item.completedObjectives, item.objectivesAbove50, item.objectivesBetween0And50, item.objectivesAtZero)));
+  const yMax = Math.max(1, ...data.map((item) => Math.max(item.completedKeyResults, item.keyResultsAbove50, item.keyResultsBetween0And50, item.keyResultsAtZero)));
   const handleClick = (payload: unknown, bucket: BucketKey) => {
     const item = (payload as { payload?: CoverageItem } | undefined)?.payload;
     if (item && item[bucket] > 0) onBucketClick(item, bucket);
@@ -69,7 +69,7 @@ export default function DashboardCoverageChart({ data, metricLabel, index, total
             <XAxis dataKey="name" interval={0} height={axisHeight} tick={<AxisTick maxLines={labelMaxLines} />} tickLine={false} />
             <YAxis allowDecimals={false} domain={[0, yMax]} tick={{ fontSize: 11, fill: "#717182" }} />
             <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 800, paddingTop: 8 }} />
-            <Tooltip cursor={{ fill: "#F8FAFC" }} formatter={(value, name) => [Number(value), `${String(name)} - clic para ver objetivos`]} contentStyle={{ padding: "6px 10px", fontSize: "10px", borderRadius: "6px", lineHeight: "1.2" }} />
+            <Tooltip cursor={{ fill: "#F8FAFC" }} formatter={(value, name) => [Number(value), `${String(name)} - clic para ver KRs`]} contentStyle={{ padding: "6px 10px", fontSize: "10px", borderRadius: "6px", lineHeight: "1.2" }} />
             {(Object.keys(meta) as BucketKey[]).map((bucket) => (
               <Bar key={bucket} className="cursor-pointer" dataKey={bucket} name={meta[bucket].label} fill={meta[bucket].color} onClick={(payload) => handleClick(payload, bucket)} />
             ))}

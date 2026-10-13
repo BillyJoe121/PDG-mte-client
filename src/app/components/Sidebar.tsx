@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Layers,
   FolderKanban,
-  Target,
   KeyRound,
   BarChart3,
   Users,
@@ -25,9 +24,8 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, action: "dashboard.view" as PermissionAction },
   { to: "/jerarquia", label: "Jerarquía Estratégica", icon: Layers, action: "jerarquia.view" as PermissionAction },
   { to: "/catalogos", label: "Catálogos", icon: Database, action: "catalogos.manage" as PermissionAction },
-  { to: "/okrs", label: "Objetivos", icon: Target, action: "okrs.view" as PermissionAction },
   { to: "/krs", label: "KRs", icon: KeyRound, action: "okrs.view" as PermissionAction },
-  { to: "/proyectos", label: "Proyectos", icon: FolderKanban, action: "proyectos.view" as PermissionAction },
+  { to: "/proyectos", label: "Iniciativas", icon: FolderKanban, action: "proyectos.view" as PermissionAction },
   { to: "/reportes", label: "Reportes y exportaciones", icon: BarChart3, action: "reportes.view" as PermissionAction },
   { to: "/consistencia", label: "Consistencia", icon: ShieldAlert, action: "consistencia.view" as PermissionAction },
   { to: "/presentacion", label: "Modo Presentación", icon: Presentation, action: "presentacion.view" as PermissionAction },
@@ -39,7 +37,6 @@ const itemColors: Record<string, string> = {
   "/dashboard": "#E4EB60",     // amarillo
   "/jerarquia": "#5454E9",     // azul
   "/catalogos": "#E9683B",     // naranja
-  "/okrs": "#4CB979",          // verde
   "/krs": "#5454E9",           // azul
   "/proyectos": "#E4EB60",     // amarillo
   "/reportes": "#5454E9",      // azul

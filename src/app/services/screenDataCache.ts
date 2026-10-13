@@ -1,4 +1,4 @@
-import { academicPeriodsApi, measurementUnitsApi, type AcademicPeriod, type MeasurementUnit } from "./catalogsApi";
+import { academicPeriodsApi, measurementUnitsApi, type AcademicPeriod } from "./catalogsApi";
 import { consistencyApi, type ConsistencyFilters, type ConsistencyResponse } from "./consistencyApi";
 import { dashboardApi, type DashboardData } from "./dashboardApi";
 import {
@@ -21,11 +21,12 @@ import {
   departmentsApi,
   goalsApi,
   hierarchyApi,
-  objectivesApi,
+  keyResultsApi,
   strategicBetsApi,
   type Department,
   type Goal,
-  type ObjectiveCard,
+  type KeyResult,
+  type KeyResultListParams,
   type StrategicBet,
   type StrategicHierarchyNode,
 } from "./strategicApi";
@@ -44,13 +45,6 @@ type LoadOptions = {
   maxAgeMs?: number;
 };
 
-export type ObjectiveCardsParams = {
-  strategicBetId?: number;
-  goalId?: number;
-  departmentId?: number;
-  periodId?: number;
-};
-
 export type ProjectListParams = {
   search?: string;
   status?: ProjectStatus;
@@ -62,14 +56,12 @@ export type ProjectListParams = {
 export type ReportParams = {
   period?: Period;
   departmentId?: number;
-  objectiveId?: number;
 };
 
 export type ReportComparisonParams = {
   basePeriod: Period;
   comparePeriod: Period;
   departmentId?: number;
-  objectiveId?: number;
 };
 
 export interface DashboardScreenData {
@@ -84,26 +76,17 @@ export interface HierarchyScreenData {
   periods: AcademicPeriod[];
 }
 
-export interface OkrScreenData {
-  cards: ObjectiveCard[];
-  bets: StrategicBet[];
-  goals: Goal[];
-  departments: Department[];
-  periods: AcademicPeriod[];
-  units: MeasurementUnit[];
-}
-
 export interface ProjectsScreenData {
   projects: ProjectResponse[];
   departments: Department[];
   periods: AcademicPeriod[];
-  objectiveCards: ObjectiveCard[];
+  keyResults: KeyResult[];
 }
 
 export interface ProjectDetailScreenData {
   detail: ProjectDetailResponse;
   contributionChain: ImpactChain;
-  objectiveCards: ObjectiveCard[];
+  keyResults: KeyResult[];
   departments: Department[];
   periods: AcademicPeriod[];
 }
@@ -111,7 +94,6 @@ export interface ProjectDetailScreenData {
 export interface ReportsScreenData {
   periods: AcademicPeriod[];
   departments: Department[];
-  objectives: ObjectiveCard[];
   report: ConsolidatedReport;
 }
 
@@ -196,7 +178,7 @@ const keys = {
   hierarchyTree: (period?: string) => `hierarchy:tree:${period || "all"}`,
   strategicBets: (period?: string) => `strategic-bets:${period || "all"}`,
   goals: (period?: string) => `goals:${period || "all"}`,
-  objectiveCards: (params?: ObjectiveCardsParams) => `objectives:cards:${stableKey(params)}`,
+  keyResults: (params?: KeyResultListParams) => `key-results:list:${stableKey(params)}`,
   projects: (params?: ProjectListParams) => `projects:list:${stableKey(params)}`,
   projectDetail: (projectId: number) => `projects:detail:${projectId}`,
   projectContributionChain: (projectId: number) => `projects:contribution-chain:${projectId}`,
@@ -226,8 +208,8 @@ export function loadGoals(period?: string, options?: LoadOptions) {
   return getCached(keys.goals(period), () => goalsApi.list(period), options);
 }
 
-export function loadObjectiveCards(params?: ObjectiveCardsParams, options?: LoadOptions) {
-  return getCached(keys.objectiveCards(params), () => objectivesApi.cards(params), options);
+export function loadKeyResults(params?: KeyResultListParams, options?: LoadOptions) {
+  return getCached(keys.keyResults(params), () => keyResultsApi.list(params), options);
 }
 
 export function loadProjects(params?: ProjectListParams, options?: LoadOptions) {
@@ -250,35 +232,17 @@ export function loadHierarchyScreen(period?: string, options?: LoadOptions): Pro
   ]).then(([tree, bets, goals, periods]) => ({ tree, bets, goals, periods }));
 }
 
-export function loadOkrScreen(params?: ObjectiveCardsParams, options?: LoadOptions): Promise<OkrScreenData> {
-  return Promise.all([
-    loadObjectiveCards(params, options),
-    loadStrategicBets(undefined, options),
-    loadGoals(undefined, options),
-    loadAcademicPeriods(options),
-    loadMeasurementUnits(options),
-    loadDepartments(options).catch(() => [] as Department[]),
-  ]).then(([cards, bets, goals, periods, units, departments]) => ({
-    cards,
-    bets,
-    goals,
-    departments,
-    periods,
-    units,
-  }));
-}
-
 export function loadProjectsScreen(params?: ProjectListParams, options?: LoadOptions): Promise<ProjectsScreenData> {
   return Promise.all([
     loadProjects(params, options),
     loadDepartments(options),
     loadAcademicPeriods(options),
-    loadObjectiveCards(undefined, options),
-  ]).then(([projects, departments, periods, objectiveCards]) => ({
+    loadKeyResults(undefined, options),
+  ]).then(([projects, departments, periods, keyResults]) => ({
     projects,
     departments,
     periods,
-    objectiveCards,
+    keyResults,
   }));
 }
 
@@ -286,13 +250,13 @@ export function loadProjectDetailScreen(projectId: number, options?: LoadOptions
   return Promise.all([
     getCached(keys.projectDetail(projectId), () => projectsApi.detail(projectId), options),
     getCached(keys.projectContributionChain(projectId), () => projectContributionApi.contributionChain(projectId), options),
-    loadObjectiveCards(undefined, options),
+    loadKeyResults(undefined, options),
     loadDepartments(options).catch(() => [] as Department[]),
     loadAcademicPeriods(options),
-  ]).then(([detail, contributionChain, objectiveCards, departments, periods]) => ({
+  ]).then(([detail, contributionChain, keyResults, departments, periods]) => ({
     detail,
     contributionChain,
-    objectiveCards,
+    keyResults,
     departments,
     periods,
   }));
@@ -302,12 +266,10 @@ export function loadReportsScreen(params?: ReportParams, options?: LoadOptions):
   return Promise.all([
     loadAcademicPeriods(options),
     loadDepartments(options),
-    loadObjectiveCards(undefined, options),
     getCached(keys.report(params), () => reportsApi.consolidated(params), options),
-  ]).then(([periods, departments, objectives, report]) => ({
+  ]).then(([periods, departments, report]) => ({
     periods,
     departments,
-    objectives,
     report,
   }));
 }

@@ -1,34 +1,30 @@
 import { useEffect, useState } from "react";
 import { ArchiveRestore, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { goalsApi, objectivesApi, strategicBetsApi, type Goal, type Objective, type StrategicBet } from "../../services/strategicApi";
+import { goalsApi, strategicBetsApi, type Goal, type StrategicBet } from "../../services/strategicApi";
 
 interface ArchivedStrategyModalProps {
   canManageStrategy: boolean;
-  canManageObjectives: boolean;
   onClose: () => void;
   onChanged: () => Promise<void>;
 }
 
-export function ArchivedStrategyModal({ canManageStrategy, canManageObjectives, onClose, onChanged }: ArchivedStrategyModalProps) {
+export function ArchivedStrategyModal({ canManageStrategy, onClose, onChanged }: ArchivedStrategyModalProps) {
   const [loading, setLoading] = useState(true);
   const [restoringKey, setRestoringKey] = useState("");
   const [bets, setBets] = useState<StrategicBet[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [objectives, setObjectives] = useState<Objective[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       strategicBetsApi.list(undefined, true),
       goalsApi.list(undefined, true),
-      objectivesApi.list({ includeArchived: true }),
     ])
-      .then(([allBets, allGoals, allObjectives]) => {
+      .then(([allBets, allGoals]) => {
         if (cancelled) return;
         setBets(allBets.filter((item) => item.status === "INACTIVA"));
         setGoals(allGoals.filter((item) => item.status === "INACTIVA"));
-        setObjectives(allObjectives.filter((item) => item.status === "ARCHIVADO"));
       })
       .catch((error) => toast.error(error instanceof Error ? error.message : "No se pudo cargar el archivo"))
       .finally(() => {
@@ -37,19 +33,16 @@ export function ArchivedStrategyModal({ canManageStrategy, canManageObjectives, 
     return () => { cancelled = true; };
   }, []);
 
-  const restore = async (kind: "bet" | "goal" | "objective", id: number) => {
+  const restore = async (kind: "bet" | "goal", id: number) => {
     const key = `${kind}:${id}`;
     setRestoringKey(key);
     try {
       if (kind === "bet") {
         await strategicBetsApi.setActive(id, true);
         setBets((items) => items.filter((item) => item.id !== id));
-      } else if (kind === "goal") {
+      } else {
         await goalsApi.setActive(id, true);
         setGoals((items) => items.filter((item) => item.id !== id));
-      } else {
-        await objectivesApi.setArchived(id, false);
-        setObjectives((items) => items.filter((item) => item.id !== id));
       }
       toast.success("Elemento restaurado");
       await onChanged();
@@ -60,7 +53,7 @@ export function ArchivedStrategyModal({ canManageStrategy, canManageObjectives, 
     }
   };
 
-  const empty = bets.length === 0 && goals.length === 0 && objectives.length === 0;
+  const empty = bets.length === 0 && goals.length === 0;
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-5 backdrop-blur-sm" onClick={onClose}>
@@ -81,7 +74,6 @@ export function ArchivedStrategyModal({ canManageStrategy, canManageObjectives, 
             <>
               <ArchivedGroup title="Apuestas" items={bets} canRestore={canManageStrategy} kind="bet" restoringKey={restoringKey} onRestore={restore} />
               <ArchivedGroup title="Metas" items={goals} canRestore={canManageStrategy} kind="goal" restoringKey={restoringKey} onRestore={restore} />
-              <ArchivedGroup title="Objetivos" items={objectives} canRestore={canManageObjectives} kind="objective" restoringKey={restoringKey} onRestore={restore} />
             </>
           )}
         </div>
@@ -100,10 +92,10 @@ function ArchivedGroup({
 }: {
   title: string;
   items: Array<{ id: number; name: string; description: string }>;
-  kind: "bet" | "goal" | "objective";
+  kind: "bet" | "goal";
   canRestore: boolean;
   restoringKey: string;
-  onRestore: (kind: "bet" | "goal" | "objective", id: number) => Promise<void>;
+  onRestore: (kind: "bet" | "goal", id: number) => Promise<void>;
 }) {
   if (items.length === 0) return null;
   return (

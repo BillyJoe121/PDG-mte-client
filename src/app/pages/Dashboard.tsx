@@ -1,105 +1,42 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Activity,
   AlertTriangle,
   BarChart3,
-  CheckCircle2,
   FolderKanban,
-  Gauge,
   Layers3,
   Loader2,
-  RefreshCw,
   Target,
 } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { DeferredRender } from "../components/DeferredRender";
 import type { AcademicPeriod } from "../services/catalogsApi";
-import type { ObjectiveCard } from "../services/strategicApi";
+import type { DashboardData } from "../services/dashboardApi";
+import { loadDashboardScreen } from "../services/screenDataCache";
 import {
-  type CountByStatus,
-  type DashboardData,
-  type DashboardSummary,
-  type GoalExecution,
-  type ProgressBucket,
-  type ProgressBucketCount,
-} from "../services/dashboardApi";
-import { loadDashboardScreen, loadObjectiveCards } from "../services/screenDataCache";
-
-const COLORS = {
-  blue: "#5454E9",
-  green: "#4CB979",
-  orange: "#E9683B",
-  yellow: "#E4EB60",
-  purple: "#7C3AED",
-  teal: "#14B8A6",
-  red: "#DC2626",
-  gray: "#717182",
-  text: "#111827",
-  border: "#D9DEE8",
-  subtle: "#F7F8FB",
-};
-
-const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
-const MAX_COVERAGE_ITEMS_PER_CHART = 6;
-const DashboardCoverageChart = lazy(() => import("./dashboard/DashboardCoverageChart"));
-const viewMotion = {
-  initial: { opacity: 0, y: 6 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -4 },
-  transition: shortMotionTransition,
-} as const;
-
-const projectStatusLabel: Record<CountByStatus["status"], string> = {
-  BORRADOR: "Borrador",
-  ACTIVO: "Activo",
-  FINALIZADO: "Finalizado",
-  SUSPENDIDO: "Suspendido",
-  ARCHIVADO: "Archivado",
-};
-
-const projectStatusColor: Record<CountByStatus["status"], string> = {
-  BORRADOR: COLORS.gray,
-  ACTIVO: COLORS.blue,
-  FINALIZADO: COLORS.green,
-  SUSPENDIDO: COLORS.orange,
-  ARCHIVADO: COLORS.text,
-};
-
-const bucketLabel: Record<ProgressBucket, string> = {
-  COMPLETED: "Completados",
-  ON_TRACK: "En ruta",
-  AT_RISK: "En riesgo",
-  LOW: "Bajo",
-};
-
-const bucketColor: Record<ProgressBucket, string> = {
-  COMPLETED: COLORS.green,
-  ON_TRACK: COLORS.blue,
-  AT_RISK: COLORS.orange,
-  LOW: COLORS.red,
-};
-
-const objectiveBucketMeta = {
-  completedObjectives: { label: "Objetivos al 100", color: COLORS.green },
-  objectivesAbove50: { label: "50% o mas", color: COLORS.blue },
-  objectivesBetween0And50: { label: "De 0 a 50", color: COLORS.orange },
-  objectivesAtZero: { label: "Al 0", color: COLORS.red },
-} as const;
-
-type ObjectiveBucketKey = keyof typeof objectiveBucketMeta;
-type ObjectiveScope = "department" | "strategicBet" | "goal";
-
-const objectiveBucketToProgressFilter: Record<ObjectiveBucketKey, string> = {
-  completedObjectives: "completado",
-  objectivesAbove50: "avanzado",
-  objectivesBetween0And50: "proceso",
-  objectivesAtZero: "iniciando",
-};
+  DashboardEmptyState as EmptyState,
+  DepartmentPerformance,
+  GoalCoverage,
+  StrategicBetCoverage,
+  keyResultBucketToProgressFilter,
+  type CoverageItem,
+  type CoverageScope,
+  type KeyResultBucketKey,
+} from "./dashboard/DashboardCoverage";
+import { DashboardHeader } from "./dashboard/DashboardHeader";
+import {
+  DashboardKpiGrid,
+  DashboardPanel,
+  KeyResultsProgress,
+  ProjectStatusDistribution,
+  buildKpis,
+  sumCounts,
+  type DashboardKpi,
+} from "./dashboard/DashboardPanels";
+import { COLORS, viewMotion } from "./dashboard/dashboardTheme";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -113,71 +50,9 @@ function percent(value: number) {
   return `${Math.round(value)}%`;
 }
 
-function clampPercent(value: number) {
-  return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-function sumCounts<T extends { count: number }>(items: T[]) {
-  return items.reduce((sum, item) => sum + item.count, 0);
-}
-
-function chunkItems<T>(items: T[], size: number) {
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-  return chunks;
-}
-
-function buildKpis(summary: DashboardSummary, totalProjects: number) {
-  return [
-    {
-      label: "Proyectos activos",
-      value: summary.activeProjects,
-      sub: `${summary.completedProjects} finalizados de ${totalProjects || 0} totales`,
-      icon: FolderKanban,
-      color: COLORS.green,
-    },
-    {
-      label: "Objetivos en seguimiento",
-      value: summary.objectivesInFollowUp,
-      sub: `${summary.lowCompletionObjectives} requieren atencion`,
-      icon: Target,
-      color: COLORS.orange,
-    },
-    {
-      label: "KRs operativos",
-      value: summary.completedKeyResults + summary.inProgressKeyResults,
-      sub: `${summary.completedKeyResults} completados, ${summary.inProgressKeyResults} en progreso`,
-      icon: CheckCircle2,
-      color: COLORS.orange,
-    },
-    {
-      label: "Objetivos completados",
-      value: summary.completedObjectives,
-      sub: `${summary.objectivesAbove50} con mas del 50%, ${summary.objectivesBetween0And50} entre 0 y 50%, ${summary.objectivesAtZero} en 0%`,
-      icon: Gauge,
-      color: COLORS.blue,
-    },
-  ];
-}
-
 type DashboardDerived = {
-  kpis: ReturnType<typeof buildKpis>;
+  kpis: DashboardKpi[];
 };
-
-interface CoverageItem {
-  id: number;
-  name: string;
-  objectives: number;
-  completedObjectives: number;
-  objectivesAbove50: number;
-  objectivesBetween0And50: number;
-  objectivesAtZero: number;
-  keyResults: number;
-  completedProjects?: number;
-  inProgressProjects?: number;
-}
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -187,7 +62,6 @@ export function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [objectiveCards, setObjectiveCards] = useState<ObjectiveCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -204,14 +78,8 @@ export function Dashboard() {
     }
     try {
       const data = await loadDashboardScreen(period, { force: options?.force });
-      const periodName = period || data.dashboard.summary.period;
-      const periodId = data.periods.find((item) => item.name === periodName)?.id;
       setPeriods(data.periods);
       setDashboard(data.dashboard);
-      // Objective cards enrich the dashboard but must not delay its KPIs and charts.
-      void loadObjectiveCards(periodId ? { periodId } : undefined, { force: options?.force })
-        .then(setObjectiveCards)
-        .catch(() => setObjectiveCards([]));
     } catch (err) {
       if (!options?.silent) setError(getErrorMessage(err));
     } finally {
@@ -234,19 +102,13 @@ export function Dashboard() {
     setFilter("periodo", next || "todos");
   };
 
-  const openObjectivesFromBucket = useCallback((scope: ObjectiveScope, item: CoverageItem, bucket: ObjectiveBucketKey) => {
+  const openKeyResultsFromBucket = useCallback((scope: CoverageScope, item: CoverageItem, bucket: KeyResultBucketKey) => {
     const params = new URLSearchParams();
-    const periodName = selectedPeriod || dashboard?.summary.period;
-    const periodId = periods.find((period) => period.name === periodName)?.id;
-
-    params.set("progress", objectiveBucketToProgressFilter[bucket]);
-    if (periodId) params.set("periodId", String(periodId));
-    if (scope === "department") params.set("departmentId", String(item.id));
-    if (scope === "strategicBet") params.set("strategicBetId", String(item.id));
-    if (scope === "goal") params.set("goalId", String(item.id));
-
-    navigate(`/okrs?${params.toString()}`);
-  }, [dashboard?.summary.period, navigate, periods, selectedPeriod]);
+    params.set("progress", keyResultBucketToProgressFilter[bucket]);
+    // La pantalla de KRs busca por nombre de Meta o Apuesta; los KRs no tienen departamento propio.
+    if (scope !== "department") params.set("q", item.name);
+    navigate(`/krs?${params.toString()}`);
+  }, [navigate]);
 
   const derived = useMemo<DashboardDerived | null>(() => {
     if (!dashboard) return null;
@@ -288,7 +150,7 @@ export function Dashboard() {
             <main className="space-y-5">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <DashboardPanel
-                  title="Proyectos por estado"
+                  title="Iniciativas por estado"
                   subtitle="Lectura operativa del portafolio segun su ciclo de vida."
                   icon={<FolderKanban size={16} />}
                 >
@@ -306,35 +168,34 @@ export function Dashboard() {
 
               <DashboardPanel
                 title="Rendimiento por departamento"
-                subtitle="Objetivos agrupados por departamento segun sus rangos de avance."
+                subtitle="KRs de las iniciativas de cada departamento segun sus rangos de avance."
                 icon={<Layers3 size={16} />}
               >
                 <DepartmentPerformance
                   data={dashboard.departments}
-                  objectiveCards={objectiveCards}
-                  onBucketClick={(item, bucket) => openObjectivesFromBucket("department", item, bucket)}
+                  onBucketClick={(item, bucket) => openKeyResultsFromBucket("department", item, bucket)}
                 />
               </DashboardPanel>
 
               <DashboardPanel
                 title="Cobertura por apuesta estrategica"
-                subtitle="Alineacion de objetivos, KRs y proyectos alrededor de cada apuesta."
+                subtitle="Alineacion de KRs e iniciativas alrededor de cada apuesta."
                 icon={<BarChart3 size={16} />}
               >
                 <StrategicBetCoverage
                   data={dashboard.strategicBets}
-                  onBucketClick={(item, bucket) => openObjectivesFromBucket("strategicBet", item, bucket)}
+                  onBucketClick={(item, bucket) => openKeyResultsFromBucket("strategicBet", item, bucket)}
                 />
               </DashboardPanel>
 
               <DashboardPanel
                 title="Cobertura por meta"
-                subtitle="Objetivos agrupados por meta institucional segun sus buckets de avance."
+                subtitle="KRs agrupados por meta institucional segun sus buckets de avance."
                 icon={<Target size={16} />}
               >
                 <GoalCoverage
                   data={dashboard.goals}
-                  onBucketClick={(item, bucket) => openObjectivesFromBucket("goal", item, bucket)}
+                  onBucketClick={(item, bucket) => openKeyResultsFromBucket("goal", item, bucket)}
                 />
               </DashboardPanel>
             </main>
@@ -346,421 +207,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-function DashboardHeader({
-  activePeriodName,
-  loading,
-  onPeriodChange,
-  onReload,
-  periods,
-  selectedPeriod,
-  summary,
-  userName,
-}: {
-  activePeriodName: string;
-  loading: boolean;
-  onPeriodChange: (value: string) => void;
-  onReload: () => void;
-  periods: AcademicPeriod[];
-  selectedPeriod: string;
-  summary?: DashboardSummary;
-  userName?: string;
-}) {
-  const reduceMotion = useReducedMotion();
-  const firstName = userName?.split(" ")[0] ?? "el equipo";
-
-  return (
-    <motion.div
-      className="flex-shrink-0 bg-white px-6 pb-4 pt-5"
-      style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}
-      initial={reduceMotion ? false : { opacity: 0, y: -6 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      transition={shortMotionTransition}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>Centro de mando estrategico</p>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: COLORS.text, lineHeight: 1.15, marginTop: 3 }}>Dashboard de impacto</h1>
-          <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 5 }}>
-            Seguimiento ejecutivo del portafolio para {firstName}.
-            {summary && (
-              <>
-                {" "}{summary.activeProjects} activos - {summary.objectivesInFollowUp} objetivos - {summary.completedKeyResults + summary.inProgressKeyResults} KRs - {summary.completedObjectives} objetivos completados
-              </>
-            )}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={selectedPeriod || "__active"} onValueChange={onPeriodChange}>
-            <SelectTrigger className="focus-visible:ring-0" style={selectControlStyle}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
-              <SelectItem value="__active" className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
-                Periodo activo
-              </SelectItem>
-              {periods.map((period) => (
-                <SelectItem key={period.id} value={period.name} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
-                  {period.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <button
-            onClick={onReload}
-            disabled={loading}
-            className="flex items-center justify-center rounded-md transition-opacity disabled:opacity-50"
-            style={{ width: 38, height: 38, border: "1px solid #E5E7EB", backgroundColor: "#fff" }}
-            title="Recargar dashboard"
-          >
-            {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
-          </button>
-          <span className="rounded-md px-3 py-2" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 11, fontWeight: 850 }}>
-            {selectedPeriod || activePeriodName}
-          </span>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function DashboardKpiGrid({ kpis }: { kpis: ReturnType<typeof buildKpis> }) {
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {kpis.map((kpi, index) => (
-        <MetricCard key={kpi.label} index={index} {...kpi} />
-      ))}
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  color,
-  index,
-}: ReturnType<typeof buildKpis>[number] & { index: number }) {
-  const reduceMotion = useReducedMotion();
-  const solid = true;
-
-  return (
-    <motion.div
-      className="rounded-md bg-white p-4"
-      style={{
-        backgroundColor: solid ? color : "#fff",
-        border: `1px solid ${solid ? color : COLORS.border}`,
-        boxShadow: solid ? `0 14px 30px ${color}2E` : "0 1px 2px rgba(17,24,39,0.06)",
-      }}
-      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      transition={{ ...shortMotionTransition, delay: Math.min(index * 0.025, 0.1) }}
-      whileHover={reduceMotion ? undefined : { y: -2, transition: { duration: 0.12, ease: "easeOut" } }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: solid ? "rgba(255,255,255,0.16)" : `${color}18`, border: `1px solid ${solid ? "rgba(255,255,255,0.32)" : `${color}26`}` }}>
-          <Icon size={19} color={solid ? "#fff" : color} />
-        </div>
-        <span style={{ width: 34, height: 5, borderRadius: 99, backgroundColor: solid ? "rgba(255,255,255,0.72)" : color, opacity: 0.86 }} />
-      </div>
-      <p style={{ fontSize: 25, fontWeight: 900, color: solid ? "#fff" : color, lineHeight: 1.05, marginTop: 14 }}>{value}</p>
-      <p style={{ fontSize: 11, fontWeight: 850, color: solid ? "#fff" : COLORS.text, marginTop: 5 }}>{label}</p>
-      <p style={{ fontSize: 11, color: solid ? "rgba(255,255,255,0.82)" : COLORS.gray, marginTop: 3, lineHeight: 1.35 }}>{sub}</p>
-    </motion.div>
-  );
-}
-
-function DashboardPanel({ title, subtitle, icon, children }: { title: string; subtitle: string; icon: ReactNode; children: ReactNode }) {
-  return (
-    <section className="rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-      <div className="mb-4 flex items-start gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, border: "1px solid #DDE3FF" }}>
-          {icon}
-        </div>
-        <div>
-          <h2 style={{ fontSize: 15, fontWeight: 900, color: COLORS.text, lineHeight: 1.15 }}>{title}</h2>
-          <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 3, lineHeight: 1.4 }}>{subtitle}</p>
-        </div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function ProjectStatusDistribution({ data }: { data: CountByStatus[] }) {
-  const total = sumCounts(data);
-  if (!total) return <EmptyState text="Sin proyectos para el periodo seleccionado." compact />;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex h-3 overflow-hidden rounded-full bg-[#EEF2F7]">
-        {data.filter((item) => item.count > 0).map((item) => (
-          <div
-            key={item.status}
-            title={`${projectStatusLabel[item.status]} ${item.count}`}
-            style={{ width: `${(item.count / total) * 100}%`, backgroundColor: projectStatusColor[item.status] }}
-          />
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {data.map((item) => (
-          <DistributionRow
-            key={item.status}
-            color={projectStatusColor[item.status]}
-            label={projectStatusLabel[item.status]}
-            total={total}
-            value={item.count}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function KeyResultsProgress({ data }: { data: ProgressBucketCount[] }) {
-  const total = sumCounts(data);
-  if (!total) return <EmptyState text="Sin Key Results para el periodo seleccionado." compact />;
-
-  return (
-    <div className="space-y-2">
-      {data.map((item) => (
-        <DistributionRow
-          key={item.bucket}
-          color={bucketColor[item.bucket]}
-          label={bucketLabel[item.bucket]}
-          total={total}
-          value={item.count}
-        />
-      ))}
-    </div>
-  );
-}
-
-function DistributionRow({ color, label, total, value }: { color: string; label: string; total: number; value: number }) {
-  const width = total ? (value / total) * 100 : 0;
-  return (
-    <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-          <span style={{ fontSize: 12, fontWeight: 850, color: COLORS.text }}>{label}</span>
-        </div>
-        <span style={{ fontSize: 12, fontWeight: 900, color }}>{value}</span>
-      </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
-        <div style={{ width: `${width}%`, height: "100%", backgroundColor: color }} />
-      </div>
-    </div>
-  );
-}
-
-function DepartmentPerformance({
-  data,
-  objectiveCards,
-  onBucketClick,
-}: {
-  data: DashboardData["departments"];
-  objectiveCards: ObjectiveCard[];
-  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
-}) {
-  if (!data.length) return <EmptyState text="Sin departamentos para comparar." compact />;
-
-  const itemsByDepartment = new Map<string, CoverageItem>();
-  data.forEach((department) => {
-    itemsByDepartment.set(department.departmentName, {
-      id: department.departmentId,
-      name: department.departmentName,
-      objectives: 0,
-      completedObjectives: 0,
-      objectivesAbove50: 0,
-      objectivesBetween0And50: 0,
-      objectivesAtZero: 0,
-      keyResults: 0,
-      completedProjects: department.completedProjects,
-      inProgressProjects: department.activeProjects,
-    });
-  });
-
-  objectiveCards.forEach((card) => {
-    const name = card.departmentName || "Sin departamento";
-    const current = itemsByDepartment.get(name) ?? {
-      id: card.departmentId,
-      name,
-      objectives: 0,
-      completedObjectives: 0,
-      objectivesAbove50: 0,
-      objectivesBetween0And50: 0,
-      objectivesAtZero: 0,
-      keyResults: 0,
-      completedProjects: 0,
-      inProgressProjects: 0,
-    };
-    const progress = clampPercent(Number.isFinite(card.completionPercentage) ? card.completionPercentage : 0);
-
-    current.objectives += 1;
-    current.keyResults += card.keyResults.length;
-    if (progress >= 100) current.completedObjectives += 1;
-    else if (progress >= 50) current.objectivesAbove50 += 1;
-    else if (progress > 0) current.objectivesBetween0And50 += 1;
-    else current.objectivesAtZero += 1;
-
-    itemsByDepartment.set(name, current);
-  });
-
-  const items = [...itemsByDepartment.values()]
-    .filter((item) => item.objectives > 0)
-    .sort((a, b) => b.objectives - a.objectives || a.name.localeCompare(b.name));
-
-  return <CoverageCharts data={items} emptyText="Sin objetivos por departamento para el periodo." metricLabel="Departamento" onBucketClick={onBucketClick} showProjects />;
-}
-
-function StrategicBetCoverage({
-  data,
-  onBucketClick,
-}: {
-  data: DashboardData["strategicBets"];
-  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
-}) {
-  if (!data.length) return <EmptyState text="Sin apuestas estrategicas para el periodo." compact />;
-  const items = data.map((item) => ({
-    id: item.strategicBetId,
-    name: item.strategicBetName,
-    objectives: item.objectives,
-    completedObjectives: item.completedObjectives,
-    objectivesAbove50: item.objectivesAbove50,
-    objectivesBetween0And50: item.objectivesBetween0And50,
-    objectivesAtZero: item.objectivesAtZero,
-    keyResults: item.keyResults,
-    completedProjects: item.completedProjects,
-    inProgressProjects: item.inProgressProjects,
-  }));
-
-  return <CoverageCharts data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" onBucketClick={onBucketClick} showProjects labelMaxLines={3} />;
-}
-
-function GoalCoverage({
-  data,
-  onBucketClick,
-}: {
-  data: GoalExecution[];
-  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
-}) {
-  if (!data.length) return <EmptyState text="Sin metas con objetivos para el periodo." compact />;
-  const items = data.map((item) => ({
-    id: item.goalId,
-    name: item.goalName,
-    objectives: item.objectives,
-    completedObjectives: item.completedObjectives,
-    objectivesAbove50: item.objectivesAbove50,
-    objectivesBetween0And50: item.objectivesBetween0And50,
-    objectivesAtZero: item.objectivesAtZero,
-    keyResults: item.keyResults,
-    completedProjects: item.completedProjects,
-    inProgressProjects: item.inProgressProjects,
-  }));
-
-  return <CoverageCharts data={items} emptyText="Sin metas con objetivos para el periodo." metricLabel="Meta" onBucketClick={onBucketClick} labelMaxLines={3} />;
-}
-
-function CoverageCharts({
-  data,
-  emptyText,
-  metricLabel,
-  onBucketClick,
-  showProjects = false,
-  labelMaxLines = 2,
-}: {
-  data: CoverageItem[];
-  emptyText: string;
-  metricLabel: string;
-  onBucketClick: (item: CoverageItem, bucket: ObjectiveBucketKey) => void;
-  showProjects?: boolean;
-  labelMaxLines?: number;
-}) {
-  if (!data.length) return <EmptyState text={emptyText} compact />;
-  const chunks = chunkItems(data, MAX_COVERAGE_ITEMS_PER_CHART);
-
-  return (
-    <div className="space-y-4">
-      {chunks.map((chunk, index) => (
-        <DeferredRender key={`${metricLabel}-${index}`} minHeight={340}>
-          <Suspense fallback={<div className="h-[340px] animate-pulse rounded-md border border-[#D9DEE8] bg-[#F8FAFC] motion-reduce:animate-none" aria-label="Cargando gráfico" />}>
-            <DashboardCoverageChart
-              data={chunk}
-              metricLabel={metricLabel}
-              index={index}
-              total={chunks.length}
-              labelMaxLines={labelMaxLines}
-              onBucketClick={onBucketClick}
-            />
-          </Suspense>
-        </DeferredRender>
-      ))}
-
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {data.map((item) => (
-          <CoverageSummaryCard key={item.id} item={item} showProjects={showProjects} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CoverageSummaryCard({ item, showProjects }: { item: CoverageItem; showProjects: boolean }) {
-  const totalBuckets = item.completedObjectives + item.objectivesAbove50 + item.objectivesBetween0And50 + item.objectivesAtZero;
-  const projectText = showProjects
-    ? ` - ${item.inProgressProjects ?? 0} proyectos en progreso - ${item.completedProjects ?? 0} finalizados`
-    : "";
-  const bucketText = `${item.completedObjectives} objetivos completados, ${item.objectivesAbove50} con mas del 50%, ${item.objectivesBetween0And50} entre 0 y 50%, ${item.objectivesAtZero} en 0%`;
-
-  return (
-    <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
-      <div className="flex items-start justify-between gap-3">
-        <p style={{ fontSize: 12, fontWeight: 900, color: COLORS.text, lineHeight: 1.35 }}>{item.name}</p>
-        <span style={{ fontSize: 13, fontWeight: 900, color: COLORS.purple }}>{item.objectives}</span>
-      </div>
-      <p style={{ fontSize: 10, color: COLORS.gray, marginTop: 6, lineHeight: 1.45 }}>
-        {item.objectives} objetivos - {item.keyResults} KRs{projectText}
-      </p>
-      <p style={{ fontSize: 11, color: COLORS.text, fontWeight: 400, marginTop: 8, lineHeight: 1.45 }}>
-        {bucketText}
-      </p>
-      <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-[#EEF2F7]">
-        {totalBuckets > 0 ? (
-          <>
-            <div style={{ width: `${(item.completedObjectives / totalBuckets) * 100}%`, backgroundColor: objectiveBucketMeta.completedObjectives.color }} />
-            <div style={{ width: `${(item.objectivesAbove50 / totalBuckets) * 100}%`, backgroundColor: objectiveBucketMeta.objectivesAbove50.color }} />
-            <div style={{ width: `${(item.objectivesBetween0And50 / totalBuckets) * 100}%`, backgroundColor: objectiveBucketMeta.objectivesBetween0And50.color }} />
-            <div style={{ width: `${(item.objectivesAtZero / totalBuckets) * 100}%`, backgroundColor: objectiveBucketMeta.objectivesAtZero.color }} />
-          </>
-        ) : (
-          <div style={{ width: "100%", backgroundColor: "#E5E7EB" }} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({ text, compact = false }: { text: string; compact?: boolean }) {
-  return (
-    <div className="flex items-center justify-center rounded-md text-center" style={{ minHeight: compact ? 180 : 260, backgroundColor: "#F8FAFC", border: `1px dashed ${COLORS.border}`, color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>
-      {text}
-    </div>
-  );
-}
-
-const selectControlStyle: CSSProperties = {
-  width: 190,
-  minHeight: 38,
-  border: `1px solid ${COLORS.border}`,
-  borderRadius: 8,
-  padding: "8px 11px",
-  fontSize: 12,
-  fontWeight: 750,
-  backgroundColor: "#F8FAFC",
-  color: COLORS.text,
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85)",
-};

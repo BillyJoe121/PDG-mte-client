@@ -120,7 +120,7 @@ describe("projects APIs", () => {
   });
 
   it.each([
-    ["missing project", { projectId: 0, keyResultId: 10, contributionWeight: 20, contributionType: "DIRECTA" as const }, "Selecciona un proyecto."],
+    ["missing project", { projectId: 0, keyResultId: 10, contributionWeight: 20, contributionType: "DIRECTA" as const }, "Selecciona una iniciativa."],
     ["missing key result", { projectId: 1, keyResultId: 0, contributionWeight: 20, contributionType: "DIRECTA" as const }, "Selecciona un Key Result."],
     ["negative weight", { projectId: 1, keyResultId: 10, contributionWeight: -1, contributionType: "DIRECTA" as const }, "El peso debe estar entre 0 y 100."],
     ["overweight", { projectId: 1, keyResultId: 10, contributionWeight: 101, contributionType: "DIRECTA" as const }, "El peso debe estar entre 0 y 100."],

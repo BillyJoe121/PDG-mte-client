@@ -5,11 +5,9 @@ import { PresentationConsolidatedSlideContent } from "./PresentationConsolidated
 import { exportSlideDeckCsv, printPresentationView } from "./presentationExportUtils";
 
 const METRIC_LABELS: Record<string, string> = {
-  completedObjectives: "Objetivos completados",
-  inProgressObjectives: "Objetivos en progreso",
   completedKeyResults: "KRs completados",
   inProgressKeyResults: "KRs en progreso",
-  totalProjects: "Proyectos vinculados",
+  totalProjects: "Iniciativas vinculadas",
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

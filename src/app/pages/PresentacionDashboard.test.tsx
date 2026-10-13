@@ -39,9 +39,9 @@ const response = {
       exitKeys: ["Escape"],
     },
     slides: [
-      { order: 1, type: "COVER", title: "Seguimiento estratégico", subtitle: "Periodo 2026-1", content: { institution: "Escuela TDI", completedObjectives: 4, inProgressObjectives: 2 } },
-      { order: 2, type: "STRATEGIC_BET", title: "Transformación educativa", subtitle: "Apuesta institucional", content: { status: "ACTIVO", executionSummary: { completedObjectives: 2, inProgressObjectives: 1, completedKeyResults: 3, inProgressKeyResults: 2 } } },
-      { order: 3, type: "CLOSING", title: "Cierre", subtitle: "Resumen", content: { summaryText: "4 objetivos completos" } },
+      { order: 1, type: "COVER", title: "Seguimiento estratégico", subtitle: "Periodo 2026-1", content: { institution: "Escuela TDI", completedKeyResults: 4, inProgressKeyResults: 2 } },
+      { order: 2, type: "STRATEGIC_BET", title: "Transformación educativa", subtitle: "Apuesta institucional", content: { status: "ACTIVO", executionSummary: { completedKeyResults: 3, inProgressKeyResults: 2 } } },
+      { order: 3, type: "CLOSING", title: "Cierre", subtitle: "Resumen", content: { summaryText: "4 KRs completos" } },
     ],
   },
   bets: [
@@ -53,8 +53,6 @@ const response = {
       createdAt: "2026-01-01",
       executionSummary: {
         summaryText: "Avance significativo",
-        completedObjectives: 4,
-        inProgressObjectives: 2,
         completedKeyResults: 6,
         inProgressKeyResults: 3,
         completedProjects: 5,
@@ -70,8 +68,6 @@ const response = {
       createdAt: "2026-01-01",
       executionSummary: {
         summaryText: "En desarrollo",
-        completedObjectives: 3,
-        inProgressObjectives: 3,
         completedKeyResults: 4,
         inProgressKeyResults: 4,
         completedProjects: 4,
@@ -94,8 +90,6 @@ const response = {
       periods: [],
       executionSummary: {
         summaryText: "Metas alineadas",
-        completedObjectives: 3,
-        inProgressObjectives: 1,
         completedKeyResults: 5,
         inProgressKeyResults: 2,
         completedProjects: 3,
@@ -116,8 +110,6 @@ const response = {
       periods: [],
       executionSummary: {
         summaryText: "Producción continua",
-        completedObjectives: 2,
-        inProgressObjectives: 2,
         completedKeyResults: 3,
         inProgressKeyResults: 3,
         completedProjects: 2,
@@ -263,7 +255,8 @@ describe("PresentacionDashboard", () => {
     expect(screen.getByText("2 / 10")).toBeInTheDocument();
     expect(screen.getByText("Total del corte")).toBeInTheDocument();
     expect(screen.getByText("Cierres documentados")).toBeInTheDocument();
-    expect(screen.getByText("Objetivos incluidos")).toBeInTheDocument();
+    expect(screen.getByText("KRs incluidos")).toBeInTheDocument();
+    expect(screen.queryByText(/objetivos incluidos/i)).not.toBeInTheDocument();
     expect(screen.getByText("Cobertura reportada")).toBeInTheDocument();
 
     // Slide 3: Diapositiva 2 del consolidado (Lectura ejecutiva del corte)
@@ -272,9 +265,9 @@ describe("PresentacionDashboard", () => {
     });
     expect(await screen.findByRole("heading", { name: "Lectura Ejecutiva del Corte" })).toBeInTheDocument();
     expect(screen.getByText("3 / 10")).toBeInTheDocument();
-    expect(screen.getByText("Proyectos Activos")).toBeInTheDocument();
+    expect(screen.getByText("Iniciativas Activas")).toBeInTheDocument();
     expect(screen.getByText("Tasa de Cierres")).toBeInTheDocument();
-    expect(screen.getByText("KRs por Objetivo")).toBeInTheDocument();
+    expect(screen.getByText("KRs Trazables")).toBeInTheDocument();
 
     // Slide 4: Diapositiva 3 del consolidado (Salud de cobertura)
     await act(async () => {
@@ -290,8 +283,8 @@ describe("PresentacionDashboard", () => {
     });
     expect(await screen.findByRole("heading", { name: "Capacidad Institucional" })).toBeInTheDocument();
     expect(screen.getByText("5 / 10")).toBeInTheDocument();
-    expect(screen.getByText("Proyectos / Depto.")).toBeInTheDocument();
-    expect(screen.getByText("Objetivos / Depto.")).toBeInTheDocument();
+    expect(screen.getByText("Iniciativas / Depto.")).toBeInTheDocument();
+    expect(screen.getByText("KRs / Depto.")).toBeInTheDocument();
 
     // Slide 6: Diapositiva 5 del consolidado (Departamentos con mayor avance)
     await act(async () => {
@@ -301,13 +294,13 @@ describe("PresentacionDashboard", () => {
     expect(screen.getByText("6 / 10")).toBeInTheDocument();
     expect(screen.getByText(/ranking de unidades acad[eé]micas/i)).toBeInTheDocument();
 
-    // Slide 7: Diapositiva 6 del consolidado (Objetivos que requieren atención)
+    // Slide 7: Diapositiva 6 del consolidado (KRs que requieren atención)
     await act(async () => {
       fireEvent.keyDown(window, { key: "ArrowRight" });
     });
-    expect(await screen.findByRole("heading", { name: "Objetivos que Requieren Atención" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "KRs que Requieren Atención" })).toBeInTheDocument();
     expect(screen.getByText("7 / 10")).toBeInTheDocument();
-    expect(screen.getByText(/objetivos cr[ií]ticos para seguimiento/i)).toBeInTheDocument();
+    expect(screen.getByText(/KRs cr[ií]ticos para seguimiento/i)).toBeInTheDocument();
 
     // Slide 8: Diapositiva 7 del consolidado (Resumen por departamento)
     await act(async () => {

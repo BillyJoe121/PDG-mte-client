@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { BarChart3, CalendarDays, CircleCheck, Edit2, KeyRound, Loader2, Play, Save, Scale, Target, Trash2, X } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, CircleCheck, Edit2, Flag, KeyRound, Loader2, Play, Save, Scale, Trash2, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { measurementUnitsApi, type MeasurementUnit } from "../../services/catalogsApi";
@@ -8,7 +8,7 @@ import {
   type ProjectKeyResultLinkResponse,
 } from "../../services/projectsApi";
 import { invalidateScreenDataCache } from "../../services/screenDataCache";
-import { ApiError, keyResultsApi, objectivesApi, type KeyResult, type KeyResultRequest, type Objective } from "../../services/strategicApi";
+import { ApiError, keyResultsApi, type KeyResult, type KeyResultRequest } from "../../services/strategicApi";
 import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicLifecycle";
 import { KrFormModal } from "./KrFormModal";
@@ -17,19 +17,18 @@ import { PlannerButton } from "../../components/planner/PlannerButton";
 
 interface KeyResultDetailModalProps {
   keyResultId: number;
-  objectiveId?: number;
   canEdit: boolean;
   onClose: () => void;
   onChanged?: () => Promise<void>;
   onDeleted?: () => Promise<void>;
-  renderActions?: (keyResult: KeyResult, objective: Objective) => ReactNode;
+  renderActions?: (keyResult: KeyResult) => ReactNode;
 }
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 
-export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClose, onChanged, onDeleted, renderActions }: KeyResultDetailModalProps) {
+export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged, onDeleted, renderActions }: KeyResultDetailModalProps) {
   const reduceMotion = useReducedMotion();
-  const [objective, setObjective] = useState<Objective | null>(null);
+  const [keyResult, setKeyResult] = useState<KeyResult | null>(null);
   const [links, setLinks] = useState<ProjectKeyResultLinkResponse[]>([]);
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,12 +41,12 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [nextObjective, nextLinks, unitList] = await Promise.all([
-        loadObjectiveForKeyResult(keyResultId, objectiveId),
+      const [nextKeyResult, nextLinks, unitList] = await Promise.all([
+        keyResultsApi.get(keyResultId),
         projectKeyResultLinksApi.list({ keyResultId }),
         measurementUnitsApi.list(),
       ]);
-      setObjective(nextObjective);
+      setKeyResult(nextKeyResult);
       setLinks(nextLinks.filter((link) => link.active !== false));
       setUnits(unitList.filter((unit) => unit.active));
     } catch (error) {
@@ -60,18 +59,24 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
 
   useEffect(() => {
     void load();
-  }, [keyResultId, objectiveId]);
+  }, [keyResultId]);
 
-  const keyResult = useMemo(() => objective?.keyResults.find((kr) => kr.id === keyResultId) ?? null, [keyResultId, objective]);
+  const goalNames = useMemo(() => joinLinkNames(keyResult?.goals), [keyResult]);
+  const strategicBetNames = useMemo(() => joinLinkNames(keyResult?.strategicBets), [keyResult]);
   const totalWeight = links[0]?.totalWeightForKeyResult ?? links.reduce((sum, link) => sum + link.contributionWeight, 0);
   const lifecycleAction = keyResult ? keyResultLifecycleAction(keyResult.status ?? "ACTIVO") : null;
-  const keyResultMutable = keyResult?.status !== "CERRADO" && objective?.status !== "CERRADO" && objective?.status !== "ARCHIVADO";
+  const keyResultMutable = keyResult?.status !== "CERRADO";
 
   const updateKr = async (body: KeyResultRequest) => {
     if (!keyResult) return;
     setSaving(true);
     try {
       await keyResultsApi.update(keyResult.id, body);
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        reason: "key-result-update",
+        scopes: ["keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
       toast.success("Key Result actualizado");
       setEditingKr(false);
       await load(true);
@@ -96,7 +101,7 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
       invalidateScreenDataCache();
       signalStrategicDataChanged({
         reason: "key-result-current-value",
-        scopes: ["objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+        scopes: ["keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
       });
       toast.success("Avance del Key Result registrado");
       await load(true);
@@ -110,7 +115,7 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
 
   const requestDelete = () => {
     if (links.length > 0) {
-      toast.warning("No se puede eliminar un KR con proyectos vinculados. Desvincula los proyectos primero.");
+      toast.warning("No se puede eliminar un KR con iniciativas vinculadas. Desvincula las iniciativas primero.");
       return;
     }
     setDeleteConfirm(true);
@@ -124,14 +129,14 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
       invalidateScreenDataCache();
       signalStrategicDataChanged({
         reason: "key-result-delete",
-        scopes: ["objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+        scopes: ["keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
       });
       toast.success("Key Result eliminado");
       await onDeleted?.();
       onClose();
     } catch (error) {
       const message = error instanceof ApiError && error.status === 409
-        ? "No se puede eliminar este Key Result porque tiene proyectos vinculados activos."
+        ? "No se puede eliminar este Key Result porque tiene iniciativas vinculadas activas."
         : error instanceof Error ? error.message : "No se pudo eliminar el Key Result";
       toast.error(message);
     } finally {
@@ -189,7 +194,7 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
             <div className="flex items-center justify-center bg-white py-16" style={{ color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
               <Loader2 size={18} className="mr-2 animate-spin" /> Cargando detalle del KR...
             </div>
-          ) : objective && keyResult ? (
+          ) : keyResult ? (
             <>
               <section className="hierarchy-detail-context overflow-hidden rounded-md bg-white" style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}>
                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
@@ -214,7 +219,7 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
                       {[
                         { label: "Estado", value: lifecycleLabel(keyResult.status ?? "ACTIVO") },
                         { label: "Avance", value: `${keyResult.progressPercentage}%` },
-                        { label: "Proyectos", value: links.length },
+                        { label: "Iniciativas", value: links.length },
                         { label: "Peso", value: `${totalWeight}%` },
                       ].map((item) => (
                         <span key={item.label} style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC", color: COLORS.gray, fontSize: 11, fontWeight: 700, padding: "5px 12px", display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -228,10 +233,10 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
                         size="sm"
                         variant="outline"
                       />
-                      {renderActions?.(keyResult, objective)}
+                      {renderActions?.(keyResult)}
                       {canEdit && (
                         <>
-                          {lifecycleAction && objective.status === "ACTIVO" && (
+                          {lifecycleAction && (
                             <button type="button" onClick={() => void transitionKeyResult()} disabled={saving || transitioning} className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60" style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}>
                               {transitioning ? <Loader2 size={12} className="animate-spin" /> : lifecycleAction.target === "ACTIVO" ? <Play size={12} /> : <CircleCheck size={12} />}
                               {lifecycleAction.label}
@@ -254,15 +259,16 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
 
                   <div className="flex flex-col justify-center gap-3 p-5" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
                     <div className="w-full space-y-2">
-                      <ContextRow icon={<Target size={14} />} label="Objetivo" value={objective.name} />
-                      <ContextRow icon={<CalendarDays size={14} />} label="Periodo" value={keyResult.academicPeriodName ?? objective.academicPeriodName} />
+                      <ContextRow icon={<BookOpen size={14} />} label="Metas" value={goalNames} />
+                      <ContextRow icon={<Flag size={14} />} label="Apuestas" value={strategicBetNames} />
+                      <ContextRow icon={<CalendarDays size={14} />} label="Periodo" value={keyResult.academicPeriodName ?? "Sin periodo"} />
                       <ContextRow icon={<BarChart3 size={14} />} label="Metrica" value={keyResult.metric} />
                       <ContextRow icon={<Scale size={14} />} label="Meta" value={`${keyResult.targetValue} ${keyResult.measurementUnitName}`} />
                     </div>
                     <div className="rounded-md bg-white p-3" style={{ border: `1px solid ${COLORS.border}` }}>
                       <p style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Evidencia de avance del KR</p>
                       <p className="mt-1" style={{ color: COLORS.text, fontSize: 12, lineHeight: 1.45 }}>
-                        Valor actual: <strong>{keyResult.currentValue} {keyResult.measurementUnitName}</strong>. El avance se calcula contra la línea base y la meta; el avance operativo de proyectos no se transfiere automáticamente.
+                        Valor actual: <strong>{keyResult.currentValue} {keyResult.measurementUnitName}</strong>. El avance se calcula contra la línea base y la meta; el avance operativo de iniciativas no se transfiere automáticamente.
                       </p>
                       {canEdit && keyResultMutable && (
                         <form className="mt-3 flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void updateCurrentValue(); }}>
@@ -291,11 +297,11 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
           ) : null}
         </div>
 
-        {editingKr && objective && keyResult && (
-          <KrFormModal objectiveId={objective.id} keyResult={keyResult} units={units} saving={saving} onClose={() => setEditingKr(false)} onSubmit={updateKr} />
+        {editingKr && keyResult && (
+          <KrFormModal keyResult={keyResult} units={units} saving={saving} onClose={() => setEditingKr(false)} onSubmit={updateKr} />
         )}
         {deleteConfirm && keyResult && (
-          <ConfirmActionModal title="Eliminar Key Result" description="Esta accion eliminara el KR del objetivo. Solo se permite cuando no tiene proyectos vinculados." actionLabel="Eliminar" saving={saving} accent={COLORS.orange} onClose={() => setDeleteConfirm(false)} onConfirm={deleteKr}>
+          <ConfirmActionModal title="Eliminar Key Result" description="Esta accion eliminara el KR. Solo se permite cuando no tiene iniciativas vinculadas." actionLabel="Eliminar" saving={saving} accent={COLORS.orange} onClose={() => setDeleteConfirm(false)} onConfirm={deleteKr}>
             <p style={{ fontSize: 13, color: COLORS.text, fontWeight: 900, marginTop: 10 }}>{keyResult.name}</p>
           </ConfirmActionModal>
         )}
@@ -304,11 +310,9 @@ export function KeyResultDetailModal({ keyResultId, objectiveId, canEdit, onClos
   );
 }
 
-async function loadObjectiveForKeyResult(keyResultId: number, objectiveId?: number) {
-  if (objectiveId) return objectivesApi.get(objectiveId);
-  const keyResult = await keyResultsApi.get(keyResultId);
-  if (!keyResult.objectiveId) throw new Error("El Key Result no tiene un objetivo principal asociado");
-  return objectivesApi.get(keyResult.objectiveId);
+function joinLinkNames(links?: Array<{ name: string }>) {
+  const names = (links ?? []).map((link) => link.name).filter(Boolean);
+  return names.length ? names.join(", ") : "Sin vínculo";
 }
 
 function ConfirmActionModal({ title, description, actionLabel, saving, accent, onClose, onConfirm, children }: { title: string; description: string; actionLabel: string; saving: boolean; accent: string; onClose: () => void; onConfirm: () => void; children?: ReactNode }) {

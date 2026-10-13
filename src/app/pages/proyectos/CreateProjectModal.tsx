@@ -3,7 +3,8 @@ import { Check, FolderKanban, Loader2, Plus, Save, Trash2, X } from "lucide-reac
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import type { AcademicPeriod } from "../../services/catalogsApi";
-import type { Department, ObjectiveCard } from "../../services/strategicApi";
+import type { Department, KeyResult } from "../../services/strategicApi";
+import { toKeyResultOptions } from "../../utils/keyResultOptions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import {
   projectsApi,
@@ -18,7 +19,7 @@ import { COLORS, CONTRIBUTION_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, errorMessag
 
 interface CreateProjectModalProps {
   departments: Department[];
-  objectiveCards: ObjectiveCard[];
+  keyResults: KeyResult[];
   periods: AcademicPeriod[];
   onClose: () => void;
   onCreated: (projectId: number) => Promise<void> | void;
@@ -28,7 +29,7 @@ type Errors = Partial<Record<"name" | "description" | "departmentId" | "startPer
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 
-export function CreateProjectModal({ departments, objectiveCards, periods, onClose, onCreated }: CreateProjectModalProps) {
+export function CreateProjectModal({ departments, keyResults: availableKeyResults, periods, onClose, onCreated }: CreateProjectModalProps) {
   const reduceMotion = useReducedMotion();
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
@@ -55,14 +56,7 @@ export function CreateProjectModal({ departments, objectiveCards, periods, onClo
     }));
   }, [departments, periods]);
 
-  const keyResults = useMemo(() => objectiveCards.flatMap((objective) =>
-    objective.keyResults.map((kr) => ({
-      ...kr,
-      objectiveName: objective.name,
-      departmentName: objective.departmentName,
-      period: objective.academicPeriodName,
-    })),
-  ), [objectiveCards]);
+  const keyResults = useMemo(() => toKeyResultOptions(availableKeyResults), [availableKeyResults]);
 
   const setField = (field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -120,7 +114,7 @@ export function CreateProjectModal({ departments, objectiveCards, periods, onClo
 
     try {
       const project = await projectsApi.create(payload);
-      toast.success("Proyecto creado correctamente.");
+      toast.success("Iniciativa creada correctamente.");
       await onCreated(project.id);
     } catch (error) {
       toast.error(errorMessage(error));
@@ -155,8 +149,8 @@ export function CreateProjectModal({ departments, objectiveCards, periods, onClo
               <FolderKanban size={18} color="#fff" />
             </div>
             <div>
-              <p style={{ fontSize: 10, fontWeight: 850, color: "rgba(255,255,255,0.76)", textTransform: "uppercase" }}>Proyectos e iniciativas</p>
-              <h2 style={{ fontSize: 20, fontWeight: 900, color: "#fff", lineHeight: 1.15 }}>Nuevo Proyecto</h2>
+              <p style={{ fontSize: 10, fontWeight: 850, color: "rgba(255,255,255,0.76)", textTransform: "uppercase" }}>Iniciativas</p>
+              <h2 style={{ fontSize: 20, fontWeight: 900, color: "#fff", lineHeight: 1.15 }}>Nueva Iniciativa</h2>
             </div>
           </div>
           <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
@@ -168,7 +162,7 @@ export function CreateProjectModal({ departments, objectiveCards, periods, onClo
           <div className="space-y-3">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.2fr_0.8fr]">
               <ModalField label="Nombre" error={errors.name}>
-                <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Proyecto de analitica curricular" style={modalInputStyle(Boolean(errors.name))} />
+                <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Iniciativa de analitica curricular" style={modalInputStyle(Boolean(errors.name))} />
               </ModalField>
               <ModalField label="Departamento" error={errors.departmentId}>
                 <ModalSelect value={form.departmentId} onChange={(value) => setField("departmentId", value)} error={Boolean(errors.departmentId)} placeholder="Selecciona" options={departments.map((department) => ({ value: String(department.id), label: department.name }))} />
@@ -229,7 +223,7 @@ export function CreateProjectModal({ departments, objectiveCards, periods, onClo
                             {selected && <Check size={12} color="#fff" />}
                           </button>
                           <div className="min-w-0 flex-1">
-                            <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.green, textTransform: "uppercase" }}>KR {kr.id} · {kr.objectiveName} · {kr.period}</p>
+                            <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.green, textTransform: "uppercase" }}>KR {kr.id} · {kr.strategyLabel}{kr.period ? ` · ${kr.period}` : ""}</p>
                             <p style={{ fontSize: 12, fontWeight: 850, color: COLORS.text, marginTop: 3 }}>{kr.name || kr.description}</p>
                             <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 2 }}>{kr.metric}</p>
                           </div>
@@ -282,7 +276,7 @@ function ModalActions({ onClose, saving }: { onClose: () => void; saving: boolea
       </button>
       <button type="submit" disabled={saving} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", fontSize: 12, fontWeight: 850, color: "#fff", backgroundColor: COLORS.green, borderRadius: 8, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
         {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-        Crear Proyecto
+        Crear Iniciativa
       </button>
     </div>
   );

@@ -16,12 +16,13 @@ export function PresentationHub({ periodName, bets, goals, onSelectOption }: Pro
   const totalGoals = goals.length;
   const activeGoals = goals.filter((g) => g.status === "ACTIVA").length;
 
-  const totalObjectives = bets.reduce(
-    (acc, b) => acc + (b.executionSummary?.completedObjectives ?? 0) + (b.executionSummary?.inProgressObjectives ?? 0),
+  // Un KR puede aportar a varias apuestas; el total refleja vinculos apuesta-KR.
+  const totalKeyResults = bets.reduce(
+    (acc, b) => acc + (b.executionSummary?.completedKeyResults ?? 0) + (b.executionSummary?.inProgressKeyResults ?? 0),
     0
   );
-  const completedObjectives = bets.reduce(
-    (acc, b) => acc + (b.executionSummary?.completedObjectives ?? 0),
+  const completedKeyResults = bets.reduce(
+    (acc, b) => acc + (b.executionSummary?.completedKeyResults ?? 0),
     0
   );
 
@@ -61,9 +62,9 @@ export function PresentationHub({ periodName, bets, goals, onSelectOption }: Pro
               <span className="block text-[10px] font-bold text-emerald-700">{activeGoals} activas</span>
             </div>
             <div className="rounded-lg border border-[#DFE3EC] bg-[#F7F8FC] px-4 py-2.5 text-center min-w-[110px]">
-              <span className="block text-[11px] font-extrabold uppercase text-[#717182]">Objetivos</span>
-              <span className="block text-2xl font-black text-[#222245]">{totalObjectives}</span>
-              <span className="block text-[10px] font-bold text-emerald-700">{completedObjectives} cumplidos</span>
+              <span className="block text-[11px] font-extrabold uppercase text-[#717182]">KRs</span>
+              <span className="block text-2xl font-black text-[#222245]">{totalKeyResults}</span>
+              <span className="block text-[10px] font-bold text-emerald-700">{completedKeyResults} cumplidos</span>
             </div>
           </div>
         </div>
@@ -151,7 +152,7 @@ export function PresentationHub({ periodName, bets, goals, onSelectOption }: Pro
               <div className="mt-6 space-y-2.5 rounded-lg border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-xs font-semibold text-[#222245]">
                 <div className="flex items-start gap-2">
                   <CheckCircle2 size={16} className="text-[#4CB979] shrink-0 mt-0.5" aria-hidden="true" />
-                  <span><strong>Apuesta vs Apuesta:</strong> Compara objetivos y avance entre dos apuestas.</span>
+                  <span><strong>Apuesta vs Apuesta:</strong> Compara KRs y avance entre dos apuestas.</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 size={16} className="text-[#4CB979] shrink-0 mt-0.5" aria-hidden="true" />

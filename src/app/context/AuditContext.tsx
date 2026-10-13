@@ -48,7 +48,7 @@ const seedEntries: AuditEntry[] = [
     accion: "Creacion",
     entidad: "OKR10 - Semillero TDI Labs",
     entidadId: "OKR10",
-    detalle: "Se creo un objetivo con KRs iniciales para el periodo 2025-I.",
+    detalle: "Se creo un KR vinculado a Metas y Apuestas para el periodo 2025-I.",
     resultado: "info",
   },
   {

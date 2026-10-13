@@ -1,5 +1,5 @@
 import type { MeasurementUnit } from "../services/catalogsApi";
-import type { KeyResultRequest } from "../services/strategicApi";
+import type { KeyResult, KeyResultRequest } from "../services/strategicApi";
 
 export interface KeyResultFormValues {
   name: string;
@@ -8,9 +8,14 @@ export interface KeyResultFormValues {
   baseValue: string;
   targetValue: string;
   measurementUnitId: string;
+  academicPeriodId: string;
+  goalIds: number[];
+  strategicBetIds: number[];
 }
 
-export type KeyResultFormErrors = Partial<Record<keyof KeyResultFormValues, string>>;
+export type KeyResultFormErrors = Partial<Record<keyof KeyResultFormValues | "links", string>>;
+
+export const KEY_RESULT_LINKS_REQUIRED_MESSAGE = "Selecciona al menos una Meta o una Apuesta.";
 
 export type KeyResultValueInput =
   | { kind: "boolean" }
@@ -20,6 +25,25 @@ export function getKeyResultValueInput(unit?: MeasurementUnit): KeyResultValueIn
   if (unit?.type === "BOOLEANA") return { kind: "boolean" };
   if (unit?.type === "PORCENTAJE") return { kind: "number", min: 0, max: 100, step: 0.01 };
   return { kind: "number", step: 0.01 };
+}
+
+export function initialKeyResultFormValues(
+  keyResult: KeyResult | null,
+  defaults: { goalIds?: number[]; strategicBetIds?: number[]; academicPeriodId?: number } = {},
+): KeyResultFormValues {
+  return {
+    name: keyResult?.name ?? "",
+    description: keyResult?.description ?? "",
+    metric: keyResult?.metric ?? "",
+    baseValue: String(keyResult?.baseValue ?? 0),
+    targetValue: String(keyResult?.targetValue ?? ""),
+    measurementUnitId: String(keyResult?.measurementUnitId ?? ""),
+    academicPeriodId: String(keyResult?.academicPeriodId ?? defaults.academicPeriodId ?? ""),
+    goalIds: keyResult ? (keyResult.goals ?? []).map((goal) => goal.id) : [...(defaults.goalIds ?? [])],
+    strategicBetIds: keyResult
+      ? (keyResult.strategicBets ?? []).map((bet) => bet.id)
+      : [...(defaults.strategicBetIds ?? [])],
+  };
 }
 
 export function validateKeyResultForm(
@@ -40,10 +64,18 @@ export function validateKeyResultForm(
 
   validateValue(form.baseValue, "base", unit, "baseValue", errors);
   validateValue(form.targetValue, "objetivo", unit, "targetValue", errors);
+
+  const periodId = Number(form.academicPeriodId);
+  if (!form.academicPeriodId || !Number.isFinite(periodId) || periodId <= 0) {
+    errors.academicPeriodId = "Selecciona un periodo academico.";
+  }
+  if (form.goalIds.length === 0 && form.strategicBetIds.length === 0) {
+    errors.links = KEY_RESULT_LINKS_REQUIRED_MESSAGE;
+  }
   return errors;
 }
 
-export function toKeyResultRequest(form: KeyResultFormValues, academicPeriodId?: number): KeyResultRequest {
+export function toKeyResultRequest(form: KeyResultFormValues): KeyResultRequest {
   return {
     name: form.name.trim(),
     description: form.description.trim(),
@@ -51,8 +83,14 @@ export function toKeyResultRequest(form: KeyResultFormValues, academicPeriodId?:
     baseValue: Number(form.baseValue),
     targetValue: Number(form.targetValue),
     measurementUnitId: Number(form.measurementUnitId),
-    ...(academicPeriodId === undefined ? {} : { academicPeriodId }),
+    academicPeriodId: Number(form.academicPeriodId),
+    goalIds: [...new Set(form.goalIds)],
+    strategicBetIds: [...new Set(form.strategicBetIds)],
   };
+}
+
+export function toggleId(ids: number[], id: number) {
+  return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
 }
 
 function validateValue(

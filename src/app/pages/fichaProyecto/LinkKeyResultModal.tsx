@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Link2, Loader2, Search, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import type { ObjectiveCard } from "../../services/strategicApi";
+import type { KeyResult } from "../../services/strategicApi";
+import { toKeyResultOptions } from "../../utils/keyResultOptions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { invalidateScreenDataCache } from "../../services/screenDataCache";
 import {
@@ -15,7 +16,7 @@ import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { COLORS, CONTRIBUTION_TYPES, errorMessage } from "./projectDetailShared";
 
 interface LinkKeyResultModalProps {
-  objectiveCards: ObjectiveCard[];
+  keyResults: KeyResult[];
   project: ProjectResponse;
   onClose: () => void;
   onSaved: () => Promise<void>;
@@ -25,7 +26,7 @@ interface LinkKeyResultModalProps {
   initialContributionType?: ContributionType;
 }
 
-export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, editingLinkId, initialKeyResultId = "", initialWeight = 30, initialContributionType = "DIRECTA" }: LinkKeyResultModalProps) {
+export function LinkKeyResultModal({ project, keyResults: availableKeyResults, onClose, onSaved, editingLinkId, initialKeyResultId = "", initialWeight = 30, initialContributionType = "DIRECTA" }: LinkKeyResultModalProps) {
   const reduceMotion = useReducedMotion();
   const [keyResultId, setKeyResultId] = useState(initialKeyResultId);
   const [weight, setWeight] = useState(initialWeight);
@@ -34,14 +35,7 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
   const [saving, setSaving] = useState(false);
   const isEditing = editingLinkId !== undefined;
 
-  const keyResults = useMemo(() => objectiveCards.flatMap((objective) =>
-    objective.keyResults.map((kr) => ({
-      ...kr,
-      objectiveName: objective.name,
-      departmentName: objective.departmentName,
-      period: objective.academicPeriodName,
-    })),
-  ), [objectiveCards]);
+  const keyResults = useMemo(() => toKeyResultOptions(availableKeyResults), [availableKeyResults]);
 
   const filteredKeyResults = useMemo(() => {
     const query = krSearch.trim().toLowerCase();
@@ -53,8 +47,7 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
         kr.name,
         kr.description,
         kr.metric,
-        kr.objectiveName,
-        kr.departmentName,
+        kr.strategyLabel,
         kr.period,
       ].some((value) => !query || value?.toLowerCase().includes(query)),
     );
@@ -90,7 +83,7 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
       signalStrategicDataChanged({
         projectId: project.id,
         reason: "project-key-result-link",
-        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+        scopes: ["projects", "keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
       });
       await onSaved();
       onClose();
@@ -122,10 +115,10 @@ export function LinkKeyResultModal({ project, objectiveCards, onClose, onSaved, 
               value={keyResultId}
               onChange={setKeyResultId}
               placeholder={filteredKeyResults.length ? "Selecciona un KR" : "Sin resultados"}
-              options={filteredKeyResults.map((kr) => ({ value: String(kr.id), label: `${kr.id} - ${kr.name || kr.description} (${kr.objectiveName}, ${kr.departmentName}, ${kr.period})` }))}
+              options={filteredKeyResults.map((kr) => ({ value: String(kr.id), label: `${kr.id} - ${kr.name || kr.description} (${kr.strategyLabel}${kr.period ? `, ${kr.period}` : ""})` }))}
               search={krSearch}
               onSearchChange={setKrSearch}
-              searchPlaceholder="Buscar por KR, objetivo, departamento o periodo"
+              searchPlaceholder="Buscar por KR, meta, apuesta o periodo"
               disabled={isEditing}
             />
           </ModalField>

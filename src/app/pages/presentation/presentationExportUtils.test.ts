@@ -25,8 +25,6 @@ describe("presentationExportUtils", () => {
       createdAt: "2026-01-01",
       executionSummary: {
         summaryText: "Buen avance",
-        completedObjectives: 5,
-        inProgressObjectives: 2,
         completedKeyResults: 8,
         inProgressKeyResults: 2,
         completedProjects: 4,
@@ -43,13 +41,13 @@ describe("presentationExportUtils", () => {
       description: "Tasa de graduación.",
       referenceIndicator: "Graduación efectiva",
       expectedValue: 85,
+      measurementUnitId: 1,
       measurementUnitName: "%",
+      periods: [],
       status: "ACTIVA",
       createdAt: "2026-01-01",
       executionSummary: {
         summaryText: "Alineada",
-        completedObjectives: 4,
-        inProgressObjectives: 1,
         completedKeyResults: 6,
         inProgressKeyResults: 1,
         completedProjects: 3,
@@ -90,7 +88,9 @@ describe("presentationExportUtils", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].posicion).toBe(1);
     expect(rows[0].tipo).toBe("Apuesta Estratégica");
-    expect(rows[0].objetivos_completados).toBe(5);
+    expect(rows[0].krs_completados).toBe(8);
+    expect(rows[0].iniciativas_totales).toBe(5);
+    expect(rows[0]).not.toHaveProperty("objetivos_completados");
   });
 
   it("exports institutional goals ranking to CSV", () => {
@@ -113,7 +113,7 @@ describe("presentationExportUtils", () => {
       nameB: "Apuesta B",
       deltaRows: [
         { metric: "Cumplimiento", valA: "80%", valB: "70%", delta: 10, unit: "%" },
-        { metric: "Objetivos", valA: 4, valB: 2, delta: 2, unit: "Obj" },
+        { metric: "KRs", valA: 4, valB: 2, delta: 2, unit: "KRs" },
       ],
     });
 
@@ -134,28 +134,20 @@ describe("presentationExportUtils", () => {
       deltaRows: [],
       periodStatsA: {
         periodName: "2026-1",
-        totalObjectives: 12,
-        completedObjectives: 8,
-        inProgressObjectives: 4,
         totalKeyResults: 20,
         completedKeyResults: 15,
         totalProjects: 10,
         completedProjects: 7,
         activeProjects: 3,
-        averageObjectiveCoverage: 80,
         averageKeyResultCoverage: 75,
       },
       periodStatsB: {
         periodName: "2025-2",
-        totalObjectives: 10,
-        completedObjectives: 6,
-        inProgressObjectives: 4,
         totalKeyResults: 18,
         completedKeyResults: 12,
         totalProjects: 8,
         completedProjects: 5,
         activeProjects: 3,
-        averageObjectiveCoverage: 70,
         averageKeyResultCoverage: 65,
       },
     });
@@ -163,7 +155,12 @@ describe("presentationExportUtils", () => {
     expect(downloadCsvSpy).toHaveBeenCalledOnce();
     const [rows, filename] = downloadCsvSpy.mock.calls[0];
     expect(filename).toContain("comparativa_period-vs-period");
-    expect(rows.length).toBeGreaterThanOrEqual(6);
+    expect(rows.map((row: any) => row.metrica)).toEqual([
+      "Key Results Totales",
+      "Key Results Completados",
+      "Iniciativas Completadas",
+      "Cobertura Promedio KRs",
+    ]);
     expect(rows[0].modalidad).toBe("Periodo vs Periodo");
   });
 
@@ -176,40 +173,26 @@ describe("presentationExportUtils", () => {
       deltaRows: [],
       periodStatsA: {
         periodName: "2026-1",
-        totalObjectives: 10,
-        completedObjectives: 7,
-        inProgressObjectives: 3,
         totalKeyResults: 15,
         completedKeyResults: 10,
         totalProjects: 8,
         completedProjects: 5,
         activeProjects: 3,
-        averageObjectiveCoverage: 45.76,
         averageKeyResultCoverage: 54.45,
       },
       periodStatsB: {
         periodName: "2025-2",
-        totalObjectives: 10,
-        completedObjectives: 6,
-        inProgressObjectives: 4,
         totalKeyResults: 14,
         completedKeyResults: 9,
         totalProjects: 8,
         completedProjects: 4,
         activeProjects: 4,
-        averageObjectiveCoverage: 26.8,
         averageKeyResultCoverage: 30.71,
       },
     });
 
     const [rows] = downloadCsvSpy.mock.calls[0];
-    const objRow = rows.find((r: any) => r.metrica === "Cobertura Promedio Objetivos");
     const krRow = rows.find((r: any) => r.metrica === "Cobertura Promedio KRs");
-
-    // 45.76 - 26.8 = 18.96 (not 18.959999999999997%)
-    expect(objRow.valor_A).toBe("45.76%");
-    expect(objRow.valor_B).toBe("26.8%");
-    expect(objRow.diferencial).toBe("18.96%");
 
     // 54.45 - 30.71 = 23.74 (not 23.740000000000002%)
     expect(krRow.valor_A).toBe("54.45%");

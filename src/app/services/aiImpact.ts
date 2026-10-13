@@ -1,6 +1,6 @@
 import { ImpactoIA } from "../data/mockData";
 
-export type ImpactoTipo = "objetivo-apuesta" | "objetivo-meta" | "kr-objetivo" | "proyecto-kr";
+export type ImpactoTipo = "kr-apuesta" | "kr-meta" | "proyecto-kr";
 
 export interface CalcularImpactoInput {
   tipo: ImpactoTipo;
@@ -21,9 +21,8 @@ function hashString(s: string): number {
 function porcentajePorTipo(tipo: ImpactoTipo, seed: number): number {
   // Rangos calibrados para cada tipo de relación
   const rango: Record<ImpactoTipo, [number, number]> = {
-    "objetivo-apuesta": [25, 70],
-    "objetivo-meta": [20, 65],
-    "kr-objetivo": [15, 50],
+    "kr-apuesta": [25, 70],
+    "kr-meta": [20, 65],
     "proyecto-kr": [10, 45],
   };
   const [min, max] = rango[tipo];
@@ -35,9 +34,8 @@ function justificar(input: CalcularImpactoInput, pct: number): string {
   const { tipo, origen, destino } = input;
   const nivel = pct >= 50 ? "alto" : pct >= 30 ? "moderado" : "acotado";
   const conectores: Record<ImpactoTipo, string> = {
-    "objetivo-apuesta": "contribuye a la apuesta estratégica",
-    "objetivo-meta": "aporta al cumplimiento de la meta institucional",
-    "kr-objetivo": "avanza el objetivo",
+    "kr-apuesta": "contribuye a la apuesta estratégica",
+    "kr-meta": "aporta al cumplimiento de la meta institucional",
     "proyecto-kr": "moviliza el resultado clave",
   };
   return (

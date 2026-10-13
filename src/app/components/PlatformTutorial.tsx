@@ -19,7 +19,7 @@ export type TutorialStep = {
 export const platformTutorialSteps: TutorialStep[] = [
   {
     title: "Bienvenido a MTE",
-    description: "MTE centraliza la trazabilidad entre la estrategia institucional, los objetivos medibles y las iniciativas que los materializan.",
+    description: "MTE centraliza la trazabilidad entre la estrategia institucional, los resultados clave medibles y las iniciativas que los materializan.",
     highlights: [
       "Tu rol determina los módulos y acciones que puedes utilizar.",
       "La información se conserva con historial para facilitar el seguimiento institucional.",
@@ -36,22 +36,22 @@ export const platformTutorialSteps: TutorialStep[] = [
     destination: { label: "Abrir Jerarquía", to: "/jerarquia" },
   },
   {
-    title: "Define objetivos medibles",
-    description: "Los Objetivos se descomponen en Key Results. Cada KR conserva una unidad de medida, un valor objetivo y su ciclo de vida.",
+    title: "Define resultados medibles",
+    description: "Cada Key Result se vincula directamente a una o varias Metas y Apuestas, y conserva una unidad de medida, un valor meta y su ciclo de vida.",
     highlights: [
-      "Filtra por Meta, Apuesta, departamento o período para acotar la consulta.",
-      "Verifica el estado del Objetivo antes de intentar modificar sus KRs.",
+      "Busca por Meta, Apuesta o período para acotar la consulta.",
+      "Verifica el estado del KR antes de intentar modificarlo.",
     ],
-    destination: { label: "Abrir Objetivos", to: "/okrs" },
+    destination: { label: "Abrir KRs", to: "/krs" },
   },
   {
     title: "Conecta iniciativas con resultados",
-    description: "Las iniciativas se gestionan desde Proyectos y pueden contribuir a un KR mediante un peso y tipo de contribución explícitos.",
+    description: "Las iniciativas se gestionan desde su módulo y pueden contribuir a un KR mediante un peso y tipo de contribución explícitos.",
     highlights: [
       "La ficha permite actualizar responsables, fechas, períodos y estado.",
       "El sistema valida los rangos de fechas y evita volver a vincular un KR activo.",
     ],
-    destination: { label: "Abrir Proyectos", to: "/proyectos" },
+    destination: { label: "Abrir Iniciativas", to: "/proyectos" },
   },
   {
     title: "Revisa y corrige",
@@ -64,7 +64,7 @@ export const platformTutorialSteps: TutorialStep[] = [
   },
   {
     title: "Recorrido completado",
-    description: "Ya tienes una visión del flujo central: estrategia, objetivos, iniciativas, consistencia y seguimiento.",
+    description: "Ya tienes una visión del flujo central: estrategia, Key Results, iniciativas, consistencia y seguimiento.",
     highlights: [
       "Puedes abrir esta guía nuevamente desde el botón de ayuda del encabezado.",
       "La ayuda contextual describe los pasos relevantes para el módulo en el que te encuentres.",

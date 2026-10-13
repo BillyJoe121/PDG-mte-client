@@ -17,8 +17,8 @@ const ACTION_LABELS: Record<AuditAction, string> = {
 const ENTITY_LABELS: Record<string, string> = {
   OBJECTIVE: "Objetivo",
   KEY_RESULT: "Resultado clave",
-  PROJECT: "Proyecto",
-  PROJECT_KEY_RESULT_LINK: "Vínculo proyecto–KR",
+  PROJECT: "Iniciativa",
+  PROJECT_KEY_RESULT_LINK: "Vínculo iniciativa–KR",
   STRATEGIC_BET: "Apuesta estratégica",
   INSTITUTIONAL_GOAL: "Meta institucional",
   MEASUREMENT_UNIT: "Unidad de medida",
@@ -208,7 +208,7 @@ export function Auditoria() {
             </select>
           </label>
           <label className="text-xs font-bold text-gray-700">Tipo de entidad
-            <input value={draft.entityType} onChange={(event) => setDraft((current) => ({ ...current, entityType: event.target.value }))} placeholder="Ej. OBJECTIVE" className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-xs font-medium text-gray-900" />
+            <input value={draft.entityType} onChange={(event) => setDraft((current) => ({ ...current, entityType: event.target.value }))} placeholder="Ej. KEY_RESULT" className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-xs font-medium text-gray-900" />
           </label>
           <label className="text-xs font-bold text-gray-700">ID de entidad
             <input value={draft.entityId} onChange={(event) => setDraft((current) => ({ ...current, entityId: event.target.value }))} placeholder="Ej. 12" className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-xs font-medium text-gray-900" />

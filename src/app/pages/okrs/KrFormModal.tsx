@@ -1,52 +1,57 @@
-import { useState } from "react";
-import { KeyRound, Target, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { KeyRound, Loader2, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import type { MeasurementUnit } from "../../services/catalogsApi";
-import type { KeyResult, KeyResultRequest } from "../../services/strategicApi";
+import { toast } from "sonner";
+import type { AcademicPeriod, MeasurementUnit } from "../../services/catalogsApi";
+import { loadAcademicPeriods, loadGoals, loadMeasurementUnits, loadStrategicBets } from "../../services/screenDataCache";
+import type { Goal, KeyResult, KeyResultRequest, StrategicBet, StrategyLink } from "../../services/strategicApi";
 import { COLORS } from "./okrsShared";
 import { KrForm } from "./KrForm";
 
-interface KrObjectiveOption {
-  id: number;
-  name: string;
-  departmentName?: string;
-  academicPeriodName?: string;
-}
-
 interface KrFormModalProps {
   keyResult: KeyResult | null;
-  objectiveId: number;
-  objectiveOptions?: KrObjectiveOption[];
-  allowObjectiveSelection?: boolean;
+  defaults?: { goalIds?: number[]; strategicBetIds?: number[]; academicPeriodId?: number };
   saving: boolean;
-  units: MeasurementUnit[];
+  units?: MeasurementUnit[];
   onClose: () => void;
-  onSubmit: (body: KeyResultRequest, objectiveIds?: number[]) => Promise<void>;
+  onSubmit: (body: KeyResultRequest) => Promise<void>;
 }
 
-export function KrFormModal({
-  keyResult,
-  objectiveId,
-  objectiveOptions = [],
-  allowObjectiveSelection = false,
-  saving,
-  units,
-  onClose,
-  onSubmit,
-}: KrFormModalProps) {
-  const reduceMotion = useReducedMotion();
-  const [selectedObjectiveIds, setSelectedObjectiveIds] = useState<number[]>([objectiveId]);
-  const showObjectiveSelection = !keyResult && allowObjectiveSelection && objectiveOptions.length > 0;
+interface KrFormOptions {
+  units: MeasurementUnit[];
+  periods: AcademicPeriod[];
+  goals: Goal[];
+  bets: StrategicBet[];
+}
 
-  const toggleObjective = (nextObjectiveId: number) => {
-    setSelectedObjectiveIds((prev) => {
-      if (prev.includes(nextObjectiveId)) {
-        const next = prev.filter((id) => id !== nextObjectiveId);
-        return next.length ? next : prev;
-      }
-      return [...prev, nextObjectiveId];
-    });
-  };
+export function KrFormModal({ keyResult, defaults, saving, units, onClose, onSubmit }: KrFormModalProps) {
+  const reduceMotion = useReducedMotion();
+  const [options, setOptions] = useState<KrFormOptions | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      units ? Promise.resolve(units) : loadMeasurementUnits().then((list) => list.filter((unit) => unit.active)),
+      loadAcademicPeriods(),
+      loadGoals(),
+      loadStrategicBets(),
+    ])
+      .then(([nextUnits, periods, goals, bets]) => {
+        if (!cancelled) setOptions({ units: nextUnits, periods, goals, bets });
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        toast.error(error instanceof Error ? error.message : "No se pudieron cargar las metas y apuestas");
+        onClose();
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [units]);
+
+  const goalOptions = useMemo(() => mergeLinks(options?.goals ?? [], keyResult?.goals), [keyResult, options]);
+  const betOptions = useMemo(() => mergeLinks(options?.bets ?? [], keyResult?.strategicBets), [keyResult, options]);
+  const linkedCount = (keyResult?.goals?.length ?? 0) + (keyResult?.strategicBets?.length ?? 0);
 
   return (
     <motion.div
@@ -74,7 +79,7 @@ export function KrFormModal({
             </div>
             <div>
               <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 10, textTransform: "uppercase", fontWeight: 850 }}>
-                {showObjectiveSelection ? `${selectedObjectiveIds.length} objetivo${selectedObjectiveIds.length === 1 ? "" : "s"} vinculado${selectedObjectiveIds.length === 1 ? "" : "s"}` : `Objetivo #${objectiveId}`}
+                {keyResult ? `KR #${keyResult.id} · ${linkedCount} vínculo${linkedCount === 1 ? "" : "s"} estratégico${linkedCount === 1 ? "" : "s"}` : "Vinculado a Metas y Apuestas"}
               </p>
               <h3 style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>
                 {keyResult ? "Editar Key Result" : "Crear Key Result"}
@@ -85,52 +90,32 @@ export function KrFormModal({
             <X size={18} color="#fff" />
           </button>
         </div>
-        <div className="p-5" style={{ backgroundColor: "#F8FAFC" }}>
-          {showObjectiveSelection && (
-            <div className="mb-3 rounded-md bg-white p-3" style={{ border: "1px solid #EEF2F7", boxShadow: "0 10px 28px rgba(17,24,39,0.06)" }}>
-              <div className="mb-3 flex items-center gap-2">
-                <Target size={14} color={COLORS.blue} />
-                <span style={{ color: COLORS.text, fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>Vincular objetivo(s)</span>
-              </div>
-              <div className="grid max-h-44 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
-                {objectiveOptions.map((option) => {
-                  const checked = selectedObjectiveIds.includes(option.id);
-                  return (
-                    <label
-                      key={option.id}
-                      className="flex cursor-pointer items-start gap-2 rounded-md p-2"
-                      style={{
-                        border: `1.5px solid ${checked ? COLORS.blue : COLORS.border}`,
-                        backgroundColor: checked ? "#EEF2FF" : "#F8FAFC",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleObjective(option.id)}
-                        style={{ marginTop: 2, accentColor: COLORS.blue }}
-                      />
-                      <span className="min-w-0">
-                        <span style={{ display: "block", color: COLORS.text, fontSize: 12, fontWeight: 850, lineHeight: 1.25 }}>{option.name}</span>
-                        <span style={{ display: "block", color: COLORS.gray, fontSize: 10, fontWeight: 750, marginTop: 3 }}>
-                          {option.departmentName ?? "Sin departamento"} - {option.academicPeriodName ?? "Sin periodo"}
-                        </span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
+        <div className="max-h-[75vh] overflow-y-auto p-5" style={{ backgroundColor: "#F8FAFC" }}>
+          {options ? (
+            <KrForm
+              units={options.units}
+              periods={options.periods}
+              goals={goalOptions}
+              strategicBets={betOptions}
+              defaults={defaults}
+              initial={keyResult}
+              saving={saving}
+              onCancel={onClose}
+              onSubmit={onSubmit}
+            />
+          ) : (
+            <div className="flex items-center justify-center py-10" style={{ color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>
+              <Loader2 size={16} className="mr-2 animate-spin" /> Cargando metas y apuestas...
             </div>
           )}
-          <KrForm
-            units={units}
-            initial={keyResult}
-            saving={saving}
-            onCancel={onClose}
-            onSubmit={(body) => onSubmit(body, selectedObjectiveIds)}
-          />
         </div>
       </motion.div>
     </motion.div>
   );
+}
+
+function mergeLinks(items: Array<{ id: number; name: string }>, linked: StrategyLink[] = []): StrategyLink[] {
+  const options = items.map((item) => ({ id: item.id, name: item.name }));
+  const known = new Set(options.map((item) => item.id));
+  return [...options, ...linked.filter((link) => !known.has(link.id))];
 }

@@ -142,12 +142,12 @@ export function navigateToPlanner(
 ): NavigatePlannerResult {
   const url = buildPlannerUrl(type, entity);
   const linked = isPlannerLinked(type, entity);
-  const entityLabel = type === "PROJECT" ? "proyecto" : "KR";
+  const entityLabel = type === "PROJECT" ? "esta iniciativa" : "este KR";
   const nameLabel = entity.name ? ` (${entity.name})` : "";
 
   const message = linked
-    ? `Abriendo plan vinculado en Microsoft Planner para este ${entityLabel}${nameLabel}...`
-    : `Redirigiendo a Microsoft Planner... (Para vincular un plan específico a este ${entityLabel}, puedes asociar su ID o URL).`;
+    ? `Abriendo plan vinculado en Microsoft Planner para ${entityLabel}${nameLabel}...`
+    : `Redirigiendo a Microsoft Planner... (Para vincular un plan específico a ${entityLabel}, puedes asociar su ID o URL).`;
 
   options?.notify?.(message, linked);
 

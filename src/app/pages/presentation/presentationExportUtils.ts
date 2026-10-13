@@ -22,12 +22,10 @@ export function exportGeneralReportCsv(
       periodo: periodName,
       estado: bet.status,
       cumplimiento_porcentaje: `${progress}%`,
-      objetivos_completados: summary?.completedObjectives ?? 0,
-      objetivos_en_progreso: summary?.inProgressObjectives ?? 0,
       krs_completados: summary?.completedKeyResults ?? 0,
       krs_en_progreso: summary?.inProgressKeyResults ?? 0,
-      proyectos_completados: summary?.completedProjects ?? 0,
-      proyectos_en_progreso: summary?.inProgressProjects ?? 0,
+      iniciativas_completadas: summary?.completedProjects ?? 0,
+      iniciativas_en_progreso: summary?.inProgressProjects ?? 0,
       descripcion: bet.description ?? "",
     });
   });
@@ -47,12 +45,10 @@ export function exportGeneralReportCsv(
       valor_esperado: goal.expectedValue ?? "",
       unidad_medida: goal.measurementUnitName ?? "",
       indicador_referencia: goal.referenceIndicator ?? "",
-      objetivos_completados: summary?.completedObjectives ?? 0,
-      objetivos_en_progreso: summary?.inProgressObjectives ?? 0,
       krs_completados: summary?.completedKeyResults ?? 0,
       krs_en_progreso: summary?.inProgressKeyResults ?? 0,
-      proyectos_completados: summary?.completedProjects ?? 0,
-      proyectos_en_progreso: summary?.inProgressProjects ?? 0,
+      iniciativas_completadas: summary?.completedProjects ?? 0,
+      iniciativas_en_progreso: summary?.inProgressProjects ?? 0,
       descripcion: goal.description ?? "",
     });
   });
@@ -73,10 +69,8 @@ export function exportRankingBetsCsv(rankedBets: StrategicBet[], periodName: str
       periodo: periodName,
       estado: bet.status,
       cumplimiento_porcentaje: `${progress}%`,
-      objetivos_completados: summary?.completedObjectives ?? 0,
-      objetivos_en_progreso: summary?.inProgressObjectives ?? 0,
       krs_completados: summary?.completedKeyResults ?? 0,
-      proyectos_totales: (summary?.completedProjects ?? 0) + (summary?.inProgressProjects ?? 0),
+      iniciativas_totales: (summary?.completedProjects ?? 0) + (summary?.inProgressProjects ?? 0),
       descripcion: bet.description ?? "",
     };
   });
@@ -100,7 +94,6 @@ export function exportRankingGoalsCsv(rankedGoals: Goal[], periodName: string) {
       valor_esperado: goal.expectedValue ?? "",
       unidad_medida: goal.measurementUnitName ?? "",
       indicador_referencia: goal.referenceIndicator ?? "",
-      objetivos_completados: summary?.completedObjectives ?? 0,
       krs_completados: summary?.completedKeyResults ?? 0,
       descripcion: goal.description ?? "",
     };
@@ -128,22 +121,11 @@ export function exportComparisonCsv(params: {
       modalidad: "Periodo vs Periodo",
       entidad_base_A: periodStatsA.periodName,
       entidad_comparada_B: periodStatsB.periodName,
-      metrica: "Objetivos Totales",
-      valor_A: periodStatsA.totalObjectives,
-      valor_B: periodStatsB.totalObjectives,
-      diferencial: periodStatsA.totalObjectives - periodStatsB.totalObjectives,
-      unidad: "Objetivos",
-    });
-    rows.push({
-      periodo_analisis: periodName,
-      modalidad: "Periodo vs Periodo",
-      entidad_base_A: periodStatsA.periodName,
-      entidad_comparada_B: periodStatsB.periodName,
-      metrica: "Objetivos Completados",
-      valor_A: periodStatsA.completedObjectives,
-      valor_B: periodStatsB.completedObjectives,
-      diferencial: periodStatsA.completedObjectives - periodStatsB.completedObjectives,
-      unidad: "Objetivos",
+      metrica: "Key Results Totales",
+      valor_A: periodStatsA.totalKeyResults,
+      valor_B: periodStatsB.totalKeyResults,
+      diferencial: periodStatsA.totalKeyResults - periodStatsB.totalKeyResults,
+      unidad: "KRs",
     });
     rows.push({
       periodo_analisis: periodName,
@@ -161,22 +143,11 @@ export function exportComparisonCsv(params: {
       modalidad: "Periodo vs Periodo",
       entidad_base_A: periodStatsA.periodName,
       entidad_comparada_B: periodStatsB.periodName,
-      metrica: "Proyectos Completados",
+      metrica: "Iniciativas Completadas",
       valor_A: periodStatsA.completedProjects,
       valor_B: periodStatsB.completedProjects,
       diferencial: periodStatsA.completedProjects - periodStatsB.completedProjects,
-      unidad: "Proyectos",
-    });
-    rows.push({
-      periodo_analisis: periodName,
-      modalidad: "Periodo vs Periodo",
-      entidad_base_A: periodStatsA.periodName,
-      entidad_comparada_B: periodStatsB.periodName,
-      metrica: "Cobertura Promedio Objetivos",
-      valor_A: `${formatMax2Decimals(periodStatsA.averageObjectiveCoverage)}%`,
-      valor_B: `${formatMax2Decimals(periodStatsB.averageObjectiveCoverage)}%`,
-      diferencial: `${formatMax2Decimals(periodStatsA.averageObjectiveCoverage - periodStatsB.averageObjectiveCoverage)}%`,
-      unidad: "%",
+      unidad: "Iniciativas",
     });
     rows.push({
       periodo_analisis: periodName,
@@ -229,9 +200,8 @@ export function exportSlideDeckCsv(slides: PresentationSlide[], periodName: stri
       periodo: periodName,
       resumen_texto: content.summaryText ?? content.institution ?? "",
       estado: content.status ?? "",
-      objetivos_completados: content.executionSummary?.completedObjectives ?? content.totalObjectives ?? "",
       krs_completados: content.executionSummary?.completedKeyResults ?? content.totalKeyResults ?? "",
-      proyectos_totales: content.executionSummary?.completedProjects ?? content.totalProjects ?? "",
+      iniciativas_totales: content.executionSummary?.completedProjects ?? content.totalProjects ?? "",
     };
   });
 
@@ -259,12 +229,10 @@ export function exportDetailModalCsv(
       valor_esperado: (item as any).expectedValue ?? "N/A",
       unidad_medida: (item as any).measurementUnitName ?? "N/A",
       indicador_referencia: (item as any).referenceIndicator ?? "N/A",
-      objetivos_completados: summary?.completedObjectives ?? 0,
-      objetivos_en_progreso: summary?.inProgressObjectives ?? 0,
       krs_completados: summary?.completedKeyResults ?? 0,
       krs_en_progreso: summary?.inProgressKeyResults ?? 0,
-      proyectos_completados: summary?.completedProjects ?? 0,
-      proyectos_en_progreso: summary?.inProgressProjects ?? 0,
+      iniciativas_completadas: summary?.completedProjects ?? 0,
+      iniciativas_en_progreso: summary?.inProgressProjects ?? 0,
       fecha_creacion: item.createdAt ?? "",
       descripcion: item.description ?? "",
     },

@@ -1,0 +1,239 @@
+.hierarchy-root-card {
+  --hierarchy-card-accent: #5454E9;
+  background: #fff;
+  border: 1px solid #D9DEE8;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  padding: 0;
+  position: relative;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  width: 100%;
+}
+
+.hierarchy-root-card::before {
+  content: none;
+}
+
+.hierarchy-root-card:hover,
+.hierarchy-root-card:focus-visible {
+  border-color: var(--hierarchy-card-accent);
+  box-shadow: 0 18px 36px rgba(17, 24, 39, 0.12);
+  transform: translateY(-2px);
+}
+
+.hierarchy-root-card__hero {
+  background: var(--hierarchy-card-accent);
+  flex: 0 0 112px;
+  width: 100%;
+  transition: background-color 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__hero,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__hero {
+  background: var(--hierarchy-card-accent);
+}
+
+.hierarchy-root-card__label,
+.hierarchy-root-card__title,
+.hierarchy-root-card__icon {
+  color: #fff;
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__label,
+.hierarchy-root-card:hover .hierarchy-root-card__title,
+.hierarchy-root-card:hover .hierarchy-root-card__icon,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__label,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__title,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__icon {
+  color: #fff;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__icon,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__icon {
+  background: color-mix(in srgb, var(--hierarchy-card-accent) 8%, white);
+  border-color: color-mix(in srgb, var(--hierarchy-card-accent) 30%, white);
+}
+
+.hierarchy-root-card__divider {
+  background: #111827;
+  transition: background-color 160ms ease, width 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__divider,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__divider {
+  width: 44px;
+  background: var(--hierarchy-card-accent);
+}
+
+.hierarchy-root-card__metric {
+  border-color: #D9DEE8;
+  color: #111827;
+  background: #fff;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__metric,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__metric {
+  border-color: color-mix(in srgb, var(--hierarchy-card-accent) 32%, white);
+  color: var(--hierarchy-card-accent);
+  background: color-mix(in srgb, var(--hierarchy-card-accent) 8%, white);
+}
+
+.hierarchy-root-card__cta {
+  color: #fff;
+  background: #111827;
+  border: 1px solid #111827;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 7px 14px rgba(17, 24, 39, 0.12);
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.hierarchy-root-card:hover .hierarchy-root-card__cta,
+.hierarchy-root-card:focus-visible .hierarchy-root-card__cta {
+  color: #fff;
+  background: var(--hierarchy-card-accent);
+  border-color: var(--hierarchy-card-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 20px color-mix(in srgb, var(--hierarchy-card-accent) 26%, transparent);
+}
+
+.hierarchy-detail-context {
+  --hierarchy-card-accent: #5454E9;
+  border: 1px solid #D9DEE8;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(17, 24, 39, 0.08);
+  position: relative;
+}
+
+.hierarchy-detail-context::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: var(--hierarchy-card-accent);
+  z-index: 1;
+}
+
+.hierarchy-detail-chain {
+  position: relative;
+}
+
+.hierarchy-detail-chain::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 11px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(84, 84, 233, 0.22), rgba(76, 185, 121, 0.18));
+}
+
+.hierarchy-detail-chain > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hierarchy-detail-node {
+  --hierarchy-node-accent: #5454E9;
+  background: #fff;
+  border: 1px solid #D9DEE8;
+  border-left: 7px solid var(--hierarchy-node-accent);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.hierarchy-detail-node:hover,
+.hierarchy-detail-node:focus-visible {
+  background: var(--hierarchy-node-accent);
+  border-color: var(--hierarchy-node-accent);
+  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.12);
+}
+
+.hierarchy-detail-node--expanded:hover,
+.hierarchy-detail-node--expanded:focus-visible {
+  background: #fff;
+  border-color: #D9DEE8;
+  border-left-color: var(--hierarchy-node-accent);
+}
+
+.hierarchy-detail-node__icon,
+.hierarchy-detail-node__title,
+.hierarchy-detail-node__strong {
+  color: var(--hierarchy-node-accent);
+  transition: color 160ms ease;
+}
+
+.hierarchy-detail-node__description {
+  color: #717182;
+  transition: color 160ms ease;
+}
+
+.hierarchy-detail-node__badge {
+  color: var(--hierarchy-node-accent);
+  background: color-mix(in srgb, var(--hierarchy-node-accent) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--hierarchy-node-accent) 28%, white);
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.hierarchy-detail-node__action {
+  color: var(--hierarchy-node-accent);
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--hierarchy-node-accent) 34%, white);
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.hierarchy-detail-node:hover .hierarchy-detail-node__icon,
+.hierarchy-detail-node:hover .hierarchy-detail-node__title,
+.hierarchy-detail-node:hover .hierarchy-detail-node__strong,
+.hierarchy-detail-node:hover .hierarchy-detail-node__description,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__icon,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__title,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__strong,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__description {
+  color: #fff;
+}
+
+.hierarchy-detail-node--expanded:hover .hierarchy-detail-node__icon,
+.hierarchy-detail-node--expanded:hover .hierarchy-detail-node__title,
+.hierarchy-detail-node--expanded:hover .hierarchy-detail-node__strong,
+.hierarchy-detail-node--expanded:hover .hierarchy-detail-node__description,
+.hierarchy-detail-node--expanded:focus-visible .hierarchy-detail-node__icon,
+.hierarchy-detail-node--expanded:focus-visible .hierarchy-detail-node__title,
+.hierarchy-detail-node--expanded:focus-visible .hierarchy-detail-node__strong,
+.hierarchy-detail-node--expanded:focus-visible .hierarchy-detail-node__description {
+  color: var(--hierarchy-node-accent);
+}
+
+.hierarchy-detail-node--expanded:hover .hierarchy-detail-node__description,
+.hierarchy-detail-node--expanded:focus-visible .hierarchy-detail-node__description {
+  color: #717182;
+}
+
+.hierarchy-detail-node:hover .hierarchy-detail-node__badge,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__badge {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.hierarchy-detail-node--expanded:hover .hierarchy-detail-node__badge,
+.hierarchy-detail-node--expanded:focus-visible .hierarchy-detail-node__badge {
+  color: var(--hierarchy-node-accent);
+  background: color-mix(in srgb, var(--hierarchy-node-accent) 10%, white);
+  border-color: color-mix(in srgb, var(--hierarchy-node-accent) 28%, white);
+}
+
+.hierarchy-detail-node:hover .hierarchy-detail-node__action,
+.hierarchy-detail-node:focus-visible .hierarchy-detail-node__action {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.46);
+}
+
+.hierarchy-detail-node--expanded:hover .hierarchy-detail-node__action,
+.hierarchy-detail-node--expanded:focus-visible .hierarchy-detail-node__action {
+  color: var(--hierarchy-node-accent);
+  background: #fff;
+  border-color: color-mix(in srgb, var(--hierarchy-node-accent) 34%, white);
+}

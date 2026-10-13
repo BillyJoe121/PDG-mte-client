@@ -36,7 +36,7 @@ export function ProjectDetailModal({ projectId, onClose }: ProjectDetailModalPro
           onClick={onClose}
           className="absolute right-0 z-10 flex h-9 w-9 items-center justify-center rounded-md"
           style={{ top: -38, color: COLORS.green, backgroundColor: "#fff", border: `1px solid ${COLORS.border}`, boxShadow: "0 10px 24px rgba(17,24,39,0.18)" }}
-          aria-label="Cerrar detalle de proyecto"
+          aria-label="Cerrar detalle de iniciativa"
         >
           <X size={17} />
         </button>

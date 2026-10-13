@@ -37,16 +37,16 @@ describe("reports and presentation APIs", () => {
   });
 
   it("calls reports endpoints with filters", async () => {
-    await reportsApi.general({ period: "2026-1", departmentId: 2, objectiveId: 3 });
+    await reportsApi.general({ period: "2026-1", departmentId: 2 });
     await reportsApi.departments({ period: "2026-Q1" });
-    await reportsApi.objectiveRanking({ period: "2026-2", departmentId: 4 });
-    await reportsApi.periodComparison({ basePeriod: "2026-1", comparePeriod: "2026-2", objectiveId: 9 });
+    await reportsApi.keyResultRanking({ period: "2026-2", departmentId: 4 });
+    await reportsApi.periodComparison({ basePeriod: "2026-1", comparePeriod: "2026-2", departmentId: 9 });
     await reportsApi.consolidated({ period: "2026-1" });
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/reports/general?period=2026-1&departmentId=2&objectiveId=3`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/reports/general?period=2026-1&departmentId=2`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/reports/departments?period=2026-Q1`, expect.any(Object));
-    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/reports/objectives/ranking?period=2026-2&departmentId=4`, expect.any(Object));
-    expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/reports/period-comparison?basePeriod=2026-1&comparePeriod=2026-2&objectiveId=9`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/reports/key-results/ranking?period=2026-2&departmentId=4`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/reports/period-comparison?basePeriod=2026-1&comparePeriod=2026-2&departmentId=9`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/reports?period=2026-1`, expect.any(Object));
   });
 
@@ -92,7 +92,7 @@ describe("reports and presentation APIs", () => {
     ["empty params", {}, ""],
     ["undefined and null omitted", { period: undefined, departmentId: null }, ""],
     ["empty string omitted", { period: "", departmentId: 3 }, "?departmentId=3"],
-    ["numeric zero preserved", { departmentId: 0, objectiveId: 0 }, "?departmentId=0&objectiveId=0"],
+    ["numeric zero preserved", { departmentId: 0 }, "?departmentId=0"],
     ["all values encoded", { period: "2026 Q1", departmentId: 7 }, "?period=2026+Q1&departmentId=7"],
   ])("builds report query strings: %s", (_caseName, params, expected) => {
     expect(qs(params)).toBe(expected);
@@ -100,7 +100,7 @@ describe("reports and presentation APIs", () => {
 
   it.each([
     ["csv without filters", "csv" as const, {}, `${baseUrl}/reports/export.csv`],
-    ["pdf with objective", "pdf" as const, { objectiveId: 9 }, `${baseUrl}/reports/export.pdf?objectiveId=9`],
+    ["pdf with department", "pdf" as const, { departmentId: 9 }, `${baseUrl}/reports/export.pdf?departmentId=9`],
     ["csv with empty filter omitted", "csv" as const, { period: "", departmentId: 2 }, `${baseUrl}/reports/export.csv?departmentId=2`],
   ])("builds export URL for %s", (_caseName, format, params, expected) => {
     expect(reportsApi.exportUrl(format, params)).toBe(expected);

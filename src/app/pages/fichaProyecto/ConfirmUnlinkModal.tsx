@@ -35,9 +35,9 @@ export function ConfirmUnlinkModal({ link, onClose, onConfirm }: ConfirmUnlinkMo
           <button onClick={onClose} className="detail-invert-button detail-invert-button--header detail-invert-button--orange flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }}><X size={18} /></button>
         </div>
         <div className="p-5 space-y-3">
-          <p style={{ fontSize: 14, fontWeight: 900, color: "#000" }}>Desvincular este proyecto del Key Result?</p>
+          <p style={{ fontSize: 14, fontWeight: 900, color: "#000" }}>Desvincular esta iniciativa del Key Result?</p>
           <p style={{ fontSize: 12, color: COLORS.gray, lineHeight: 1.55 }}>
-            El proyecto no se eliminara. Solo se desactivara esta vinculacion estrategica.
+            La iniciativa no se eliminara. Solo se desactivara esta vinculacion estrategica.
           </p>
           <div className="rounded-lg p-3" style={{ border: "1px solid #E5E7EB", backgroundColor: "#FAFAFA" }}>
             <p style={{ fontSize: 10, color: COLORS.blue, fontWeight: 950, textTransform: "uppercase" }}>KR {link.keyResultId}</p>

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   listPeriods: vi.fn(), listUnits: vi.fn(), listDepartments: vi.fn(), loadDashboard: vi.fn(),
-  tree: vi.fn(), listBets: vi.fn(), listGoals: vi.fn(), listObjectiveCards: vi.fn(),
+  tree: vi.fn(), listBets: vi.fn(), listGoals: vi.fn(), listKeyResults: vi.fn(),
   listProjects: vi.fn(), projectDetail: vi.fn(), contributionChain: vi.fn(),
   consolidated: vi.fn(), periodComparison: vi.fn(), consistencyCheck: vi.fn(), getPresentation: vi.fn(),
 }));
@@ -23,14 +23,14 @@ vi.mock("./reportsApi", () => ({
 }));
 vi.mock("./strategicApi", () => ({
   departmentsApi: { list: mocks.listDepartments }, goalsApi: { list: mocks.listGoals },
-  hierarchyApi: { tree: mocks.tree }, objectivesApi: { cards: mocks.listObjectiveCards },
+  hierarchyApi: { tree: mocks.tree }, keyResultsApi: { list: mocks.listKeyResults },
   strategicBetsApi: { list: mocks.listBets },
 }));
 
 import {
   getScreenDataCacheDiagnostics, invalidateScreenDataCache, loadAcademicPeriods, loadConsistencyCheck,
   loadDashboardScreen, loadDepartments, loadGoals, loadHierarchyScreen, loadMeasurementUnits,
-  loadObjectiveCards, loadOkrScreen, loadPresentationScreen, loadProjectDetailScreen, loadProjects,
+  loadKeyResults, loadPresentationScreen, loadProjectDetailScreen, loadProjects,
   loadProjectsScreen, loadReportComparison, loadReportsScreen, loadStrategicBets,
 } from "./screenDataCache";
 
@@ -45,7 +45,7 @@ describe("screen data cache", () => {
     mocks.tree.mockResolvedValue([{ id: 1 }]);
     mocks.listBets.mockResolvedValue([{ id: 1 }]);
     mocks.listGoals.mockResolvedValue([{ id: 2 }]);
-    mocks.listObjectiveCards.mockResolvedValue([{ id: 3 }]);
+    mocks.listKeyResults.mockResolvedValue([{ id: 3 }]);
     mocks.listProjects.mockResolvedValue([{ id: 4 }]);
     mocks.projectDetail.mockResolvedValue({ project: { id: 4 } });
     mocks.contributionChain.mockResolvedValue({ projectId: 4 });
@@ -97,28 +97,27 @@ describe("screen data cache", () => {
     await loadProjects({ departmentId: 2, search: "MTE" });
     await loadProjects({ search: "" });
     await loadProjects();
-    await loadObjectiveCards({ strategicBetId: 1 });
-    await loadObjectiveCards({ strategicBetId: 2 });
+    await loadKeyResults({ strategicBetId: 1 });
+    await loadKeyResults({ strategicBetId: 2 });
+    await loadKeyResults({ strategicBetId: 2 });
     expect(mocks.listProjects).toHaveBeenCalledTimes(2);
-    expect(mocks.listObjectiveCards).toHaveBeenCalledTimes(2);
+    expect(mocks.listKeyResults).toHaveBeenCalledTimes(2);
+    expect(mocks.listKeyResults).toHaveBeenCalledWith({ strategicBetId: 2 });
   });
 
-  it("assembles dashboard, hierarchy and OKR screen contracts", async () => {
+  it("assembles dashboard, hierarchy and key result screen contracts", async () => {
     const dashboard = await loadDashboardScreen("2026-1");
     const hierarchy = await loadHierarchyScreen();
-    const okrs = await loadOkrScreen({ periodId: 1 });
+    const keyResults = await loadKeyResults({ periodId: 1 });
     expect(dashboard).toMatchObject({ periods: [{ id: 1 }], dashboard: { period: "2026-1" } });
     expect(hierarchy).toMatchObject({ tree: [{ id: 1 }], bets: [{ id: 1 }], goals: [{ id: 2 }] });
-    expect(okrs).toMatchObject({ cards: [{ id: 3 }], units: [{ id: 1 }], departments: [{ id: 1 }] });
+    expect(keyResults).toEqual([{ id: 3 }]);
   });
 
-  it("keeps OKR and project detail usable when departments are unavailable", async () => {
+  it("keeps project detail usable when departments are unavailable", async () => {
     mocks.listDepartments.mockRejectedValue(new Error("catalog unavailable"));
-    const okrs = await loadOkrScreen();
-    invalidateScreenDataCache();
     const detail = await loadProjectDetailScreen(4);
-    expect(okrs.departments).toEqual([]);
-    expect(detail).toMatchObject({ detail: { project: { id: 4 } }, contributionChain: { projectId: 4 }, departments: [] });
+    expect(detail).toMatchObject({ detail: { project: { id: 4 } }, contributionChain: { projectId: 4 }, keyResults: [{ id: 3 }], departments: [] });
   });
 
   it("assembles projects, reports, comparisons and consistency data", async () => {
@@ -126,8 +125,9 @@ describe("screen data cache", () => {
     const reports = await loadReportsScreen({ period: "2026-1" });
     const comparison = await loadReportComparison({ basePeriod: "2026-1", comparePeriod: "2026-2" });
     const consistency = await loadConsistencyCheck({ staleDays: 15 });
-    expect(projects).toMatchObject({ projects: [{ id: 4 }], objectiveCards: [{ id: 3 }] });
-    expect(reports).toMatchObject({ report: { rows: [] }, objectives: [{ id: 3 }] });
+    expect(projects).toMatchObject({ projects: [{ id: 4 }], keyResults: [{ id: 3 }] });
+    expect(reports).toMatchObject({ report: { rows: [] } });
+    expect(Object.keys(reports).sort()).toEqual(["departments", "periods", "report"]);
     expect(comparison).toEqual({ periods: [] });
     expect(consistency.summary.total).toBe(0);
   });

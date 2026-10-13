@@ -29,8 +29,6 @@ const goal = {
   periods: [],
   executionSummary: {
     summaryText: "Sin ejecucion",
-    completedObjectives: 0,
-    inProgressObjectives: 0,
     completedKeyResults: 0,
     inProgressKeyResults: 0,
     completedProjects: 0,

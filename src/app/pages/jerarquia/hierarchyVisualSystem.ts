@@ -14,7 +14,6 @@ export interface NodeTheme {
 export const hierarchyNodeLabel: Record<HierarchyNodeType, string> = {
   STRATEGIC_BET: "Apuesta estrategica",
   GOAL: "Meta institucional",
-  OBJECTIVE: "Objetivo",
   KEY_RESULT: "Key Result",
   PROJECT: "Iniciativa",
 };
@@ -22,7 +21,6 @@ export const hierarchyNodeLabel: Record<HierarchyNodeType, string> = {
 export const hierarchyNodeTheme: Record<HierarchyNodeType, NodeTheme> = {
   STRATEGIC_BET: theme("#4F46E5"),
   GOAL: theme("#4CB979"),
-  OBJECTIVE: theme("#E9683B"),
   KEY_RESULT: theme("#5454E9"),
   PROJECT: theme("#4CB979"),
 };
@@ -35,7 +33,6 @@ export function getNodeBadgeLabel(type: HierarchyNodeType) {
   return {
     STRATEGIC_BET: "Estado",
     GOAL: "Indicador y meta",
-    OBJECTIVE: "Estado",
     KEY_RESULT: "Unidad",
     PROJECT: "Estado",
   }[type];
@@ -45,7 +42,6 @@ export function summarizeHierarchy(nodes: StrategicHierarchyNode[]) {
   const ids: Record<HierarchyNodeType, Set<string>> = {
     STRATEGIC_BET: new Set(),
     GOAL: new Set(),
-    OBJECTIVE: new Set(),
     KEY_RESULT: new Set(),
     PROJECT: new Set(),
   };

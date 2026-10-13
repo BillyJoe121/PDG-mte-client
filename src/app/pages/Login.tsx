@@ -2,44 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { IcesiLogo } from "../components/IcesiLogo";
-import { useAuth, Rol } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { createSsoAuthorizationUrl, ssoApi, type SsoConfig } from "../services/ssoApi";
-
-const DEMO_USERS = [
-  {
-    id: "U1",
-    nombre: "Hugo Arboleda",
-    correo: "hugo.arboleda@icesi.edu.co",
-    rol: "manager" as Rol,
-    departamento: "Departamento de Computación y Sistemas inteligentes.",
-    iniciales: "HA",
-    descripcion: "Gestor estratégico",
-    token: "mock-token-ha",
-    color: "#5454E9",
-  },
-  {
-    id: "U12",
-    nombre: "Leonardo Bustamante",
-    correo: "lbustamante@icesi.edu.co",
-    rol: "contributor" as Rol,
-    departamento: "DCSI",
-    iniciales: "LB",
-    descripcion: "Colaborador",
-    token: "mock-token-lb",
-    color: "#E9683B",
-  },
-  {
-    id: "U10",
-    nombre: "Profesor Demo",
-    correo: "demo.profesor@icesi.edu.co",
-    rol: "admin" as Rol,
-    departamento: "Departamento de Computación y Sistemas inteligentes.",
-    iniciales: "PD",
-    descripcion: "Administrador",
-    token: "mock-token-ad",
-    color: "#000000",
-  },
-];
+import { DEMO_USERS, type DemoUser } from "./login/loginDemoUsers";
+import { LoginBrandPanel } from "./login/LoginBrandPanel";
+import { LoginDemoAccess } from "./login/LoginDemoAccess";
 
 export function Login() {
   const [correo, setCorreo] = useState("");
@@ -75,13 +42,13 @@ export function Login() {
     }
   };
 
-  const authenticateDemoUser = (demoUser: typeof DEMO_USERS[0]) => {
+  const authenticateDemoUser = (demoUser: DemoUser) => {
     setError("");
     login(demoUser);
     navigate("/dashboard");
   };
 
-  const handleDemoLogin = (demoUser: typeof DEMO_USERS[0]) => {
+  const handleDemoLogin = (demoUser: DemoUser) => {
     authenticateDemoUser(demoUser);
   };
 
@@ -107,77 +74,7 @@ export function Login() {
       className="min-h-screen flex"
       style={{ backgroundColor: "#FFFFFF", fontFamily: "Montserrat, sans-serif" }}
     >
-      {/* Left panel – minimal branded */}
-      <div
-        className="hidden lg:flex flex-col justify-between w-1/2 p-14 relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, #5454E9 0%, #3D3DBF 100%)",
-        }}
-      >
-        {/* Subtle grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
-        />
-
-        {/* Soft blob accent */}
-        <div
-          className="absolute rounded-full blur-3xl opacity-20"
-          style={{
-            width: 480,
-            height: 480,
-            background: "#E4EB60",
-            bottom: -160,
-            right: -120,
-          }}
-        />
-
-        {/* Top */}
-        <div className="relative z-10">
-          <IcesiLogo variant="white" size="lg" />
-        </div>
-
-        {/* Center */}
-        <div className="relative z-10 max-w-md">
-          <h2
-            style={{
-              color: "#FFFFFF",
-              fontSize: "40px",
-              fontWeight: 700,
-              lineHeight: 1.15,
-              letterSpacing: "-0.02em",
-              marginBottom: 20,
-            }}
-          >
-            Trazabilidad estratégica para tus proyectos.
-          </h2>
-        </div>
-
-        {/* Bottom */}
-        <div className="relative z-10 flex items-center justify-between">
-          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "11px" }}>
-            © 2026 Universidad ICESI · Cali, Colombia
-          </p>
-          <div className="flex gap-1">
-            {["#E4EB60", "#4CB979", "#E9683B"].map((c) => (
-              <div
-                key={c}
-                style={{
-                  width: 24,
-                  height: 3,
-                  backgroundColor: c,
-                  borderRadius: 2,
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      <LoginBrandPanel />
 
       {/* Right panel – Login form */}
       <div className="flex-1 flex flex-col justify-center items-center p-6 lg:p-12 relative">
@@ -213,99 +110,11 @@ export function Login() {
             {ssoMessage && <p className="mt-3 text-xs font-semibold text-red-700" role="alert">{ssoMessage}</p>}
           </div>
 
-          {/* Demo access toggle */}
-          <div className="mb-8">
-            <button
-              onClick={() => setShowDemo(!showDemo)}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors"
-              style={{
-                backgroundColor: showDemo ? "#FAFAF0" : "transparent",
-                border: `1px dashed ${showDemo ? "#E4EB60" : "#E5E7EB"}`,
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    backgroundColor: "#E4EB60",
-                    boxShadow: "0 0 0 3px rgba(228,235,96,0.25)",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: "#000",
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Acceso rápido demo
-                </span>
-              </div>
-              <span style={{ fontSize: "11px", color: "#717182" }}>
-                {showDemo ? "Ocultar" : "Mostrar"}
-              </span>
-            </button>
-
-            {showDemo && (
-              <div className="mt-2 space-y-1.5">
-                {DEMO_USERS.map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => handleDemoLogin(u)}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors group"
-                    style={{
-                      border: "1px solid transparent",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#FAFAFA";
-                      e.currentTarget.style.borderColor = "#E5E7EB";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.borderColor = "transparent";
-                    }}
-                  >
-                    <div
-                      className="flex-shrink-0 flex items-center justify-center rounded-md"
-                      style={{
-                        width: 32,
-                        height: 32,
-                        backgroundColor: u.color,
-                        color: "#fff",
-                        fontSize: "10px",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {u.iniciales}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          color: "#000",
-                        }}
-                      >
-                        {u.nombre}
-                      </p>
-                      <p style={{ fontSize: "10px", color: "#717182" }}>
-                        {u.descripcion} · {u.departamento}
-                      </p>
-                    </div>
-                    <ArrowRight
-                      size={14}
-                      color="#9CA3AF"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <LoginDemoAccess
+            showDemo={showDemo}
+            onToggle={() => setShowDemo(!showDemo)}
+            onSelect={handleDemoLogin}
+          />
 
           {!showDemo && (
             <>

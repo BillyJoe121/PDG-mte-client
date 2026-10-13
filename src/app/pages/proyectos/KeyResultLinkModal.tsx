@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Link2, Loader2, Search, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import type { ObjectiveCard } from "../../services/strategicApi";
+import type { KeyResult } from "../../services/strategicApi";
+import { toKeyResultOptions } from "../../utils/keyResultOptions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { invalidateScreenDataCache } from "../../services/screenDataCache";
 import {
@@ -17,13 +18,13 @@ import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { COLORS, CONTRIBUTION_OPTIONS, errorMessage } from "./proyectosShared";
 
 interface KeyResultLinkModalProps {
-  objectiveCards: ObjectiveCard[];
+  keyResults: KeyResult[];
   project: ProjectResponse;
   onChanged: () => Promise<void>;
   onClose: () => void;
 }
 
-export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged }: KeyResultLinkModalProps) {
+export function KeyResultLinkModal({ project, keyResults: availableKeyResults, onClose, onChanged }: KeyResultLinkModalProps) {
   const reduceMotion = useReducedMotion();
   const [keyResultId, setKeyResultId] = useState("");
   const [weight, setWeight] = useState(30);
@@ -32,14 +33,7 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
   const [saving, setSaving] = useState(false);
   const [unlinkTarget, setUnlinkTarget] = useState<ProjectKeyResultLinkResponse | null>(null);
 
-  const keyResults = useMemo(() => objectiveCards.flatMap((objective) =>
-    objective.keyResults.map((kr) => ({
-      ...kr,
-      objectiveName: objective.name,
-      departmentName: objective.departmentName,
-      period: objective.academicPeriodName,
-    })),
-  ), [objectiveCards]);
+  const keyResults = useMemo(() => toKeyResultOptions(availableKeyResults), [availableKeyResults]);
 
   const filteredKeyResults = useMemo(() => {
     const query = krSearch.trim().toLowerCase();
@@ -51,8 +45,7 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
         kr.name,
         kr.description,
         kr.metric,
-        kr.objectiveName,
-        kr.departmentName,
+        kr.strategyLabel,
         kr.period,
       ].some((value) => !query || value?.toLowerCase().includes(query)),
     );
@@ -86,7 +79,7 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
       signalStrategicDataChanged({
         projectId: project.id,
         reason: "project-key-result-link",
-        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+        scopes: ["projects", "keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
       });
       await onChanged();
       onClose();
@@ -105,7 +98,7 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
       signalStrategicDataChanged({
         projectId: project.id,
         reason: "project-key-result-unlink",
-        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+        scopes: ["projects", "keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
       });
       toast.success("Vinculo desactivado.");
       await onChanged();
@@ -142,7 +135,7 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
               <Link2 size={18} color="#fff" />
             </div>
             <div>
-              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Proyecto {project.id}</p>
+              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Iniciativa {project.id}</p>
               <h2 style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>Vincular Key Result</h2>
               <p style={{ color: "rgba(255,255,255,0.78)", fontSize: 12, marginTop: 4 }}>{project.name}</p>
             </div>
@@ -192,10 +185,10 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
               value={keyResultId}
               onChange={setKeyResultId}
               placeholder={filteredKeyResults.length ? "Selecciona un KR" : "Sin resultados"}
-              options={filteredKeyResults.map((kr) => ({ value: String(kr.id), label: `${kr.id} - ${kr.name || kr.description} (${kr.objectiveName}, ${kr.departmentName}, ${kr.period})` }))}
+              options={filteredKeyResults.map((kr) => ({ value: String(kr.id), label: `${kr.id} - ${kr.name || kr.description} (${kr.strategyLabel}${kr.period ? `, ${kr.period}` : ""})` }))}
               search={krSearch}
               onSearchChange={setKrSearch}
-              searchPlaceholder="Buscar por KR, objetivo, departamento o periodo"
+              searchPlaceholder="Buscar por KR, meta, apuesta o periodo"
             />
           </ModalField>
 
@@ -223,12 +216,12 @@ export function KeyResultLinkModal({ project, objectiveCards, onClose, onChanged
         <motion.div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(17,24,39,0.35)", backdropFilter: "blur(3px)" }} onClick={() => setUnlinkTarget(null)} initial={reduceMotion ? false : { opacity: 0 }} animate={reduceMotion ? undefined : { opacity: 1 }} exit={reduceMotion ? undefined : { opacity: 0 }}>
           <motion.div className="w-full max-w-md bg-white rounded-lg shadow-2xl overflow-hidden" onClick={(event) => event.stopPropagation()} initial={reduceMotion ? false : { opacity: 0, scale: 0.985, y: 8 }} animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}>
             <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: COLORS.orange }}>
-              <p style={{ color: "#fff", fontSize: 15, fontWeight: 900 }}>Desvincular proyecto del KR?</p>
+              <p style={{ color: "#fff", fontSize: 15, fontWeight: 900 }}>Desvincular iniciativa del KR?</p>
               <button onClick={() => setUnlinkTarget(null)} style={{ color: "#4B5563" }}><X size={18} /></button>
             </div>
             <div className="p-5">
               <p style={{ fontSize: 12, color: "#717182", lineHeight: 1.55 }}>
-                El proyecto no se eliminara. Solo se desactivara esta vinculacion estrategica.
+                La iniciativa no se eliminara. Solo se desactivara esta vinculacion estrategica.
               </p>
               <p style={{ fontSize: 12, color: "#111827", fontWeight: 750, marginTop: 10 }}>KR {unlinkTarget.keyResultId}: {unlinkTarget.keyResultDescription}</p>
             </div>

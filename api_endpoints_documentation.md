@@ -9,7 +9,7 @@ Los endpoints que requieren autenticación y autorización utilizan Spring Secur
 - **`ADMIN`**: Administrador global. Tiene acceso a todas las operaciones, incluyendo CRUD de catálogos, roles, personas y logs de auditoría.
 - **`DECANO`**: Decano de facultad. Tiene permisos de visualización global, creación de metas, apuestas estratégicas, proyectos y gestión intermedia.
 - **`DIRECTOR_ESCUELA`**: Director de escuela académica. Permisos similares a Decano para la gestión estratégica y proyectos.
-- **`JEFE_DPTO`**: Jefe de departamento. Puede ver, actualizar y gestionar proyectos, asociar KR (Key Results) a proyectos, y crear/actualizar objetivos asignados a su departamento.
+- **`JEFE_DPTO`**: Jefe de departamento. Puede ver, actualizar y gestionar proyectos, y asociar KR (Key Results) a proyectos.
 - **`PROFESOR`**: Profesor/Docente. Puede listar proyectos, crear proyectos en los que participe y reportar avances/progreso.
 
 ---
@@ -71,7 +71,7 @@ Proporciona métricas agregadas y resúmenes de ejecución para la interfaz prin
 
 | Método | Ruta | Descripción | Parámetros Query |
 |:---|:---|:---|:---|
-| **`GET`** | `/api/v1/dashboard/summary` | Resumen global de ejecución del periodo (metas, objetivos, KRs, proyectos). | `period` (String, opcional) |
+| **`GET`** | `/api/v1/dashboard/summary` | Resumen global de ejecución del periodo (metas, KRs, proyectos). | `period` (String, opcional) |
 | **`GET`** | `/api/v1/dashboard/projects/by-status` | Conteo de proyectos agrupados por su estado actual. | `period` (String, opcional) |
 | **`GET`** | `/api/v1/dashboard/key-results/by-progress` | Agrupación de resultados clave por niveles de avance (buckets). | `period` (String, opcional) |
 | **`GET`** | `/api/v1/dashboard/departments/summary` | Porcentaje de ejecución consolidado por departamento. | `period` (String, opcional) |
@@ -79,7 +79,7 @@ Proporciona métricas agregadas y resúmenes de ejecución para la interfaz prin
 
 ---
 
-### 3. 🎯 Dirección Estratégica (Mundos, Apuestas, Metas y Objetivos)
+### 3. 🎯 Dirección Estratégica (Mundos, Apuestas, Metas y KRs)
 
 Gestiona la jerarquía de planeación estratégica en la institución. Se compone de varios controladores:
 
@@ -128,7 +128,7 @@ Líneas de acción estratégicas institucionales.
 ---
 
 #### C. Metas Globales (`GoalController`)
-Metas macro de la facultad o institución que agrupan objetivos.
+Metas macro de la facultad o institución a las que se vinculan KRs.
 * **Base URL:** `/api/v1/goals`
 
 | Método | Ruta | Descripción | Acceso |
@@ -155,64 +155,15 @@ Metas macro de la facultad o institución que agrupan objetivos.
 
 ---
 
-#### D. Objetivos Tácticos (`ObjectiveController`)
-Objetivos específicos a nivel de departamento o escuela académica.
-* **Base URL:** `/api/v1/objectives`
-
-| Método | Ruta | Descripción | Acceso / Parámetros |
-|:---|:---|:---|:---|
-| **`GET`** | `/api/v1/objectives` | Lista objetivos. Filtra opcionalmente por `strategicBetId`, `goalId`, `departmentId`, `periodId`. | Autenticado |
-| **`GET`** | `/api/v1/objectives/cards` | Obtiene una lista simplificada de objetivos con formato "Card" para el tablero. | Autenticado |
-| **`POST`** | `/api/v1/objectives` | Crea un objetivo junto con sus resultados clave iniciales (KRs). | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
-| **`GET`** | `/api/v1/objectives/{id}` | Obtiene los datos generales de un objetivo. | Autenticado |
-| **`GET`** | `/api/v1/objectives/{id}/detail` | Obtiene el detalle completo del objetivo, incluyendo tendencias de cobertura. | Autenticado |
-| **`PATCH`** | `/api/v1/objectives/{id}` | Edita el nombre y la descripción de un objetivo. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
-| **`GET`** | `/api/v1/objectives/{id}/key-results` | Lista todos los Resultados Clave (KR) de un objetivo. | Autenticado |
-| **`POST`** | `/api/v1/objectives/{id}/key-results` | Añade un nuevo Resultado Clave a un objetivo existente. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
-| **`GET`** | `/api/v1/objectives/{id}/coverage-trend` | Obtiene el histórico y tendencia de cumplimiento del objetivo. | Autenticado |
-
-* **Cuerpo de Solicitud para Crear Objetivo (`ObjectiveRequest`):**
-  ```json
-  {
-    "name": "String (Requerido)",
-    "description": "String (Requerido)",
-    "departmentId": "Long (Requerido)",
-    "academicPeriodId": "Long (Requerido)",
-    "goalId": "Long (Requerido)",
-    "strategicBetId": "Long (Requerido)",
-    "estimatedWeight": "BigDecimal",
-    "quarter": "Integer (1-4)",
-    "createdByProfessorId": "Long",
-    "keyResults": [
-      {
-        "name": "String (Requerido)",
-        "description": "String (Requerido)",
-        "metric": "String (Requerido)",
-        "baseValue": "BigDecimal (Requerido)",
-        "targetValue": "BigDecimal (Requerido)",
-        "measurementUnitId": "Long (Requerido)",
-        "academicPeriodId": "Long"
-      }
-    ]
-  }
-  ```
-
-* **Cuerpo de Solicitud para Actualizar Objetivo (`ObjectiveUpdateRequest`):**
-  ```json
-  {
-    "name": "String (Requerido)",
-    "description": "String (Requerido)"
-  }
-  ```
-
----
-
-#### E. Resultados Clave (`KeyResultController`)
-Los indicadores cuantificables (KRs) asociados a los objetivos.
+#### D. Resultados Clave (`KeyResultController`)
+Indicadores cuantificables (KRs) vinculados N:M a Metas y Apuestas (al menos una de cualquiera). Desde la migración V10 ya no existe el nivel Objetivo.
 * **Base URL:** `/api/v1/key-results`
 
 | Método | Ruta | Descripción | Acceso |
 |:---|:---|:---|:---|
+| **`GET`** | `/api/v1/key-results` | Lista KRs. Filtros opcionales `goalId`, `strategicBetId`, `periodId`. | Autenticado |
+| **`POST`** | `/api/v1/key-results` | Crea un KR vinculado a Metas y/o Apuestas. | `ADMIN`, `MANAGER` |
+| **`GET`** | `/api/v1/key-results/{id}` | Obtiene un KR. | Autenticado |
 | **`PUT`** | `/api/v1/key-results/{id}` | Actualiza completamente la configuración de un KR. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
 | **`DELETE`** | `/api/v1/key-results/{id}` | Elimina físicamente un KR. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
 
@@ -225,18 +176,21 @@ Los indicadores cuantificables (KRs) asociados a los objetivos.
     "baseValue": "BigDecimal (Requerido)",
     "targetValue": "BigDecimal (Requerido)",
     "measurementUnitId": "Long (Requerido)",
-    "academicPeriodId": "Long"
+    "academicPeriodId": "Long (Requerido)",
+    "goalIds": ["Long"],
+    "strategicBetIds": ["Long"]
   }
   ```
+  `goalIds` y `strategicBetIds` no pueden ir vacíos a la vez (400).
 
 ---
 
-#### F. Árbol de Jerarquía Estratégica (`StrategicHierarchyController`)
+#### E. Árbol de Jerarquía Estratégica (`StrategicHierarchyController`)
 * **Base URL:** `/api/v1/strategic-hierarchy`
 
 | Método | Ruta | Descripción | Parámetros Query |
 |:---|:---|:---|:---|
-| **`GET`** | `/api/v1/strategic-hierarchy/tree` | Obtiene la estructura jerárquica en forma de árbol (Mundo -> Apuesta -> Meta -> Objetivo -> KR) para visualización gráfica. | `period` (String, opcional) |
+| **`GET`** | `/api/v1/strategic-hierarchy/tree` | Obtiene la estructura jerárquica en forma de árbol (Apuesta/Meta -> KR -> Proyecto) para visualización gráfica. | `period` (String, opcional) |
 
 ---
 
@@ -256,7 +210,7 @@ Administra los proyectos académicos, su progreso y su vinculación con los Resu
 | **`PATCH`** | `/api/v1/projects/{id}/status` | Cambia el estado del proyecto (Ej: *APPROVED*, *IN_PROGRESS*, *COMPLETED*). | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA` |
 | **`POST`** | `/api/v1/projects/{id}/progress` | Registra una nueva entrada de avance / progreso porcentual. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO`, `PROFESOR` |
 | **`GET`** | `/api/v1/projects/{id}/history` | Lista la bitácora de avances reportados. | Autenticado |
-| **`GET`** | `/api/v1/projects/{id}/impact-chain` | Muestra la cadena de impacto (a qué objetivos y KRs aporta y con qué peso). | Autenticado |
+| **`GET`** | `/api/v1/projects/{id}/impact-chain` | Muestra la cadena de impacto (a qué KRs, Metas y Apuestas aporta y con qué peso). | Autenticado |
 | **`GET`** | `/api/v1/projects/{id}/contribution-chain`| Equivalente a `/impact-chain` para análisis de contribución. | Autenticado |
 | **`GET`** | `/api/v1/projects/{id}/teachers` | Lista los docentes asignados al proyecto. | Autenticado |
 | **`POST`** | `/api/v1/projects/{id}/teachers` | Asigna un docente con un rol y fecha de ingreso al proyecto. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
@@ -397,13 +351,13 @@ Generación de consolidados e informes de avance en múltiples formatos.
 
 | Método | Ruta | Descripción | Parámetros Query |
 |:---|:---|:---|:---|
-| **`GET`** | `/api/v1/reports/general` | Reporte general consolidado de cumplimiento. | `period`, `departmentId`, `objectiveId` (opcionales) |
+| **`GET`** | `/api/v1/reports/general` | Reporte general consolidado de cumplimiento. | `period`, `departmentId` (opcionales) |
 | **`GET`** | `/api/v1/reports/departments` | Obtiene un consolidado detallado clasificado por departamento académico. | `period` (opcional) |
-| **`GET`** | `/api/v1/reports/objectives/ranking` | Ranking de objetivos basado en su nivel de cumplimiento. | `period`, `departmentId` (opcionales) |
-| **`GET`** | `/api/v1/reports/period-comparison`| Compara el rendimiento de la facultad entre dos periodos diferentes. | `basePeriod` (req), `comparePeriod` (req), `departmentId`, `objectiveId` (opcionales) |
-| **`GET`** | `/api/v1/reports` | Reporte de datos crudos unificados para grids de información. | `period`, `departmentId`, `objectiveId` (opcionales) |
-| **`GET`** | `/api/v1/reports/export.csv` | Exporta el reporte consolidado en formato plano **CSV** (descarga). | `period`, `departmentId`, `objectiveId` (opcionales) |
-| **`GET`** | `/api/v1/reports/export.pdf` | Exporta el reporte estructurado en formato **PDF** imprimible. | `period`, `departmentId`, `objectiveId` (opcionales) |
+| **`GET`** | `/api/v1/reports/key-results/ranking` | Ranking de KRs basado en su nivel de cumplimiento. | `period`, `departmentId` (opcionales) |
+| **`GET`** | `/api/v1/reports/period-comparison`| Compara el rendimiento de la facultad entre dos periodos diferentes. | `basePeriod` (req), `comparePeriod` (req), `departmentId` (opcionales) |
+| **`GET`** | `/api/v1/reports` | Reporte de datos crudos unificados para grids de información. | `period`, `departmentId` (opcionales) |
+| **`GET`** | `/api/v1/reports/export.csv` | Exporta el reporte consolidado en formato plano **CSV** (descarga). | `period`, `departmentId` (opcionales) |
+| **`GET`** | `/api/v1/reports/export.pdf` | Exporta el reporte estructurado en formato **PDF** imprimible. | `period`, `departmentId` (opcionales) |
 
 ---
 

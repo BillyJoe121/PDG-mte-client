@@ -7,13 +7,12 @@ export interface DashboardSummary {
   draftProjects: number;
   suspendedProjects: number;
   archivedProjects: number;
-  objectivesInFollowUp: number;
-  lowCompletionObjectives: number;
-  completedObjectives: number;
-  objectivesAbove50: number;
-  objectivesBetween0And50: number;
-  objectivesAtZero: number;
+  keyResultsInFollowUp: number;
+  lowCompletionKeyResults: number;
   completedKeyResults: number;
+  keyResultsAbove50: number;
+  keyResultsBetween0And50: number;
+  keyResultsAtZero: number;
   inProgressKeyResults: number;
   averageKeyResultCoverage: number;
 }
@@ -42,29 +41,30 @@ export interface DepartmentExecution {
   departmentName: string;
   activeProjects: number;
   completedProjects: number;
-  objectives: number;
+  keyResults: number;
   completedKeyResults: number;
+  keyResultsAbove50: number;
+  keyResultsBetween0And50: number;
+  keyResultsAtZero: number;
   inProgressKeyResults: number;
-  averageObjectiveCoverage: number;
 }
 
-export interface ObjectiveBucketSummary {
-  objectives: number;
-  completedObjectives: number;
-  objectivesAbove50: number;
-  objectivesBetween0And50: number;
-  objectivesAtZero: number;
+export interface KeyResultBucketSummary {
   keyResults: number;
+  completedKeyResults: number;
+  keyResultsAbove50: number;
+  keyResultsBetween0And50: number;
+  keyResultsAtZero: number;
   completedProjects: number;
   inProgressProjects: number;
 }
 
-export interface StrategicBetExecution extends ObjectiveBucketSummary {
+export interface StrategicBetExecution extends KeyResultBucketSummary {
   strategicBetId: number;
   strategicBetName: string;
 }
 
-export interface GoalExecution extends ObjectiveBucketSummary {
+export interface GoalExecution extends KeyResultBucketSummary {
   goalId: number;
   goalName: string;
 }

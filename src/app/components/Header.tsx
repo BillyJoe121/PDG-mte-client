@@ -9,10 +9,8 @@ import { PlatformTutorial } from "./PlatformTutorial";
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/jerarquia": "Jerarquía Estratégica",
-  "/objetivos": "Objetivos a Corto Plazo",
-  "/okrs": "Gestión de OKRs",
   "/krs": "Key Results",
-  "/proyectos": "Proyectos e Iniciativas",
+  "/proyectos": "Iniciativas",
   "/reportes": "Reportes y exportaciones",
   "/consistencia": "Consistencia Estrategica",
   "/catalogos": "Catalogos",
@@ -29,10 +27,10 @@ export function Header() {
   const pageTitle = breadcrumbMap[location.pathname] || "MTE";
 
   const notifications = [
-    { id: 1, msg: "OKR8 tiene menos del 40% de cumplimiento a mitad del periodo.", type: "warning" },
-    { id: 2, msg: "Proyecto 'UX Lab' no registra avance hace 30 días.", type: "warning" },
-    { id: 3, msg: "OKR6 alcanzó el 90% de cumplimiento.", type: "success" },
-    { id: 4, msg: "Proyecto 'Fábrica de Software' completó fase 3.", type: "success" },
+    { id: 1, msg: "KR8 tiene menos del 40% de cumplimiento a mitad del periodo.", type: "warning" },
+    { id: 2, msg: "Iniciativa 'UX Lab' no registra avance hace 30 días.", type: "warning" },
+    { id: 3, msg: "KR6 alcanzó el 90% de cumplimiento.", type: "success" },
+    { id: 4, msg: "Iniciativa 'Fábrica de Software' completó fase 3.", type: "success" },
   ];
 
   return (

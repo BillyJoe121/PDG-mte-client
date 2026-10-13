@@ -52,7 +52,7 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
       signalStrategicDataChanged({
         projectId: project.id,
         reason: "project-progress",
-        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+        scopes: ["projects", "keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
       });
       toast.success("Avance registrado.");
       await onSaved();

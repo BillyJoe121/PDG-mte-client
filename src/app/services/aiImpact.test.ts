@@ -13,8 +13,8 @@ describe('calcularImpacto', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
 
     const promise = calcularImpacto({
-      tipo: 'objetivo-apuesta',
-      origen: { titulo: 'Objetivo curricular' },
+      tipo: 'kr-apuesta',
+      origen: { titulo: 'KR curricular' },
       destino: { titulo: 'Innovacion curricular' },
       contexto: 'pregrado',
     });
@@ -26,12 +26,11 @@ describe('calcularImpacto', () => {
     expect(result.porcentaje).toBeGreaterThanOrEqual(25);
     expect(result.porcentaje).toBeLessThanOrEqual(70);
     expect(result.calculadoEn).toBe('2026-04-14T12:00:00.700Z');
-    expect(result.justificacion).toContain('Objetivo curricular');
+    expect(result.justificacion).toContain('KR curricular');
   });
 
   it.each([
-    ['objetivo-meta', 20, 65],
-    ['kr-objetivo', 15, 50],
+    ['kr-meta', 20, 65],
     ['proyecto-kr', 10, 45],
   ] satisfies [ImpactoTipo, number, number][])('uses configured range for %s', async (tipo, min, max) => {
     vi.useFakeTimers();

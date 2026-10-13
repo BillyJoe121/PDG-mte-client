@@ -26,7 +26,7 @@ export function Layout() {
 
 function getScrollAccentClass(pathname: string) {
   if (pathname.startsWith("/jerarquia")) return "app-scroll-purple";
-  if (pathname.startsWith("/okrs") || pathname.startsWith("/objetivos")) return "app-scroll-orange";
+  if (pathname.startsWith("/krs")) return "app-scroll-orange";
   if (pathname.startsWith("/proyectos")) return "app-scroll-green";
   if (pathname.startsWith("/consistencia")) return "app-scroll-black";
   return "app-scroll-default";

@@ -1,20 +1,18 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { BookOpen, CheckCircle2, Flag, KeyRound, Loader2, Search, TrendingUp } from "lucide-react";
+import { BookOpen, CheckCircle2, Flag, KeyRound, Loader2, Plus, Search, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
-import { loadOkrScreen } from "../services/screenDataCache";
-import type { KeyResult, ObjectiveCard } from "../services/strategicApi";
+import { invalidateScreenDataCache, loadKeyResults } from "../services/screenDataCache";
+import { keyResultsApi, type KeyResult, type KeyResultRequest } from "../services/strategicApi";
+import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
 import { truncateText } from "../utils/text";
+import { keyResultStrategyLabel } from "../utils/keyResultOptions";
 import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
+import { KrFormModal } from "./okrs/KrFormModal";
 import { COLORS } from "./okrs/okrsShared";
-
-interface KeyResultCardItem {
-  keyResult: KeyResult;
-  objective: Pick<ObjectiveCard, "id" | "name" | "description" | "strategicBetId" | "strategicBetName" | "goalId" | "goalName" | "departmentId" | "departmentName" | "academicPeriodId" | "academicPeriodName">;
-}
 
 const progressFilters = new Set(["completado", "avanzado", "proceso", "iniciando"]);
 
@@ -25,33 +23,29 @@ export function KRs() {
   const reduceMotion = useReducedMotion();
   const canEdit = usuario?.rol === "admin" || usuario?.rol === "manager";
   const [loading, setLoading] = useState(true);
-  const [objectives, setObjectives] = useState<ObjectiveCard[]>([]);
+  const [keyResults, setKeyResults] = useState<KeyResult[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [progress, setProgress] = useState(() => {
     const next = searchParams.get("progress") ?? "";
     return progressFilters.has(next) ? next : "";
   });
-  const [selected, setSelected] = useState<{ keyResultId: number; objectiveId: number } | null>(() => {
-    const keyResultId = Number(searchParams.get("keyResultId"));
-    const objectiveId = Number(searchParams.get("objectiveId"));
-    return Number.isFinite(keyResultId) && keyResultId > 0 && Number.isFinite(objectiveId) && objectiveId > 0 ? { keyResultId, objectiveId } : null;
-  });
+  const [selected, setSelected] = useState<number | null>(() => parseKeyResultId(searchParams.get("keyResultId")));
 
   useEffect(() => {
     const nextSearch = searchParams.get("q") ?? "";
     const nextProgress = searchParams.get("progress") ?? "";
-    const keyResultId = Number(searchParams.get("keyResultId"));
-    const objectiveId = Number(searchParams.get("objectiveId"));
     setSearch((current) => current === nextSearch ? current : nextSearch);
     setProgress((current) => current === nextProgress ? current : progressFilters.has(nextProgress) ? nextProgress : "");
-    setSelected(Number.isFinite(keyResultId) && keyResultId > 0 && Number.isFinite(objectiveId) && objectiveId > 0 ? { keyResultId, objectiveId } : null);
+    setSelected(parseKeyResultId(searchParams.get("keyResultId")));
   }, [searchParams]);
 
   const load = useCallback(async (options?: { force?: boolean; silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
     try {
-      const data = await loadOkrScreen(undefined, { force: options?.force });
-      setObjectives(data.cards);
+      const data = await loadKeyResults(undefined, { force: options?.force });
+      setKeyResults(data);
     } catch (error) {
       if (!options?.silent) toast.error(error instanceof Error ? error.message : "No se pudieron cargar los KRs");
     } finally {
@@ -64,12 +58,11 @@ export function KRs() {
   }, [load]);
 
   useStrategicDataRefresh({
-    scopes: ["objectives", "projects"],
+    scopes: ["keyResults", "projects"],
     onRefresh: () => load({ force: true, silent: true }),
   });
 
-  const krs = useMemo(() => flattenKeyResults(objectives), [objectives]);
-  const visibleKrs = useMemo(() => filterKeyResults(krs, search, progress), [krs, progress, search]);
+  const visibleKrs = useMemo(() => filterKeyResults(keyResults, search, progress), [keyResults, progress, search]);
   const stats = useMemo(() => buildKeyResultStats(visibleKrs), [visibleKrs]);
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
@@ -78,23 +71,38 @@ export function KRs() {
     transition: { duration: 0.16, ease: "easeOut" },
   };
 
-  const setQuery = (next: { q?: string; progress?: string; selected?: { keyResultId: number; objectiveId: number } | null }) => {
+  const setQuery = (next: { q?: string; progress?: string; selected?: number | null }) => {
     const params = new URLSearchParams();
     const nextSearch = next.q ?? search;
     const nextProgress = next.progress ?? progress;
     if (nextSearch.trim()) params.set("q", nextSearch.trim());
     if (nextProgress) params.set("progress", nextProgress);
-    if (next.selected) {
-      params.set("keyResultId", String(next.selected.keyResultId));
-      params.set("objectiveId", String(next.selected.objectiveId));
-    }
+    if (next.selected) params.set("keyResultId", String(next.selected));
     setSearchParams(params, { replace: true });
   };
 
-  const openKr = (item: KeyResultCardItem) => {
-    const next = { keyResultId: item.keyResult.id, objectiveId: item.objective.id };
-    setSelected(next);
-    setQuery({ selected: next });
+  const openKr = (item: KeyResult) => {
+    setSelected(item.id);
+    setQuery({ selected: item.id });
+  };
+
+  const createKr = async (body: KeyResultRequest) => {
+    setSaving(true);
+    try {
+      await keyResultsApi.create(body);
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        reason: "key-result-create",
+        scopes: ["keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
+      toast.success("Key Result creado");
+      setCreating(false);
+      await load({ force: true, silent: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo crear el Key Result");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const closeKr = () => {
@@ -108,8 +116,9 @@ export function KRs() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p style={{ color: COLORS.text, fontSize: 17, fontWeight: 950 }}>Key Results</p>
-            <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>Resultados clave trazables por objetivo, meta y apuesta estrategica.</p>
+            <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>Resultados clave vinculados directamente a Metas y Apuestas estrategicas.</p>
           </div>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <div className="flex min-h-[38px] min-w-0 w-full items-center gap-2 rounded-md px-3 sm:min-w-[260px]" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
             <Search size={15} color={COLORS.gray} />
             <input
@@ -118,9 +127,21 @@ export function KRs() {
                 setSearch(event.target.value);
                 setQuery({ q: event.target.value });
               }}
-              placeholder="Buscar KR, objetivo, meta..."
+              placeholder="Buscar KR, meta, apuesta..."
+              aria-label="Buscar Key Results"
               style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
             />
+          </div>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="detail-invert-button detail-invert-button--solid detail-invert-button--blue inline-flex min-h-[38px] items-center gap-1.5 rounded-md px-3"
+              style={{ backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 850 }}
+            >
+              <Plus size={14} /> Nuevo KR
+            </button>
+          )}
           </div>
         </div>
 
@@ -183,7 +204,7 @@ export function KRs() {
         ) : (
           <motion.div key="cards" {...viewMotion} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 items-start">
             {visibleKrs.map((item, index) => (
-              <KeyResultCard key={`${item.objective.id}-${item.keyResult.id}`} item={item} index={index} onOpen={() => openKr(item)} />
+              <KeyResultCard key={item.id} item={item} index={index} onOpen={() => openKr(item)} />
             ))}
           </motion.div>
         )}
@@ -192,8 +213,7 @@ export function KRs() {
       <AnimatePresence>
         {selected && (
           <KeyResultDetailModal
-            keyResultId={selected.keyResultId}
-            objectiveId={selected.objectiveId}
+            keyResultId={selected}
             canEdit={canEdit}
             onClose={closeKr}
             onChanged={async () => {
@@ -202,26 +222,36 @@ export function KRs() {
             onDeleted={async () => {
               await load({ force: true, silent: true });
             }}
-            renderActions={(_, objective) => (
+            renderActions={(keyResult) => (
               <>
-                <button type="button" onClick={() => navigate(`/jerarquia?rootType=GOAL&rootId=${objective.goalId}&objectiveId=${objective.id}`)} className="hierarchy-detail-header-manage-btn rounded-md" style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}>
-                  <BookOpen size={12} /> Ver en Meta
-                </button>
-                <button type="button" onClick={() => navigate(`/jerarquia?rootType=STRATEGIC_BET&rootId=${objective.strategicBetId}&objectiveId=${objective.id}`)} className="hierarchy-detail-header-manage-btn rounded-md" style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}>
-                  <Flag size={12} /> Ver en Apuesta
-                </button>
+                {keyResult.goals?.[0] && (
+                  <button type="button" onClick={() => navigate(`/jerarquia?rootType=GOAL&rootId=${keyResult.goals[0].id}&keyResultId=${keyResult.id}`)} className="hierarchy-detail-header-manage-btn rounded-md" style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}>
+                    <BookOpen size={12} /> Ver en Meta
+                  </button>
+                )}
+                {keyResult.strategicBets?.[0] && (
+                  <button type="button" onClick={() => navigate(`/jerarquia?rootType=STRATEGIC_BET&rootId=${keyResult.strategicBets[0].id}&keyResultId=${keyResult.id}`)} className="hierarchy-detail-header-manage-btn rounded-md" style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}>
+                    <Flag size={12} /> Ver en Apuesta
+                  </button>
+                )}
               </>
             )}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {creating && (
+          <KrFormModal keyResult={null} saving={saving} onClose={() => setCreating(false)} onSubmit={createKr} />
         )}
       </AnimatePresence>
     </div>
   );
 }
 
-function KeyResultCard({ item, index, onOpen }: { item: KeyResultCardItem; index: number; onOpen: () => void }) {
+function KeyResultCard({ item, index, onOpen }: { item: KeyResult; index: number; onOpen: () => void }) {
   const reduceMotion = useReducedMotion();
-  const status = getProgressStatus(item.keyResult.progressPercentage);
+  const status = getProgressStatus(item.progressPercentage);
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -247,50 +277,36 @@ function KeyResultCard({ item, index, onOpen }: { item: KeyResultCardItem; index
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
-            <p className="kr-detail-card__description" style={{ fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>KR-{String(item.keyResult.id).padStart(2, "0")}</p>
-            <p className="kr-detail-card__description" style={{ fontSize: 11, fontWeight: 800 }}>{item.objective.departmentName} - {item.objective.academicPeriodName}</p>
+            <p className="kr-detail-card__description" style={{ fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>KR-{String(item.id).padStart(2, "0")}</p>
+            <p className="kr-detail-card__description" style={{ fontSize: 11, fontWeight: 800 }}>{item.academicPeriodName ?? "Sin periodo"}</p>
             <span className="kr-detail-card__value inline-flex items-center gap-1.5 rounded px-2 py-1" style={{ fontSize: 10, fontWeight: 850 }}>
               <status.Icon size={12} /> {status.label}
             </span>
           </div>
-          <span className="kr-detail-card__progress rounded-md px-3 py-2" style={{ fontSize: 18, fontWeight: 950, lineHeight: 1 }}>{item.keyResult.progressPercentage}%</span>
+          <span className="kr-detail-card__progress rounded-md px-3 py-2" style={{ fontSize: 18, fontWeight: 950, lineHeight: 1 }}>{item.progressPercentage}%</span>
         </div>
         <div className="flex flex-1 items-center py-4">
-          <h3 className="kr-detail-card__title" style={{ width: "100%", fontSize: 25, fontWeight: 900, lineHeight: 1.08, overflowWrap: "anywhere" }}>{truncateText(item.keyResult.name, 68)}</h3>
+          <h3 className="kr-detail-card__title" style={{ width: "100%", fontSize: 25, fontWeight: 900, lineHeight: 1.08, overflowWrap: "anywhere" }}>{truncateText(item.name, 68)}</h3>
         </div>
         <div className="mt-auto pt-3">
-          <p className="kr-detail-card__description" style={{ fontSize: 12, lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.keyResult.description}</p>
-          <p className="kr-detail-card__description" style={{ fontSize: 11, fontWeight: 850, marginTop: 10 }}>{truncateText(item.objective.name, 70)}</p>
+          <p className="kr-detail-card__description" style={{ fontSize: 12, lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.description}</p>
+          <p className="kr-detail-card__description" style={{ fontSize: 11, fontWeight: 850, marginTop: 10 }}>{truncateText(keyResultStrategyLabel(item), 70)}</p>
         </div>
       </div>
     </motion.div>
   );
 }
 
-function flattenKeyResults(objectives: ObjectiveCard[]): KeyResultCardItem[] {
-  return objectives.flatMap((objective) => objective.keyResults.map((keyResult) => ({
-    keyResult,
-    objective: {
-      id: objective.id,
-      name: objective.name,
-      description: objective.description,
-      strategicBetId: objective.strategicBetId,
-      strategicBetName: objective.strategicBetName,
-      goalId: objective.goalId,
-      goalName: objective.goalName,
-      departmentId: objective.departmentId,
-      departmentName: objective.departmentName,
-      academicPeriodId: objective.academicPeriodId,
-      academicPeriodName: objective.academicPeriodName,
-    },
-  })));
+function parseKeyResultId(value: string | null) {
+  const id = Number(value);
+  return Number.isFinite(id) && id > 0 ? id : null;
 }
 
-function filterKeyResults(items: KeyResultCardItem[], query: string, progress: string) {
+function filterKeyResults(items: KeyResult[], query: string, progress: string) {
   let filtered = items;
   if (progress) {
     filtered = filtered.filter((item) => {
-      const p = item.keyResult.progressPercentage || 0;
+      const p = item.progressPercentage || 0;
       if (progress === "completado") return p === 100;
       if (progress === "avanzado") return p > 50 && p < 100;
       if (progress === "proceso") return p > 0 && p <= 50;
@@ -301,26 +317,24 @@ function filterKeyResults(items: KeyResultCardItem[], query: string, progress: s
   const cleanQuery = normalizeSearchText(query.trim());
   if (!cleanQuery) return filtered;
   return filtered.filter((item) => normalizeSearchText([
-    item.keyResult.id,
-    item.keyResult.name,
-    item.keyResult.description,
-    item.keyResult.metric,
-    item.keyResult.measurementUnitName,
-    item.objective.name,
-    item.objective.goalName,
-    item.objective.strategicBetName,
-    item.objective.departmentName,
-    item.objective.academicPeriodName,
+    item.id,
+    item.name,
+    item.description,
+    item.metric,
+    item.measurementUnitName,
+    item.academicPeriodName,
+    ...(item.goals ?? []).map((goal) => goal.name),
+    ...(item.strategicBets ?? []).map((bet) => bet.name),
   ].filter(Boolean).join(" ")).includes(cleanQuery));
 }
 
-function buildKeyResultStats(items: KeyResultCardItem[]) {
+function buildKeyResultStats(items: KeyResult[]) {
   const total = items.length;
   return {
     total,
-    completed: items.filter((item) => item.keyResult.progressPercentage >= 100).length,
-    inProgress: items.filter((item) => item.keyResult.progressPercentage > 0 && item.keyResult.progressPercentage < 100).length,
-    average: total ? Math.round(items.reduce((sum, item) => sum + item.keyResult.progressPercentage, 0) / total) : 0,
+    completed: items.filter((item) => item.progressPercentage >= 100).length,
+    inProgress: items.filter((item) => item.progressPercentage > 0 && item.progressPercentage < 100).length,
+    average: total ? Math.round(items.reduce((sum, item) => sum + item.progressPercentage, 0) / total) : 0,
   };
 }
 

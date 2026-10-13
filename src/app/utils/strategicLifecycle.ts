@@ -1,14 +1,8 @@
-import type { KeyResultStatus, ObjectiveStatus } from "../services/strategicApi";
+import type { KeyResultStatus } from "../services/strategicApi";
 
 export interface LifecycleAction<TStatus extends string> {
   target: TStatus;
   label: string;
-}
-
-export function objectiveLifecycleAction(status: ObjectiveStatus): LifecycleAction<ObjectiveStatus> | null {
-  if (status === "BORRADOR") return { target: "ACTIVO", label: "Activar objetivo" };
-  if (status === "ACTIVO") return { target: "CERRADO", label: "Cerrar objetivo" };
-  return null;
 }
 
 export function keyResultLifecycleAction(status: KeyResultStatus): LifecycleAction<KeyResultStatus> | null {
@@ -17,11 +11,10 @@ export function keyResultLifecycleAction(status: KeyResultStatus): LifecycleActi
   return null;
 }
 
-export function lifecycleLabel(status: ObjectiveStatus | KeyResultStatus) {
+export function lifecycleLabel(status: KeyResultStatus) {
   return {
     BORRADOR: "Borrador",
     ACTIVO: "Activo",
     CERRADO: "Cerrado",
-    ARCHIVADO: "Archivado",
   }[status];
 }

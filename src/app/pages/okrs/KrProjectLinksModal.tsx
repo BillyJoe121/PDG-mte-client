@@ -73,20 +73,20 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
       if (created.overweightWarning) {
         toast.warning(`Los pesos son declarativos. La suma actual es ${created.totalWeightForKeyResult}%.`);
       } else {
-        toast.success("Proyecto vinculado al Key Result.");
+        toast.success("Iniciativa vinculada al Key Result.");
       }
       invalidateScreenDataCache();
       signalStrategicDataChanged({
         projectId: Number(projectId),
         reason: "project-key-result-link",
-        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+        scopes: ["projects", "keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
       });
       setProjectId("");
       await load();
       await onChanged();
     } catch (error) {
       const status = typeof error === "object" && error && "status" in error ? Number(error.status) : undefined;
-      toast.error(status === 409 ? "Este proyecto ya esta vinculado a ese Key Result." : error instanceof Error ? error.message : "No se pudo guardar la vinculacion.");
+      toast.error(status === 409 ? "Esta iniciativa ya esta vinculada a ese Key Result." : error instanceof Error ? error.message : "No se pudo guardar la vinculacion.");
     } finally {
       setSaving(false);
     }
@@ -100,7 +100,7 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
       signalStrategicDataChanged({
         projectId: link.projectId ?? undefined,
         reason: "project-key-result-unlink",
-        scopes: ["projects", "objectives", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+        scopes: ["projects", "keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
       });
       toast.success("Vinculo desactivado.");
       setUnlinkTarget(null);
@@ -119,7 +119,7 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
         <div className="flex items-start justify-between gap-4 px-5 py-4" style={{ backgroundColor: "#000" }}>
           <div>
             <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "10px", textTransform: "uppercase", fontWeight: 900 }}>KR #{keyResult.id}</p>
-            <h3 style={{ color: "#fff", fontSize: "15px", fontWeight: 900 }}>Vincular proyectos al Key Result</h3>
+            <h3 style={{ color: "#fff", fontSize: "15px", fontWeight: 900 }}>Vincular iniciativas al Key Result</h3>
             <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "12px", marginTop: 4 }}>{keyResult.name}</p>
           </div>
           <button onClick={onClose} style={{ color: "rgba(255,255,255,0.75)" }}><X size={20} /></button>
@@ -129,9 +129,9 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
           <div className="rounded-lg p-4" style={{ border: "1.5px solid #E5E7EB", backgroundColor: "#FAFAFA" }}>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="md:col-span-2">
-                <label style={{ fontSize: "10px", fontWeight: 900, textTransform: "uppercase" }}>Proyecto</label>
+                <label style={{ fontSize: "10px", fontWeight: 900, textTransform: "uppercase" }}>Iniciativa</label>
                 <select value={projectId} onChange={(event) => setProjectId(event.target.value)} style={{ width: "100%", marginTop: 5, padding: "9px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: "12px", backgroundColor: "#fff" }}>
-                  <option value="">Selecciona un proyecto</option>
+                  <option value="">Selecciona una iniciativa</option>
                   {projects.map((project) => (
                     <option key={project.id} value={project.id}>{project.name} - {project.departmentName ?? "Sin departamento"}</option>
                   ))}
@@ -172,14 +172,14 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
             </div>
           ) : links.length === 0 ? (
             <div className="py-8 text-center rounded-lg" style={{ border: "1.5px dashed #E5E7EB", color: COLORS.gray, fontSize: "12px" }}>
-              Este Key Result aun no tiene proyectos vinculados.
+              Este Key Result aun no tiene iniciativas vinculadas.
             </div>
           ) : (
-            <div className="overflow-x-auto" tabIndex={0} aria-label="Proyectos vinculados; desplácese horizontalmente para ver todas las columnas">
+            <div className="overflow-x-auto" tabIndex={0} aria-label="Iniciativas vinculadas; desplácese horizontalmente para ver todas las columnas">
               <table className="w-full" style={{ borderCollapse: "collapse", border: "1px solid #E5E7EB" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#000" }}>
-                    {["Proyecto", "Peso", "Tipo", "Total KR", "Advertencia", ""].map((header) => (
+                    {["Iniciativa", "Peso", "Tipo", "Total KR", "Advertencia", ""].map((header) => (
                       <th key={header} style={{ color: "#fff", textAlign: "left", padding: "10px", fontSize: "10px", fontWeight: 900, textTransform: "uppercase" }}>{header}</th>
                     ))}
                   </tr>
@@ -187,7 +187,7 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
                 <tbody>
                   {links.map((link) => (
                     <tr key={link.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
-                      <td style={{ padding: "10px", fontSize: "12px", fontWeight: 800 }}>{link.projectName ?? `Proyecto ${link.projectId ?? ""}`}</td>
+                      <td style={{ padding: "10px", fontSize: "12px", fontWeight: 800 }}>{link.projectName ?? `Iniciativa ${link.projectId ?? ""}`}</td>
                       <td style={{ padding: "10px", fontSize: "12px" }}>{link.contributionWeight}%</td>
                       <td style={{ padding: "10px", fontSize: "12px" }}>{contributionTypeLabel[link.contributionType]}</td>
                       <td style={{ padding: "10px", fontSize: "12px", fontWeight: 900 }}>{link.totalWeightForKeyResult}%</td>
@@ -210,13 +210,13 @@ export function KrProjectLinksModal({ keyResult, onClose, onChanged }: KrProject
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.35)" }} onClick={() => setUnlinkTarget(null)}>
           <div className="w-full max-w-md bg-white rounded-lg shadow-2xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
             <div className="px-5 py-4" style={{ backgroundColor: "#000" }}>
-              <p style={{ color: "#fff", fontSize: "15px", fontWeight: 900 }}>Desvincular proyecto del KR?</p>
+              <p style={{ color: "#fff", fontSize: "15px", fontWeight: 900 }}>Desvincular iniciativa del KR?</p>
             </div>
             <div className="p-5">
               <p style={{ fontSize: "12px", color: COLORS.gray, lineHeight: 1.55 }}>
-                El proyecto no se eliminara. Solo se desactivara esta vinculacion estrategica.
+                La iniciativa no se eliminara. Solo se desactivara esta vinculacion estrategica.
               </p>
-              <p style={{ fontSize: "13px", color: "#000", fontWeight: 900, marginTop: 10 }}>{unlinkTarget.projectName ?? "Proyecto"}</p>
+              <p style={{ fontSize: "13px", color: "#000", fontWeight: 900, marginTop: 10 }}>{unlinkTarget.projectName ?? "Iniciativa"}</p>
             </div>
             <div className="flex justify-end gap-2 px-5 pb-5">
               <button onClick={() => setUnlinkTarget(null)} disabled={saving} style={{ padding: "8px 12px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: "12px", fontWeight: 800 }}>Cancelar</button>

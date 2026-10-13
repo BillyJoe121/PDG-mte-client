@@ -12,15 +12,11 @@ export interface SelectedEntityDetail {
 
 export interface PeriodComparisonStats {
   periodName: string;
-  totalObjectives: number;
-  completedObjectives: number;
-  inProgressObjectives: number;
   totalKeyResults: number;
   completedKeyResults: number;
   totalProjects: number;
   completedProjects: number;
   activeProjects: number;
-  averageObjectiveCoverage: number;
   averageKeyResultCoverage: number;
 }
 
@@ -61,8 +57,6 @@ export function getEffectiveBets(bets?: StrategicBet[]): StrategicBet[] {
   // Fallback a mockData enriquecido si la API no tiene apuestas cargadas
   return mockApuestas.map((a, idx) => {
     const betOkrs = mockOkrs.filter((o) => o.apuestaId === a.id);
-    const completedObj = betOkrs.filter((o) => o.cumplimiento >= 100).length;
-    const inProgressObj = betOkrs.filter((o) => o.cumplimiento < 100).length;
     const allKrs = betOkrs.flatMap((o) => o.keyResults);
     const completedKrs = allKrs.filter((k) => k.estado === "superado" || (k.valorActual >= k.valorObjetivo && k.valorObjetivo > 0)).length;
     const inProgressKrs = Math.max(0, allKrs.length - completedKrs);
@@ -77,9 +71,7 @@ export function getEffectiveBets(bets?: StrategicBet[]): StrategicBet[] {
       status: a.estado === "activa" ? "ACTIVA" : "INACTIVA",
       createdAt: a.fechaInicio,
       executionSummary: {
-        summaryText: `${completedObj} objetivos completados y ${inProgressObj} en curso`,
-        completedObjectives: completedObj || (idx === 0 ? 4 : 2),
-        inProgressObjectives: inProgressObj || (idx === 0 ? 2 : 3),
+        summaryText: `${completedKrs} KRs completados y ${inProgressKrs} en curso`,
         completedKeyResults: completedKrs || (idx === 0 ? 5 : 3),
         inProgressKeyResults: inProgressKrs || (idx === 0 ? 3 : 4),
         completedProjects: Math.floor(totalProj / 2) || 3,
@@ -96,8 +88,6 @@ export function getEffectiveGoals(goals?: Goal[]): Goal[] {
   // Fallback a mockData enriquecido si la API no tiene metas cargadas
   return mockMetas.map((m, idx) => {
     const goalOkrs = mockOkrs.filter((o) => o.metaId === m.id);
-    const completedObj = goalOkrs.filter((o) => o.cumplimiento >= 100).length;
-    const inProgressObj = goalOkrs.filter((o) => o.cumplimiento < 100).length;
     const allKrs = goalOkrs.flatMap((o) => o.keyResults);
     const completedKrs = allKrs.filter((k) => k.estado === "superado" || (k.valorActual >= k.valorObjetivo && k.valorObjetivo > 0)).length;
     const inProgressKrs = Math.max(0, allKrs.length - completedKrs);
@@ -117,9 +107,7 @@ export function getEffectiveGoals(goals?: Goal[]): Goal[] {
       createdAt: "2026-01-01",
       periods: [],
       executionSummary: {
-        summaryText: `${completedObj} objetivos vinculados a la meta`,
-        completedObjectives: completedObj || (idx === 0 ? 3 : 2),
-        inProgressObjectives: inProgressObj || (idx === 0 ? 2 : 2),
+        summaryText: `${allKrs.length} KRs vinculados a la meta`,
         completedKeyResults: completedKrs || (idx === 0 ? 4 : 3),
         inProgressKeyResults: inProgressKrs || (idx === 0 ? 2 : 3),
         completedProjects: Math.floor(totalProj / 2) || 2,
@@ -130,23 +118,22 @@ export function getEffectiveGoals(goals?: Goal[]): Goal[] {
   });
 }
 
+/** Avance de una apuesta: proporcion de KRs completados sobre los KRs en seguimiento. */
 export function calcBetProgress(bet: StrategicBet): number {
-  const comp = bet.executionSummary?.completedObjectives ?? 0;
-  const inProg = bet.executionSummary?.inProgressObjectives ?? 0;
+  const comp = bet.executionSummary?.completedKeyResults ?? 0;
+  const inProg = bet.executionSummary?.inProgressKeyResults ?? 0;
   const total = comp + inProg;
   if (total === 0) return 0;
   return Math.min(100, Math.round((comp / total) * 100));
 }
 
+/** Avance de una meta: proporcion de KRs completados sobre los KRs en seguimiento. */
 export function calcGoalProgress(goal: Goal): number {
-  const comp = goal.executionSummary?.completedObjectives ?? 0;
-  const inProg = goal.executionSummary?.inProgressObjectives ?? 0;
+  const comp = goal.executionSummary?.completedKeyResults ?? 0;
+  const inProg = goal.executionSummary?.inProgressKeyResults ?? 0;
   const total = comp + inProg;
   if (total > 0) {
     return Math.min(100, Math.round((comp / total) * 100));
-  }
-  if (goal.expectedValue > 0 && (goal.executionSummary?.completedKeyResults ?? 0) > 0) {
-    return Math.min(100, Math.round(((goal.executionSummary?.completedKeyResults ?? 0) / goal.expectedValue) * 100));
   }
   return 0;
 }

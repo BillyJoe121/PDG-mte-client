@@ -3,7 +3,8 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Check, FolderKanban, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
-import { departmentsApi, objectivesApi, type Department, type ObjectiveCard } from "../services/strategicApi";
+import { departmentsApi, keyResultsApi, type Department, type KeyResult } from "../services/strategicApi";
+import { toKeyResultOptions } from "../utils/keyResultOptions";
 import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
 import {
   projectsApi,
@@ -24,7 +25,7 @@ const COLORS = {
 
 const PROJECT_TYPES: { value: ProjectType; label: string; color: string; desc: string }[] = [
   { value: "GRADO", label: "Proyecto de grado", color: COLORS.blue, desc: "Trabajo academico o de grado." },
-  { value: "INVESTIGACION", label: "Investigacion", color: COLORS.green, desc: "Proyecto de investigacion, grupo o semillero." },
+  { value: "INVESTIGACION", label: "Investigacion", color: COLORS.green, desc: "Iniciativa de investigacion, grupo o semillero." },
   { value: "EXTENSION", label: "Extension", color: COLORS.orange, desc: "Iniciativa con impacto externo." },
   { value: "MACROPROYECTO", label: "Macroproyecto", color: COLORS.purple, desc: "Iniciativa interdisciplinar de gran escala." },
 ];
@@ -62,7 +63,7 @@ export function NuevoProyecto() {
   const { usuario } = useAuth();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
-  const [objectiveCards, setObjectiveCards] = useState<ObjectiveCard[]>([]);
+  const [availableKeyResults, setAvailableKeyResults] = useState<KeyResult[]>([]);
   const [loadingCatalogs, setLoadingCatalogs] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
@@ -86,14 +87,14 @@ export function NuevoProyecto() {
     async function loadCatalogs() {
       setLoadingCatalogs(true);
       try {
-        const [departmentsData, periodsData, cardsData] = await Promise.all([
+        const [departmentsData, periodsData, keyResultsData] = await Promise.all([
           departmentsApi.list(),
           academicPeriodsApi.list(),
-          objectivesApi.cards(),
+          keyResultsApi.list(),
         ]);
         setDepartments(departmentsData);
         setPeriods(periodsData);
-        setObjectiveCards(cardsData);
+        setAvailableKeyResults(keyResultsData);
         setForm((current) => ({
           ...current,
           departmentId: current.departmentId || String(departmentsData[0]?.id ?? ""),
@@ -109,14 +110,7 @@ export function NuevoProyecto() {
     loadCatalogs();
   }, []);
 
-  const keyResults = useMemo(() => objectiveCards.flatMap((objective) =>
-    objective.keyResults.map((kr) => ({
-      ...kr,
-      objectiveName: objective.name,
-      departmentName: objective.departmentName,
-      period: objective.academicPeriodName,
-    })),
-  ), [objectiveCards]);
+  const keyResults = useMemo(() => toKeyResultOptions(availableKeyResults), [availableKeyResults]);
 
   const setField = (field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -178,7 +172,7 @@ export function NuevoProyecto() {
 
     try {
       const project = await projectsApi.create(payload);
-      toast.success("Proyecto creado correctamente.");
+      toast.success("Iniciativa creada correctamente.");
       navigate(`/proyectos?projectId=${project.id}`);
     } catch (error) {
       toast.error(errorMessage(error));
@@ -191,7 +185,7 @@ export function NuevoProyecto() {
     return (
       <div className="p-8 text-center">
         <h2 style={{ fontSize: 20, fontWeight: 900 }}>Debes iniciar sesion</h2>
-        <button onClick={() => navigate("/proyectos")} style={{ marginTop: 12, color: COLORS.blue, fontSize: 13, fontWeight: 800 }}>Volver a proyectos</button>
+        <button onClick={() => navigate("/proyectos")} style={{ marginTop: 12, color: COLORS.blue, fontSize: 13, fontWeight: 800 }}>Volver a iniciativas</button>
       </div>
     );
   }
@@ -208,8 +202,8 @@ export function NuevoProyecto() {
           <FolderKanban size={19} color="#fff" />
         </div>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 950, color: "#000" }}>Nuevo proyecto</h1>
-          <p style={{ fontSize: 12, color: "#717182", marginTop: 3 }}>Crea un proyecto local y, si aplica, vinculalo de inmediato a uno o varios Key Results.</p>
+          <h1 style={{ fontSize: 22, fontWeight: 950, color: "#000" }}>Nueva iniciativa</h1>
+          <p style={{ fontSize: 12, color: "#717182", marginTop: 3 }}>Crea una iniciativa local y, si aplica, vinculala de inmediato a uno o varios Key Results.</p>
         </div>
       </div>
 
@@ -225,7 +219,7 @@ export function NuevoProyecto() {
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Nombre *</label>
-              <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Proyecto de analitica curricular" style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.name ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 13 }} />
+              <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Iniciativa de analitica curricular" style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.name ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 13 }} />
               {errors.name && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.name}</p>}
             </div>
 
@@ -236,7 +230,7 @@ export function NuevoProyecto() {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Tipo de proyecto</label>
+              <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Tipo de iniciativa</label>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-2">
                 {PROJECT_TYPES.map((type) => {
                   const selected = form.type === type.value;
@@ -309,7 +303,7 @@ export function NuevoProyecto() {
             {errors.keyResults && <p style={{ fontSize: 11, color: COLORS.orange }}>{errors.keyResults}</p>}
 
             {keyResults.length === 0 ? (
-              <p style={{ fontSize: 13, color: "#717182" }}>No hay Key Results disponibles desde objectives/cards.</p>
+              <p style={{ fontSize: 13, color: "#717182" }}>No hay Key Results disponibles.</p>
             ) : (
               <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
                 {keyResults.map((kr) => {
@@ -323,7 +317,7 @@ export function NuevoProyecto() {
                         </button>
                         <div className="flex-1 min-w-0">
                           <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>
-                            KR {kr.id} - {kr.objectiveName} - {kr.departmentName} - {kr.period}
+                            KR {kr.id} - {kr.strategyLabel}{kr.period ? ` - ${kr.period}` : ""}
                           </p>
                           <p style={{ fontSize: 12, fontWeight: 850, color: "#000", marginTop: 3 }}>{kr.name || kr.description}</p>
                           <p style={{ fontSize: 11, color: "#717182", marginTop: 2 }}>{kr.metric}</p>
@@ -354,7 +348,7 @@ export function NuevoProyecto() {
             <button onClick={() => navigate(-1)} style={{ padding: "10px 18px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontWeight: 850 }}>Cancelar</button>
             <button onClick={handleSubmit} disabled={saving} className="inline-flex items-center gap-2" style={{ padding: "10px 18px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 6, fontSize: 13, fontWeight: 950, opacity: saving ? 0.65 : 1 }}>
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-              Crear proyecto
+              Crear iniciativa
             </button>
           </div>
         </div>

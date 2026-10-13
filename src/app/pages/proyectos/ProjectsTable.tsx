@@ -35,11 +35,11 @@ export function ProjectsTable({
 }: ProjectsTableProps) {
   return (
     <div className="bg-white rounded-lg overflow-hidden" style={{ border: "1.5px solid #E5E7EB" }}>
-      <div className="overflow-x-auto" tabIndex={0} aria-label="Tabla de proyectos; desplácese horizontalmente para ver todas las columnas">
+      <div className="overflow-x-auto" tabIndex={0} aria-label="Tabla de iniciativas; desplácese horizontalmente para ver todas las columnas">
         <table className="w-full" style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ backgroundColor: "#000" }}>
-              {["Proyecto", "Tipo", "Departamento", "Tutores", "Estado", "Key Results vinculados", "Avance global", ""].map((header) => (
+              {["Iniciativa", "Tipo", "Departamento", "Tutores", "Estado", "Key Results vinculados", "Avance global", ""].map((header) => (
                 <th key={header} style={{ textAlign: "left", padding: "12px 14px", color: "#fff", fontSize: 10, fontWeight: 900, textTransform: "uppercase", whiteSpace: "nowrap" }}>
                   {header}
                 </th>
@@ -51,13 +51,13 @@ export function ProjectsTable({
               <tr>
                 <td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#717182", fontSize: 13 }}>
                   <Loader2 size={20} className="animate-spin mx-auto mb-2" />
-                  Cargando proyectos...
+                  Cargando iniciativas...
                 </td>
               </tr>
             ) : projects.length === 0 ? (
               <tr>
                 <td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#717182", fontSize: 13 }}>
-                  No se encontraron proyectos con los filtros aplicados.
+                  No se encontraron iniciativas con los filtros aplicados.
                 </td>
               </tr>
             ) : projects.map((project, index) => (

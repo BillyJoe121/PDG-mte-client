@@ -5,13 +5,10 @@ import type {
 import { getSessionAccessToken } from "./authToken";
 
 export type StrategicStatus = "ACTIVA" | "INACTIVA";
-export type ObjectiveStatus = "BORRADOR" | "ACTIVO" | "CERRADO" | "ARCHIVADO";
 export type KeyResultStatus = "BORRADOR" | "ACTIVO" | "CERRADO";
 
 export interface ExecutionSummary {
   summaryText: string;
-  completedObjectives: number;
-  inProgressObjectives: number;
   completedKeyResults: number;
   inProgressKeyResults: number;
   completedProjects: number;
@@ -21,8 +18,6 @@ export interface ExecutionSummary {
 
 export interface PeriodExecutionSummary {
   period: string;
-  completedObjectives: number;
-  inProgressObjectives: number;
   completedKeyResults: number;
   inProgressKeyResults: number;
   completedProjects: number;
@@ -73,6 +68,11 @@ export interface Goal {
   executionSummary: ExecutionSummary;
 }
 
+export interface StrategyLink {
+  id: number;
+  name: string;
+}
+
 export interface KeyResultRequest {
   name: string;
   description: string;
@@ -80,7 +80,9 @@ export interface KeyResultRequest {
   baseValue: number;
   targetValue: number;
   measurementUnitId: number;
-  academicPeriodId?: number;
+  academicPeriodId: number;
+  goalIds: number[];
+  strategicBetIds: number[];
 }
 
 export interface KeyResult {
@@ -96,64 +98,20 @@ export interface KeyResult {
   measurementUnitName: string;
   academicPeriodId?: number;
   academicPeriodName?: string;
-  objectiveId: number;
-  objectiveName: string;
+  goals: StrategyLink[];
+  strategicBets: StrategyLink[];
   status: KeyResultStatus;
   createdAt: string;
 }
 
-export interface ObjectiveRequest {
-  name: string;
-  description: string;
-  departmentId: number;
-  academicPeriodId: number;
-  goalId: number;
-  strategicBetId: number;
-  keyResults: KeyResultRequest[];
-}
-
-export interface Objective {
-  id: number;
-  name: string;
-  description: string;
-  status: ObjectiveStatus;
-  createdAt: string;
-  departmentId: number;
-  departmentName: string;
-  academicPeriodId: number;
-  academicPeriodName: string;
-  goalId: number;
-  goalName: string;
-  strategicBetId: number;
-  strategicBetName: string;
-  completionPercentage: number;
-  keyResults: KeyResult[];
-}
-
-export interface ObjectiveCard {
-  id: number;
-  name: string;
-  description: string;
-  strategicBetId: number;
-  strategicBetName: string;
-  goalId: number;
-  goalName: string;
-  departmentId: number;
-  departmentName: string;
-  academicPeriodId: number;
-  academicPeriodName: string;
-  completionPercentage: number;
-  lowCompletionAlert: boolean;
-  keyResults: KeyResult[];
-}
-
-export interface CoverageTrendPoint {
-  period: string;
-  coveragePercentage: number;
+export interface KeyResultListParams {
+  goalId?: number;
+  strategicBetId?: number;
+  periodId?: number;
 }
 
 export interface StrategicHierarchyNode {
-  nodeType: "STRATEGIC_BET" | "GOAL" | "OBJECTIVE" | "KEY_RESULT" | "PROJECT";
+  nodeType: "STRATEGIC_BET" | "GOAL" | "KEY_RESULT" | "PROJECT";
   id: string;
   label: string;
   description?: string;
@@ -339,28 +297,11 @@ export const goalsApi = {
     api<Goal>(`/goals/${goalId}/periods/${periodId}`, { method: "DELETE" }),
 };
 
-export const objectivesApi = {
-  list: (params?: { strategicBetId?: number; goalId?: number; departmentId?: number; periodId?: number; includeArchived?: boolean }) =>
-    api<Objective[]>(`/objectives${query(params)}`),
-  cards: (params?: { strategicBetId?: number; goalId?: number; departmentId?: number; periodId?: number; includeArchived?: boolean }) =>
-    api<ObjectiveCard[]>(`/objectives/cards${query(params)}`),
-  create: (body: ObjectiveRequest) =>
-    api<Objective>("/objectives", { method: "POST", body: JSON.stringify(body) }),
-  get: (id: number) => api<Objective>(`/objectives/${id}`),
-  update: (id: number, body: { name: string; description: string }) =>
-    api<Objective>(`/objectives/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-  setArchived: (id: number, archived: boolean) =>
-    api<Objective>(`/objectives/${id}/archived`, { method: "PATCH", body: JSON.stringify({ archived }) }),
-  setStatus: (id: number, status: ObjectiveStatus) =>
-    api<Objective>(`/objectives/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
-  keyResults: (objectiveId: number) => api<KeyResult[]>(`/objectives/${objectiveId}/key-results`),
-  addKeyResult: (objectiveId: number, body: KeyResultRequest) =>
-    api<KeyResult>(`/objectives/${objectiveId}/key-results`, { method: "POST", body: JSON.stringify(body) }),
-  coverageTrend: (objectiveId: number) =>
-    api<CoverageTrendPoint[]>(`/objectives/${objectiveId}/coverage-trend`),
-};
-
 export const keyResultsApi = {
+  list: (params?: KeyResultListParams) =>
+    api<KeyResult[]>(`/key-results${query({ goalId: params?.goalId, strategicBetId: params?.strategicBetId, periodId: params?.periodId })}`),
+  create: (body: KeyResultRequest) =>
+    api<KeyResult>("/key-results", { method: "POST", body: JSON.stringify(body) }),
   get: (id: number) => api<KeyResult>(`/key-results/${id}`),
   update: (id: number, body: KeyResultRequest) =>
     api<KeyResult>(`/key-results/${id}`, { method: "PUT", body: JSON.stringify(body) }),
@@ -371,6 +312,9 @@ export const keyResultsApi = {
   remove: (id: number) =>
     api<void>(`/key-results/${id}`, { method: "DELETE" }),
 };
+
+export const listKeyResults = (params?: KeyResultListParams) => keyResultsApi.list(params);
+export const createKeyResult = (body: KeyResultRequest) => keyResultsApi.create(body);
 
 export const hierarchyApi = {
   tree: (period?: string) =>

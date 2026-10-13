@@ -1,6 +1,6 @@
 export type StrategicDataScope =
   | "projects"
-  | "objectives"
+  | "keyResults"
   | "hierarchy"
   | "dashboard"
   | "reports"

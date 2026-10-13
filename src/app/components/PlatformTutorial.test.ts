@@ -6,7 +6,7 @@ describe("platformTutorialSteps", () => {
     expect(platformTutorialSteps.map((step) => step.title)).toEqual([
       "Bienvenido a MTE",
       "Navega por la estrategia",
-      "Define objetivos medibles",
+      "Define resultados medibles",
       "Conecta iniciativas con resultados",
       "Revisa y corrige",
       "Recorrido completado",

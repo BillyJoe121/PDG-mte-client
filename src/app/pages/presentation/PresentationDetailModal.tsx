@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ArrowUpRight, Award, Calendar, CheckCircle2, Clock, Download, ExternalLink, Flag, Printer, Target, X } from "lucide-react";
+import { ArrowUpRight, Award, Calendar, Clock, Download, ExternalLink, Flag, Printer, Target, X } from "lucide-react";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
 import { calcBetProgress, calcGoalProgress, PRESENTATION_COLORS } from "./PresentationTypes";
 import { exportDetailModalCsv, printPresentationView } from "./presentationExportUtils";
@@ -142,26 +142,7 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
             <h3 className="mb-3 text-xs font-extrabold uppercase tracking-wider text-[#717182]">
               Desglose de Desempeño y Cadena Estratégica
             </h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-center">
-                <div className="flex items-center justify-center gap-1 text-xs font-extrabold text-[#717182]">
-                  <CheckCircle2 size={14} className="text-[#4CB979]" aria-hidden="true" />
-                  <span>Objetivos</span>
-                </div>
-                <div className="mt-2 text-2xl font-black text-[#222245]">
-                  {summary?.completedObjectives ?? 0}
-                  <span className="text-sm font-semibold text-[#717182]">
-                    {" "}/ {((summary?.completedObjectives ?? 0) + (summary?.inProgressObjectives ?? 0))}
-                  </span>
-                </div>
-                <span className="mt-1 block text-[11px] font-bold text-[#4CB979]">
-                  {summary?.completedObjectives ?? 0} completados
-                </span>
-                <span className="block text-[11px] font-semibold text-[#717182]">
-                  {summary?.inProgressObjectives ?? 0} en curso
-                </span>
-              </div>
-
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-center">
                 <div className="flex items-center justify-center gap-1 text-xs font-extrabold text-[#717182]">
                   <Target size={14} className="text-[#5454E9]" aria-hidden="true" />
@@ -184,7 +165,7 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
               <div className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-center">
                 <div className="flex items-center justify-center gap-1 text-xs font-extrabold text-[#717182]">
                   <Award size={14} className="text-[#E9683B]" aria-hidden="true" />
-                  <span>Proyectos</span>
+                  <span>Iniciativas</span>
                 </div>
                 <div className="mt-2 text-2xl font-black text-[#222245]">
                   {summary?.completedProjects ?? 0}
@@ -193,10 +174,10 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
                   </span>
                 </div>
                 <span className="mt-1 block text-[11px] font-bold text-[#E9683B]">
-                  {summary?.completedProjects ?? 0} finalizados
+                  {summary?.completedProjects ?? 0} finalizadas
                 </span>
                 <span className="block text-[11px] font-semibold text-[#717182]">
-                  {summary?.inProgressProjects ?? 0} activos
+                  {summary?.inProgressProjects ?? 0} activas
                 </span>
               </div>
             </div>
@@ -213,18 +194,14 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
                   <thead className="border-b border-[#DFE3EC] bg-[#F7F8FC] font-extrabold text-[#717182]">
                     <tr>
                       <th className="px-3 py-2">Periodo</th>
-                      <th className="px-3 py-2 text-center">Objetivos</th>
                       <th className="px-3 py-2 text-center">KRs</th>
-                      <th className="px-3 py-2 text-center">Proyectos</th>
+                      <th className="px-3 py-2 text-center">Iniciativas</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#DFE3EC] font-semibold text-[#222245]">
                     {summary.periods.map((p) => (
                       <tr key={p.period} className="hover:bg-[#F7F8FC]">
                         <td className="px-3 py-2 font-bold">{p.period}</td>
-                        <td className="px-3 py-2 text-center">
-                          <span className="text-emerald-700 font-bold">{p.completedObjectives}</span> / {p.completedObjectives + p.inProgressObjectives}
-                        </td>
                         <td className="px-3 py-2 text-center">
                           <span className="text-indigo-700 font-bold">{p.completedKeyResults}</span> / {p.completedKeyResults + p.inProgressKeyResults}
                         </td>

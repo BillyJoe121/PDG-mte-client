@@ -61,14 +61,14 @@ export function ProjectFilters({
         <input
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Buscar proyecto..."
+          placeholder="Buscar iniciativa..."
           style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
         />
       </div>
       {onCreateProject && (
         <button onClick={onCreateProject} className="btn-primary-green active:scale-95">
           <Plus size={15} />
-          Nuevo proyecto
+          Nueva iniciativa
         </button>
       )}
     </div>

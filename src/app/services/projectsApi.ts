@@ -121,8 +121,8 @@ export interface ImpactChainItem {
   linkId: number;
   keyResultId: number;
   keyResultDescription: string;
-  objectiveId: number;
-  objectiveName: string;
+  goalNames: string[];
+  strategicBetNames: string[];
   contributionWeight: number;
   contributionType: ContributionType;
   appliedContribution: number;
@@ -216,7 +216,7 @@ function query(params?: Record<string, number | string | undefined>) {
 }
 
 export function validateProjectKeyResultLink(payload: ProjectKeyResultLinkRequest) {
-  if (!payload.projectId) return "Selecciona un proyecto.";
+  if (!payload.projectId) return "Selecciona una iniciativa.";
   if (!payload.keyResultId) return "Selecciona un Key Result.";
   if (payload.contributionWeight < 0 || payload.contributionWeight > 100) {
     return "El peso debe estar entre 0 y 100.";

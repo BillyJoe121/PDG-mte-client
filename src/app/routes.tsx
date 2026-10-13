@@ -11,7 +11,6 @@ const SsoCallback = lazy(() => import("./pages/SsoCallback").then((module) => ({
 const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })));
 const JerarquiaEstrategica = lazy(() => import("./pages/JerarquiaEstrategica").then((module) => ({ default: module.JerarquiaEstrategica })));
 const Proyectos = lazy(() => import("./pages/Proyectos").then((module) => ({ default: module.Proyectos })));
-const OKRs = lazy(() => import("./pages/OKRs").then((module) => ({ default: module.OKRs })));
 const KRs = lazy(() => import("./pages/KRs").then((module) => ({ default: module.KRs })));
 const Reportes = lazy(() => import("./pages/Reportes").then((module) => ({ default: module.Reportes })));
 const Consistencia = lazy(() => import("./pages/Consistencia").then((module) => ({ default: module.Consistencia })));
@@ -22,9 +21,7 @@ const NuevaApuesta = lazy(() => import("./pages/NuevaApuesta").then((module) => 
 const NuevaMeta = lazy(() => import("./pages/NuevaMeta").then((module) => ({ default: module.NuevaMeta })));
 const GestionApuesta = lazy(() => import("./pages/GestionApuesta").then((module) => ({ default: module.GestionApuesta })));
 const GestionMeta = lazy(() => import("./pages/GestionMeta").then((module) => ({ default: module.GestionMeta })));
-const NuevoOKR = lazy(() => import("./pages/NuevoOKR").then((module) => ({ default: module.NuevoOKR })));
 const NuevoProyecto = lazy(() => import("./pages/NuevoProyecto").then((module) => ({ default: module.NuevoProyecto })));
-const RubricaOKR = lazy(() => import("./pages/RubricaOKR").then((module) => ({ default: module.RubricaOKR })));
 const Catalogos = lazy(() => import("./pages/Catalogos").then((module) => ({ default: module.Catalogos })));
 
 function lazyPage(children: ReactNode) {
@@ -56,14 +53,14 @@ export const router = createBrowserRouter([
       { path: "jerarquia/apuestas/:betId/gestionar", element: protectedPage("jerarquia.manage", <GestionApuesta />) },
       { path: "jerarquia/metas/:goalId/gestionar", element: protectedPage("jerarquia.manage", <GestionMeta />) },
       { path: "catalogos", element: protectedPage("catalogos.manage", <Catalogos />) },
-      { path: "objetivos", element: <Navigate to="/okrs" replace /> },
-      { path: "objetivos/:id", element: <Navigate to="/okrs" replace /> },
       { path: "proyectos", element: protectedPage("proyectos.view", <Proyectos />) },
       { path: "proyectos/nuevo", element: protectedPage("proyectos.create", <NuevoProyecto />) },
-      { path: "okrs", element: protectedPage("okrs.view", <OKRs />) },
-      { path: "okrs/nuevo", element: protectedPage("okrs.manage", <NuevoOKR />) },
       { path: "krs", element: protectedPage("okrs.view", <KRs />) },
-      { path: "okrs/:okrId/rubrica", element: protectedPage("okrs.view", <RubricaOKR />) },
+      // Rutas retiradas del modulo de Objetivos: redirigen a KRs para conservar marcadores antiguos.
+      { path: "okrs/*", element: <Navigate to="/krs" replace /> },
+      { path: "okrs", element: <Navigate to="/krs" replace /> },
+      { path: "objetivos", element: <Navigate to="/krs" replace /> },
+      { path: "objetivos/*", element: <Navigate to="/krs" replace /> },
       { path: "reportes", element: protectedPage("reportes.view", <Reportes />) },
       { path: "consistencia", element: protectedPage("consistencia.view", <Consistencia />) },
       { path: "usuarios", element: protectedPage("usuarios.manage", <Usuarios />) },

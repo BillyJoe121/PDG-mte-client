@@ -45,7 +45,7 @@ describe("strategic data refresh events", () => {
   it("accepts valid cross-tab storage changes and ignores unrelated or malformed values", () => {
     const listener = vi.fn();
     listenStrategicDataChanges(listener);
-    const detail = { reason: "remote", scopes: ["objectives"], changedAt: 10 };
+    const detail = { reason: "remote", scopes: ["keyResults"], changedAt: 10 };
 
     window.dispatchEvent(new StorageEvent("storage", { key: "other", newValue: JSON.stringify(detail) }));
     window.dispatchEvent(new StorageEvent("storage", { key: "mte_strategic_data_changed", newValue: null }));

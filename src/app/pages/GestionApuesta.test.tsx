@@ -21,8 +21,6 @@ const bet = {
   createdAt: "2026-01-01T00:00:00Z",
   executionSummary: {
     summaryText: "Sin ejecucion",
-    completedObjectives: 0,
-    inProgressObjectives: 0,
     completedKeyResults: 0,
     inProgressKeyResults: 0,
     completedProjects: 0,

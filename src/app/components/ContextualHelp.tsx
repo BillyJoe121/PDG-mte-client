@@ -33,7 +33,7 @@ const helpByRoute: Array<{ match: (pathname: string) => boolean; content: HelpCo
     match: (pathname) => pathname.startsWith("/jerarquia"),
     content: {
       title: "Jerarquía Estratégica",
-      purpose: "Organiza Apuestas, Metas y sus relaciones para mantener la cadena de trazabilidad institucional.",
+      purpose: "Organiza Apuestas y Metas, sus Key Results y las iniciativas que los materializan para mantener la cadena de trazabilidad institucional.",
       steps: [
         "Filtra por período para revisar la vigencia de la jerarquía.",
         "Selecciona una Apuesta o Meta para consultar su detalle y relaciones.",
@@ -43,22 +43,22 @@ const helpByRoute: Array<{ match: (pathname: string) => boolean; content: HelpCo
     },
   },
   {
-    match: (pathname) => pathname.startsWith("/okrs") || pathname.startsWith("/krs"),
+    match: (pathname) => pathname.startsWith("/krs"),
     content: {
-      title: "Objetivos y Key Results",
-      purpose: "Gestiona los objetivos de corto plazo, sus indicadores y el avance medible de cada Key Result.",
+      title: "Key Results",
+      purpose: "Gestiona los Key Results vinculados a Metas y Apuestas y el avance medible de cada uno.",
       steps: [
-        "Filtra por Apuesta, Meta, departamento o período para acotar los resultados.",
-        "Abre un Objetivo para revisar sus KRs y sus estados de ciclo de vida.",
+        "Busca por nombre, Meta, Apuesta o período para acotar los resultados.",
+        "Al crear o editar un KR, selecciona al menos una Meta o una Apuesta y su período académico.",
         "Registra valores de KR con la unidad de medida definida para conservar cálculos consistentes.",
       ],
-      tip: "Un Objetivo cerrado no admite cambios ordinarios; verifica su estado antes de iniciar una gestión.",
+      tip: "Un KR cerrado no admite cambios ordinarios; verifica su estado antes de iniciar una gestión.",
     },
   },
   {
     match: (pathname) => pathname.startsWith("/proyectos"),
     content: {
-      title: "Proyectos e iniciativas",
+      title: "Iniciativas",
       purpose: "Consulta y gestiona las iniciativas que contribuyen a los Key Results institucionales.",
       steps: [
         "Usa los filtros y la búsqueda para encontrar la iniciativa.",

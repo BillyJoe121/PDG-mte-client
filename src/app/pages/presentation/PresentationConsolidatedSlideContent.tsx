@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -11,117 +10,9 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import type { DepartmentReport, GeneralReport, ObjectiveRanking, PresentationSlide } from "../../services/reportsApi";
+import type { DepartmentReport, GeneralReport, KeyResultRanking, PresentationSlide } from "../../services/reportsApi";
 import { boundedPercent, coverageColor, formatPercent } from "./PresentationConsolidatedBuilder";
-
-function LargeMetricPill({
-  label,
-  value,
-  sub,
-  color,
-  icon,
-}: {
-  label: string;
-  value: string | number;
-  sub: string;
-  color: string;
-  icon: ReactNode;
-}) {
-  return (
-    <article className="relative flex flex-col justify-between overflow-hidden rounded-lg border border-[#DFE3EC] bg-white p-2.5 sm:p-3 shadow-xs transition-all hover:shadow-md">
-      <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: color }} />
-      <div>
-        <div className="flex items-center justify-between gap-1.5">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[#717182]">{label}</span>
-          <div
-            className="grid h-7 w-7 place-items-center rounded-md"
-            style={{ backgroundColor: `${color}18`, color }}
-            aria-hidden="true"
-          >
-            {icon}
-          </div>
-        </div>
-        <div className="mt-1 text-xl font-black text-[#222245] sm:text-2xl" style={{ color }}>
-          {value}
-        </div>
-      </div>
-      <p className="mt-1.5 border-t border-[#DFE3EC] pt-1 text-[10px] font-semibold text-[#717182] truncate">{sub}</p>
-    </article>
-  );
-}
-
-function InsightCard({
-  label,
-  value,
-  detail,
-  color,
-  icon,
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-  color: string;
-  icon: ReactNode;
-}) {
-  return (
-    <article className="rounded-lg border border-[#DFE3EC] bg-white p-2.5 sm:p-3 shadow-xs">
-      <div className="flex items-center gap-2">
-        <div
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md"
-          style={{ backgroundColor: `${color}18`, color }}
-        >
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <span className="block truncate text-[10px] font-black uppercase tracking-wider text-[#717182]">{label}</span>
-          <div className="text-lg font-black sm:text-xl leading-tight" style={{ color }}>
-            {value}
-          </div>
-        </div>
-      </div>
-      <p className="mt-1.5 text-[10px] font-semibold leading-tight text-[#717182] line-clamp-2">{detail}</p>
-    </article>
-  );
-}
-
-function SlideProgressRow({
-  label,
-  value,
-  detail,
-  badge,
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-  badge?: string;
-}) {
-  const numeric = boundedPercent(value);
-  const color = coverageColor(value);
-
-  return (
-    <div className="border-b border-[#DFE3EC] py-1.5 last:border-b-0">
-      <div className="mb-0.5 flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            {badge && (
-              <span className="rounded-sm bg-[#F0F2F6] px-1.5 py-0.5 text-[9px] font-black text-[#222245]">
-                {badge}
-              </span>
-            )}
-            <p className="truncate text-xs font-black text-[#222245]">{label}</p>
-          </div>
-          <p className="truncate text-[10px] font-semibold text-[#717182]">{detail}</p>
-        </div>
-        <span className="shrink-0 text-xs sm:text-sm font-black" style={{ color }}>
-          {formatPercent(value)}
-        </span>
-      </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E9ECF2]">
-        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${numeric}%`, backgroundColor: color }} />
-      </div>
-    </div>
-  );
-}
+import { InsightCard, LargeMetricPill, SlideProgressRow, strategyText } from "./PresentationConsolidatedSlideParts";
 
 export function PresentationConsolidatedSlideContent({ slide }: { slide: PresentationSlide }) {
   const content = slide.content as Record<string, any>;
@@ -135,7 +26,7 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
           <LargeMetricPill
             label="Total del corte"
             value={general.totalProjects ?? 0}
-            sub={`${general.activeProjects ?? 0} proyectos activos para exportar`}
+            sub={`${general.activeProjects ?? 0} iniciativas activas para exportar`}
             color="#5454E9"
             icon={<FileText size={16} />}
           />
@@ -147,16 +38,16 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
             icon={<CheckCircle2 size={16} />}
           />
           <LargeMetricPill
-            label="Objetivos incluidos"
-            value={general.totalObjectives ?? 0}
-            sub={`${general.totalKeyResults ?? 0} KRs trazables institucionalmente`}
+            label="KRs incluidos"
+            value={general.totalKeyResults ?? 0}
+            sub="Resultados clave vinculados a Metas y Apuestas"
             color="#E9683B"
             icon={<Target size={16} />}
           />
           <LargeMetricPill
             label="Cobertura reportada"
-            value={formatPercent(general.averageObjectiveCoverage)}
-            sub={`KR reportado: ${formatPercent(general.averageKeyResultCoverage)}`}
+            value={formatPercent(general.averageKeyResultCoverage)}
+            sub="Promedio de cobertura de los KRs"
             color="#222245"
             icon={<BarChart3 size={16} />}
           />
@@ -164,19 +55,7 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
 
         {/* Dual Macro Progress Bars */}
         <div className="rounded-lg border border-[#DFE3EC] bg-white p-2.5 sm:p-3 shadow-xs">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <div className="flex items-center justify-between text-xs font-bold mb-1">
-                <span className="text-[#717182] uppercase tracking-wider text-[10px]">Cobertura Promedio de Objetivos</span>
-                <span className="text-xs sm:text-sm font-black text-[#5454E9]">{formatPercent(general.averageObjectiveCoverage)}</span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-[#E9ECF2] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[#5454E9]"
-                  style={{ width: `${boundedPercent(general.averageObjectiveCoverage)}%` }}
-                />
-              </div>
-            </div>
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <div className="flex items-center justify-between text-xs font-bold mb-1">
                 <span className="text-[#717182] uppercase tracking-wider text-[10px]">Cobertura Promedio de Resultados Clave</span>
@@ -201,23 +80,23 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
       <div className="mt-2.5 sm:mt-3 space-y-2.5">
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
           <InsightCard
-            label="Proyectos Activos"
+            label="Iniciativas Activas"
             value={content.activeRate ?? "0%"}
-            detail={`${content.activeProjects ?? 0} de ${content.totalProjects ?? 0} proyectos siguen abiertos.`}
+            detail={`${content.activeProjects ?? 0} de ${content.totalProjects ?? 0} iniciativas siguen abiertas.`}
             color="#5454E9"
             icon={<Gauge size={16} />}
           />
           <InsightCard
             label="Tasa de Cierres"
             value={content.completedRate ?? "0%"}
-            detail={`${content.completedProjects ?? 0} proyectos ya quedaron cerrados o documentados.`}
+            detail={`${content.completedProjects ?? 0} iniciativas ya quedaron cerradas o documentadas.`}
             color="#4CB979"
             icon={<CheckCircle2 size={16} />}
           />
           <InsightCard
-            label="KRs por Objetivo"
-            value={content.keyResultsPerObjective ?? "0.0"}
-            detail={`${content.totalKeyResults ?? 0} resultados clave distribuidos en ${content.totalObjectives ?? 0} objetivos.`}
+            label="KRs Trazables"
+            value={content.totalKeyResults ?? 0}
+            detail={`Cobertura promedio de KRs: ${formatPercent(content.averageKeyResultCoverage)}.`}
             color="#E9683B"
             icon={<Layers size={16} />}
           />
@@ -236,7 +115,7 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
           </h3>
           <p className="mt-1 text-xs font-medium text-[#717182] leading-relaxed">
             Este corte refleja un nivel de actividad dinámico con un ratio de densidad balanceado. La concentración de
-            proyectos activos respalda el avance hacia los compromisos institucionales trazados en el plan de desarrollo.
+            iniciativas activas respalda el avance hacia los compromisos institucionales trazados en el plan de desarrollo.
           </p>
         </div>
       </div>
@@ -245,8 +124,8 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
 
   // 3. Salud de cobertura
   if (slide.type === "CONSOLIDATED_HEALTH") {
-    const bands = content.objectiveBands ?? { Alta: 0, Media: 0, Baja: 0 };
-    const topObjectives = (content.topObjectives ?? []) as ObjectiveRanking[];
+    const bands = content.keyResultBands ?? { Alta: 0, Media: 0, Baja: 0 };
+    const topKeyResults = (content.topKeyResults ?? []) as KeyResultRanking[];
 
     return (
       <div className="mt-2.5 sm:mt-3 grid grid-cols-1 gap-3 lg:grid-cols-12">
@@ -297,27 +176,27 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
           </div>
 
           <p className="text-[9px] font-semibold text-[#717182]">
-            Total objetivos evaluados: {(bands.Alta ?? 0) + (bands.Media ?? 0) + (bands.Baja ?? 0)}
+            Total KRs evaluados: {(bands.Alta ?? 0) + (bands.Media ?? 0) + (bands.Baja ?? 0)}
           </p>
         </div>
 
-        {/* Right: Top Objetivos */}
+        {/* Right: Top KRs */}
         <div className="rounded-lg border border-[#DFE3EC] bg-white p-2.5 sm:p-3 shadow-xs lg:col-span-8">
           <div className="flex items-center justify-between border-b border-[#DFE3EC] pb-1.5 mb-1">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#222245]">
-              Objetivos con Mayor Cobertura
+              KRs con Mayor Cobertura
             </h3>
             <span className="text-[10px] font-bold text-[#4CB979]">Líderes de avance</span>
           </div>
 
           <div className="divide-y divide-[#DFE3EC]">
-            {topObjectives.slice(0, 4).map((obj, idx) => (
+            {topKeyResults.slice(0, 4).map((kr, idx) => (
               <SlideProgressRow
-                key={obj.objectiveId || idx}
+                key={kr.keyResultId || idx}
                 badge={`#${idx + 1}`}
-                label={obj.objectiveName}
-                value={obj.coveragePercentage}
-                detail={`${obj.departmentName} · ${obj.keyResults} KRs`}
+                label={kr.keyResultName}
+                value={kr.coveragePercentage}
+                detail={`${strategyText(kr)} · ${kr.linkedProjects} iniciativas`}
               />
             ))}
           </div>
@@ -331,16 +210,16 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
     return (
       <div className="mt-2.5 sm:mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <InsightCard
-          label="Proyectos / Depto."
+          label="Iniciativas / Depto."
           value={content.projectsPerDepartment ?? "0.0"}
-          detail="Carga promedio de proyectos por departamento con datos."
+          detail="Carga promedio de iniciativas por departamento con datos."
           color="#5454E9"
           icon={<FileText size={16} />}
         />
         <InsightCard
-          label="Objetivos / Depto."
-          value={content.objectivesPerDepartment ?? "0.0"}
-          detail="Densidad promedio de objetivos por unidad académica."
+          label="KRs / Depto."
+          value={content.keyResultsPerDepartment ?? "0.0"}
+          detail="Densidad promedio de KRs por unidad académica."
           color="#E9683B"
           icon={<Target size={16} />}
         />
@@ -372,7 +251,7 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
           <div>
             <h3 className="text-xs sm:text-sm font-black text-[#222245]">Ranking de Unidades Académicas</h3>
             <p className="text-[10px] font-semibold text-[#717182]">
-              Departamentos ordenados por su porcentaje de cobertura de objetivos.
+              Departamentos ordenados por su porcentaje de cobertura de KRs.
             </p>
           </div>
           <span className="rounded-full bg-[#4CB979]/10 px-2 py-0.5 text-[11px] font-black text-[#4CB979]">
@@ -396,18 +275,17 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
                     <h4 className="text-xs font-black text-[#222245]">{dept.departmentName}</h4>
                   </div>
                   <div className="flex items-center gap-2.5 text-xs font-bold text-[#717182]">
-                    <span className="hidden sm:inline">{dept.projects} Proy.</span>
-                    <span>{dept.objectives} Obj.</span>
+                    <span className="hidden sm:inline">{dept.projects} Inic.</span>
                     <span>{dept.keyResults} KRs</span>
                     <span className="text-xs sm:text-sm font-black text-[#4CB979]">
-                      {formatPercent(dept.averageObjectiveCoverage)}
+                      {formatPercent(dept.averageKeyResultCoverage)}
                     </span>
                   </div>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-[#E9ECF2] overflow-hidden">
                   <div
                     className="h-full rounded-full bg-[#4CB979]"
-                    style={{ width: `${boundedPercent(dept.averageObjectiveCoverage)}%` }}
+                    style={{ width: `${boundedPercent(dept.averageKeyResultCoverage)}%` }}
                   />
                 </div>
               </div>
@@ -418,9 +296,9 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
     );
   }
 
-  // 6. Objetivos que requieren atención
+  // 6. KRs que requieren atención
   if (slide.type === "CONSOLIDATED_ATTENTION") {
-    const objectives = (content.objectives ?? []) as ObjectiveRanking[];
+    const keyResults = (content.keyResults ?? []) as KeyResultRanking[];
 
     return (
       <div className="mt-2.5 sm:mt-3 rounded-lg border border-amber-200 bg-white p-2.5 sm:p-3.5 shadow-xs">
@@ -430,23 +308,23 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
               <AlertTriangle size={15} />
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-black text-[#222245]">Objetivos Críticos para Seguimiento</h3>
+              <h3 className="text-xs sm:text-sm font-black text-[#222245]">KRs Críticos para Seguimiento</h3>
               <p className="text-[10px] font-semibold text-[#717182]">
                 Elementos con menor cobertura para orientar acciones correctivas y aceleradores.
               </p>
             </div>
           </div>
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-900">
-            {objectives.length} Prioritarios
+            {keyResults.length} Prioritarios
           </span>
         </div>
 
         <div className="space-y-1.5">
-          {objectives.slice(0, 4).map((obj, idx) => {
-            const coverage = boundedPercent(obj.coveragePercentage);
+          {keyResults.slice(0, 4).map((kr, idx) => {
+            const coverage = boundedPercent(kr.coveragePercentage);
             return (
               <div
-                key={obj.objectiveId || idx}
+                key={kr.keyResultId || idx}
                 className="rounded-md border border-amber-200/70 bg-amber-50/40 p-2 px-3 transition-all hover:bg-white hover:shadow-xs"
               >
                 <div className="flex flex-wrap items-center justify-between gap-1.5 mb-0.5">
@@ -454,13 +332,13 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
                     <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[9px] font-black text-amber-900">
                       Prioridad #{idx + 1}
                     </span>
-                    <h4 className="text-xs font-black text-[#222245]">{obj.objectiveName}</h4>
+                    <h4 className="text-xs font-black text-[#222245]">{kr.keyResultName}</h4>
                   </div>
                   <div className="flex items-center gap-2.5 text-xs font-bold text-[#717182]">
-                    <span className="hidden sm:inline">{obj.departmentName}</span>
-                    <span>{obj.keyResults} KRs</span>
+                    <span className="hidden sm:inline">{strategyText(kr)}</span>
+                    <span>{kr.linkedProjects} Inic.</span>
                     <span className="text-xs font-black text-[#E9683B]">
-                      {formatPercent(obj.coveragePercentage)}
+                      {formatPercent(kr.coveragePercentage)}
                     </span>
                   </div>
                 </div>
@@ -487,7 +365,7 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
         <div className="border-b border-[#DFE3EC] pb-1.5 mb-1.5">
           <h3 className="text-xs sm:text-sm font-black text-[#222245]">Balance Consolidado por Unidad</h3>
           <p className="text-[10px] font-semibold text-[#717182]">
-            Resumen de carga de proyectos, objetivos y cobertura media por departamento.
+            Resumen de carga de iniciativas, KRs y cobertura media por departamento.
           </p>
         </div>
 
@@ -496,26 +374,24 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
             <thead className="sticky top-0 bg-white z-10">
               <tr className="border-b border-[#DFE3EC] text-[9px] font-black uppercase tracking-wider text-[#717182]">
                 <th className="py-1.5 px-2">Departamento</th>
-                <th className="py-1.5 px-2 text-center">Proyectos</th>
-                <th className="py-1.5 px-2 text-center">Objetivos</th>
+                <th className="py-1.5 px-2 text-center">Iniciativas</th>
                 <th className="py-1.5 px-2 text-center">KRs</th>
                 <th className="py-1.5 px-2 min-w-[130px]">Cobertura Promedio</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#DFE3EC]">
               {departments.map((dept, idx) => {
-                const coverage = boundedPercent(dept.averageObjectiveCoverage);
-                const color = coverageColor(dept.averageObjectiveCoverage);
+                const coverage = boundedPercent(dept.averageKeyResultCoverage);
+                const color = coverageColor(dept.averageKeyResultCoverage);
                 return (
                   <tr key={dept.departmentId || idx} className="hover:bg-[#F7F8FC] transition-colors">
                     <td className="py-1 px-2 font-black text-[#222245] text-xs">{dept.departmentName}</td>
                     <td className="py-1 px-2 text-center font-bold text-[#717182] text-xs">{dept.projects}</td>
-                    <td className="py-1 px-2 text-center font-bold text-[#717182] text-xs">{dept.objectives}</td>
                     <td className="py-1 px-2 text-center font-bold text-[#717182] text-xs">{dept.keyResults}</td>
                     <td className="py-1 px-2">
                       <div className="flex items-center justify-between text-xs font-bold mb-0.5">
                         <span className="font-black text-xs" style={{ color }}>
-                          {formatPercent(dept.averageObjectiveCoverage)}
+                          {formatPercent(dept.averageKeyResultCoverage)}
                         </span>
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-[#E9ECF2] overflow-hidden">

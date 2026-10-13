@@ -5,7 +5,7 @@ import { Loader2, Target } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
-import type { Department, ObjectiveCard } from "../services/strategicApi";
+import type { Department, KeyResult } from "../services/strategicApi";
 import type { AcademicPeriod } from "../services/catalogsApi";
 import {
   type ProjectResponse,
@@ -29,7 +29,7 @@ export function Proyectos() {
   const [projects, setProjects] = useState<ProjectResponse[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
-  const [objectiveCards, setObjectiveCards] = useState<ObjectiveCard[]>([]);
+  const [keyResults, setKeyResults] = useState<KeyResult[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProjectStatus | "todos">(
     STATUS_OPTIONS.some((option) => option.value === filters.estadoProyecto)
@@ -66,7 +66,7 @@ export function Proyectos() {
       setProjects(data.projects);
       setDepartments(data.departments);
       setPeriods(data.periods);
-      setObjectiveCards(data.objectiveCards);
+      setKeyResults(data.keyResults);
     } catch (loadError) {
       if (!options?.silent) setError(errorMessage(loadError));
     } finally {
@@ -166,12 +166,12 @@ export function Proyectos() {
       <AnimatePresence mode="wait" initial={false}>
         {loading ? (
           <motion.div key="loading" {...viewMotion} className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "13px", fontWeight: 800 }}>
-            <Loader2 size={18} className="mr-2 animate-spin" /> Cargando proyectos...
+            <Loader2 size={18} className="mr-2 animate-spin" /> Cargando iniciativas...
           </motion.div>
         ) : visibleProjects.length === 0 ? (
           <motion.div key="empty" {...viewMotion} className="py-16 text-center">
             <Target size={32} color="#D1D5DB" className="mx-auto mb-3" />
-            <p style={{ fontSize: "14px", color: "#9CA3AF" }}>No se encontraron proyectos.</p>
+            <p style={{ fontSize: "14px", color: "#9CA3AF" }}>No se encontraron iniciativas.</p>
           </motion.div>
         ) : (
           <motion.div key="cards" {...viewMotion} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 items-start">
@@ -194,7 +194,7 @@ export function Proyectos() {
           <CreateProjectModal
             departments={departments}
             periods={periods}
-            objectiveCards={objectiveCards}
+            keyResults={keyResults}
             onClose={() => setCreatingProject(false)}
             onCreated={async (projectId) => {
               setCreatingProject(false);
@@ -212,7 +212,7 @@ export function Proyectos() {
         {linkProject && (
           <KeyResultLinkModal
             project={linkProject}
-            objectiveCards={objectiveCards}
+            keyResults={keyResults}
             onClose={() => setLinkProject(null)}
             onChanged={() => loadProjects({ force: true })}
           />
