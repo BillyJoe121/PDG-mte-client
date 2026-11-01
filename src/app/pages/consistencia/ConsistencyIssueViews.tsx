@@ -4,17 +4,10 @@ import { ExternalLink, Layers3, Loader2, ShieldCheck } from "lucide-react";
 import type { ConsistencyFinding, ConsistencySeverity } from "../../services/consistencyApi";
 import { COLORS, getModuleLabel, severityMeta } from "./consistencyShared";
 
-export function ConsistencyHero({
-  healthScore,
-}: {
-  healthScore: number;
-}) {
+export function ConsistencyHero() {
   return (
     <section className="rounded-md px-4 py-3" style={{ backgroundColor: COLORS.orange, boxShadow: "0 10px 24px rgba(233,104,59,0.18)" }}>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 950, lineHeight: 1.05 }}>Consistencia estrategica</h1>
-        <HealthRing value={healthScore} />
-      </div>
+      <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 950, lineHeight: 1.05 }}>Consistencia estrategica</h1>
     </section>
   );
 }
@@ -136,25 +129,6 @@ function SeverityBadge({ severity }: { severity: ConsistencySeverity }) {
       {meta.icon}
       {meta.label}
     </span>
-  );
-}
-
-function HealthRing({ value }: { value: number }) {
-  const radius = 28;
-  const circumference = 2 * Math.PI * radius;
-  const dash = (Math.max(0, Math.min(100, value)) / 100) * circumference;
-  const color = value >= 80 ? COLORS.green : value >= 55 ? COLORS.yellow : COLORS.orange;
-
-  return (
-    <div className="relative" style={{ width: 88, height: 88 }}>
-      <svg width="88" height="88" viewBox="0 0 88 88">
-        <circle cx="44" cy="44" r={radius} fill="none" stroke="#FFFFFF" strokeOpacity="0.24" strokeWidth="8" />
-        <circle cx="44" cy="44" r={radius} fill="none" stroke={color} strokeWidth="8" strokeDasharray={`${dash} ${circumference}`} strokeLinecap="round" transform="rotate(-90 44 44)" />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span style={{ color: "#fff", fontSize: 20, fontWeight: 950, lineHeight: 1 }}>{value}%</span>
-      </div>
-    </div>
   );
 }
 

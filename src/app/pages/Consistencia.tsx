@@ -89,7 +89,6 @@ export function Consistencia() {
   const selectedIssue = filtered.find((issue) => issue.id === selectedIssueId) ?? filtered[0] ?? null;
   const stats = data?.summary ?? { total: 0, high: 0, medium: 0, low: 0 };
   const moduleStats = useMemo(() => buildModuleStats(issues), [issues]);
-  const healthScore = stats.total === 0 ? 100 : Math.max(0, Math.round(100 - ((stats.high * 18) + (stats.medium * 8) + (stats.low * 3))));
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
@@ -134,9 +133,7 @@ export function Consistencia() {
   return (
     <div className="min-h-full bg-[#F8FAFC]">
       <div className="mx-auto max-w-7xl p-6">
-        <ConsistencyHero
-          healthScore={healthScore}
-        />
+        <ConsistencyHero />
 
         {error && (
           <motion.div {...viewMotion} className="mt-3 flex items-center gap-2 rounded-md px-4 py-3" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 850 }}>
