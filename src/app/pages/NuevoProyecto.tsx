@@ -225,7 +225,7 @@ export function NuevoProyecto() {
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Descripcion *</label>
-              <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={4} placeholder="Describe alcance, objetivo y entregables principales..." style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.description ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 13, resize: "vertical" }} />
+              <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={4} placeholder="Describe alcance, propósito y entregables principales..." style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.description ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 13, resize: "vertical" }} />
               {errors.description && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.description}</p>}
             </div>
 

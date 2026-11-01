@@ -170,7 +170,7 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
             </div>
 
             <ModalField label="Descripcion" error={errors.description}>
-              <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={3} placeholder="Describe alcance, objetivo y entregables principales." style={{ ...modalInputStyle(Boolean(errors.description)), resize: "vertical" }} />
+              <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={3} placeholder="Describe alcance, propósito y entregables principales." style={{ ...modalInputStyle(Boolean(errors.description)), resize: "vertical" }} />
             </ModalField>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
