@@ -1,5 +1,3 @@
-import { DEPARTAMENTOS } from "../../constants/departments";
-import type { Department } from "../../services/strategicApi";
 import type { ContributionType } from "../../services/projectsApi";
 
 export const COLORS = {
@@ -18,5 +16,3 @@ export const CONTRIBUTION_TYPES: { value: ContributionType; label: string }[] = 
   { value: "INDIRECTA", label: "Indirecta" },
   { value: "SOPORTE", label: "Soporte" },
 ];
-
-export const fallbackDepartments: Department[] = DEPARTAMENTOS.map((name, index) => ({ id: index + 1, name }));

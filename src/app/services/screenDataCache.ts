@@ -94,7 +94,7 @@ export interface ProjectDetailScreenData {
 export interface ReportsScreenData {
   periods: AcademicPeriod[];
   departments: Department[];
-  report: ConsolidatedReport;
+  report: ConsolidatedReport | null;
 }
 
 export interface PresentationScreenData {

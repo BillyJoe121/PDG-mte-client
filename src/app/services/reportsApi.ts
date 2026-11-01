@@ -111,7 +111,7 @@ export const reportsApi = {
   }) => api<PeriodComparison>(`/reports/period-comparison${qs(params)}`),
 
   consolidated: (params: { period?: Period; departmentId?: number } = {}) =>
-    api<ConsolidatedReport>(`/reports${qs(params)}`),
+    api<ConsolidatedReport | null>(`/reports${qs(params)}`),
 
   exportUrl: (
     format: "csv" | "pdf",
