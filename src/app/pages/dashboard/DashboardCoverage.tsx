@@ -1,13 +1,11 @@
 import { lazy, Suspense } from "react";
 import { DeferredRender } from "../../components/DeferredRender";
 import type { DashboardData, GoalExecution } from "../../services/dashboardApi";
+import type { KeyResultStatus } from "../../services/strategicApi";
+import { KEY_RESULT_STATUS_ORDER, keyResultStatusColor, keyResultStatusCountField } from "./keyResultStatusMeta";
 
 const COLORS = {
-  blue: "#5454E9",
-  green: "#4CB979",
-  orange: "#E9683B",
   purple: "#7C3AED",
-  red: "#DC2626",
   gray: "#717182",
   text: "#111827",
   border: "#D9DEE8",
@@ -16,37 +14,21 @@ const COLORS = {
 const MAX_COVERAGE_ITEMS_PER_CHART = 6;
 const DashboardCoverageChart = lazy(() => import("./DashboardCoverageChart"));
 
-export const keyResultBucketMeta = {
-  completedKeyResults: { label: "KRs al 100", color: COLORS.green },
-  keyResultsAbove50: { label: "50% o mas", color: COLORS.blue },
-  keyResultsBetween0And50: { label: "De 0 a 50", color: COLORS.orange },
-  keyResultsAtZero: { label: "Al 0", color: COLORS.red },
-} as const;
-
-export type KeyResultBucketKey = keyof typeof keyResultBucketMeta;
 export type CoverageScope = "department" | "strategicBet" | "goal";
 
-/** Equivalencia entre los buckets del dashboard y el filtro de avance de la pantalla de KRs. */
-export const keyResultBucketToProgressFilter: Record<KeyResultBucketKey, string> = {
-  completedKeyResults: "completado",
-  keyResultsAbove50: "avanzado",
-  keyResultsBetween0And50: "proceso",
-  keyResultsAtZero: "iniciando",
-};
-
+/** Key result counts by status for one department, strategic bet or goal. */
 export interface CoverageItem {
   id: number;
   name: string;
   keyResults: number;
-  completedKeyResults: number;
-  keyResultsAbove50: number;
-  keyResultsBetween0And50: number;
-  keyResultsAtZero: number;
+  draftKeyResults: number;
+  activeKeyResults: number;
+  closedKeyResults: number;
   completedProjects?: number;
   inProgressProjects?: number;
 }
 
-type BucketClick = (item: CoverageItem, bucket: KeyResultBucketKey) => void;
+type StatusClick = (item: CoverageItem, status: KeyResultStatus) => void;
 
 function chunkItems<T>(items: T[], size: number) {
   const chunks: T[][] = [];
@@ -56,72 +38,69 @@ function chunkItems<T>(items: T[], size: number) {
   return chunks;
 }
 
-export function DepartmentPerformance({ data, onBucketClick }: { data: DashboardData["departments"]; onBucketClick: BucketClick }) {
+export function DepartmentPerformance({ data, onStatusClick }: { data: DashboardData["departments"]; onStatusClick: StatusClick }) {
   if (!data.length) return <DashboardEmptyState text="Sin departamentos para comparar." compact />;
   const items = data
     .map((department) => ({
       id: department.departmentId,
       name: department.departmentName,
       keyResults: department.keyResults,
-      completedKeyResults: department.completedKeyResults,
-      keyResultsAbove50: department.keyResultsAbove50,
-      keyResultsBetween0And50: department.keyResultsBetween0And50,
-      keyResultsAtZero: department.keyResultsAtZero,
+      draftKeyResults: department.draftKeyResults,
+      activeKeyResults: department.activeKeyResults,
+      closedKeyResults: department.closedKeyResults,
       completedProjects: department.completedProjects,
       inProgressProjects: department.activeProjects,
     }))
     .filter((item) => item.keyResults > 0)
     .sort((a, b) => b.keyResults - a.keyResults || a.name.localeCompare(b.name));
 
-  return <CoverageCharts data={items} emptyText="Sin KRs por departamento para el periodo." metricLabel="Departamento" onBucketClick={onBucketClick} showProjects />;
+  return <CoverageCharts data={items} emptyText="Sin KRs por departamento para el periodo." metricLabel="Departamento" onStatusClick={onStatusClick} showProjects />;
 }
 
-export function StrategicBetCoverage({ data, onBucketClick }: { data: DashboardData["strategicBets"]; onBucketClick: BucketClick }) {
+export function StrategicBetCoverage({ data, onStatusClick }: { data: DashboardData["strategicBets"]; onStatusClick: StatusClick }) {
   if (!data.length) return <DashboardEmptyState text="Sin apuestas estrategicas para el periodo." compact />;
   const items = data.map((item) => ({
     id: item.strategicBetId,
     name: item.strategicBetName,
     keyResults: item.keyResults,
-    completedKeyResults: item.completedKeyResults,
-    keyResultsAbove50: item.keyResultsAbove50,
-    keyResultsBetween0And50: item.keyResultsBetween0And50,
-    keyResultsAtZero: item.keyResultsAtZero,
+    draftKeyResults: item.draftKeyResults,
+    activeKeyResults: item.activeKeyResults,
+    closedKeyResults: item.closedKeyResults,
     completedProjects: item.completedProjects,
     inProgressProjects: item.inProgressProjects,
   }));
 
-  return <CoverageCharts data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" onBucketClick={onBucketClick} showProjects labelMaxLines={3} />;
+  return <CoverageCharts data={items} emptyText="Sin apuestas estrategicas para el periodo." metricLabel="Apuesta" onStatusClick={onStatusClick} showProjects labelMaxLines={3} />;
 }
 
-export function GoalCoverage({ data, onBucketClick }: { data: GoalExecution[]; onBucketClick: BucketClick }) {
+export function GoalCoverage({ data, onStatusClick }: { data: GoalExecution[]; onStatusClick: StatusClick }) {
   if (!data.length) return <DashboardEmptyState text="Sin metas con KRs para el periodo." compact />;
   const items = data.map((item) => ({
     id: item.goalId,
     name: item.goalName,
     keyResults: item.keyResults,
-    completedKeyResults: item.completedKeyResults,
-    keyResultsAbove50: item.keyResultsAbove50,
-    keyResultsBetween0And50: item.keyResultsBetween0And50,
-    keyResultsAtZero: item.keyResultsAtZero,
+    draftKeyResults: item.draftKeyResults,
+    activeKeyResults: item.activeKeyResults,
+    closedKeyResults: item.closedKeyResults,
     completedProjects: item.completedProjects,
     inProgressProjects: item.inProgressProjects,
   }));
 
-  return <CoverageCharts data={items} emptyText="Sin metas con KRs para el periodo." metricLabel="Meta" onBucketClick={onBucketClick} labelMaxLines={3} />;
+  return <CoverageCharts data={items} emptyText="Sin metas con KRs para el periodo." metricLabel="Meta" onStatusClick={onStatusClick} labelMaxLines={3} />;
 }
 
 function CoverageCharts({
   data,
   emptyText,
   metricLabel,
-  onBucketClick,
+  onStatusClick,
   showProjects = false,
   labelMaxLines = 2,
 }: {
   data: CoverageItem[];
   emptyText: string;
   metricLabel: string;
-  onBucketClick: BucketClick;
+  onStatusClick: StatusClick;
   showProjects?: boolean;
   labelMaxLines?: number;
 }) {
@@ -139,7 +118,7 @@ function CoverageCharts({
               index={index}
               total={chunks.length}
               labelMaxLines={labelMaxLines}
-              onBucketClick={(item, bucket) => onBucketClick(item as CoverageItem, bucket)}
+              onStatusClick={(item, status) => onStatusClick(item as CoverageItem, status)}
             />
           </Suspense>
         </DeferredRender>
@@ -155,11 +134,11 @@ function CoverageCharts({
 }
 
 function CoverageSummaryCard({ item, showProjects }: { item: CoverageItem; showProjects: boolean }) {
-  const totalBuckets = item.completedKeyResults + item.keyResultsAbove50 + item.keyResultsBetween0And50 + item.keyResultsAtZero;
+  const countedByStatus = item.draftKeyResults + item.activeKeyResults + item.closedKeyResults;
   const projectText = showProjects
     ? ` - ${item.inProgressProjects ?? 0} iniciativas en progreso - ${item.completedProjects ?? 0} finalizadas`
     : "";
-  const bucketText = `${item.completedKeyResults} KRs completados, ${item.keyResultsAbove50} con mas del 50%, ${item.keyResultsBetween0And50} entre 0 y 50%, ${item.keyResultsAtZero} en 0%`;
+  const statusText = `${item.draftKeyResults} en borrador, ${item.activeKeyResults} activos, ${item.closedKeyResults} cerrados`;
 
   return (
     <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
@@ -171,12 +150,12 @@ function CoverageSummaryCard({ item, showProjects }: { item: CoverageItem; showP
         {item.keyResults} KRs{projectText}
       </p>
       <p style={{ fontSize: 11, color: COLORS.text, fontWeight: 400, marginTop: 8, lineHeight: 1.45 }}>
-        {bucketText}
+        {statusText}
       </p>
       <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-[#EEF2F7]">
-        {totalBuckets > 0 ? (
-          (Object.keys(keyResultBucketMeta) as KeyResultBucketKey[]).map((bucket) => (
-            <div key={bucket} style={{ width: `${(item[bucket] / totalBuckets) * 100}%`, backgroundColor: keyResultBucketMeta[bucket].color }} />
+        {countedByStatus > 0 ? (
+          KEY_RESULT_STATUS_ORDER.map((status) => (
+            <div key={status} style={{ width: `${(item[keyResultStatusCountField[status]] / countedByStatus) * 100}%`, backgroundColor: keyResultStatusColor[status] }} />
           ))
         ) : (
           <div style={{ width: "100%", backgroundColor: "#E5E7EB" }} />

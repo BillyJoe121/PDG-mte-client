@@ -44,7 +44,7 @@ export function DashboardHeader({
             Seguimiento ejecutivo del portafolio para {firstName}.
             {summary && (
               <>
-                {" "}{summary.activeProjects} iniciativas activas - {summary.keyResultsInFollowUp} KRs en seguimiento - {summary.completedKeyResults + summary.inProgressKeyResults} KRs operativos - {summary.completedKeyResults} KRs completados
+                {" "}{summary.activeProjects} iniciativas activas - {summary.keyResultsInFollowUp} KRs en seguimiento - {summary.activeKeyResults} KRs activos - {summary.closedKeyResults} KRs cerrados
               </>
             )}
           </p>

@@ -1,4 +1,4 @@
-import { api } from "./strategicApi";
+import { api, type KeyResultStatus } from "./strategicApi";
 
 export interface DashboardSummary {
   period: string | null;
@@ -8,13 +8,9 @@ export interface DashboardSummary {
   suspendedProjects: number;
   archivedProjects: number;
   keyResultsInFollowUp: number;
-  lowCompletionKeyResults: number;
-  completedKeyResults: number;
-  keyResultsAbove50: number;
-  keyResultsBetween0And50: number;
-  keyResultsAtZero: number;
-  inProgressKeyResults: number;
-  averageKeyResultCoverage: number;
+  draftKeyResults: number;
+  activeKeyResults: number;
+  closedKeyResults: number;
 }
 
 export type ProjectDashboardStatus =
@@ -29,42 +25,39 @@ export interface CountByStatus {
   count: number;
 }
 
-export type ProgressBucket = "COMPLETED" | "ON_TRACK" | "AT_RISK" | "LOW";
+export type KeyResultDashboardStatus = KeyResultStatus;
 
-export interface ProgressBucketCount {
-  bucket: ProgressBucket;
+export interface KeyResultCountByStatus {
+  status: KeyResultDashboardStatus;
   count: number;
 }
 
-export interface DepartmentExecution {
+/** Counts of key results by their recorded status. */
+export interface KeyResultStatusCounts {
+  keyResults: number;
+  draftKeyResults: number;
+  activeKeyResults: number;
+  closedKeyResults: number;
+}
+
+export interface DepartmentExecution extends KeyResultStatusCounts {
   departmentId: number;
   departmentName: string;
   activeProjects: number;
   completedProjects: number;
-  keyResults: number;
-  completedKeyResults: number;
-  keyResultsAbove50: number;
-  keyResultsBetween0And50: number;
-  keyResultsAtZero: number;
-  inProgressKeyResults: number;
 }
 
-export interface KeyResultBucketSummary {
-  keyResults: number;
-  completedKeyResults: number;
-  keyResultsAbove50: number;
-  keyResultsBetween0And50: number;
-  keyResultsAtZero: number;
+export interface StrategyExecutionCounts extends KeyResultStatusCounts {
   completedProjects: number;
   inProgressProjects: number;
 }
 
-export interface StrategicBetExecution extends KeyResultBucketSummary {
+export interface StrategicBetExecution extends StrategyExecutionCounts {
   strategicBetId: number;
   strategicBetName: string;
 }
 
-export interface GoalExecution extends KeyResultBucketSummary {
+export interface GoalExecution extends StrategyExecutionCounts {
   goalId: number;
   goalName: string;
 }
@@ -72,7 +65,7 @@ export interface GoalExecution extends KeyResultBucketSummary {
 export interface DashboardData {
   summary: DashboardSummary;
   projectsByStatus: CountByStatus[];
-  keyResultsByProgress: ProgressBucketCount[];
+  keyResultsByStatus: KeyResultCountByStatus[];
   departments: DepartmentExecution[];
   strategicBets: StrategicBetExecution[];
   goals: GoalExecution[];
@@ -91,8 +84,8 @@ export const dashboardApi = {
   projectsByStatus: (period?: string) =>
     api<CountByStatus[]>(withPeriod("/dashboard/projects/by-status", period)),
 
-  keyResultsByProgress: (period?: string) =>
-    api<ProgressBucketCount[]>(withPeriod("/dashboard/key-results/by-progress", period)),
+  keyResultsByStatus: (period?: string) =>
+    api<KeyResultCountByStatus[]>(withPeriod("/dashboard/key-results/by-status", period)),
 
   departmentsSummary: (period?: string) =>
     api<DepartmentExecution[]>(withPeriod("/dashboard/departments/summary", period)),
@@ -107,14 +100,14 @@ export const dashboardApi = {
     const [
       summary,
       projectsByStatus,
-      keyResultsByProgress,
+      keyResultsByStatus,
       departments,
       strategicBets,
       goals,
     ] = await Promise.all([
       dashboardApi.summary(period),
       dashboardApi.projectsByStatus(period),
-      dashboardApi.keyResultsByProgress(period),
+      dashboardApi.keyResultsByStatus(period),
       dashboardApi.departmentsSummary(period),
       dashboardApi.strategicBetsSummary(period),
       dashboardApi.goalsSummary(period),
@@ -123,7 +116,7 @@ export const dashboardApi = {
     return {
       summary,
       projectsByStatus,
-      keyResultsByProgress,
+      keyResultsByStatus,
       departments,
       strategicBets,
       goals,

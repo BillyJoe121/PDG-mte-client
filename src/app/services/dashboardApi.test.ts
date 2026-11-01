@@ -40,10 +40,38 @@ describe("dashboard API", () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/dashboard/summary`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/dashboard/projects/by-status`, expect.any(Object));
-    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/dashboard/key-results/by-progress`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/dashboard/key-results/by-status`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/dashboard/departments/summary`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/dashboard/strategic-bets/summary`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(6, `${baseUrl}/dashboard/goals/summary`, expect.any(Object));
+  });
+
+  it("returns key result counts by status under keyResultsByStatus", async () => {
+    const byStatus = [
+      { status: "BORRADOR", count: 2 },
+      { status: "ACTIVO", count: 5 },
+      { status: "CERRADO", count: 1 },
+    ];
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ period: "2026-1" }))
+      .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(jsonResponse(byStatus))
+      .mockResolvedValue(jsonResponse([]));
+
+    const data = await dashboardApi.load();
+
+    expect(data.keyResultsByStatus).toEqual(byStatus);
+  });
+
+  it("adds the selected period to the key result status endpoint", async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+
+    await dashboardApi.keyResultsByStatus("2026-Q3");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${baseUrl}/dashboard/key-results/by-status?period=2026-Q3`,
+      expect.any(Object),
+    );
   });
 
   it("adds the selected period as query param", async () => {

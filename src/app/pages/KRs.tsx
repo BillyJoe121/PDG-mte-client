@@ -1,20 +1,25 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { BookOpen, CheckCircle2, Flag, KeyRound, Loader2, Plus, Search, TrendingUp } from "lucide-react";
+import { BookOpen, Flag, KeyRound, Loader2, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { invalidateScreenDataCache, loadKeyResults } from "../services/screenDataCache";
-import { keyResultsApi, type KeyResult, type KeyResultRequest } from "../services/strategicApi";
+import { keyResultsApi, type KeyResult, type KeyResultRequest, type KeyResultStatus } from "../services/strategicApi";
 import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
 import { truncateText } from "../utils/text";
 import { keyResultStrategyLabel } from "../utils/keyResultOptions";
+import { lifecycleLabel } from "../utils/strategicLifecycle";
 import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
 import { KrFormModal } from "./okrs/KrFormModal";
 import { COLORS } from "./okrs/okrsShared";
-
-const progressFilters = new Set(["completado", "avanzado", "proceso", "iniciando"]);
+import {
+  countKeyResultsByStatus,
+  filterKeyResults,
+  keyResultStatusOf,
+  parseKeyResultStatusFilter,
+} from "./okrs/keyResultListModel";
 
 export function KRs() {
   const navigate = useNavigate();
@@ -27,17 +32,14 @@ export function KRs() {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
-  const [progress, setProgress] = useState(() => {
-    const next = searchParams.get("progress") ?? "";
-    return progressFilters.has(next) ? next : "";
-  });
+  const [status, setStatus] = useState<KeyResultStatus | "">(() => parseKeyResultStatusFilter(searchParams.get("status")));
   const [selected, setSelected] = useState<number | null>(() => parseKeyResultId(searchParams.get("keyResultId")));
 
   useEffect(() => {
     const nextSearch = searchParams.get("q") ?? "";
-    const nextProgress = searchParams.get("progress") ?? "";
+    const nextStatus = parseKeyResultStatusFilter(searchParams.get("status"));
     setSearch((current) => current === nextSearch ? current : nextSearch);
-    setProgress((current) => current === nextProgress ? current : progressFilters.has(nextProgress) ? nextProgress : "");
+    setStatus(nextStatus);
     setSelected(parseKeyResultId(searchParams.get("keyResultId")));
   }, [searchParams]);
 
@@ -62,8 +64,8 @@ export function KRs() {
     onRefresh: () => load({ force: true, silent: true }),
   });
 
-  const visibleKrs = useMemo(() => filterKeyResults(keyResults, search, progress), [keyResults, progress, search]);
-  const stats = useMemo(() => buildKeyResultStats(visibleKrs), [visibleKrs]);
+  const visibleKrs = useMemo(() => filterKeyResults(keyResults, search, status), [keyResults, status, search]);
+  const stats = useMemo(() => countKeyResultsByStatus(visibleKrs), [visibleKrs]);
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
@@ -71,12 +73,12 @@ export function KRs() {
     transition: { duration: 0.16, ease: "easeOut" },
   };
 
-  const setQuery = (next: { q?: string; progress?: string; selected?: number | null }) => {
+  const setQuery = (next: { q?: string; status?: KeyResultStatus | ""; selected?: number | null }) => {
     const params = new URLSearchParams();
     const nextSearch = next.q ?? search;
-    const nextProgress = next.progress ?? progress;
+    const nextStatus = next.status ?? status;
     if (nextSearch.trim()) params.set("q", nextSearch.trim());
-    if (nextProgress) params.set("progress", nextProgress);
+    if (nextStatus) params.set("status", nextStatus);
     if (next.selected) params.set("keyResultId", String(next.selected));
     setSearchParams(params, { replace: true });
   };
@@ -148,9 +150,9 @@ export function KRs() {
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { label: "Total", value: stats.total, color: COLORS.text },
-            { label: "Completados", value: stats.completed, color: COLORS.green },
-            { label: "En avance", value: stats.inProgress, color: COLORS.blue },
-            { label: "Promedio", value: `${stats.average}%`, color: COLORS.orange },
+            { label: "Borrador", value: stats.BORRADOR, color: COLORS.gray },
+            { label: "Activos", value: stats.ACTIVO, color: COLORS.blue },
+            { label: "Cerrados", value: stats.CERRADO, color: COLORS.green },
           ].map((item) => (
             <div key={item.label} className="rounded-md bg-white px-3 py-2" style={{ border: `1px solid ${COLORS.border}`, minHeight: 48 }}>
               <div className="flex h-full items-center justify-between gap-2">
@@ -162,25 +164,25 @@ export function KRs() {
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {[
+          {([
             { value: "", label: "Todos" },
-            { value: "completado", label: "Completados" },
-            { value: "avanzado", label: "Avanzados" },
-            { value: "proceso", label: "En proceso" },
-            { value: "iniciando", label: "Iniciando" },
-          ].map((item) => (
+            { value: "BORRADOR", label: "Borrador" },
+            { value: "ACTIVO", label: "Activos" },
+            { value: "CERRADO", label: "Cerrados" },
+          ] as { value: KeyResultStatus | ""; label: string }[]).map((item) => (
             <button
               key={item.value || "all"}
               type="button"
+              aria-pressed={status === item.value}
               onClick={() => {
-                setProgress(item.value);
-                setQuery({ progress: item.value });
+                setStatus(item.value);
+                setQuery({ status: item.value });
               }}
               style={{
                 padding: "7px 11px",
-                border: `1px solid ${progress === item.value ? COLORS.blue : COLORS.border}`,
-                backgroundColor: progress === item.value ? "#EEF2FF" : "#fff",
-                color: progress === item.value ? COLORS.blue : COLORS.gray,
+                border: `1px solid ${status === item.value ? COLORS.blue : COLORS.border}`,
+                backgroundColor: status === item.value ? "#EEF2FF" : "#fff",
+                color: status === item.value ? COLORS.blue : COLORS.gray,
                 fontSize: 11,
                 fontWeight: 850,
               }}
@@ -251,7 +253,6 @@ export function KRs() {
 
 function KeyResultCard({ item, index, onOpen }: { item: KeyResult; index: number; onOpen: () => void }) {
   const reduceMotion = useReducedMotion();
-  const status = getProgressStatus(item.progressPercentage);
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -280,10 +281,10 @@ function KeyResultCard({ item, index, onOpen }: { item: KeyResult; index: number
             <p className="kr-detail-card__description" style={{ fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>KR-{String(item.id).padStart(2, "0")}</p>
             <p className="kr-detail-card__description" style={{ fontSize: 11, fontWeight: 800 }}>{item.academicPeriodName ?? "Sin periodo"}</p>
             <span className="kr-detail-card__value inline-flex items-center gap-1.5 rounded px-2 py-1" style={{ fontSize: 10, fontWeight: 850 }}>
-              <status.Icon size={12} /> {status.label}
+              {lifecycleLabel(keyResultStatusOf(item))}
             </span>
           </div>
-          <span className="kr-detail-card__progress rounded-md px-3 py-2" style={{ fontSize: 18, fontWeight: 950, lineHeight: 1 }}>{item.progressPercentage}%</span>
+          <span className="kr-detail-card__progress rounded-md px-3 py-2" title="Avance registrado" aria-label={`Avance registrado ${item.progressPercentage}%`} style={{ fontSize: 18, fontWeight: 950, lineHeight: 1 }}>{item.progressPercentage}%</span>
         </div>
         <div className="flex flex-1 items-center py-4">
           <h3 className="kr-detail-card__title" style={{ width: "100%", fontSize: 25, fontWeight: 900, lineHeight: 1.08, overflowWrap: "anywhere" }}>{truncateText(item.name, 68)}</h3>
@@ -300,50 +301,4 @@ function KeyResultCard({ item, index, onOpen }: { item: KeyResult; index: number
 function parseKeyResultId(value: string | null) {
   const id = Number(value);
   return Number.isFinite(id) && id > 0 ? id : null;
-}
-
-function filterKeyResults(items: KeyResult[], query: string, progress: string) {
-  let filtered = items;
-  if (progress) {
-    filtered = filtered.filter((item) => {
-      const p = item.progressPercentage || 0;
-      if (progress === "completado") return p === 100;
-      if (progress === "avanzado") return p > 50 && p < 100;
-      if (progress === "proceso") return p > 0 && p <= 50;
-      if (progress === "iniciando") return p === 0;
-      return true;
-    });
-  }
-  const cleanQuery = normalizeSearchText(query.trim());
-  if (!cleanQuery) return filtered;
-  return filtered.filter((item) => normalizeSearchText([
-    item.id,
-    item.name,
-    item.description,
-    item.metric,
-    item.measurementUnitName,
-    item.academicPeriodName,
-    ...(item.goals ?? []).map((goal) => goal.name),
-    ...(item.strategicBets ?? []).map((bet) => bet.name),
-  ].filter(Boolean).join(" ")).includes(cleanQuery));
-}
-
-function buildKeyResultStats(items: KeyResult[]) {
-  const total = items.length;
-  return {
-    total,
-    completed: items.filter((item) => item.progressPercentage >= 100).length,
-    inProgress: items.filter((item) => item.progressPercentage > 0 && item.progressPercentage < 100).length,
-    average: total ? Math.round(items.reduce((sum, item) => sum + item.progressPercentage, 0) / total) : 0,
-  };
-}
-
-function normalizeSearchText(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-}
-
-function getProgressStatus(progress: number) {
-  if (progress >= 100) return { label: "Completado", Icon: CheckCircle2 };
-  if (progress > 0) return { label: "En progreso", Icon: TrendingUp };
-  return { label: "Iniciando", Icon: KeyRound };
 }

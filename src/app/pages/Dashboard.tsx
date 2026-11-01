@@ -15,22 +15,21 @@ import { useGlobalFilters } from "../context/FiltersContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import type { AcademicPeriod } from "../services/catalogsApi";
 import type { DashboardData } from "../services/dashboardApi";
+import type { KeyResultStatus } from "../services/strategicApi";
 import { loadDashboardScreen } from "../services/screenDataCache";
 import {
   DashboardEmptyState as EmptyState,
   DepartmentPerformance,
   GoalCoverage,
   StrategicBetCoverage,
-  keyResultBucketToProgressFilter,
   type CoverageItem,
   type CoverageScope,
-  type KeyResultBucketKey,
 } from "./dashboard/DashboardCoverage";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
 import {
   DashboardKpiGrid,
   DashboardPanel,
-  KeyResultsProgress,
+  KeyResultsByStatus,
   ProjectStatusDistribution,
   buildKpis,
   sumCounts,
@@ -44,10 +43,6 @@ function getErrorMessage(error: unknown) {
     return String((error as { message?: unknown }).message);
   }
   return "No se pudo cargar el dashboard.";
-}
-
-function percent(value: number) {
-  return `${Math.round(value)}%`;
 }
 
 type DashboardDerived = {
@@ -102,9 +97,9 @@ export function Dashboard() {
     setFilter("periodo", next || "todos");
   };
 
-  const openKeyResultsFromBucket = useCallback((scope: CoverageScope, item: CoverageItem, bucket: KeyResultBucketKey) => {
+  const openKeyResultsByStatus = useCallback((scope: CoverageScope, item: CoverageItem, status: KeyResultStatus) => {
     const params = new URLSearchParams();
-    params.set("progress", keyResultBucketToProgressFilter[bucket]);
+    params.set("status", status);
     // La pantalla de KRs busca por nombre de Meta o Apuesta; los KRs no tienen departamento propio.
     if (scope !== "department") params.set("q", item.name);
     navigate(`/krs?${params.toString()}`);
@@ -158,44 +153,44 @@ export function Dashboard() {
                 </DashboardPanel>
 
                 <DashboardPanel
-                  title="KRs por progreso"
-                  subtitle="Distribucion de resultados clave por avance y riesgo."
+                  title="KRs por estado"
+                  subtitle="Cantidad de resultados clave en borrador, activos y cerrados."
                   icon={<Activity size={16} />}
                 >
-                  <KeyResultsProgress data={dashboard.keyResultsByProgress} />
+                  <KeyResultsByStatus data={dashboard.keyResultsByStatus} />
                 </DashboardPanel>
               </div>
 
               <DashboardPanel
-                title="Rendimiento por departamento"
-                subtitle="KRs de las iniciativas de cada departamento segun sus rangos de avance."
+                title="KRs por departamento"
+                subtitle="KRs de las iniciativas de cada departamento segun su estado."
                 icon={<Layers3 size={16} />}
               >
                 <DepartmentPerformance
                   data={dashboard.departments}
-                  onBucketClick={(item, bucket) => openKeyResultsFromBucket("department", item, bucket)}
+                  onStatusClick={(item, status) => openKeyResultsByStatus("department", item, status)}
                 />
               </DashboardPanel>
 
               <DashboardPanel
-                title="Cobertura por apuesta estrategica"
-                subtitle="Alineacion de KRs e iniciativas alrededor de cada apuesta."
+                title="KRs por apuesta estrategica"
+                subtitle="KRs e iniciativas alineados a cada apuesta, segun el estado del KR."
                 icon={<BarChart3 size={16} />}
               >
                 <StrategicBetCoverage
                   data={dashboard.strategicBets}
-                  onBucketClick={(item, bucket) => openKeyResultsFromBucket("strategicBet", item, bucket)}
+                  onStatusClick={(item, status) => openKeyResultsByStatus("strategicBet", item, status)}
                 />
               </DashboardPanel>
 
               <DashboardPanel
-                title="Cobertura por meta"
-                subtitle="KRs agrupados por meta institucional segun sus buckets de avance."
+                title="KRs por meta"
+                subtitle="KRs agrupados por meta institucional segun su estado."
                 icon={<Target size={16} />}
               >
                 <GoalCoverage
                   data={dashboard.goals}
-                  onBucketClick={(item, bucket) => openKeyResultsFromBucket("goal", item, bucket)}
+                  onStatusClick={(item, status) => openKeyResultsByStatus("goal", item, status)}
                 />
               </DashboardPanel>
             </main>

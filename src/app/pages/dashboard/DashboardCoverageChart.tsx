@@ -1,31 +1,23 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { KeyResultStatus } from "../../services/strategicApi";
+import { KEY_RESULT_STATUS_ORDER, keyResultStatusColor, keyResultStatusCountField, keyResultStatusLabel } from "./keyResultStatusMeta";
 
-type BucketKey = "completedKeyResults" | "keyResultsAbove50" | "keyResultsBetween0And50" | "keyResultsAtZero";
-
-type CoverageItem = {
+type StatusCounts = {
   id: number;
   name: string;
-  completedKeyResults: number;
-  keyResultsAbove50: number;
-  keyResultsBetween0And50: number;
-  keyResultsAtZero: number;
+  draftKeyResults: number;
+  activeKeyResults: number;
+  closedKeyResults: number;
 };
 
-type Props = {
-  data: CoverageItem[];
+type Props<T extends StatusCounts> = {
+  data: T[];
   metricLabel: string;
   index: number;
   total: number;
   labelMaxLines: number;
-  onBucketClick: (item: CoverageItem, bucket: BucketKey) => void;
+  onStatusClick: (item: T, status: KeyResultStatus) => void;
 };
-
-const meta = {
-  completedKeyResults: { label: "KRs al 100", color: "#4CB979" },
-  keyResultsAbove50: { label: "50% o más", color: "#5454E9" },
-  keyResultsBetween0And50: { label: "De 0 a 50", color: "#E9683B" },
-  keyResultsAtZero: { label: "Al 0", color: "#DC2626" },
-} as const;
 
 function wrapLabel(value: string, maxLines: number) {
   const words = value.trim().split(/\s+/).filter(Boolean);
@@ -50,13 +42,13 @@ function AxisTick({ x, y, payload, maxLines }: { x?: number; y?: number; payload
   );
 }
 
-export default function DashboardCoverageChart({ data, metricLabel, index, total, labelMaxLines, onBucketClick }: Props) {
+export default function DashboardCoverageChart<T extends StatusCounts>({ data, metricLabel, index, total, labelMaxLines, onStatusClick }: Props<T>) {
   const maxLines = Math.max(1, ...data.map((item) => wrapLabel(item.name, labelMaxLines).length));
   const axisHeight = Math.max(72, maxLines * 17 + 40);
-  const yMax = Math.max(1, ...data.map((item) => Math.max(item.completedKeyResults, item.keyResultsAbove50, item.keyResultsBetween0And50, item.keyResultsAtZero)));
-  const handleClick = (payload: unknown, bucket: BucketKey) => {
-    const item = (payload as { payload?: CoverageItem } | undefined)?.payload;
-    if (item && item[bucket] > 0) onBucketClick(item, bucket);
+  const yMax = Math.max(1, ...data.map((item) => Math.max(item.draftKeyResults, item.activeKeyResults, item.closedKeyResults)));
+  const handleClick = (payload: unknown, status: KeyResultStatus) => {
+    const item = (payload as { payload?: T } | undefined)?.payload;
+    if (item && item[keyResultStatusCountField[status]] > 0) onStatusClick(item, status);
   };
 
   return (
@@ -70,8 +62,8 @@ export default function DashboardCoverageChart({ data, metricLabel, index, total
             <YAxis allowDecimals={false} domain={[0, yMax]} tick={{ fontSize: 11, fill: "#717182" }} />
             <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 800, paddingTop: 8 }} />
             <Tooltip cursor={{ fill: "#F8FAFC" }} formatter={(value, name) => [Number(value), `${String(name)} - clic para ver KRs`]} contentStyle={{ padding: "6px 10px", fontSize: "10px", borderRadius: "6px", lineHeight: "1.2" }} />
-            {(Object.keys(meta) as BucketKey[]).map((bucket) => (
-              <Bar key={bucket} className="cursor-pointer" dataKey={bucket} name={meta[bucket].label} fill={meta[bucket].color} onClick={(payload) => handleClick(payload, bucket)} />
+            {KEY_RESULT_STATUS_ORDER.map((status) => (
+              <Bar key={status} className="cursor-pointer" dataKey={keyResultStatusCountField[status]} name={keyResultStatusLabel[status]} fill={keyResultStatusColor[status]} onClick={(payload) => handleClick(payload, status)} />
             ))}
           </BarChart>
         </ResponsiveContainer>

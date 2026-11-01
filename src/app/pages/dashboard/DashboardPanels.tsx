@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { CheckCircle2, FolderKanban, Gauge, Target } from "lucide-react";
+import { CheckCircle2, FolderKanban, Play, Target } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import type { CountByStatus, DashboardSummary, ProgressBucket, ProgressBucketCount } from "../../services/dashboardApi";
+import type { CountByStatus, DashboardSummary, KeyResultCountByStatus } from "../../services/dashboardApi";
+import { KEY_RESULT_STATUS_ORDER, keyResultStatusColor, keyResultStatusLabel } from "./keyResultStatusMeta";
 import { DashboardEmptyState as EmptyState } from "./DashboardCoverage";
 import { COLORS, shortMotionTransition } from "./dashboardTheme";
 
@@ -21,20 +22,6 @@ const projectStatusColor: Record<CountByStatus["status"], string> = {
   ARCHIVADO: COLORS.text,
 };
 
-const bucketLabel: Record<ProgressBucket, string> = {
-  COMPLETED: "Completados",
-  ON_TRACK: "En ruta",
-  AT_RISK: "En riesgo",
-  LOW: "Bajo",
-};
-
-const bucketColor: Record<ProgressBucket, string> = {
-  COMPLETED: COLORS.green,
-  ON_TRACK: COLORS.blue,
-  AT_RISK: COLORS.orange,
-  LOW: COLORS.red,
-};
-
 export function sumCounts<T extends { count: number }>(items: T[]) {
   return items.reduce((sum, item) => sum + item.count, 0);
 }
@@ -51,22 +38,22 @@ export function buildKpis(summary: DashboardSummary, totalProjects: number) {
     {
       label: "KRs en seguimiento",
       value: summary.keyResultsInFollowUp,
-      sub: `${summary.lowCompletionKeyResults} requieren atencion`,
+      sub: `${summary.draftKeyResults} en borrador, ${summary.activeKeyResults} activos, ${summary.closedKeyResults} cerrados`,
       icon: Target,
       color: COLORS.orange,
     },
     {
-      label: "KRs operativos",
-      value: summary.completedKeyResults + summary.inProgressKeyResults,
-      sub: `${summary.completedKeyResults} completados, ${summary.inProgressKeyResults} en progreso`,
-      icon: CheckCircle2,
+      label: "KRs activos",
+      value: summary.activeKeyResults,
+      sub: "Admiten registro manual de avance",
+      icon: Play,
       color: COLORS.orange,
     },
     {
-      label: "KRs completados",
-      value: summary.completedKeyResults,
-      sub: `${summary.keyResultsAbove50} con mas del 50%, ${summary.keyResultsBetween0And50} entre 0 y 50%, ${summary.keyResultsAtZero} en 0%`,
-      icon: Gauge,
+      label: "KRs cerrados",
+      value: summary.closedKeyResults,
+      sub: "Su avance registrado ya no cambia",
+      icon: CheckCircle2,
       color: COLORS.blue,
     },
   ];
@@ -169,19 +156,20 @@ export function ProjectStatusDistribution({ data }: { data: CountByStatus[] }) {
   );
 }
 
-export function KeyResultsProgress({ data }: { data: ProgressBucketCount[] }) {
+export function KeyResultsByStatus({ data }: { data: KeyResultCountByStatus[] }) {
   const total = sumCounts(data);
   if (!total) return <EmptyState text="Sin Key Results para el periodo seleccionado." compact />;
+  const countFor = (status: KeyResultCountByStatus["status"]) => data.find((item) => item.status === status)?.count ?? 0;
 
   return (
     <div className="space-y-2">
-      {data.map((item) => (
+      {KEY_RESULT_STATUS_ORDER.map((status) => (
         <DistributionRow
-          key={item.bucket}
-          color={bucketColor[item.bucket]}
-          label={bucketLabel[item.bucket]}
+          key={status}
+          color={keyResultStatusColor[status]}
+          label={keyResultStatusLabel[status]}
           total={total}
-          value={item.count}
+          value={countFor(status)}
         />
       ))}
     </div>
