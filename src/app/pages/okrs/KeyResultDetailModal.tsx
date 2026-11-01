@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { BarChart3, BookOpen, CalendarDays, CircleCheck, Edit2, Flag, KeyRound, Loader2, Play, Save, Scale, Trash2, X } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, CircleCheck, Edit2, Flag, KeyRound, Loader2, Play, Scale, Trash2, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { measurementUnitsApi, type MeasurementUnit } from "../../services/catalogsApi";
@@ -12,6 +12,7 @@ import { ApiError, keyResultsApi, type KeyResult, type KeyResultRequest } from "
 import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicLifecycle";
 import { KrFormModal } from "./KrFormModal";
+import { KeyResultProgressForm } from "./KeyResultProgressForm";
 import { COLORS } from "./okrsShared";
 import { PlannerButton } from "../../components/planner/PlannerButton";
 
@@ -36,7 +37,6 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
   const [transitioning, setTransitioning] = useState(false);
   const [editingKr, setEditingKr] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [currentValue, setCurrentValue] = useState("");
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -63,7 +63,8 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
 
   const goalNames = useMemo(() => joinLinkNames(keyResult?.goals), [keyResult]);
   const strategicBetNames = useMemo(() => joinLinkNames(keyResult?.strategicBets), [keyResult]);
-  const totalWeight = links[0]?.totalWeightForKeyResult ?? links.reduce((sum, link) => sum + link.contributionWeight, 0);
+  const declaredWeightSum = links[0]?.totalWeightForKeyResult ?? links.reduce((sum, link) => sum + link.contributionWeight, 0);
+  const declaredWeightsExceeded = declaredWeightSum > 100;
   const lifecycleAction = keyResult ? keyResultLifecycleAction(keyResult.status ?? "ACTIVO") : null;
   const keyResultMutable = keyResult?.status !== "CERRADO";
 
@@ -88,29 +89,15 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
     }
   };
 
-  const updateCurrentValue = async () => {
-    if (!keyResult) return;
-    const nextValue = Number(currentValue);
-    if (!Number.isFinite(nextValue)) {
-      toast.error("Ingresa un valor actual válido para el Key Result.");
-      return;
-    }
-    setSaving(true);
-    try {
-      await keyResultsApi.updateCurrentValue(keyResult.id, nextValue);
-      invalidateScreenDataCache();
-      signalStrategicDataChanged({
-        reason: "key-result-current-value",
-        scopes: ["keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
-      });
-      toast.success("Avance del Key Result registrado");
-      await load(true);
-      await onChanged?.();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo registrar el avance del Key Result");
-    } finally {
-      setSaving(false);
-    }
+  const handleProgressRecorded = async () => {
+    invalidateScreenDataCache();
+    signalStrategicDataChanged({
+      reason: "key-result-progress",
+      scopes: ["keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+    });
+    toast.success("Avance del Key Result registrado");
+    await load(true);
+    await onChanged?.();
   };
 
   const requestDelete = () => {
@@ -218,9 +205,8 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                     <div className="flex flex-wrap items-center gap-2 pt-2">
                       {[
                         { label: "Estado", value: lifecycleLabel(keyResult.status ?? "ACTIVO") },
-                        { label: "Avance", value: `${keyResult.progressPercentage}%` },
+                        { label: "Avance registrado", value: `${keyResult.progressPercentage}%` },
                         { label: "Iniciativas", value: links.length },
-                        { label: "Peso", value: `${totalWeight}%` },
                       ].map((item) => (
                         <span key={item.label} style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC", color: COLORS.gray, fontSize: 11, fontWeight: 700, padding: "5px 12px", display: "inline-flex", alignItems: "center", gap: 5 }}>
                           <span style={{ color: COLORS.blue, fontWeight: 900, fontSize: 13 }}>{item.value}</span>
@@ -265,28 +251,24 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                       <ContextRow icon={<BarChart3 size={14} />} label="Metrica" value={keyResult.metric} />
                       <ContextRow icon={<Scale size={14} />} label="Meta" value={`${keyResult.targetValue} ${keyResult.measurementUnitName}`} />
                     </div>
-                    <div className="rounded-md bg-white p-3" style={{ border: `1px solid ${COLORS.border}` }}>
-                      <p style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Evidencia de avance del KR</p>
-                      <p className="mt-1" style={{ color: COLORS.text, fontSize: 12, lineHeight: 1.45 }}>
-                        Valor actual: <strong>{keyResult.currentValue} {keyResult.measurementUnitName}</strong>. El avance se calcula contra la línea base y la meta; el avance operativo de iniciativas no se transfiere automáticamente.
+                    {declaredWeightsExceeded && (
+                      <p role="status" className="rounded-md px-3 py-2" style={{ border: "1px solid #FCD34D", backgroundColor: "#FFFBEB", color: "#92400E", fontSize: 11, fontWeight: 800, lineHeight: 1.45 }}>
+                        Los pesos declarados por las iniciativas vinculadas suman más de 100 %. Revisa los vínculos de este KR.
                       </p>
+                    )}
+                    <div className="rounded-md bg-white p-3" style={{ border: `1px solid ${COLORS.border}` }}>
+                      <p style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Avance registrado del KR</p>
+                      <dl className="mt-1 space-y-1" style={{ color: COLORS.text, fontSize: 12, lineHeight: 1.45 }}>
+                        <div className="flex justify-between gap-3"><dt>Valor actual</dt><dd><strong>{keyResult.currentValue} {keyResult.measurementUnitName}</strong></dd></div>
+                        <div className="flex justify-between gap-3"><dt>Avance registrado</dt><dd><strong>{keyResult.progressPercentage}%</strong></dd></div>
+                      </dl>
                       {canEdit && keyResultMutable && (
-                        <form className="mt-3 flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void updateCurrentValue(); }}>
-                          <label className="sr-only" htmlFor={`kr-current-value-${keyResult.id}`}>Registrar valor actual</label>
-                          <input
-                            id={`kr-current-value-${keyResult.id}`}
-                            type="number"
-                            step="any"
-                            value={currentValue}
-                            onChange={(event) => setCurrentValue(event.target.value)}
-                            placeholder={`Registrar valor en ${keyResult.measurementUnitName}`}
-                            className="min-w-0 flex-1 rounded-md px-3 py-2 text-sm"
-                            style={{ border: `1px solid ${COLORS.border}`, color: COLORS.text }}
-                          />
-                          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-[#5454E9] px-3 py-2 text-sm font-black text-white disabled:opacity-60">
-                            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Registrar
-                          </button>
-                        </form>
+                        <KeyResultProgressForm keyResult={keyResult} onRecorded={handleProgressRecorded} />
+                      )}
+                      {canEdit && !keyResultMutable && (
+                        <p className="mt-2" style={{ color: COLORS.gray, fontSize: 11, lineHeight: 1.45 }}>
+                          Este KR está cerrado: su avance ya no se puede modificar.
+                        </p>
                       )}
                     </div>
                   </div>

@@ -85,6 +85,12 @@ export interface KeyResultRequest {
   strategicBetIds: number[];
 }
 
+/** Progress recorded manually by a person: both values are sent together. */
+export interface KeyResultProgressRequest {
+  currentValue: number;
+  progressPercentage: number;
+}
+
 export interface KeyResult {
   id: number;
   name: string;
@@ -115,7 +121,8 @@ export interface StrategicHierarchyNode {
   id: string;
   label: string;
   description?: string;
-  progressPercentage?: number;
+  /** Recorded progress; only key result nodes carry it. Goal and bet nodes have none. */
+  progressPercentage?: number | null;
   executionSummary?: ExecutionSummary;
   badge?: string;
   children: StrategicHierarchyNode[];
@@ -305,8 +312,8 @@ export const keyResultsApi = {
   get: (id: number) => api<KeyResult>(`/key-results/${id}`),
   update: (id: number, body: KeyResultRequest) =>
     api<KeyResult>(`/key-results/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-  updateCurrentValue: (id: number, currentValue: number) =>
-    api<KeyResult>(`/key-results/${id}/current-value`, { method: "PATCH", body: JSON.stringify({ currentValue }) }),
+  updateProgress: (id: number, body: KeyResultProgressRequest) =>
+    api<KeyResult>(`/key-results/${id}/progress`, { method: "PATCH", body: JSON.stringify(body) }),
   setStatus: (id: number, status: KeyResultStatus) =>
     api<KeyResult>(`/key-results/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   remove: (id: number) =>
@@ -315,6 +322,8 @@ export const keyResultsApi = {
 
 export const listKeyResults = (params?: KeyResultListParams) => keyResultsApi.list(params);
 export const createKeyResult = (body: KeyResultRequest) => keyResultsApi.create(body);
+export const updateKeyResultProgress = (id: number, body: KeyResultProgressRequest) =>
+  keyResultsApi.updateProgress(id, body);
 
 export const hierarchyApi = {
   tree: (period?: string) =>

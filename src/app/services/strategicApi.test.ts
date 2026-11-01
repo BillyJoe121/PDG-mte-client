@@ -9,6 +9,7 @@ import {
   keyResultsApi,
   listKeyResults,
   strategicBetsApi,
+  updateKeyResultProgress,
 } from "./strategicApi";
 
 const baseUrl = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -78,16 +79,29 @@ describe("strategic hierarchy APIs", () => {
     };
 
     await keyResultsApi.update(9, kr);
-    await keyResultsApi.updateCurrentValue(9, 42);
+    await keyResultsApi.updateProgress(9, { currentValue: 42, progressPercentage: 40 });
     await keyResultsApi.remove(9);
     await hierarchyApi.tree("2026-1");
     await departmentsApi.list();
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/key-results/9`, expect.objectContaining({ method: "PUT", body: JSON.stringify(kr) }));
-    expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/key-results/9/current-value`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ currentValue: 42 }) }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/key-results/9/progress`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ currentValue: 42, progressPercentage: 40 }) }));
     expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/key-results/9`, expect.objectContaining({ method: "DELETE" }));
     expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/strategic-hierarchy/tree?period=2026-1`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/departments`, expect.any(Object));
+  });
+
+  it("records manual progress with both values in one PATCH", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ id: 7, currentValue: 12, progressPercentage: 35 }));
+
+    const result = await updateKeyResultProgress(7, { currentValue: 12, progressPercentage: 35 });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${baseUrl}/key-results/7/progress`,
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ currentValue: 12, progressPercentage: 35 }) }),
+    );
+    expect(result).toEqual({ id: 7, currentValue: 12, progressPercentage: 35 });
   });
 
   it("lists key results with optional goal, bet and period filters", async () => {
