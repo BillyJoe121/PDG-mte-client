@@ -88,7 +88,7 @@ export function ProjectsTable({
                 <td style={{ padding: "12px 14px" }}>
                   <div className="flex items-center gap-2">
                     <div style={{ width: 82, height: 7, backgroundColor: "#F3F4F6", borderRadius: 99, overflow: "hidden" }}>
-                      <div style={{ width: `${Math.max(0, Math.min(100, project.globalProgress))}%`, height: "100%", backgroundColor: project.globalProgress >= 70 ? COLORS.green : project.globalProgress >= 40 ? COLORS.blue : COLORS.orange }} />
+                      <div style={{ width: `${Math.max(0, Math.min(100, project.globalProgress))}%`, height: "100%", backgroundColor: COLORS.blue }} />
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 900 }}>{project.globalProgress}%</span>
                   </div>

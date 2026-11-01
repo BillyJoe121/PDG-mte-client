@@ -17,7 +17,7 @@ interface ProjectCardViewProps {
 export function ProjectCardView({ canManage, index = 0, project, onLink, onOpen }: ProjectCardViewProps) {
   const reduceMotion = useReducedMotion();
   const status = getStatusMeta(project.status);
-  const progressColor = project.globalProgress >= 40 ? "var(--project-card-progress)" : COLORS.orange;
+  const progressColor = "var(--project-card-progress)";
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {

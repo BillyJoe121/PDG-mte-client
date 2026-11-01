@@ -20,7 +20,7 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
   const [milestones, setMilestones] = useState<string[]>([""]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const color = progressPercent >= 40 ? COLORS.green : COLORS.orange;
+  const color = COLORS.blue;
 
   const updateMilestone = (index: number, value: string) => {
     setMilestones((current) => current.map((milestone, currentIndex) => currentIndex === index ? value : milestone));

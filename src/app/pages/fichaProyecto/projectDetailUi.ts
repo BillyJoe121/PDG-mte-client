@@ -13,10 +13,9 @@ export const PROJECT_TYPE_OPTIONS = Object.entries(TYPE_LABELS).map(([value, lab
 
 export const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 
-export function getProgressColor(value: number) {
-  if (value >= 70) return COLORS.green;
-  if (value >= 40) return COLORS.blue;
-  return COLORS.orange;
+/** Recorded progress uses one color: the value is shown as recorded, never graded. */
+export function getProgressColor(_value?: number) {
+  return COLORS.blue;
 }
 
 export function dateInputValue(value?: string | null) {

@@ -86,13 +86,22 @@ export function normalizeSearchText(value: string) {
     .toLowerCase();
 }
 
+/**
+ * Recorded progress shown in the tree. Only key results carry a manually recorded
+ * percentage; goals and strategic bets never show one, even if a value is present.
+ */
+export function recordedProgressText(node: StrategicHierarchyNode): string | null {
+  if (node.nodeType !== "KEY_RESULT") return null;
+  return typeof node.progressPercentage === "number" ? `${node.progressPercentage}%` : null;
+}
+
 export function getNodeSearchText(node: StrategicHierarchyNode): string {
   const ownText = [
     node.label,
     node.description,
     node.badge,
     node.executionSummary?.summaryText,
-    String(node.progressPercentage ?? ""),
+    recordedProgressText(node),
   ].filter(Boolean).join(" ");
   return [ownText, ...(node.children ?? []).map(getNodeSearchText)].join(" ");
 }

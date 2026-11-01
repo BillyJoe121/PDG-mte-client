@@ -22,11 +22,10 @@ export function SummarySection({
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <MetricCard label="Registros de avance" value={detail.kpis.progressEntries} icon={<Clock3 size={16} />} color={COLORS.green} />
         <MetricCard label="KRs vinculados" value={detail.kpis.linkedKeyResults} icon={<Target size={16} />} color={COLORS.blue} />
         <MetricCard label="Peso declarado" value={`${detail.kpis.declaredContributionWeight}%`} icon={<Link2 size={16} />} color={COLORS.purple} />
-        <MetricCard label="Contribucion aplicada" value={`${detail.kpis.appliedContribution}%`} icon={<TrendingUp size={16} />} color={COLORS.orange} />
       </div>
 
       {detail.kpis.overweightWarning && (
@@ -58,13 +57,13 @@ export function SummarySection({
         </Panel>
       </div>
 
-      <Panel title="Lectura de impacto" icon={<GitBranch size={16} />} subtitle="Resumen de la cadena de contribucion activa.">
+      <Panel title="Vinculos con KRs" icon={<GitBranch size={16} />} subtitle="Pesos declarados en la cadena de contribucion activa.">
         {!chain || chain.impacts.length === 0 ? (
-          <EmptyState icon={<GitBranch size={28} />} text="No hay impactos activos en la cadena de contribucion." />
+          <EmptyState icon={<GitBranch size={28} />} text="No hay vinculos activos en la cadena de contribucion." />
         ) : (
           <div className="grid grid-cols-1 gap-3">
             {chain.impacts.slice(0, 4).map((impact) => (
-              <ImpactCard key={impact.linkId} impact={impact} projectProgress={chain.globalProgress} />
+              <ImpactCard key={impact.linkId} impact={impact} />
             ))}
           </div>
         )}
@@ -137,7 +136,6 @@ export function KeyResultsSection({
   onLink,
   onEditLink,
   onUnlink,
-  projectProgress,
 }: {
   canManageLinks: boolean;
   chain?: ImpactChain | null;
@@ -145,7 +143,6 @@ export function KeyResultsSection({
   onLink: () => void;
   onEditLink: (link: ProjectKeyResultLinkResponse) => void;
   onUnlink: (link: ProjectKeyResultLinkResponse) => void;
-  projectProgress: number;
 }) {
   return (
     <div className="space-y-4">
@@ -182,11 +179,11 @@ export function KeyResultsSection({
 
       <Panel title="Cadena de contribucion" icon={<GitBranch size={16} />}>
         {!chain || chain.impacts.length === 0 ? (
-          <EmptyState icon={<GitBranch size={30} />} text="No hay impactos activos en la cadena de contribucion." />
+          <EmptyState icon={<GitBranch size={30} />} text="No hay vinculos activos en la cadena de contribucion." />
         ) : (
           <div className="grid grid-cols-1 gap-3">
             {chain.impacts.map((impact) => (
-              <ImpactCard key={impact.linkId} impact={impact} projectProgress={projectProgress} />
+              <ImpactCard key={impact.linkId} impact={impact} />
             ))}
           </div>
         )}

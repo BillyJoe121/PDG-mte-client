@@ -47,11 +47,11 @@ export function LinkedKrCard({ canManage, link, impact, onEditLink, onUnlink }: 
         </span>
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <MiniStat label="Peso" value={`${link.contributionWeight}%`} />
+        <MiniStat label="Peso declarado" value={`${link.contributionWeight}%`} />
         <MiniStat label="Tipo" value={contributionTypeLabel[link.contributionType]} />
-        <MiniStat label="Total KR" value={`${link.totalWeightForKeyResult}%`} />
+        <MiniStat label="Suma en el KR" value={`${link.totalWeightForKeyResult}%`} />
       </div>
-      {link.overweightWarning && <p style={{ fontSize: 11, color: "#92400E", marginTop: 10, fontWeight: 850 }}>La suma actual para este KR es {link.totalWeightForKeyResult}%.</p>}
+      {link.overweightWarning && <p style={{ fontSize: 11, color: "#92400E", marginTop: 10, fontWeight: 850 }}>Los pesos declarados para este KR suman {link.totalWeightForKeyResult}%, más de 100 %.</p>}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <button onClick={() => navigate(`/krs?keyResultId=${link.keyResultId}`)} className="inline-flex h-8 items-center justify-center rounded-md px-3" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.blue, backgroundColor: "#fff", fontSize: 11, fontWeight: 900 }}>
@@ -72,21 +72,18 @@ export function LinkedKrCard({ canManage, link, impact, onEditLink, onUnlink }: 
   );
 }
 
-export function ImpactCard({ impact, projectProgress }: { impact: ImpactItem; projectProgress: number }) {
+export function ImpactCard({ impact }: { impact: ImpactItem }) {
   const strategyLabel = impactStrategyLabel(impact);
   return (
     <article className="rounded-md bg-[#F8FAFC] p-4" style={{ border: `1px solid ${COLORS.border}` }}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Badge color={COLORS.green}>La iniciativa está en {projectProgress}%</Badge>
-        <span style={{ color: "#9CA3AF", fontSize: 11, fontWeight: 900 }}>x</span>
-        <Badge color={COLORS.blue}>Aporta al KR {impact.contributionWeight}%</Badge>
-        <span style={{ color: "#9CA3AF", fontSize: 11, fontWeight: 900 }}>=</span>
-        <Badge color={COLORS.orange}>Aporte aplicado {impact.appliedContribution}%</Badge>
+        <Badge color={COLORS.blue}>Peso declarado {impact.contributionWeight}%</Badge>
+        <Badge color={COLORS.gray}>{contributionTypeLabel[impact.contributionType]}</Badge>
       </div>
       <h3 style={{ fontSize: 13, fontWeight: 900, color: COLORS.text, lineHeight: 1.35 }}>{strategyLabel || "Sin Meta ni Apuesta"}</h3>
       <p style={{ fontSize: 12, color: COLORS.gray, lineHeight: 1.45, marginTop: 6 }}>{impact.keyResultDescription}</p>
       <p style={{ fontSize: 10, color: "#9CA3AF", marginTop: 10, fontWeight: 800 }}>
-        Periodo {impact.period ?? "Sin periodo"} - {impact.projectCompleted ? "Iniciativa finalizada" : "Cuenta al finalizar"}
+        Periodo {impact.period ?? "Sin periodo"} - {impact.projectCompleted ? "Iniciativa finalizada" : "Iniciativa en curso"}
       </p>
     </article>
   );

@@ -281,7 +281,6 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
                       setShowLinkModal(true);
                     }}
                     onUnlink={(link) => setUnlinkTarget(link)}
-                    projectProgress={project.globalProgress}
                   />
                 </motion.div>
               )}

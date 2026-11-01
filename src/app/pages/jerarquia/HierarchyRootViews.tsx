@@ -11,6 +11,7 @@ import {
   getRootAccent,
   getRootTypeLabel,
   getTreeNodeKey,
+  recordedProgressText,
   shortMotionTransition,
   truncateRootDescription,
 } from "./hierarchyPageModel";
@@ -106,7 +107,7 @@ export function HierarchyDetailHeader({ node, onManage, onBack }: { node: Strate
     { label: "Iniciativas", value: metrics.projects },
   ];
   const summaryText = node.executionSummary?.summaryText;
-  const progressText = typeof node.progressPercentage === "number" ? `${node.progressPercentage}%` : null;
+  const progressText = recordedProgressText(node);
 
   return (
     <section
@@ -181,7 +182,7 @@ export function HierarchyDetailHeader({ node, onManage, onBack }: { node: Strate
                 )}
                 {progressText && (
                   <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
-                    <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Avance</span>
+                    <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Avance registrado</span>
                     <span style={{ color: accent, fontSize: 14, fontWeight: 700 }}>{progressText}</span>
                   </div>
                 )}

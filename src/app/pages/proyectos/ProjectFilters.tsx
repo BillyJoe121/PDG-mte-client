@@ -20,8 +20,6 @@ interface ProjectFiltersProps {
   search: string;
   status: ProjectStatus | "todos";
   type: ProjectType | "todos";
-  progress: string;
-  onProgressChange: (value: string) => void;
 }
 
 export function ProjectFilters({
@@ -39,19 +37,10 @@ export function ProjectFilters({
   search,
   status,
   type,
-  progress,
-  onProgressChange,
 }: ProjectFiltersProps) {
   return (
     <div className="sticky top-0 z-30 -mx-6 mb-5 flex flex-wrap items-center gap-3 bg-[#F8FAFC]/95 px-6 py-3 backdrop-blur" style={{ borderTop: `1px solid ${COLORS.border}`, borderBottom: `1px solid ${COLORS.border}` }}>
       <FilterSelect value={status} onChange={(value) => onStatusChange(value as ProjectStatus | "todos")} options={STATUS_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Estado" } : option)} />
-      <FilterSelect value={progress} onChange={onProgressChange} options={[
-        { value: "todos", label: "Todos: Avance" },
-        { value: "completado", label: "Completado: 100%" },
-        { value: "avanzado", label: "Avanzado: >50%" },
-        { value: "proceso", label: "En proceso: <=50%" },
-        { value: "iniciando", label: "Iniciando: 0%" }
-      ]} />
       <FilterSelect value={type} onChange={(value) => onTypeChange(value as ProjectType | "todos")} options={TYPE_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Tipo" } : option)} />
       <FilterSelect width={170} value={departmentId} onChange={onDepartmentChange} options={[{ value: "todos", label: "Todos: Departamento" }, ...departments.map((department) => ({ value: String(department.id), label: department.name }))]} />
       <FilterSelect value={period} onChange={onPeriodChange} options={[{ value: "todos", label: "Todos: Periodo" }, ...periods.map((item) => ({ value: item.name, label: item.name }))]} />

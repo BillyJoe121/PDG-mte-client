@@ -112,7 +112,6 @@ export interface ProjectKpis {
   progressEntries: number;
   linkedKeyResults: number;
   declaredContributionWeight: number;
-  appliedContribution: number;
   completed: boolean;
   overweightWarning: boolean;
 }
@@ -125,7 +124,6 @@ export interface ImpactChainItem {
   strategicBetNames: string[];
   contributionWeight: number;
   contributionType: ContributionType;
-  appliedContribution: number;
   projectCompleted: boolean;
   period?: string | null;
 }

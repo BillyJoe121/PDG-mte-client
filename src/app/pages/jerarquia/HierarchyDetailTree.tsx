@@ -13,6 +13,7 @@ import {
   groupHierarchyNodes,
   hierarchyHoverMotion,
   hierarchyTapMotion,
+  recordedProgressText,
   shortMotionTransition,
 } from "./hierarchyPageModel";
 import { EmptyState } from "./HierarchyRootViews";
@@ -158,6 +159,7 @@ function TreeNode({
   const icon = getNodeIcon(node.nodeType);
   const theme = getNodeTheme(node.nodeType);
   const Icon = icon;
+  const progressText = recordedProgressText(node);
   const titleSize = node.nodeType === "STRATEGIC_BET" || node.nodeType === "GOAL" ? "18px" : "14px";
   const toggleNode = () => {
     if (hasChildren) onToggle(nodeKey);
@@ -210,7 +212,7 @@ function TreeNode({
               <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <p className="hierarchy-detail-node__title" style={{ fontSize: titleSize, fontWeight: 850, lineHeight: 1.25 }}>{node.label}</p>
                 {node.badge && <span className="hierarchy-detail-node__badge" style={{ fontSize: "10px", fontWeight: 850, padding: "2px 6px", borderRadius: 4 }}>{node.badge}</span>}
-                {typeof node.progressPercentage === "number" && <span className="hierarchy-detail-node__strong" style={{ fontSize: "11px", fontWeight: 850 }}>{node.progressPercentage}%</span>}
+                {progressText && <span className="hierarchy-detail-node__strong" title="Avance registrado" style={{ fontSize: "11px", fontWeight: 850 }}>{progressText}</span>}
               </div>
               <button
                 type="button"
@@ -256,8 +258,8 @@ function SummaryInline({ summary, theme }: { summary: ExecutionSummary; theme: N
   return (
     <div className="flex flex-wrap items-center gap-3 mt-2">
       <span className="hierarchy-detail-node__description" style={{ fontSize: "10px" }}>{summary.summaryText}</span>
-      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>KRs completos {summary.completedKeyResults}</span>
-      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>KRs en progreso {summary.inProgressKeyResults}</span>
+      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>KRs cerrados {summary.completedKeyResults}</span>
+      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>KRs activos {summary.inProgressKeyResults}</span>
       <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>Iniciativas en progreso {summary.inProgressProjects}</span>
     </div>
   );
