@@ -3,28 +3,21 @@ import { Calendar, Download, Printer } from "lucide-react";
 import type { AcademicPeriod } from "../../services/catalogsApi";
 import { reportsApi, type PeriodComparison } from "../../services/reportsApi";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
-import {
-  calcBetProgress,
-  calcGoalProgress,
-  type ComparisonType,
-  type PeriodComparisonStats,
-} from "./PresentationTypes";
+import { getErrorMessage } from "../reportes/reportUtils";
+import type { ComparisonType } from "./PresentationTypes";
 import { exportComparisonCsv, printPresentationView } from "./presentationExportUtils";
-import {
-  ComparisonDeltaTable,
-  PeriodStatsCard,
-  buildEntityDeltaRows,
-  buildPeriodDeltaRows,
-  computeFallbackPeriodStats,
-} from "./PresentationComparisonParts";
+import { ComparisonStatusMessage, ComparisonTable, PeriodStatsCard } from "./PresentationComparisonParts";
 import { ComparisonControlsBar } from "./PresentationComparisonControls";
 import { ComparisonChartSection, EntityComparisonCard } from "./PresentationComparisonVisualParts";
 import {
-  buildComparisonCsvDeltaRows,
   buildEntityChartData,
+  buildEntityComparisonRows,
   buildPeriodChartData,
+  buildPeriodComparisonRows,
   toPeriodComparisonStats,
 } from "./PresentationComparisonData";
+
+const COMPARISON_TITLE = "Comparativa de registros";
 
 interface Props {
   bets: StrategicBet[];
@@ -35,46 +28,71 @@ interface Props {
   onSelectGoal: (goal: Goal) => void;
 }
 
+/** Explains which records are missing for the selected entity comparison, or null when both sides exist. */
+function missingEntitiesMessage(compType: ComparisonType, bets: StrategicBet[], goals: Goal[]) {
+  const needsBets = compType === "bet-vs-bet" || compType === "bet-vs-goal";
+  const needsGoals = compType === "goal-vs-goal" || compType === "bet-vs-goal";
+  if (needsBets && !bets.length) {
+    return {
+      title: "No hay apuestas estratégicas para comparar",
+      text: "Registra al menos una apuesta en Gestión de Apuestas y vuelve a abrir el comparador.",
+    };
+  }
+  if (needsGoals && !goals.length) {
+    return {
+      title: "No hay metas institucionales para comparar",
+      text: "Registra al menos una meta en Gestión de Metas y vuelve a abrir el comparador.",
+    };
+  }
+  return null;
+}
+
 export function PresentationComparison({ bets, goals, periodName, periods, onSelectBet, onSelectGoal }: Props) {
   const [compType, setCompType] = useState<ComparisonType>("bet-vs-bet");
+  const availablePeriods = useMemo(() => periods ?? [], [periods]);
 
-  // Available academic periods
-  const availablePeriods = useMemo(() => {
-    if (periods && periods.length > 0) return periods;
-    return [
-      { id: 1, name: periodName || "2026-1", status: "ACTIVO" as const, startDate: "2026-01-01", endDate: "2026-06-30" },
-      { id: 2, name: "2025-2", status: "CERRADO" as const, startDate: "2025-07-01", endDate: "2025-12-31" },
-    ];
-  }, [periods, periodName]);
+  const [selectedBetAId, setSelectedBetAId] = useState<number>(bets[0]?.id ?? 0);
+  const [selectedBetBId, setSelectedBetBId] = useState<number>(bets[1]?.id ?? bets[0]?.id ?? 0);
+  const [selectedGoalAId, setSelectedGoalAId] = useState<number>(goals[0]?.id ?? 0);
+  const [selectedGoalBId, setSelectedGoalBId] = useState<number>(goals[1]?.id ?? goals[0]?.id ?? 0);
 
-  // Selection states for entities
-  const [selectedBetAId, setSelectedBetAId] = useState<number>(bets[0]?.id ?? 1);
-  const [selectedBetBId, setSelectedBetBId] = useState<number>(bets[1]?.id ?? bets[0]?.id ?? 2);
+  const [selectedPeriodA, setSelectedPeriodA] = useState<string>(availablePeriods[0]?.name ?? "");
+  const [selectedPeriodB, setSelectedPeriodB] = useState<string>(
+    availablePeriods[1]?.name ?? availablePeriods[0]?.name ?? "",
+  );
+  const [periodComparison, setPeriodComparison] = useState<PeriodComparison | null>(null);
+  const [periodLoading, setPeriodLoading] = useState(false);
+  const [periodError, setPeriodError] = useState("");
 
-  const [selectedGoalAId, setSelectedGoalAId] = useState<number>(goals[0]?.id ?? 1);
-  const [selectedGoalBId, setSelectedGoalBId] = useState<number>(goals[1]?.id ?? goals[0]?.id ?? 2);
-
-  // Selection states for period comparison
-  const [selectedPeriodA, setSelectedPeriodA] = useState<string>(availablePeriods[0]?.name ?? "2026-1");
-  const [selectedPeriodB, setSelectedPeriodB] = useState<string>(availablePeriods[1]?.name ?? availablePeriods[0]?.name ?? "2025-2");
-  const [apiPeriodComp, setApiPeriodComp] = useState<PeriodComparison | null>(null);
+  // Periods can arrive after the first render: select the first registered ones when nothing is selected yet.
+  useEffect(() => {
+    if (!availablePeriods.length) return;
+    if (!selectedPeriodA) setSelectedPeriodA(availablePeriods[0].name);
+    if (!selectedPeriodB) setSelectedPeriodB(availablePeriods[1]?.name ?? availablePeriods[0].name);
+  }, [availablePeriods, selectedPeriodA, selectedPeriodB]);
 
   useEffect(() => {
-    if (compType !== "period-vs-period") return;
+    if (compType !== "period-vs-period" || !selectedPeriodA || !selectedPeriodB) return;
     let cancelled = false;
-    reportsApi.periodComparison({ basePeriod: selectedPeriodA, comparePeriod: selectedPeriodB })
+    setPeriodLoading(true);
+    setPeriodError("");
+    setPeriodComparison(null);
+    reportsApi
+      .periodComparison({ basePeriod: selectedPeriodA, comparePeriod: selectedPeriodB })
       .then((res) => {
-        if (!cancelled) setApiPeriodComp(res);
+        if (!cancelled) setPeriodComparison(res);
       })
-      .catch(() => {
-        if (!cancelled) setApiPeriodComp(null);
+      .catch((err) => {
+        if (!cancelled) setPeriodError(getErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setPeriodLoading(false);
       });
     return () => {
       cancelled = true;
     };
   }, [compType, selectedPeriodA, selectedPeriodB]);
 
-  // Entities based on comparison type
   const entityA = useMemo(() => {
     if (compType === "bet-vs-bet" || compType === "bet-vs-goal") {
       return { type: "bet" as const, data: bets.find((b) => b.id === selectedBetAId) ?? bets[0] };
@@ -89,7 +107,6 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
     return { type: "goal" as const, data: goals.find((g) => g.id === selectedGoalBId) ?? goals[1] ?? goals[0] };
   }, [bets, goals, compType, selectedBetBId, selectedGoalBId]);
 
-  // Swap function
   const handleSwap = () => {
     if (compType === "bet-vs-bet") {
       setSelectedBetAId(selectedBetBId);
@@ -103,56 +120,61 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
     }
   };
 
-  // Metrics for entity comparison
-  const summaryA = entityA.data?.executionSummary;
-  const summaryB = entityB.data?.executionSummary;
-
-  const progressA = entityA.type === "bet" ? calcBetProgress(entityA.data as StrategicBet) : calcGoalProgress(entityA.data as Goal);
-  const progressB = entityB.type === "bet" ? calcBetProgress(entityB.data as StrategicBet) : calcGoalProgress(entityB.data as Goal);
-
-  // Period stats
-  const periodAStats = useMemo<PeriodComparisonStats>(() => {
-    if (apiPeriodComp?.base && apiPeriodComp.basePeriod === selectedPeriodA) {
-      return toPeriodComparisonStats(selectedPeriodA, apiPeriodComp.base, 0.65, 70);
-    }
-    return computeFallbackPeriodStats(selectedPeriodA, bets);
-  }, [apiPeriodComp, selectedPeriodA, bets]);
-
-  const periodBStats = useMemo<PeriodComparisonStats>(() => {
-    if (apiPeriodComp?.compare && apiPeriodComp.comparePeriod === selectedPeriodB) {
-      return toPeriodComparisonStats(selectedPeriodB, apiPeriodComp.compare, 0.6, 65);
-    }
-    return computeFallbackPeriodStats(selectedPeriodB, bets);
-  }, [apiPeriodComp, selectedPeriodB, bets]);
-
-  // Chart data for Recharts grouped entity / period comparison
-  const comparisonChartData = buildEntityChartData(summaryA, summaryB);
-  const periodChartData = buildPeriodChartData(periodAStats, periodBStats);
+  const isPeriodMode = compType === "period-vs-period";
+  const periodStats =
+    periodComparison?.base && periodComparison.compare
+      ? {
+          a: toPeriodComparisonStats(periodComparison.basePeriod || selectedPeriodA, periodComparison.base),
+          b: toPeriodComparisonStats(periodComparison.comparePeriod || selectedPeriodB, periodComparison.compare),
+        }
+      : null;
+  const missingEntities = isPeriodMode ? null : missingEntitiesMessage(compType, bets, goals);
+  const hasComparison = isPeriodMode ? Boolean(periodStats) : !missingEntities;
 
   const nameA = entityA.data?.name ?? "Entidad A";
   const nameB = entityB.data?.name ?? "Entidad B";
   const shortNameA = nameA.length > 20 ? `${nameA.slice(0, 19)}…` : nameA;
   const shortNameB = nameB.length > 20 ? `${nameB.slice(0, 19)}…` : nameB;
 
-  const comparisonDeltaRows = useMemo(
-    () => buildComparisonCsvDeltaRows(progressA, progressB, summaryA, summaryB),
-    [progressA, progressB, summaryA, summaryB],
-  );
+  let tableRows = buildEntityComparisonRows(entityA, entityB);
+  if (isPeriodMode) tableRows = periodStats ? buildPeriodComparisonRows(periodStats.a, periodStats.b) : [];
 
-  const deltaTableRows = compType === "period-vs-period"
-    ? buildPeriodDeltaRows(periodAStats, periodBStats, selectedPeriodA, selectedPeriodB)
-    : buildEntityDeltaRows({
-        progressA,
-        progressB,
-        summaryA,
-        summaryB,
-        statusA: entityA.data?.status,
-        statusB: entityB.data?.status,
-      });
+  const renderPeriodStatus = () => {
+    if (!availablePeriods.length) {
+      return (
+        <ComparisonStatusMessage
+          title="No hay periodos académicos registrados"
+          text="Registra al menos un periodo académico en Catálogos para comparar sus registros."
+        />
+      );
+    }
+    if (periodLoading) {
+      return (
+        <ComparisonStatusMessage
+          title="Cargando comparativa de periodos..."
+          text="Consultando los registros de los periodos seleccionados."
+        />
+      );
+    }
+    if (periodError) {
+      return (
+        <ComparisonStatusMessage
+          tone="error"
+          title="No se pudo cargar la comparativa de periodos"
+          text={`${periodError.replace(/\.$/, "")}. Intenta de nuevo o selecciona otros periodos.`}
+        />
+      );
+    }
+    return (
+      <ComparisonStatusMessage
+        title="No hay datos para los periodos seleccionados"
+        text="Verifica que ambos periodos tengan KRs o iniciativas registrados."
+      />
+    );
+  };
 
   return (
     <div className="presentation-comparison-print-area mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 space-y-8">
-      {/* Header Strip with Comparison Modes */}
       <div className="rounded-xl border border-[#DFE3EC] bg-white p-6 shadow-[0_12px_28px_rgba(34,34,69,0.06)]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -162,11 +184,9 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
               </span>
               <span className="text-xs font-bold text-[#717182]">Periodo {periodName}</span>
             </div>
-            <h1 className="mt-2 text-2xl font-black text-[#222245] sm:text-3xl">
-              Comparativa de Desempeño Estratégico
-            </h1>
+            <h1 className="mt-2 text-2xl font-black text-[#222245] sm:text-3xl">{COMPARISON_TITLE}</h1>
             <p className="mt-1 text-sm font-semibold text-[#717182]">
-              Selecciona dos entidades o dos periodos para contrastar sus gráficas, cumplimiento y métricas de ejecución lado a lado.
+              Selecciona dos entidades o dos periodos para ver lado a lado los conteos de KRs e iniciativas registrados.
             </p>
           </div>
 
@@ -176,7 +196,7 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
               <button
                 type="button"
                 onClick={() =>
-                  printPresentationView("Comparativa de Desempeño Estratégico", {
+                  printPresentationView(COMPARISON_TITLE, {
                     subtitle:
                       compType === "period-vs-period"
                         ? `Periodo ${selectedPeriodA} vs ${selectedPeriodB}`
@@ -185,26 +205,25 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
                   })
                 }
                 aria-label="Exportar comparativa a PDF"
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#DFE3EC] bg-white px-3 py-1.5 text-xs font-black text-[#222245] shadow-xs hover:bg-[#F7F8FC] transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#DFE3EC] bg-white px-3 py-1.5 text-xs font-black text-[#222245] shadow-xs hover:bg-[#F7F8FC] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Printer size={14} className="text-[#5454E9]" aria-hidden="true" />
                 <span>PDF Comparativa</span>
               </button>
               <button
                 type="button"
+                disabled={!hasComparison}
                 onClick={() =>
                   exportComparisonCsv({
                     compType,
                     periodName,
                     nameA: compType === "period-vs-period" ? selectedPeriodA : nameA,
                     nameB: compType === "period-vs-period" ? selectedPeriodB : nameB,
-                    deltaRows: comparisonDeltaRows,
-                    periodStatsA: periodAStats,
-                    periodStatsB: periodBStats,
+                    rows: tableRows,
                   })
                 }
                 aria-label="Descargar datos de la comparativa en CSV"
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#DFE3EC] bg-white px-3 py-1.5 text-xs font-black text-[#222245] shadow-xs hover:bg-[#F7F8FC] transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#DFE3EC] bg-white px-3 py-1.5 text-xs font-black text-[#222245] shadow-xs hover:bg-[#F7F8FC] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Download size={14} className="text-[#4CB979]" aria-hidden="true" />
                 <span>CSV Comparativa</span>
@@ -284,63 +303,80 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
         />
       </div>
 
-      {/* Side-by-Side Cards */}
-      {compType === "period-vs-period" ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 sgp-print-avoid">
-          <PeriodStatsCard variant="base" periodName={selectedPeriodA} period={availablePeriods.find((p) => p.name === selectedPeriodA)} stats={periodAStats} />
-          <PeriodStatsCard variant="compare" periodName={selectedPeriodB} period={availablePeriods.find((p) => p.name === selectedPeriodB)} stats={periodBStats} />
-        </div>
+      {!hasComparison ? (
+        isPeriodMode ? (
+          renderPeriodStatus()
+        ) : (
+          missingEntities && <ComparisonStatusMessage title={missingEntities.title} text={missingEntities.text} />
+        )
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 sgp-print-avoid">
-          <EntityComparisonCard
-            variant="A"
-            entity={entityA}
-            name={nameA}
-            shortName={shortNameA}
-            progress={progressA}
-            onSelectBet={onSelectBet}
-            onSelectGoal={onSelectGoal}
+        <>
+          {isPeriodMode && periodStats ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 sgp-print-avoid">
+              <PeriodStatsCard
+                variant="base"
+                periodName={periodStats.a.periodName}
+                period={availablePeriods.find((p) => p.name === periodStats.a.periodName)}
+                stats={periodStats.a}
+              />
+              <PeriodStatsCard
+                variant="compare"
+                periodName={periodStats.b.periodName}
+                period={availablePeriods.find((p) => p.name === periodStats.b.periodName)}
+                stats={periodStats.b}
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 sgp-print-avoid">
+              <EntityComparisonCard
+                variant="A"
+                entity={entityA}
+                name={nameA}
+                shortName={shortNameA}
+                onSelectBet={onSelectBet}
+                onSelectGoal={onSelectGoal}
+              />
+              <EntityComparisonCard
+                variant="B"
+                entity={entityB}
+                name={nameB}
+                shortName={shortNameB}
+                onSelectBet={onSelectBet}
+                onSelectGoal={onSelectGoal}
+              />
+            </div>
+          )}
+
+          <ComparisonChartSection
+            compType={compType}
+            chartData={
+              isPeriodMode && periodStats
+                ? buildPeriodChartData(periodStats.a, periodStats.b)
+                : buildEntityChartData(entityA.data?.executionSummary, entityB.data?.executionSummary)
+            }
+            selectedPeriodA={selectedPeriodA}
+            selectedPeriodB={selectedPeriodB}
+            shortNameA={shortNameA}
+            shortNameB={shortNameB}
           />
-          <EntityComparisonCard
-            variant="B"
-            entity={entityB}
-            name={nameB}
-            shortName={shortNameB}
-            progress={progressB}
-            onSelectBet={onSelectBet}
-            onSelectGoal={onSelectGoal}
-          />
-        </div>
+
+          <section className="rounded-xl border border-[#DFE3EC] bg-white p-6 sm:p-8 shadow-[0_12px_28px_rgba(34,34,69,0.06)] sgp-print-avoid">
+            <div className="border-b border-[#DFE3EC] pb-4">
+              <h2 className="text-xl font-black text-[#222245]">Tabla comparativa</h2>
+              <p className="text-xs font-semibold text-[#717182]">
+                {isPeriodMode
+                  ? `Valores registrados en el Periodo ${selectedPeriodA} y en el Periodo ${selectedPeriodB}.`
+                  : "Valores registrados para cada una de las dos entidades seleccionadas."}
+              </p>
+            </div>
+            <ComparisonTable
+              rows={tableRows}
+              headerA={isPeriodMode ? `Periodo ${selectedPeriodA}` : shortNameA}
+              headerB={isPeriodMode ? `Periodo ${selectedPeriodB}` : shortNameB}
+            />
+          </section>
+        </>
       )}
-
-      <ComparisonChartSection
-        compType={compType}
-        chartData={compType === "period-vs-period" ? periodChartData : comparisonChartData}
-        selectedPeriodA={selectedPeriodA}
-        selectedPeriodB={selectedPeriodB}
-        shortNameA={shortNameA}
-        shortNameB={shortNameB}
-      />
-
-      {/* Tabla Comparativa Detallada de Diferencias (Deltas) */}
-      <section className="rounded-xl border border-[#DFE3EC] bg-white p-6 sm:p-8 shadow-[0_12px_28px_rgba(34,34,69,0.06)] sgp-print-avoid">
-        <div className="border-b border-[#DFE3EC] pb-4">
-          <h2 className="text-xl font-black text-[#222245]">
-            Tabla de Contraste y Diferenciales (Deltas)
-          </h2>
-          <p className="text-xs font-semibold text-[#717182]">
-            {compType === "period-vs-period"
-              ? `Análisis cuantitativo de variación entre Periodo ${selectedPeriodA} y Periodo ${selectedPeriodB}.`
-              : "Análisis cuantitativo de diferencias entre ambas entidades seleccionadas."}
-          </p>
-        </div>
-
-        <ComparisonDeltaTable
-          rows={deltaTableRows}
-          headerA={compType === "period-vs-period" ? `Periodo ${selectedPeriodA}` : shortNameA}
-          headerB={compType === "period-vs-period" ? `Periodo ${selectedPeriodB}` : shortNameB}
-        />
-      </section>
     </div>
   );
 }

@@ -40,15 +40,13 @@ export function numericPercent(value: string | number | null | undefined) {
   return Number(String(value).replace("%", "")) || 0;
 }
 
-export function validatePeriod(value: string) {
-  return !value || PERIOD_REGEX.test(value);
+/** Orders KRs by the progress percentage recorded by their owners, highest first, without modifying it. */
+export function sortByRecordedProgress<T extends { progressPercentage: string | number }>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => numericPercent(b.progressPercentage) - numericPercent(a.progressPercentage));
 }
 
-export function coverageColor(value: string | number | null | undefined) {
-  const coverage = numericPercent(value);
-  if (coverage >= 70) return COLORS.green;
-  if (coverage >= 40) return COLORS.blue;
-  return COLORS.orange;
+export function validatePeriod(value: string) {
+  return !value || PERIOD_REGEX.test(value);
 }
 
 export function boundedPercent(value: string | number | null | undefined) {
@@ -59,32 +57,19 @@ export function activeLabel(value: string, fallback = "Todos") {
   return value || fallback;
 }
 
-export function average(values: number[]) {
-  const clean = values.filter((value) => Number.isFinite(value));
-  if (!clean.length) return 0;
-  return clean.reduce((sum, value) => sum + value, 0) / clean.length;
-}
-
-export function getCoverageBand(value: string | number | null | undefined) {
-  const coverage = numericPercent(value);
-  if (coverage >= 70) return "Alta";
-  if (coverage >= 40) return "Media";
-  return "Baja";
-}
-
 export function reportTitleForTab(tab: ReportTab) {
   return {
     general: "Reporte consolidado estrategico",
     departments: "Reporte por departamento",
-    ranking: "Ranking de KRs por cobertura",
+    ranking: "KRs por avance registrado",
     comparison: "Comparativa de periodos",
   }[tab];
 }
 
 export function buildCsvRows(report: ConsolidatedReport, tab: ReportTab, comparison: PeriodComparison | null) {
   const rows: Record<string, string | number>[] = [];
-  const pushMetric = (section: string, name: string, value: string | number, context = "") => {
-    rows.push({ seccion: section, nombre: name, valor: value, contexto: context });
+  const pushMetric = (section: string, name: string, value: string | number) => {
+    rows.push({ seccion: section, nombre: name, valor: value });
   };
 
   if (tab === "general") {
@@ -92,8 +77,9 @@ export function buildCsvRows(report: ConsolidatedReport, tab: ReportTab, compari
     pushMetric("Consolidado", "Iniciativas totales", report.general.totalProjects);
     pushMetric("Consolidado", "Iniciativas activas", report.general.activeProjects);
     pushMetric("Consolidado", "Iniciativas completadas", report.general.completedProjects);
-    pushMetric("Consolidado", "Key Results", report.general.totalKeyResults);
-    pushMetric("Consolidado", "Cobertura promedio KRs", report.general.averageKeyResultCoverage);
+    pushMetric("Consolidado", "KRs totales", report.general.totalKeyResults);
+    pushMetric("Consolidado", "KRs activos", report.general.activeKeyResults);
+    pushMetric("Consolidado", "KRs cerrados", report.general.closedKeyResults);
   }
 
   if (tab === "general" || tab === "departments") {
@@ -103,22 +89,22 @@ export function buildCsvRows(report: ConsolidatedReport, tab: ReportTab, compari
         nombre: department.departmentName,
         iniciativas: department.projects,
         key_results: department.keyResults,
-        cobertura_promedio_krs: department.averageKeyResultCoverage,
+        krs_cerrados: department.closedKeyResults,
       });
     });
   }
 
   if (tab === "general" || tab === "ranking") {
-    report.keyResultRanking.forEach((keyResult, index) => {
+    sortByRecordedProgress(report.keyResultRanking).forEach((keyResult, index) => {
       rows.push({
-        seccion: "Ranking KRs",
+        seccion: "KRs por avance registrado",
         posicion: index + 1,
         nombre: keyResult.keyResultName,
         metas: (keyResult.goalNames ?? []).join("; "),
         apuestas: (keyResult.strategicBetNames ?? []).join("; "),
         periodo: keyResult.period,
         iniciativas_vinculadas: keyResult.linkedProjects,
-        cobertura: keyResult.coveragePercentage,
+        avance_registrado: keyResult.progressPercentage,
       });
     });
   }
@@ -136,10 +122,10 @@ export function buildCsvRows(report: ConsolidatedReport, tab: ReportTab, compari
         iniciativas_activas: periodReport.activeProjects,
         iniciativas_completadas: periodReport.completedProjects,
         key_results: periodReport.totalKeyResults,
-        cobertura_krs: periodReport.averageKeyResultCoverage,
+        krs_activos: periodReport.activeKeyResults,
+        krs_cerrados: periodReport.closedKeyResults,
       });
     });
-    pushMetric("Comparativa", `Cobertura KRs: ${comparison.comparePeriod} frente a ${comparison.basePeriod}`, comparison.keyResultCoverageDelta);
   }
 
   return rows;

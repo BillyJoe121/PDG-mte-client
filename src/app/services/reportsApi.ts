@@ -10,7 +10,8 @@ export interface GeneralReport {
   activeProjects: number;
   completedProjects: number;
   totalKeyResults: number;
-  averageKeyResultCoverage: string;
+  activeKeyResults: number;
+  closedKeyResults: number;
 }
 
 export interface DepartmentReport {
@@ -18,16 +19,17 @@ export interface DepartmentReport {
   departmentName: string;
   projects: number;
   keyResults: number;
-  averageKeyResultCoverage: string;
+  closedKeyResults: number;
 }
 
+/** Key result with the progress percentage recorded manually by its owner. */
 export interface KeyResultRanking {
   keyResultId: number;
   keyResultName: string;
   goalNames: string[];
   strategicBetNames: string[];
   period: string;
-  coveragePercentage: string;
+  progressPercentage: string;
   linkedProjects: number;
 }
 
@@ -36,7 +38,6 @@ export interface PeriodComparison {
   comparePeriod: string;
   base: GeneralReport;
   compare: GeneralReport;
-  keyResultCoverageDelta: string;
 }
 
 export interface ConsolidatedReport {
@@ -57,12 +58,9 @@ export type PresentationSlideType =
   | "COVER"
   | "STRATEGIC_BET"
   | "CLOSING"
+  | "CONSOLIDATED_EMPTY"
   | "CONSOLIDATED_SUMMARY"
-  | "CONSOLIDATED_EXECUTIVE"
-  | "CONSOLIDATED_HEALTH"
-  | "CONSOLIDATED_CAPACITY"
-  | "CONSOLIDATED_TOP_DEPTS"
-  | "CONSOLIDATED_ATTENTION"
+  | "CONSOLIDATED_RANKING"
   | "CONSOLIDATED_DEPTS_SUMMARY"
   | (string & {});
 

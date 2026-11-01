@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { KeyResultRanking } from "../../services/reportsApi";
-import { boundedPercent, coverageColor, formatPercent } from "./PresentationConsolidatedBuilder";
+import { boundedPercent, formatPercent } from "./PresentationConsolidatedBuilder";
 
 /** Joins the linked Meta and Apuesta names of a KR ranking row. */
 export function strategyText(row: Pick<KeyResultRanking, "goalNames" | "strategicBetNames">) {
@@ -44,40 +44,6 @@ export function LargeMetricPill({
   );
 }
 
-export function InsightCard({
-  label,
-  value,
-  detail,
-  color,
-  icon,
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-  color: string;
-  icon: ReactNode;
-}) {
-  return (
-    <article className="rounded-lg border border-[#DFE3EC] bg-white p-2.5 sm:p-3 shadow-xs">
-      <div className="flex items-center gap-2">
-        <div
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md"
-          style={{ backgroundColor: `${color}18`, color }}
-        >
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <span className="block truncate text-[10px] font-black uppercase tracking-wider text-[#717182]">{label}</span>
-          <div className="text-lg font-black sm:text-xl leading-tight" style={{ color }}>
-            {value}
-          </div>
-        </div>
-      </div>
-      <p className="mt-1.5 text-[10px] font-semibold leading-tight text-[#717182] line-clamp-2">{detail}</p>
-    </article>
-  );
-}
-
 export function SlideProgressRow({
   label,
   value,
@@ -90,7 +56,7 @@ export function SlideProgressRow({
   badge?: string;
 }) {
   const numeric = boundedPercent(value);
-  const color = coverageColor(value);
+  const color = "#5454E9";
 
   return (
     <div className="border-b border-[#DFE3EC] py-1.5 last:border-b-0">

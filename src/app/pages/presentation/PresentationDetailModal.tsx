@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ArrowUpRight, Award, Calendar, Clock, Download, ExternalLink, Flag, Printer, Target, X } from "lucide-react";
+import { Award, Calendar, Download, ExternalLink, Flag, Printer, Target, X } from "lucide-react";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
-import { calcBetProgress, calcGoalProgress, PRESENTATION_COLORS } from "./PresentationTypes";
+import { PRESENTATION_COLORS } from "./PresentationTypes";
 import { exportDetailModalCsv, printPresentationView } from "./presentationExportUtils";
 
 interface Props {
@@ -24,11 +24,9 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
   if (!entity) return null;
 
   const isBet = entity.type === "bet";
-  const bet = isBet ? (entity.data as StrategicBet) : null;
   const goal = !isBet ? (entity.data as Goal) : null;
   const summary = entity.data.executionSummary;
 
-  const progressPct = isBet && bet ? calcBetProgress(bet) : goal ? calcGoalProgress(goal) : 0;
   const editRoute = isBet ? `/apuestas/${entity.data.id}` : `/metas/${entity.data.id}`;
 
   return (
@@ -120,27 +118,10 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
             </div>
           </div>
 
-          {/* Progress Bar Card */}
-          <div className="rounded-md border border-[#DFE3EC] p-4 bg-white sgp-print-avoid">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase text-[#717182]">Cumplimiento Estimado</span>
-              <span className="text-lg font-black text-[#222245]">{progressPct}%</span>
-            </div>
-            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-[#E9ECF2]">
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${progressPct}%`,
-                  backgroundColor: isBet ? PRESENTATION_COLORS.blue : PRESENTATION_COLORS.green,
-                }}
-              />
-            </div>
-          </div>
-
           {/* KPI Cards Grid */}
           <div className="sgp-print-avoid">
             <h3 className="mb-3 text-xs font-extrabold uppercase tracking-wider text-[#717182]">
-              Desglose de Desempeño y Cadena Estratégica
+              KRs e iniciativas registrados
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-center">

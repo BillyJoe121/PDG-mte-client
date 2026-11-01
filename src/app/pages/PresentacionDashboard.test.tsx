@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   loadPresentationScreen: vi.fn(),
   downloadCSV: vi.fn(),
   printPDF: vi.fn(),
+  periodComparison: vi.fn(),
 }));
 
 vi.mock("../services/screenDataCache", () => ({
@@ -21,7 +22,28 @@ vi.mock("../utils/exportUtils", async (importOriginal) => {
   };
 });
 
+vi.mock("../services/reportsApi", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/reportsApi")>();
+  return {
+    ...actual,
+    reportsApi: { ...actual.reportsApi, periodComparison: mocks.periodComparison },
+  };
+});
+
 import { PresentacionDashboard } from "./PresentacionDashboard";
+
+function periodReport(period: string, totalKeyResults: number) {
+  return {
+    period,
+    departmentId: null,
+    totalProjects: 4,
+    activeProjects: 3,
+    completedProjects: 1,
+    totalKeyResults,
+    activeKeyResults: totalKeyResults - 1,
+    closedKeyResults: 1,
+  };
+}
 
 const response = {
   periods: [
@@ -131,6 +153,15 @@ function renderPage(initialEntries = ["/presentacion"]) {
 describe("PresentacionDashboard", () => {
   beforeEach(() => {
     mocks.loadPresentationScreen.mockReset();
+    mocks.periodComparison.mockReset();
+    mocks.periodComparison.mockImplementation(({ basePeriod, comparePeriod }: { basePeriod: string; comparePeriod: string }) =>
+      Promise.resolve({
+        basePeriod,
+        comparePeriod,
+        base: periodReport(basePeriod, 6),
+        compare: periodReport(comparePeriod, 4),
+      }),
+    );
   });
 
   it("shows a real loading state while presentation data is pending", () => {
@@ -151,7 +182,7 @@ describe("PresentacionDashboard", () => {
     expect(screen.getByText("Comparar entidades estratégicas")).toBeInTheDocument();
   });
 
-  it("navigates to Option 1 (Informe General), shows rankings and opens detail modal on click", async () => {
+  it("navigates to Option 1 (Informe General), shows recorded summaries without rankings and opens the detail modal", async () => {
     mocks.loadPresentationScreen.mockResolvedValue(response);
     renderPage();
 
@@ -159,32 +190,42 @@ describe("PresentacionDashboard", () => {
     fireEvent.click(generalBtn);
 
     expect(await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i })).toBeInTheDocument();
-    expect(screen.getByText(/comparativa: apuestas estrat[eé]gicas vs apuestas estrat[eé]gicas/i)).toBeInTheDocument();
-    expect(screen.getByText(/comparativa: metas institucionales vs metas institucionales/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /apuestas estrat[eé]gicas del periodo/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /metas institucionales del periodo/i })).toBeInTheDocument();
 
-    // Verify Rankings are rendered at the end of their respective sections
-    expect(screen.getByRole("heading", { name: /ranking de rendimiento: apuestas estrat[eé]gicas/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /ranking de rendimiento: metas institucionales/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/ranking de apuestas estrat[eé]gicas/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/ranking de metas institucionales/i)).toBeInTheDocument();
+    // Summary tables keep the API order and show recorded counts only
+    expect(screen.getByRole("heading", { name: "Resumen de Apuestas Estratégicas" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Resumen de Metas Institucionales" })).toBeInTheDocument();
+    const betsTable = screen.getByRole("table", { name: "Resumen de Apuestas Estratégicas" });
+    const betRows = within(betsTable).getAllByRole("row");
+    expect(betRows[1]).toHaveTextContent("Transformación Digital e Inteligencia Artificial");
+    expect(betRows[2]).toHaveTextContent("Excelencia y Pertinencia Académica");
 
-    // Verify podium positions
-    expect(screen.getAllByText("🥇").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("🥈").length).toBeGreaterThanOrEqual(2);
+    // No invented positions, medals or compliance percentages
+    expect(screen.queryByText(/ranking/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("🥇")).not.toBeInTheDocument();
+    expect(screen.queryByText(/cumplimiento/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText("85 Porcentaje").length).toBeGreaterThan(0);
 
-    // Click "Detalle" button in ranking table
-    const rankingDetailBtns = screen.getAllByRole("button", { name: /detalle/i });
-    expect(rankingDetailBtns.length).toBeGreaterThan(0);
-    fireEvent.click(rankingDetailBtns[0]);
+    const detailBtns = screen.getAllByRole("button", { name: /detalle de/i });
+    expect(detailBtns.length).toBe(4);
+    fireEvent.click(detailBtns[0]);
 
-    // Modal dialog opens
     const modalDialog = await screen.findByRole("dialog");
-    expect(modalDialog).toBeInTheDocument();
     expect(within(modalDialog).getByRole("heading", { name: /transformaci[oó]n digital e inteligencia artificial/i })).toBeInTheDocument();
 
-    // Close modal
     fireEvent.click(within(modalDialog).getByRole("button", { name: /cerrar ventana modal/i }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows an empty state in Option 1 when there are no bets or goals", async () => {
+    mocks.loadPresentationScreen.mockResolvedValue({ ...response, bets: [], goals: [] });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /explorar informe general/i }));
+
+    expect(await screen.findByText("No hay apuestas ni metas registradas para este periodo")).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
   it("navigates to Option 2 (Comparar) and switches comparison modes including period-vs-period", async () => {
@@ -194,135 +235,123 @@ describe("PresentacionDashboard", () => {
     const compareBtn = await screen.findByRole("button", { name: /abrir modo comparar/i });
     fireEvent.click(compareBtn);
 
-    expect(await screen.findByRole("heading", { name: /comparativa de desempe[nñ]o estrat[eé]gico/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Comparativa de registros" })).toBeInTheDocument();
 
-    // Check modes
-    const betVsBetBtn = screen.getByRole("button", { name: /apuesta vs apuesta/i });
     const goalVsGoalBtn = screen.getByRole("button", { name: /meta vs meta/i });
     const betVsGoalBtn = screen.getByRole("button", { name: /apuesta vs meta/i });
     const periodVsPeriodBtn = screen.getByRole("button", { name: /periodo vs periodo/i });
+    expect(screen.getByRole("button", { name: /apuesta vs apuesta/i })).toBeInTheDocument();
 
-    expect(betVsBetBtn).toBeInTheDocument();
-    expect(goalVsGoalBtn).toBeInTheDocument();
-    expect(betVsGoalBtn).toBeInTheDocument();
-    expect(periodVsPeriodBtn).toBeInTheDocument();
-
-    // Switch to Meta vs Meta
     fireEvent.click(goalVsGoalBtn);
     expect(screen.getAllByText(/meta a/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/meta b/i).length).toBeGreaterThan(0);
 
-    // Switch to Apuesta vs Meta
     fireEvent.click(betVsGoalBtn);
     expect(screen.getAllByText(/apuesta a/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/meta b/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/cumplimiento/i)).not.toBeInTheDocument();
 
-    // Switch to Periodo vs Periodo
     await act(async () => {
       fireEvent.click(periodVsPeriodBtn);
     });
 
     expect(screen.getByText(/periodo base \(a\)/i)).toBeInTheDocument();
     expect(screen.getByText(/periodo de comparaci[oó]n \(b\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/periodo acad[eé]mico 2026-1/i)).toBeInTheDocument();
+    expect(await screen.findByText(/periodo acad[eé]mico 2026-1/i)).toBeInTheDocument();
     expect(screen.getByText(/periodo acad[eé]mico 2025-2/i)).toBeInTheDocument();
-    expect(screen.getByText(/m[eé]tricas institucionales comparadas entre periodo 2026-1 y periodo 2025-2/i)).toBeInTheDocument();
-    expect(screen.getByText(/an[aá]lisis cuantitativo de variaci[oó]n entre periodo 2026-1 y periodo 2025-2/i)).toBeInTheDocument();
+    expect(mocks.periodComparison).toHaveBeenCalledWith({ basePeriod: "2026-1", comparePeriod: "2025-2" });
+    expect(screen.getByText("Valores registrados en el Periodo 2026-1 y en el Periodo 2025-2.")).toBeInTheDocument();
+    expect(screen.queryByText(/cobertura|variaci[oó]n/i)).not.toBeInTheDocument();
 
-    // Swap periods
     const swapBtn = screen.getByRole("button", { name: /intercambiar periodos/i });
     await act(async () => {
       fireEvent.click(swapBtn);
     });
 
-    expect(screen.getByText(/m[eé]tricas institucionales comparadas entre periodo 2025-2 y periodo 2026-1/i)).toBeInTheDocument();
-    expect(screen.getByText(/an[aá]lisis cuantitativo de variaci[oó]n entre periodo 2025-2 y periodo 2026-1/i)).toBeInTheDocument();
+    expect(await screen.findByText("Valores registrados en el Periodo 2025-2 y en el Periodo 2026-1.")).toBeInTheDocument();
   });
 
-  it("navigates to slide deck mode and presents the 7 consolidated slides followed by bets", async () => {
+  it("shows an empty consolidated slide when the API returns no consolidated report", async () => {
     mocks.loadPresentationScreen.mockResolvedValue(response);
     renderPage(["/presentacion?modo=slides"]);
 
-    // Slide 1: Cover
     expect(await screen.findByRole("heading", { name: "Seguimiento estratégico" })).toBeInTheDocument();
-    expect(screen.getByText("1 / 10")).toBeInTheDocument();
+    expect(screen.getByText("1 / 4")).toBeInTheDocument();
 
-    // Slide 2: Diapositiva 1 del consolidado (4 píldoras de info general)
     await act(async () => {
       fireEvent.keyDown(window, { key: "ArrowRight" });
     });
-    expect(await screen.findByRole("heading", { name: "Información General del Corte" })).toBeInTheDocument();
-    expect(screen.getByText("2 / 10")).toBeInTheDocument();
-    expect(screen.getByText("Total del corte")).toBeInTheDocument();
-    expect(screen.getByText("Cierres documentados")).toBeInTheDocument();
-    expect(screen.getByText("KRs incluidos")).toBeInTheDocument();
-    expect(screen.queryByText(/objetivos incluidos/i)).not.toBeInTheDocument();
-    expect(screen.getByText("Cobertura reportada")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Reporte consolidado no disponible" })).toBeInTheDocument();
+    expect(screen.getByText("2 / 4")).toBeInTheDocument();
+    expect(screen.getByText("No hay reporte consolidado para el periodo 2026-1")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/resumen por departamento/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/avance registrado/i)).not.toBeInTheDocument();
 
-    // Slide 3: Diapositiva 2 del consolidado (Lectura ejecutiva del corte)
-    await act(async () => {
-      fireEvent.keyDown(window, { key: "ArrowRight" });
-    });
-    expect(await screen.findByRole("heading", { name: "Lectura Ejecutiva del Corte" })).toBeInTheDocument();
-    expect(screen.getByText("3 / 10")).toBeInTheDocument();
-    expect(screen.getByText("Iniciativas Activas")).toBeInTheDocument();
-    expect(screen.getByText("Tasa de Cierres")).toBeInTheDocument();
-    expect(screen.getByText("KRs Trazables")).toBeInTheDocument();
-
-    // Slide 4: Diapositiva 3 del consolidado (Salud de cobertura)
-    await act(async () => {
-      fireEvent.keyDown(window, { key: "ArrowRight" });
-    });
-    expect(await screen.findByRole("heading", { name: "Salud de Cobertura Estratégica" })).toBeInTheDocument();
-    expect(screen.getByText("4 / 10")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Bandas de Cobertura" })).toBeInTheDocument();
-
-    // Slide 5: Diapositiva 4 del consolidado (Capacidad institucional)
-    await act(async () => {
-      fireEvent.keyDown(window, { key: "ArrowRight" });
-    });
-    expect(await screen.findByRole("heading", { name: "Capacidad Institucional" })).toBeInTheDocument();
-    expect(screen.getByText("5 / 10")).toBeInTheDocument();
-    expect(screen.getByText("Iniciativas / Depto.")).toBeInTheDocument();
-    expect(screen.getByText("KRs / Depto.")).toBeInTheDocument();
-
-    // Slide 6: Diapositiva 5 del consolidado (Departamentos con mayor avance)
-    await act(async () => {
-      fireEvent.keyDown(window, { key: "ArrowRight" });
-    });
-    expect(await screen.findByRole("heading", { name: "Departamentos con Mayor Avance" })).toBeInTheDocument();
-    expect(screen.getByText("6 / 10")).toBeInTheDocument();
-    expect(screen.getByText(/ranking de unidades acad[eé]micas/i)).toBeInTheDocument();
-
-    // Slide 7: Diapositiva 6 del consolidado (KRs que requieren atención)
-    await act(async () => {
-      fireEvent.keyDown(window, { key: "ArrowRight" });
-    });
-    expect(await screen.findByRole("heading", { name: "KRs que Requieren Atención" })).toBeInTheDocument();
-    expect(screen.getByText("7 / 10")).toBeInTheDocument();
-    expect(screen.getByText(/KRs cr[ií]ticos para seguimiento/i)).toBeInTheDocument();
-
-    // Slide 8: Diapositiva 7 del consolidado (Resumen por departamento)
-    await act(async () => {
-      fireEvent.keyDown(window, { key: "ArrowRight" });
-    });
-    expect(await screen.findByRole("heading", { name: "Resumen por Departamento" })).toBeInTheDocument();
-    expect(screen.getByText("8 / 10")).toBeInTheDocument();
-    expect(screen.getByLabelText(/resumen por departamento/i)).toBeInTheDocument();
-
-    // Slide 9: Primera apuesta estratégica individual
     await act(async () => {
       fireEvent.keyDown(window, { key: "ArrowRight" });
     });
     expect(await screen.findByRole("heading", { name: "Transformación educativa" })).toBeInTheDocument();
-    expect(screen.getByText("9 / 10")).toBeInTheDocument();
+    expect(screen.getByText("3 / 4")).toBeInTheDocument();
 
-    // Slide 10: Diapositiva de Cierre
     await act(async () => {
       fireEvent.keyDown(window, { key: "ArrowRight" });
     });
     expect(await screen.findByRole("heading", { name: "Cierre" })).toBeInTheDocument();
-    expect(screen.getByText("10 / 10")).toBeInTheDocument();
+    expect(screen.getByText("4 / 4")).toBeInTheDocument();
+  });
+
+  it("presents the consolidated slides with recorded counts and KRs ordered by recorded progress", async () => {
+    mocks.loadPresentationScreen.mockResolvedValue({
+      ...response,
+      consolidatedReport: {
+        general: {
+          period: "2026-1",
+          departmentId: null,
+          totalProjects: 7,
+          activeProjects: 4,
+          completedProjects: 3,
+          totalKeyResults: 9,
+          activeKeyResults: 6,
+          closedKeyResults: 2,
+        },
+        departments: [
+          { departmentId: 3, departmentName: "Ingeniería TIC", projects: 5, keyResults: 6, closedKeyResults: 1 },
+        ],
+        keyResultRanking: [
+          { keyResultId: 10, keyResultName: "KR con menor avance", goalNames: ["Meta A"], strategicBetNames: [], period: "2026-1", progressPercentage: "25", linkedProjects: 1 },
+          { keyResultId: 11, keyResultName: "KR con mayor avance", goalNames: [], strategicBetNames: ["Apuesta B"], period: "2026-1", progressPercentage: "80", linkedProjects: 2 },
+        ],
+      },
+    });
+    renderPage(["/presentacion?modo=slides"]);
+
+    expect(await screen.findByRole("heading", { name: "Seguimiento estratégico" })).toBeInTheDocument();
+    expect(screen.getByText("1 / 6")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+    });
+    expect(await screen.findByRole("heading", { name: "Información General del Corte" })).toBeInTheDocument();
+    expect(screen.getByText("KRs incluidos")).toBeInTheDocument();
+    expect(screen.getByText("KRs cerrados")).toBeInTheDocument();
+    expect(screen.queryByText(/cobertura/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+    });
+    expect(await screen.findByRole("heading", { name: "KRs por Avance Registrado" })).toBeInTheDocument();
+    expect(screen.getByText("Avance registrado")).toBeInTheDocument();
+    const krNames = screen.getAllByText(/KR con (mayor|menor) avance/).map((el) => el.textContent);
+    expect(krNames).toEqual(["KR con mayor avance", "KR con menor avance"]);
+    expect(screen.getByText("80%")).toBeInTheDocument();
+    expect(screen.getByText("25%")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+    });
+    expect(await screen.findByRole("heading", { name: "Resumen por Departamento" })).toBeInTheDocument();
+    const deptTable = screen.getByLabelText(/resumen por departamento/i);
+    expect(within(deptTable).getByText("Ingeniería TIC")).toBeInTheDocument();
   });
 
   it("offers a retry after the API fails", async () => {
@@ -349,7 +378,7 @@ describe("PresentacionDashboard", () => {
     expect(requestFullscreen).toHaveBeenCalledOnce();
   });
 
-  it("allows downloading CSV and exporting PDF from header, general report, rankings, comparison, slides, and detail modal", async () => {
+  it("allows downloading CSV and exporting PDF from header, general report, summaries, comparison, slides, and detail modal", async () => {
     mocks.loadPresentationScreen.mockResolvedValue(response);
     mocks.downloadCSV.mockClear();
     mocks.printPDF.mockClear();
@@ -370,7 +399,7 @@ describe("PresentacionDashboard", () => {
     fireEvent.click(headerCsvBtn);
     expect(mocks.downloadCSV).toHaveBeenCalled();
 
-    // 2. Option 1: General Report view and rankings
+    // 2. Option 1: General Report view and summaries
     const nav = screen.getByRole("navigation", { name: "Modos de presentación" });
     fireEvent.click(within(nav).getByRole("button", { name: /opci[oó]n 1: informe general/i }));
     expect(await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i })).toBeInTheDocument();
@@ -388,30 +417,30 @@ describe("PresentacionDashboard", () => {
     fireEvent.click(reportCsvBtn);
     expect(mocks.downloadCSV).toHaveBeenCalled();
 
-    // Bets ranking export buttons
-    const betsRankingPdfBtn = screen.getByRole("button", { name: "Exportar ranking de apuestas a PDF" });
-    const betsRankingCsvBtn = screen.getByRole("button", { name: "Descargar ranking de apuestas en CSV" });
+    // Bets summary export buttons
+    const betsSummaryPdfBtn = screen.getByRole("button", { name: "Exportar resumen de apuestas a PDF" });
+    const betsSummaryCsvBtn = screen.getByRole("button", { name: "Descargar resumen de apuestas en CSV" });
 
-    fireEvent.click(betsRankingPdfBtn);
+    fireEvent.click(betsSummaryPdfBtn);
     expect(mocks.printPDF).toHaveBeenCalledWith(
-      "Ranking de Apuestas Estratégicas",
-      expect.objectContaining({ printableSelector: ".presentation-bets-ranking-card" })
+      "Resumen de Apuestas Estratégicas",
+      expect.objectContaining({ printableSelector: ".presentation-bets-summary-card" })
     );
 
-    fireEvent.click(betsRankingCsvBtn);
+    fireEvent.click(betsSummaryCsvBtn);
     expect(mocks.downloadCSV).toHaveBeenCalled();
 
-    // Goals ranking export buttons
-    const goalsRankingPdfBtn = screen.getByRole("button", { name: "Exportar ranking de metas a PDF" });
-    const goalsRankingCsvBtn = screen.getByRole("button", { name: "Descargar ranking de metas en CSV" });
+    // Goals summary export buttons
+    const goalsSummaryPdfBtn = screen.getByRole("button", { name: "Exportar resumen de metas a PDF" });
+    const goalsSummaryCsvBtn = screen.getByRole("button", { name: "Descargar resumen de metas en CSV" });
 
-    fireEvent.click(goalsRankingPdfBtn);
+    fireEvent.click(goalsSummaryPdfBtn);
     expect(mocks.printPDF).toHaveBeenCalledWith(
-      "Ranking de Metas Institucionales",
-      expect.objectContaining({ printableSelector: ".presentation-goals-ranking-card" })
+      "Resumen de Metas Institucionales",
+      expect.objectContaining({ printableSelector: ".presentation-goals-summary-card" })
     );
 
-    fireEvent.click(goalsRankingCsvBtn);
+    fireEvent.click(goalsSummaryCsvBtn);
     expect(mocks.downloadCSV).toHaveBeenCalled();
 
     // 3. Detail Modal Export Buttons
@@ -436,14 +465,14 @@ describe("PresentacionDashboard", () => {
 
     // 4. Option 2: Comparison View Export Buttons
     fireEvent.click(within(nav).getByRole("button", { name: /opci[oó]n 2: comparar/i }));
-    expect(await screen.findByRole("heading", { name: /comparativa de desempe[nñ]o estrat[eé]gico/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Comparativa de registros" })).toBeInTheDocument();
 
     const comparePdfBtn = screen.getByRole("button", { name: "Exportar comparativa a PDF" });
     const compareCsvBtn = screen.getByRole("button", { name: "Descargar datos de la comparativa en CSV" });
 
     fireEvent.click(comparePdfBtn);
     expect(mocks.printPDF).toHaveBeenCalledWith(
-      "Comparativa de Desempeño Estratégico",
+      "Comparativa de registros",
       expect.objectContaining({ printableSelector: ".presentation-comparison-print-area" })
     );
 
