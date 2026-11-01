@@ -31,19 +31,3 @@ export const PRESENTATION_COLORS = {
   bgSubtle: "#F7F8FC",
   cardBg: "#FFFFFF",
 };
-
-/**
- * Formats any number or numeric string to at most 2 decimal places.
- * Eliminates floating point arithmetic noise (e.g. 18.959999999999997 -> "18.96").
- * Omits trailing zeros for whole numbers (e.g. 10 -> "10", 18.9 -> "18.9", 18.96 -> "18.96").
- */
-export function formatMax2Decimals(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === "") return "0";
-  const num = typeof value === "number" ? value : parseFloat(String(value).replace("%", ""));
-  if (Number.isNaN(num)) return "0";
-  return Number(num.toFixed(2)).toString();
-}
-
-export function formatPercentMax2Decimals(value: number | string | null | undefined): string {
-  return `${formatMax2Decimals(value)}%`;
-}

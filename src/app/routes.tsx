@@ -56,11 +56,9 @@ export const router = createBrowserRouter([
       { path: "proyectos", element: protectedPage("proyectos.view", <Proyectos />) },
       { path: "proyectos/nuevo", element: protectedPage("proyectos.create", <NuevoProyecto />) },
       { path: "krs", element: protectedPage("okrs.view", <KRs />) },
-      // Rutas retiradas del modulo de Objetivos: redirigen a KRs para conservar marcadores antiguos.
+      // Rutas anteriores de KRs: redirigen a /krs para conservar marcadores antiguos.
       { path: "okrs/*", element: <Navigate to="/krs" replace /> },
       { path: "okrs", element: <Navigate to="/krs" replace /> },
-      { path: "objetivos", element: <Navigate to="/krs" replace /> },
-      { path: "objetivos/*", element: <Navigate to="/krs" replace /> },
       { path: "reportes", element: protectedPage("reportes.view", <Reportes />) },
       { path: "consistencia", element: protectedPage("consistencia.view", <Consistencia />) },
       { path: "usuarios", element: protectedPage("usuarios.manage", <Usuarios />) },

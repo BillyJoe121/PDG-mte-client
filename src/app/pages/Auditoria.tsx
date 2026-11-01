@@ -15,7 +15,6 @@ const ACTION_LABELS: Record<AuditAction, string> = {
 };
 
 const ENTITY_LABELS: Record<string, string> = {
-  OBJECTIVE: "Objetivo",
   KEY_RESULT: "Resultado clave",
   PROJECT: "Iniciativa",
   PROJECT_KEY_RESULT_LINK: "Vínculo iniciativa–KR",
@@ -184,8 +183,7 @@ export function Auditoria() {
     })), `Auditoria_MTE_${getDateStamp()}`);
   };
 
-  const totalDays = summary?.trend.length ?? 0;
-  const dailyAverage = summary && totalDays ? (summary.totalEvents / totalDays).toFixed(1) : "0";
+  const activeDays = summary?.trend.filter((point) => point.count > 0).length ?? 0;
   const mainAction = summary?.byAction[0]?.key as AuditAction | undefined;
 
   return (
@@ -244,7 +242,7 @@ export function Auditoria() {
             {[
               { label: "Eventos encontrados", value: summary.totalEvents, icon: ShieldCheck, color: "#5454E9" },
               { label: "Usuarios involucrados", value: summary.byActor.length, icon: Users, color: "#4CB979" },
-              { label: "Promedio diario", value: dailyAverage, icon: CalendarDays, color: "#E9683B" },
+              { label: "Días con actividad", value: activeDays, icon: CalendarDays, color: "#E9683B" },
               { label: "Acción más frecuente", value: mainAction ? ACTION_LABELS[mainAction] ?? mainAction : "—", icon: Activity, color: "#111827" },
             ].map((stat) => (
               <div key={stat.label} className="rounded-xl border border-gray-200 bg-white p-5">
