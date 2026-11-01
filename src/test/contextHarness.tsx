@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { render } from '@testing-library/react';
 import { AuthProvider, useAuth } from '../app/context/AuthContext';
 import { AuditProvider, useAudit } from '../app/context/AuditContext';
-import { DataProvider, useData } from '../app/context/DataContext';
 import { FiltersProvider, useGlobalFilters } from '../app/context/FiltersContext';
 
 export function renderAuthHook() {
@@ -32,20 +31,6 @@ export function renderAuditHook(wrapper?: ({ children }: { children: ReactNode }
         <Probe />
       </AuditProvider>
     </Wrapper>
-  );
-  return () => api!;
-}
-
-export function renderDataHook() {
-  let api: ReturnType<typeof useData>;
-  function Probe() {
-    api = useData();
-    return null;
-  }
-  render(
-    <DataProvider>
-      <Probe />
-    </DataProvider>
   );
   return () => api!;
 }
