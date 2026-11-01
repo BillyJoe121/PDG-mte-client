@@ -19,7 +19,6 @@ const ENTITY_CARD_VARIANTS = {
     strip: "bg-[#5454E9]",
     pill: "bg-[#5454E9]",
     accentText: "text-[#5454E9]",
-    accentBar: "bg-[#5454E9]",
     betLabel: "Apuesta A",
     goalLabel: "Meta A",
   },
@@ -28,7 +27,6 @@ const ENTITY_CARD_VARIANTS = {
     strip: "bg-[#4CB979]",
     pill: "bg-[#4CB979]",
     accentText: "text-[#4CB979]",
-    accentBar: "bg-[#4CB979]",
     betLabel: "Apuesta B",
     goalLabel: "Meta B",
   },
@@ -40,7 +38,6 @@ export function EntityComparisonCard({
   entity,
   name,
   shortName,
-  progress,
   onSelectBet,
   onSelectGoal,
 }: {
@@ -48,11 +45,11 @@ export function EntityComparisonCard({
   entity: ComparisonEntity;
   name: string;
   shortName: string;
-  progress: number;
   onSelectBet: (bet: StrategicBet) => void;
   onSelectGoal: (goal: Goal) => void;
 }) {
   const style = ENTITY_CARD_VARIANTS[variant];
+  const summary = entity.data?.executionSummary;
   return (
     <div className={`relative overflow-hidden rounded-xl border-2 ${style.border} bg-white p-6 shadow-sm`}>
       <div className={`absolute top-0 left-0 right-0 h-1.5 ${style.strip}`} />
@@ -62,7 +59,7 @@ export function EntityComparisonCard({
           {entity.type === "bet" ? style.betLabel : style.goalLabel}
         </span>
         <span className="rounded-sm bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-          {entity.data?.status}
+          {entity.data?.status ?? "Sin registro"}
         </span>
       </div>
 
@@ -71,19 +68,25 @@ export function EntityComparisonCard({
         {entity.data?.description || "Sin descripción disponible."}
       </p>
 
-      <div className="mt-4 rounded-lg border border-[#DFE3EC] bg-[#F7F8FC] p-3">
-        <div className="flex items-center justify-between text-xs font-bold">
-          <span className="text-[#717182]">Cumplimiento Estimado:</span>
-          <span className={`font-black ${style.accentText} text-base`}>{progress}%</span>
-        </div>
-        <div className="mt-1.5 h-2 w-full rounded-full bg-[#E9ECF2]">
-          <div className={`h-full rounded-full ${style.accentBar}`} style={{ width: `${progress}%` }} />
-        </div>
-      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-2 text-xs">
+        {[
+          ["KRs completados", summary?.completedKeyResults ?? 0],
+          ["KRs en progreso", summary?.inProgressKeyResults ?? 0],
+          ["Iniciativas completadas", summary?.completedProjects ?? 0],
+          ["Iniciativas en progreso", summary?.inProgressProjects ?? 0],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-2">
+            <dt className="text-[11px] font-semibold text-[#717182]">{label}</dt>
+            <dd className={`text-base font-black ${style.accentText}`}>{value}</dd>
+          </div>
+        ))}
+      </dl>
 
       <button
         type="button"
+        disabled={!entity.data}
         onClick={() => {
+          if (!entity.data) return;
           if (entity.type === "bet") onSelectBet(entity.data as StrategicBet);
           else onSelectGoal(entity.data as Goal);
         }}
@@ -116,12 +119,12 @@ export function ComparisonChartSection({
     <section className="rounded-xl border border-[#DFE3EC] bg-white p-6 sm:p-8 shadow-[0_12px_28px_rgba(34,34,69,0.06)] sgp-print-avoid">
       <div className="border-b border-[#DFE3EC] pb-4">
         <h2 className="text-xl font-black text-[#222245]">
-          Comparativa Visual de Métricas de Desempeño
+          Comparativa visual de registros
         </h2>
         <p className="text-xs font-semibold text-[#717182]">
           {compType === "period-vs-period"
-            ? `Métricas institucionales comparadas entre Periodo ${selectedPeriodA} y Periodo ${selectedPeriodB}.`
-            : "Valores numéricos comparados directamente entre las dos entidades seleccionadas."}
+            ? `Conteos de KRs e iniciativas registrados en el Periodo ${selectedPeriodA} y en el Periodo ${selectedPeriodB}.`
+            : "Conteos de KRs e iniciativas registrados para cada una de las dos entidades seleccionadas."}
         </p>
       </div>
 

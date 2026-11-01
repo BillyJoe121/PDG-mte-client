@@ -13,9 +13,9 @@ vi.mock("../services/auditApi", async (importOriginal) => {
 const log = {
   id: 1,
   action: "UPDATE" as const,
-  entityType: "OBJECTIVE",
+  entityType: "KEY_RESULT",
   entityId: "12",
-  summary: "Objetivo actualizado",
+  summary: "Resultado clave actualizado",
   actorUsername: "admin",
   actorRoles: "ADMIN",
   beforeSnapshot: '{"name":"Anterior"}',
@@ -26,7 +26,7 @@ const log = {
 const summary = {
   totalEvents: 12,
   byAction: [{ key: "UPDATE", count: 7 }, { key: "CREATE", count: 5 }],
-  byEntityType: [{ key: "OBJECTIVE", count: 8 }],
+  byEntityType: [{ key: "KEY_RESULT", count: 8 }],
   byActor: [{ key: "admin", count: 12 }],
   trend: [
     { date: "2026-04-13", count: 4 },
@@ -44,11 +44,13 @@ describe("Auditoria", () => {
     const user = userEvent.setup();
     render(<Auditoria />);
 
-    expect(await screen.findByText("Objetivo actualizado")).toBeInTheDocument();
+    expect(await screen.findByText("Resultado clave actualizado")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("Días con actividad")).toBeInTheDocument();
+    expect(screen.queryByText(/promedio/i)).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Tendencia diaria/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Ver detalle de Objetivo actualizado/i }));
+    await user.click(screen.getByRole("button", { name: /Ver detalle de Resultado clave actualizado/i }));
     const dialog = screen.getByRole("dialog", { name: /Detalle del evento/i });
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByText(/"name": "Anterior"/)).toBeInTheDocument();
@@ -58,7 +60,7 @@ describe("Auditoria", () => {
   it("applies backend filters consistently", async () => {
     const user = userEvent.setup();
     render(<Auditoria />);
-    await screen.findByText("Objetivo actualizado");
+    await screen.findByText("Resultado clave actualizado");
 
     await user.selectOptions(screen.getByLabelText("Acción"), "UPDATE");
     await user.type(screen.getByLabelText("ID de entidad"), "12");

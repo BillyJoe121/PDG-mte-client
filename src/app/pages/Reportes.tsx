@@ -13,7 +13,6 @@ import {
   COLORS,
   activeLabel,
   buildCsvRows,
-  formatPercent,
   getErrorMessage,
   reportTitleForTab,
   validatePeriod,
@@ -22,7 +21,6 @@ import {
 import {
   ComparisonCard,
   ConsolidatedDeepDive,
-  DeltaBadge,
   DepartmentTable,
   EmptyState,
   ExportButton,
@@ -183,7 +181,7 @@ export function Reportes() {
       logAudit({
         modulo: "Reportes",
         accion: `Exportacion ${format.toUpperCase()}`,
-        entidad: "Reporte de impacto estrategico",
+        entidad: "Reporte estratégico",
         detalle: `Exportacion con periodo ${period || "activo"} y departamento ${departmentId || "todos"}.`,
         resultado: "info",
       });
@@ -236,7 +234,7 @@ export function Reportes() {
           {[
             { key: "general", label: "Consolidado" },
             { key: "departments", label: "Departamentos" },
-            { key: "ranking", label: "Ranking" },
+            { key: "ranking", label: "Avance de KRs" },
             { key: "comparison", label: "Comparativa" },
           ].map((item, index, arr) => (
             <button
@@ -323,9 +321,9 @@ export function Reportes() {
             {(tab === "ranking" || isPrintingPdf) && (
               <div className={isPrintingPdf ? "mt-8" : ""}>
                 {isPrintingPdf && (
-                  <h2 className="hidden print:block mb-4" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, pageBreakBefore: "always" }}>Ranking de KRs</h2>
+                  <h2 className="hidden print:block mb-4" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, pageBreakBefore: "always" }}>KRs por avance registrado</h2>
                 )}
-                <ReportPanel title="Ranking de KRs por cobertura" subtitle="Prioriza KRs para seguimiento, mejora y documentacion." icon={<Target size={16} />}>
+                <ReportPanel title="KRs por avance registrado" subtitle="Ordenados por el porcentaje que registró cada responsable. El sistema no calcula este avance." icon={<Target size={16} />}>
                   <RankingTable data={report.keyResultRanking} />
                 </ReportPanel>
               </div>
@@ -354,31 +352,21 @@ export function Reportes() {
 
                 {comparisonLoading ? (
                   <div className="flex items-center justify-center rounded-md bg-white py-14" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
-                    <Loader2 size={18} className="mr-2 animate-spin" /> Calculando comparativa...
+                    <Loader2 size={18} className="mr-2 animate-spin" /> Cargando comparativa...
                   </div>
                 ) : comparison ? (
-                  <>
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                      <ComparisonCard title={`Base: ${comparison.basePeriod}`} report={comparison.base} color={COLORS.blue} />
-                      <ComparisonCard title={`Comparado: ${comparison.comparePeriod}`} report={comparison.compare} color={COLORS.green} />
-                    </div>
-                    <div className="grid grid-cols-1 gap-3">
-                      <DeltaBadge
-                        metric="Cobertura de KRs"
-                        value={comparison.keyResultCoverageDelta}
-                        basePeriod={comparison.basePeriod}
-                        comparePeriod={comparison.comparePeriod}
-                        baseValue={formatPercent(comparison.base.averageKeyResultCoverage)}
-                        compareValue={formatPercent(comparison.compare.averageKeyResultCoverage)}
-                      />
-                    </div>
-                  </>
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <ComparisonCard title={`Base: ${comparison.basePeriod}`} report={comparison.base} color={COLORS.blue} />
+                    <ComparisonCard title={`Comparado: ${comparison.comparePeriod}`} report={comparison.compare} color={COLORS.green} />
+                  </div>
                 ) : (
-                  <EmptyState text="Selecciona dos periodos para generar la comparativa." />
+                  <EmptyState text="Aún no hay comparativa. Selecciona el periodo base y el periodo comparado y pulsa Comparar." />
                 )}
               </div>
             )}
           </motion.div>
+        ) : !error ? (
+          <EmptyState text="No hay reporte consolidado para los filtros seleccionados. Cambia el periodo o el departamento y vuelve a cargar." />
         ) : null}
       </div>
     </div>

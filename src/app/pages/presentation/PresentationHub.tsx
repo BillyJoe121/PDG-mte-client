@@ -45,7 +45,7 @@ export function PresentationHub({ periodName, bets, goals, onSelectOption }: Pro
               Modo Presentación Estratégica MSP
             </h1>
             <p className="mt-2 max-w-3xl text-sm font-semibold text-[#717182] sm:text-base">
-              Selecciona una modalidad para analizar el avance del portafolio. Visualiza todas las apuestas y metas en conjunto con analítica profunda o contrasta directamente entidades específicas.
+              Selecciona una modalidad para revisar el portafolio. Consulta todas las apuestas y metas con los conteos de KRs e iniciativas registrados, o contrasta dos entidades específicas.
             </p>
           </div>
 
@@ -97,7 +97,7 @@ export function PresentationHub({ periodName, bets, goals, onSelectOption }: Pro
                 Ver todas las metas y apuestas juntas
               </h3>
               <p className="mt-2 text-sm font-medium leading-relaxed text-[#4B5563]">
-                Informe ejecutivo general con gráficas comparativas macro de todas las apuestas estratégicas y todas las metas institucionales de forma simultánea.
+                Informe general con los conteos de KRs e iniciativas registrados para todas las apuestas estratégicas y metas institucionales.
               </p>
 
               <div className="mt-6 space-y-2.5 rounded-lg border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-xs font-semibold text-[#222245]">
@@ -146,21 +146,21 @@ export function PresentationHub({ periodName, bets, goals, onSelectOption }: Pro
                 Comparar entidades estratégicas
               </h3>
               <p className="mt-2 text-sm font-medium leading-relaxed text-[#4B5563]">
-                Herramienta interactiva para contrastar cara a cara pares de entidades seleccionadas por el usuario, analizando sus gráficas y valores de desempeño.
+                Contrasta dos entidades o dos periodos con los valores registrados de cada uno.
               </p>
 
               <div className="mt-6 space-y-2.5 rounded-lg border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-xs font-semibold text-[#222245]">
                 <div className="flex items-start gap-2">
                   <CheckCircle2 size={16} className="text-[#4CB979] shrink-0 mt-0.5" aria-hidden="true" />
-                  <span><strong>Apuesta vs Apuesta:</strong> Compara KRs y avance entre dos apuestas.</span>
+                  <span><strong>Apuesta vs Apuesta:</strong> Compara KRs e iniciativas entre dos apuestas.</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 size={16} className="text-[#4CB979] shrink-0 mt-0.5" aria-hidden="true" />
-                  <span><strong>Meta vs Meta:</strong> Contrasta valores esperados y cumplimientos de metas.</span>
+                  <span><strong>Meta vs Meta:</strong> Contrasta valores esperados, KRs e iniciativas de dos metas.</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 size={16} className="text-[#4CB979] shrink-0 mt-0.5" aria-hidden="true" />
-                  <span><strong>Apuesta vs Meta:</strong> Evalúa la relación y peso entre apuestas y metas.</span>
+                  <span><strong>Apuesta vs Meta:</strong> Revisa lado a lado los registros de una apuesta y una meta.</span>
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { DEPARTAMENTOS } from "../../data/mockData";
+import { DEPARTAMENTOS } from "../../constants/departments";
 import type { Department } from "../../services/strategicApi";
 import type { ContributionType } from "../../services/projectsApi";
 

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "react-router";
-import { Bell } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { getLabelRol } from "../data/mockData";
+import { getLabelRol } from "../utils/roleLabels";
 import { ContextualHelp } from "./ContextualHelp";
 import { PlatformTutorial } from "./PlatformTutorial";
 
@@ -21,17 +20,9 @@ const breadcrumbMap: Record<string, string> = {
 export function Header() {
   const { usuario } = useAuth();
   const location = useLocation();
-  const [showNotif, setShowNotif] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
 
   const pageTitle = breadcrumbMap[location.pathname] || "MTE";
-
-  const notifications = [
-    { id: 1, msg: "KR8 tiene menos del 40% de cumplimiento a mitad del periodo.", type: "warning" },
-    { id: 2, msg: "Iniciativa 'UX Lab' no registra avance hace 30 días.", type: "warning" },
-    { id: 3, msg: "KR6 alcanzó el 90% de cumplimiento.", type: "success" },
-    { id: 4, msg: "Iniciativa 'Fábrica de Software' completó fase 3.", type: "success" },
-  ];
 
   return (
     <header
@@ -53,50 +44,9 @@ export function Header() {
         </h1>
       </div>
 
-      {/* Right: notifications + avatar */}
+      {/* Right: help + avatar */}
       <div className="flex items-center gap-3">
         <ContextualHelp onStartTutorial={() => setShowTutorial(true)} />
-        {/* Notifications */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotif(!showNotif)}
-            className="flex items-center justify-center w-9 h-9 rounded hover:bg-gray-100 transition-colors relative"
-            style={{ border: "1.5px solid #000" }}
-            title="Notificaciones"
-          >
-            <Bell size={15} color="#000" />
-            <span
-              className="absolute top-1 right-1 rounded-full"
-              style={{ width: 8, height: 8, backgroundColor: "#E9683B" }}
-            />
-          </button>
-          {showNotif && (
-            <div
-              className="absolute top-full right-0 mt-1 rounded shadow-xl z-50 overflow-hidden"
-              style={{ backgroundColor: "#fff", border: "1.5px solid #000", width: "min(320px, calc(100vw - 24px))" }}
-            >
-              <div className="px-4 py-3" style={{ borderBottom: "1px solid #e5e7eb" }}>
-                <span style={{ fontSize: "12px", fontWeight: 700, color: "#000" }}>
-                  Notificaciones ({notifications.length})
-                </span>
-              </div>
-              {notifications.map((n) => (
-                <div
-                  key={n.id}
-                  className="px-4 py-3 flex items-start gap-3"
-                  style={{ borderBottom: "1px solid #f3f4f6" }}
-                >
-                  <span
-                    className="flex-shrink-0 w-2 h-2 rounded-full mt-1.5"
-                    style={{ backgroundColor: n.type === "warning" ? "#E9683B" : "#4CB979" }}
-                  />
-                  <p style={{ fontSize: "11px", color: "#374151", lineHeight: 1.5 }}>{n.msg}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* User avatar */}
         {usuario && (
           <div

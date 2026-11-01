@@ -21,11 +21,7 @@ import { PresentationDetailModal } from "./presentation/PresentationDetailModal"
 import { PresentationGeneralReport } from "./presentation/PresentationGeneralReport";
 import { PresentationHub } from "./presentation/PresentationHub";
 import { PresentationSlideDeck } from "./presentation/PresentationSlideDeck";
-import {
-  getEffectiveBets,
-  getEffectiveGoals,
-  type PresentationMode,
-} from "./presentation/PresentationTypes";
+import type { PresentationMode } from "./presentation/PresentationTypes";
 import { buildConsolidatedSlides } from "./presentation/PresentationConsolidatedBuilder";
 import { exportGeneralReportCsv, exportSlideDeckCsv, printPresentationView } from "./presentation/presentationExportUtils";
 
@@ -99,20 +95,15 @@ export function PresentacionDashboard() {
     [data?.periods]
   );
 
-  const effectiveBets = useMemo(() => getEffectiveBets(data?.bets), [data?.bets]);
-  const effectiveGoals = useMemo(() => getEffectiveGoals(data?.goals), [data?.goals]);
+  const effectiveBets = useMemo(() => data?.bets ?? [], [data?.bets]);
+  const effectiveGoals = useMemo(() => data?.goals ?? [], [data?.goals]);
 
-  // Combined slides: COVER -> 7 CONSOLIDATED SLIDES -> STRATEGIC_BETs -> CLOSING
+  // Combined slides: COVER -> consolidated report slides -> slides returned by the API
   const slides = useMemo(() => {
     const baseSlides = data?.presentation.slides ?? [];
     if (!data) return baseSlides;
 
-    const consolidatedSlides = buildConsolidatedSlides(
-      data.consolidatedReport,
-      effectiveBets,
-      effectiveGoals,
-      periodValue || "2026-1",
-    );
+    const consolidatedSlides = buildConsolidatedSlides(data.consolidatedReport, periodValue);
 
     const coverSlide = baseSlides.find((s) => s.type === "COVER");
     const otherSlides = baseSlides.filter((s) => s.type !== "COVER");
@@ -125,7 +116,7 @@ export function PresentacionDashboard() {
       ...s,
       order: idx + 1,
     }));
-  }, [data, effectiveBets, effectiveGoals, periodValue]);
+  }, [data, periodValue]);
 
   const controls = data?.presentation.controls;
   const lastIndex = Math.max(slides.length - 1, 0);

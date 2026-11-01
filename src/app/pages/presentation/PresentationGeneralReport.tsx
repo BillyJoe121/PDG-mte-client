@@ -15,6 +15,7 @@ interface Props {
 
 export function PresentationGeneralReport({ bets, goals, periodName, onSelectBet, onSelectGoal }: Props) {
   const [activeTab, setActiveTab] = useState<"all" | "bets" | "goals">("all");
+  const isEmpty = bets.length === 0 && goals.length === 0;
 
   return (
     <div className="presentation-general-print-area mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 space-y-8">
@@ -31,7 +32,7 @@ export function PresentationGeneralReport({ bets, goals, periodName, onSelectBet
             Todas las Metas y Apuestas en Conjunto
           </h1>
           <p className="mt-1 text-sm font-semibold text-[#717182]">
-            Comparativas directas de todas las apuestas y todas las metas. Haz clic sobre cualquier barra o tarjeta para abrir el modal de información detallada.
+            KRs e iniciativas registrados para cada apuesta y cada meta del periodo. Haz clic en una barra o tarjeta para ver su detalle.
           </p>
         </div>
 
@@ -96,11 +97,20 @@ export function PresentationGeneralReport({ bets, goals, periodName, onSelectBet
         </div>
       </div>
 
-      {(activeTab === "all" || activeTab === "bets") && (
+      {isEmpty && (
+        <div role="status" className="rounded-xl border border-dashed border-[#C9CFDB] bg-white p-8 text-center">
+          <p className="text-base font-black text-[#222245]">No hay apuestas ni metas registradas para este periodo</p>
+          <p className="mt-1 text-sm font-semibold text-[#717182]">
+            Regístralas en Gestión de Apuestas y Gestión de Metas para generar el informe general.
+          </p>
+        </div>
+      )}
+
+      {!isEmpty && (activeTab === "all" || activeTab === "bets") && (
         <GeneralReportBetsSection bets={bets} periodName={periodName} onSelectBet={onSelectBet} />
       )}
 
-      {(activeTab === "all" || activeTab === "goals") && (
+      {!isEmpty && (activeTab === "all" || activeTab === "goals") && (
         <GeneralReportGoalsSection goals={goals} periodName={periodName} onSelectGoal={onSelectGoal} />
       )}
     </div>

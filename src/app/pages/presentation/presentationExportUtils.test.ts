@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as exportUtils from "../../utils/exportUtils";
 import {
+  exportBetsSummaryCsv,
   exportComparisonCsv,
   exportDetailModalCsv,
   exportGeneralReportCsv,
-  exportRankingBetsCsv,
-  exportRankingGoalsCsv,
+  exportGoalsSummaryCsv,
   exportSlideDeckCsv,
   printPresentationView,
 } from "./presentationExportUtils";
@@ -77,43 +77,48 @@ describe("presentationExportUtils", () => {
     expect(rows[0].nombre).toBe("Transformación Digital e Inteligencia Artificial");
     expect(rows[1].categoria).toBe("Meta Institucional");
     expect(rows[1].nombre).toBe("Graduación Oportuna y Éxito Estudiantil");
+    expect(rows[0]).not.toHaveProperty("cumplimiento_porcentaje");
+    expect(rows[0]).not.toHaveProperty("posicion");
+    expect(rows[1].krs_completados).toBe(6);
   });
 
-  it("exports strategic bets ranking to CSV", () => {
-    exportRankingBetsCsv(mockBets, "2026-1");
+  it("exports the bets summary with recorded counts and no position or progress", () => {
+    exportBetsSummaryCsv(mockBets, "2026-1");
 
     expect(downloadCsvSpy).toHaveBeenCalledOnce();
     const [rows, filename] = downloadCsvSpy.mock.calls[0];
-    expect(filename).toContain("ranking_apuestas");
+    expect(filename).toContain("resumen_apuestas");
     expect(rows).toHaveLength(1);
-    expect(rows[0].posicion).toBe(1);
-    expect(rows[0].tipo).toBe("Apuesta Estratégica");
+    expect(rows[0].categoria).toBe("Apuesta Estratégica");
     expect(rows[0].krs_completados).toBe(8);
-    expect(rows[0].iniciativas_totales).toBe(5);
+    expect(rows[0].iniciativas_en_progreso).toBe(1);
+    expect(rows[0]).not.toHaveProperty("posicion");
+    expect(rows[0]).not.toHaveProperty("cumplimiento_porcentaje");
     expect(rows[0]).not.toHaveProperty("objetivos_completados");
   });
 
-  it("exports institutional goals ranking to CSV", () => {
-    exportRankingGoalsCsv(mockGoals, "2026-1");
+  it("exports the goals summary with the recorded expected value", () => {
+    exportGoalsSummaryCsv(mockGoals, "2026-1");
 
     expect(downloadCsvSpy).toHaveBeenCalledOnce();
     const [rows, filename] = downloadCsvSpy.mock.calls[0];
-    expect(filename).toContain("ranking_metas");
+    expect(filename).toContain("resumen_metas");
     expect(rows).toHaveLength(1);
-    expect(rows[0].posicion).toBe(1);
-    expect(rows[0].tipo).toBe("Meta Institucional");
+    expect(rows[0].categoria).toBe("Meta Institucional");
     expect(rows[0].valor_esperado).toBe(85);
+    expect(rows[0]).not.toHaveProperty("posicion");
+    expect(rows[0]).not.toHaveProperty("cumplimiento_porcentaje");
   });
 
-  it("exports entity comparison data to CSV", () => {
+  it("exports entity comparison values side by side without a difference column", () => {
     exportComparisonCsv({
       compType: "bet-vs-bet",
       periodName: "2026-1",
       nameA: "Apuesta A",
       nameB: "Apuesta B",
-      deltaRows: [
-        { metric: "Cumplimiento", valA: "80%", valB: "70%", delta: 10, unit: "%" },
-        { metric: "KRs", valA: 4, valB: 2, delta: 2, unit: "KRs" },
+      rows: [
+        { metric: "KRs completados", valA: 4, valB: 2, unit: "KRs" },
+        { metric: "Iniciativas en curso", valA: 1, valB: 3, unit: "Iniciativas" },
       ],
     });
 
@@ -121,89 +126,39 @@ describe("presentationExportUtils", () => {
     const [rows, filename] = downloadCsvSpy.mock.calls[0];
     expect(filename).toContain("comparativa_bet-vs-bet");
     expect(rows).toHaveLength(2);
-    expect(rows[0].metrica).toBe("Cumplimiento");
-    expect(rows[0].diferencial).toBe("+10");
+    expect(rows[0].metrica).toBe("KRs completados");
+    expect(rows[0].valor_A).toBe(4);
+    expect(rows[0].valor_B).toBe(2);
+    expect(rows[0].modalidad).toBe("Apuesta vs Apuesta");
+    expect(rows[0]).not.toHaveProperty("diferencial");
   });
 
-  it("exports period-vs-period comparison data to CSV with institutional metrics", () => {
+  it("exports period-vs-period comparison rows with recorded counts only", () => {
     exportComparisonCsv({
       compType: "period-vs-period",
       periodName: "2026-1",
       nameA: "2026-1",
       nameB: "2025-2",
-      deltaRows: [],
-      periodStatsA: {
-        periodName: "2026-1",
-        totalKeyResults: 20,
-        completedKeyResults: 15,
-        totalProjects: 10,
-        completedProjects: 7,
-        activeProjects: 3,
-        averageKeyResultCoverage: 75,
-      },
-      periodStatsB: {
-        periodName: "2025-2",
-        totalKeyResults: 18,
-        completedKeyResults: 12,
-        totalProjects: 8,
-        completedProjects: 5,
-        activeProjects: 3,
-        averageKeyResultCoverage: 65,
-      },
+      rows: [
+        { metric: "KRs totales", valA: 20, valB: 18, unit: "KRs" },
+        { metric: "KRs cerrados", valA: 15, valB: 12, unit: "KRs" },
+      ],
     });
 
     expect(downloadCsvSpy).toHaveBeenCalledOnce();
     const [rows, filename] = downloadCsvSpy.mock.calls[0];
     expect(filename).toContain("comparativa_period-vs-period");
-    expect(rows.map((row: any) => row.metrica)).toEqual([
-      "Key Results Totales",
-      "Key Results Completados",
-      "Iniciativas Completadas",
-      "Cobertura Promedio KRs",
-    ]);
+    expect(rows.map((row: any) => row.metrica)).toEqual(["KRs totales", "KRs cerrados"]);
     expect(rows[0].modalidad).toBe("Periodo vs Periodo");
-  });
-
-  it("formats decimal values with max 2 decimals avoiding floating point artifacts in period comparison", () => {
-    exportComparisonCsv({
-      compType: "period-vs-period",
-      periodName: "2026-1",
-      nameA: "2026-1",
-      nameB: "2025-2",
-      deltaRows: [],
-      periodStatsA: {
-        periodName: "2026-1",
-        totalKeyResults: 15,
-        completedKeyResults: 10,
-        totalProjects: 8,
-        completedProjects: 5,
-        activeProjects: 3,
-        averageKeyResultCoverage: 54.45,
-      },
-      periodStatsB: {
-        periodName: "2025-2",
-        totalKeyResults: 14,
-        completedKeyResults: 9,
-        totalProjects: 8,
-        completedProjects: 4,
-        activeProjects: 4,
-        averageKeyResultCoverage: 30.71,
-      },
-    });
-
-    const [rows] = downloadCsvSpy.mock.calls[0];
-    const krRow = rows.find((r: any) => r.metrica === "Cobertura Promedio KRs");
-
-    // 54.45 - 30.71 = 23.74 (not 23.740000000000002%)
-    expect(krRow.valor_A).toBe("54.45%");
-    expect(krRow.valor_B).toBe("30.71%");
-    expect(krRow.diferencial).toBe("23.74%");
+    expect(rows[0].entidad_A).toBe("2026-1");
+    expect(rows[0].entidad_B).toBe("2025-2");
+    expect(rows.some((row: any) => /cobertura/i.test(row.metrica))).toBe(false);
   });
 
   it("exports slide deck outline to CSV", () => {
     const slides: PresentationSlide[] = [
       { order: 1, type: "COVER", title: "Portada", subtitle: "2026-1", content: { institution: "Icesi" } },
-      { order: 2, type: "CONSOLIDATED_PILLS", title: "4 Píldoras", subtitle: "Resumen", content: { summaryText: "Info" } },
+      { order: 2, type: "CONSOLIDATED_SUMMARY", title: "Información General del Corte", subtitle: "Resumen", content: { summaryText: "Info" } },
     ];
 
     exportSlideDeckCsv(slides, "2026-1");
@@ -223,6 +178,7 @@ describe("presentationExportUtils", () => {
     exportDetailModalCsv({ type: "goal", data: mockGoals[0] }, "2026-1");
     expect(downloadCsvSpy).toHaveBeenCalledTimes(2);
     expect(downloadCsvSpy.mock.calls[1][1]).toContain("ficha_goal");
+    expect(downloadCsvSpy.mock.calls[1][0][0]).not.toHaveProperty("cumplimiento");
   });
 
   it("delegates printPresentationView to printPDF with options", () => {

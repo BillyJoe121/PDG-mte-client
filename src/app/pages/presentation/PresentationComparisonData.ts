@@ -1,124 +1,72 @@
 import type { GeneralReport } from "../../services/reportsApi";
 import type { ExecutionSummary, Goal, StrategicBet } from "../../services/strategicApi";
-import { formatMax2Decimals, type PeriodComparisonStats } from "./PresentationTypes";
+import type { ComparisonCsvRow } from "./presentationExportUtils";
+import type { PeriodComparisonStats } from "./PresentationTypes";
 
 /** Entity selected on one side of the comparator (A or B). */
 export type ComparisonEntity =
   | { type: "bet"; data?: StrategicBet }
   | { type: "goal"; data?: Goal };
 
-/**
- * Maps an API period report to the stats shown in the comparator. Completed KRs are
- * estimated from `completedRatio` and coverage falls back to `coverageFallback`.
- */
-export function toPeriodComparisonStats(
-  periodName: string,
-  report: GeneralReport,
-  completedRatio: number,
-  coverageFallback: number,
-): PeriodComparisonStats {
+/** Maps an API period report to the counts shown in the comparator, without estimating anything. */
+export function toPeriodComparisonStats(periodName: string, report: GeneralReport): PeriodComparisonStats {
   return {
     periodName,
-    totalKeyResults: report.totalKeyResults,
-    completedKeyResults: Math.round(report.totalKeyResults * completedRatio),
-    totalProjects: report.totalProjects,
-    completedProjects: report.completedProjects,
-    activeProjects: report.activeProjects,
-    averageKeyResultCoverage: parseFloat(report.averageKeyResultCoverage) || coverageFallback,
+    totalKeyResults: report.totalKeyResults ?? 0,
+    activeKeyResults: report.activeKeyResults ?? 0,
+    closedKeyResults: report.closedKeyResults ?? 0,
+    totalProjects: report.totalProjects ?? 0,
+    activeProjects: report.activeProjects ?? 0,
+    completedProjects: report.completedProjects ?? 0,
   };
 }
 
-/** Chart data for Recharts grouped entity comparison */
+function totalProjects(summary?: ExecutionSummary) {
+  return (summary?.completedProjects ?? 0) + (summary?.inProgressProjects ?? 0);
+}
+
+/** Chart data for the grouped entity comparison: recorded counts only. */
 export function buildEntityChartData(summaryA?: ExecutionSummary, summaryB?: ExecutionSummary) {
   return [
-    {
-      metric: "KRs Completados",
-      entityA: summaryA?.completedKeyResults ?? 0,
-      entityB: summaryB?.completedKeyResults ?? 0,
-    },
-    {
-      metric: "KRs en Progreso",
-      entityA: summaryA?.inProgressKeyResults ?? 0,
-      entityB: summaryB?.inProgressKeyResults ?? 0,
-    },
-    {
-      metric: "Iniciativas Totales",
-      entityA: (summaryA?.completedProjects ?? 0) + (summaryA?.inProgressProjects ?? 0),
-      entityB: (summaryB?.completedProjects ?? 0) + (summaryB?.inProgressProjects ?? 0),
-    },
+    { metric: "KRs Completados", entityA: summaryA?.completedKeyResults ?? 0, entityB: summaryB?.completedKeyResults ?? 0 },
+    { metric: "KRs en Progreso", entityA: summaryA?.inProgressKeyResults ?? 0, entityB: summaryB?.inProgressKeyResults ?? 0 },
+    { metric: "Iniciativas Totales", entityA: totalProjects(summaryA), entityB: totalProjects(summaryB) },
   ];
 }
 
-/** Chart data for Recharts grouped period comparison */
+/** Chart data for the grouped period comparison: recorded counts only. */
 export function buildPeriodChartData(periodAStats: PeriodComparisonStats, periodBStats: PeriodComparisonStats) {
+  return buildPeriodComparisonRows(periodAStats, periodBStats).map((row) => ({
+    metric: row.metric,
+    periodA: Number(row.valA),
+    periodB: Number(row.valB),
+  }));
+}
+
+/** Rows for the period table and CSV: both recorded values, no difference. */
+export function buildPeriodComparisonRows(
+  statsA: PeriodComparisonStats,
+  statsB: PeriodComparisonStats,
+): ComparisonCsvRow[] {
   return [
-    {
-      metric: "KRs Totales",
-      periodA: periodAStats.totalKeyResults,
-      periodB: periodBStats.totalKeyResults,
-    },
-    {
-      metric: "Iniciativas Totales",
-      periodA: periodAStats.totalProjects,
-      periodB: periodBStats.totalProjects,
-    },
-    {
-      metric: "Iniciativas Completas",
-      periodA: periodAStats.completedProjects,
-      periodB: periodBStats.completedProjects,
-    },
-    {
-      metric: "Cobertura KRs (%)",
-      periodA: periodAStats.averageKeyResultCoverage,
-      periodB: periodBStats.averageKeyResultCoverage,
-    },
+    { metric: "KRs totales", valA: statsA.totalKeyResults, valB: statsB.totalKeyResults, unit: "KRs" },
+    { metric: "KRs activos", valA: statsA.activeKeyResults, valB: statsB.activeKeyResults, unit: "KRs" },
+    { metric: "KRs cerrados", valA: statsA.closedKeyResults, valB: statsB.closedKeyResults, unit: "KRs" },
+    { metric: "Iniciativas totales", valA: statsA.totalProjects, valB: statsB.totalProjects, unit: "Iniciativas" },
+    { metric: "Iniciativas activas", valA: statsA.activeProjects, valB: statsB.activeProjects, unit: "Iniciativas" },
+    { metric: "Iniciativas completadas", valA: statsA.completedProjects, valB: statsB.completedProjects, unit: "Iniciativas" },
   ];
 }
 
-/** Entity delta rows used by the comparison CSV export. */
-export function buildComparisonCsvDeltaRows(
-  progressA: number,
-  progressB: number,
-  summaryA?: ExecutionSummary,
-  summaryB?: ExecutionSummary,
-) {
+/** Rows for the entity table and CSV: recorded status and counts, no difference. */
+export function buildEntityComparisonRows(entityA: ComparisonEntity, entityB: ComparisonEntity): ComparisonCsvRow[] {
+  const summaryA = entityA.data?.executionSummary;
+  const summaryB = entityB.data?.executionSummary;
   return [
-    {
-      metric: "Cumplimiento Estimado",
-      valA: `${formatMax2Decimals(progressA)}%`,
-      valB: `${formatMax2Decimals(progressB)}%`,
-      delta: Number((progressA - progressB).toFixed(2)),
-      unit: "%",
-    },
-    {
-      metric: "Resultados Clave (KRs) Completados",
-      valA: summaryA?.completedKeyResults ?? 0,
-      valB: summaryB?.completedKeyResults ?? 0,
-      delta: (summaryA?.completedKeyResults ?? 0) - (summaryB?.completedKeyResults ?? 0),
-      unit: "KRs",
-    },
-    {
-      metric: "Resultados Clave (KRs) en Progreso",
-      valA: summaryA?.inProgressKeyResults ?? 0,
-      valB: summaryB?.inProgressKeyResults ?? 0,
-      delta: (summaryA?.inProgressKeyResults ?? 0) - (summaryB?.inProgressKeyResults ?? 0),
-      unit: "KRs",
-    },
-    {
-      metric: "Iniciativas Totales",
-      valA: (summaryA?.completedProjects ?? 0) + (summaryA?.inProgressProjects ?? 0),
-      valB: (summaryB?.completedProjects ?? 0) + (summaryB?.inProgressProjects ?? 0),
-      delta:
-        ((summaryA?.completedProjects ?? 0) + (summaryA?.inProgressProjects ?? 0)) -
-        ((summaryB?.completedProjects ?? 0) + (summaryB?.inProgressProjects ?? 0)),
-      unit: "Iniciativas",
-    },
-    {
-      metric: "Iniciativas Completadas",
-      valA: summaryA?.completedProjects ?? 0,
-      valB: summaryB?.completedProjects ?? 0,
-      delta: (summaryA?.completedProjects ?? 0) - (summaryB?.completedProjects ?? 0),
-      unit: "Iniciativas",
-    },
+    { metric: "Estado", valA: entityA.data?.status ?? "Sin registro", valB: entityB.data?.status ?? "Sin registro" },
+    { metric: "KRs completados", valA: summaryA?.completedKeyResults ?? 0, valB: summaryB?.completedKeyResults ?? 0, unit: "KRs" },
+    { metric: "KRs en progreso", valA: summaryA?.inProgressKeyResults ?? 0, valB: summaryB?.inProgressKeyResults ?? 0, unit: "KRs" },
+    { metric: "Iniciativas totales", valA: totalProjects(summaryA), valB: totalProjects(summaryB), unit: "Iniciativas" },
+    { metric: "Iniciativas completadas", valA: summaryA?.completedProjects ?? 0, valB: summaryB?.completedProjects ?? 0, unit: "Iniciativas" },
   ];
 }

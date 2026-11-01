@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { IcesiLogo } from "./IcesiLogo";
 import { useAuth } from "../context/AuthContext";
-import { getLabelRol } from "../data/mockData";
+import { getLabelRol } from "../utils/roleLabels";
 import { hasPermission, type PermissionAction } from "../security/permissions";
 
 const navItems = [
