@@ -73,6 +73,41 @@ describe("Auditoria", () => {
     expect(mocks.summary).toHaveBeenLastCalledWith(expect.objectContaining({ action: "UPDATE", entityId: "12" }));
   });
 
+  it("filters by account actions and any emitted entity type", async () => {
+    const user = userEvent.setup();
+    render(<Auditoria />);
+    await screen.findByText("Resultado clave actualizado");
+
+    const actions = within(screen.getByLabelText("Acción")).getAllByRole("option").map((option) => option.textContent);
+    expect(actions).toEqual(expect.arrayContaining(["Cuenta bloqueada", "Enlace de acceso generado", "Contraseña cambiada", "Contraseña establecida"]));
+    const entities = within(screen.getByLabelText("Tipo de entidad")).getAllByRole("option").map((option) => option.textContent);
+    expect(entities).toEqual(expect.arrayContaining(["Departamento", "Usuario del directorio", "Meta institucional", "Profesor", "Rol", "Mundo"]));
+
+    await user.selectOptions(screen.getByLabelText("Acción"), "ACCOUNT_LOCKED");
+    await user.selectOptions(screen.getByLabelText("Tipo de entidad"), "PROFESSOR");
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+
+    await waitFor(() => expect(mocks.list).toHaveBeenLastCalledWith(expect.objectContaining({
+      action: "ACCOUNT_LOCKED",
+      entityType: "PROFESSOR",
+    })));
+  });
+
+  it("labels account events and shows unknown values as received", async () => {
+    mocks.list.mockResolvedValueOnce([
+      { ...log, id: 2, action: "PASSWORD_SET" as unknown as typeof log.action, entityType: "PROFESSOR", summary: "Contraseña establecida por primera vez" },
+      { ...log, id: 3, action: "NEW_ACTION" as unknown as typeof log.action, entityType: "NEW_ENTITY", summary: "Evento futuro" },
+    ]);
+    render(<Auditoria />);
+
+    const row = (await screen.findByText("Contraseña establecida por primera vez")).closest("tr") as HTMLElement;
+    expect(within(row).getByText("Contraseña establecida")).toBeInTheDocument();
+    expect(within(row).getByText("Profesor")).toBeInTheDocument();
+    const unknown = screen.getByText("Evento futuro").closest("tr") as HTMLElement;
+    expect(within(unknown).getByText("NEW_ACTION")).toBeInTheDocument();
+    expect(within(unknown).getByText("NEW_ENTITY")).toBeInTheDocument();
+  });
+
   it("distinguishes an API failure from an empty audit", async () => {
     mocks.list.mockRejectedValueOnce(new Error("sin conexión"));
     render(<Auditoria />);

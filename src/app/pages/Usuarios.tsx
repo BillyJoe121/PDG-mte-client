@@ -22,6 +22,15 @@ const ROLE_STYLES: Record<DirectoryAccessRole, { background: string; color: stri
   VISITOR: { background: "#F3F4F6", color: "#374151" },
 };
 
+/** Role label; roles the client does not know yet are shown as received. */
+function roleLabel(role: string) {
+  return Object.prototype.hasOwnProperty.call(ROLE_LABELS, role) ? ROLE_LABELS[role as DirectoryAccessRole] : role;
+}
+
+function roleStyle(role: string) {
+  return Object.prototype.hasOwnProperty.call(ROLE_STYLES, role) ? ROLE_STYLES[role as DirectoryAccessRole] : ROLE_STYLES.VISITOR;
+}
+
 function message(error: unknown) {
   return error instanceof Error ? error.message : "No se pudo completar la operación.";
 }
@@ -132,7 +141,7 @@ export function Usuarios() {
     ID: entry.id,
     Nombre: entry.name,
     Correo: entry.email,
-    Rol: ROLE_LABELS[entry.accessRole],
+    Rol: roleLabel(entry.accessRole),
     Departamento: entry.departmentName,
     Estado: entry.active ? "Activo" : "Inactivo",
     UltimoAcceso: entry.lastAccessAt ?? "Sin registro",
@@ -166,11 +175,13 @@ export function Usuarios() {
         </div>
       ) : tab === "users" ? (
         <section className="space-y-4" aria-label="Gestión de usuarios">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <Stat label="Usuarios" value={users.length} />
             <Stat label="Activos" value={users.filter((entry) => entry.active).length} />
+            <Stat label="Administradores" value={users.filter((entry) => entry.accessRole === "ADMIN").length} />
             <Stat label="Gestores" value={users.filter((entry) => entry.accessRole === "MANAGER").length} />
             <Stat label="Colaboradores" value={users.filter((entry) => entry.accessRole === "CONTRIBUTOR").length} />
+            <Stat label="Visitantes" value={users.filter((entry) => entry.accessRole === "VISITOR").length} />
           </div>
 
           <div className="flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white p-3">
@@ -203,11 +214,11 @@ export function Usuarios() {
                 {visibleUsers.map((entry) => (
                   <tr key={entry.id} className="border-t border-gray-100">
                     <td className="px-4 py-3"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#5454E9] text-[10px] font-extrabold text-white">{initials(entry.name)}</span><div><p className="text-xs font-bold text-black">{entry.name}</p><p className="text-[11px] text-gray-500">{entry.email}</p></div></div></td>
-                    <td className="px-4 py-3"><span className="rounded px-2 py-1 text-[10px] font-bold" style={ROLE_STYLES[entry.accessRole]}>{ROLE_LABELS[entry.accessRole]}</span></td>
+                    <td className="px-4 py-3"><span className="rounded px-2 py-1 text-[10px] font-bold" style={roleStyle(entry.accessRole)}>{roleLabel(entry.accessRole)}</span></td>
                     <td className="max-w-64 px-4 py-3 text-xs text-gray-700">{entry.departmentName}</td>
                     <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 text-xs font-bold ${entry.active ? "text-emerald-700" : "text-gray-400"}`}>{entry.active ? <UserCheck size={13} /> : <UserX size={13} />}{entry.active ? "Activo" : "Inactivo"}</span></td>
                     <td className="px-4 py-3 text-xs text-gray-500">{entry.lastAccessAt ? new Date(entry.lastAccessAt).toLocaleString("es-CO") : "Sin registro"}</td>
-                    <td className="px-4 py-3"><div className="flex gap-1"><IconButton label="Editar usuario" onClick={() => setEditingUser(entry)}><Edit2 size={14} /></IconButton><IconButton label="Generar enlace de acceso" onClick={() => void issueAccessLink(entry)} disabled={issuingLinkFor === entry.id}>{issuingLinkFor === entry.id ? <Loader2 size={14} className="animate-spin motion-reduce:animate-none" /> : <Link2 size={14} />}</IconButton><IconButton label={entry.active ? "Desactivar usuario" : "Activar usuario"} onClick={() => void setUserActive(entry)}>{entry.active ? <UserX size={14} /> : <UserCheck size={14} />}</IconButton><IconButton label="Eliminar usuario" onClick={() => void removeUser(entry)} danger><Trash2 size={14} /></IconButton></div></td>
+                    <td className="px-4 py-3"><div className="flex gap-1"><IconButton label="Editar usuario" onClick={() => setEditingUser(entry)}><Edit2 size={14} /></IconButton><IconButton label="Generar enlace de acceso" onClick={() => void issueAccessLink(entry)} disabled={!entry.active || issuingLinkFor === entry.id}>{issuingLinkFor === entry.id ? <Loader2 size={14} className="animate-spin motion-reduce:animate-none" /> : <Link2 size={14} />}</IconButton><IconButton label={entry.active ? "Desactivar usuario" : "Activar usuario"} onClick={() => void setUserActive(entry)}>{entry.active ? <UserX size={14} /> : <UserCheck size={14} />}</IconButton><IconButton label="Eliminar usuario" onClick={() => void removeUser(entry)} danger><Trash2 size={14} /></IconButton></div></td>
                   </tr>
                 ))}
               </tbody>
