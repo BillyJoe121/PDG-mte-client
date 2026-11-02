@@ -1,5 +1,3 @@
-import type { ContributionType } from "../../services/projectsApi";
-
 export const COLORS = {
   blue: "#5454E9",
   purple: "#5454E9",
@@ -10,12 +8,6 @@ export const COLORS = {
   border: "#D9DEE8",
   subtle: "#F7F8FB",
 };
-
-export const CONTRIBUTION_TYPES: { value: ContributionType; label: string }[] = [
-  { value: "DIRECTA", label: "Directa" },
-  { value: "INDIRECTA", label: "Indirecta" },
-  { value: "SOPORTE", label: "Soporte" },
-];
 
 /** "90 Porcentaje"; shows the value alone when the unit name is missing. */
 export function formatValueWithUnit(value: number | null | undefined, unitName: string | null | undefined) {
