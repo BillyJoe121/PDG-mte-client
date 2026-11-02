@@ -1,16 +1,14 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { AlertTriangle, BookOpen, Flag, KeyRound, Loader2, Plus, RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, Archive, BookOpen, Flag, KeyRound, Loader2, Plus, RefreshCw, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { invalidateScreenDataCache, loadKeyResults } from "../services/screenDataCache";
 import { keyResultsApi, type KeyResult, type KeyResultRequest, type KeyResultStatus } from "../services/strategicApi";
 import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
-import { truncateText } from "../utils/text";
-import { keyResultStrategyLabel } from "../utils/keyResultOptions";
-import { lifecycleLabel } from "../utils/strategicLifecycle";
+import { KeyResultCard } from "./okrs/KeyResultCard";
 import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
 import { KrFormModal } from "./okrs/KrFormModal";
 import { COLORS } from "./okrs/okrsShared";
@@ -37,6 +35,8 @@ export function KRs() {
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [status, setStatus] = useState<KeyResultStatus | "">(() => parseKeyResultStatusFilter(searchParams.get("status")));
   const [selected, setSelected] = useState<number | null>(() => parseKeyResultId(searchParams.get("keyResultId")));
+  const [showArchived, setShowArchived] = useState(false);
+  const [restoringId, setRestoringId] = useState<number | null>(null);
 
   useEffect(() => {
     const nextSearch = searchParams.get("q") ?? "";
@@ -52,7 +52,7 @@ export function KRs() {
       setLoadError("");
     }
     try {
-      const data = await loadKeyResults(undefined, { force: options?.force });
+      const data = await loadKeyResults(showArchived ? { includeArchived: true } : undefined, { force: options?.force });
       setKeyResults(data);
       setLoadError("");
     } catch (error) {
@@ -60,7 +60,7 @@ export function KRs() {
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => {
     void load();
@@ -73,8 +73,9 @@ export function KRs() {
 
   const drilldown = useMemo(() => readKeyResultDrilldown(searchParams), [searchParams]);
   const visibleKrs = useMemo(() => filterKeyResults(keyResults, search, status, drilldown), [keyResults, status, search, drilldown]);
-  // Las tarjetas cuentan todos los KR cargados; solo la lista respeta los filtros.
-  const stats = useMemo(() => countKeyResultsByStatus(keyResults), [keyResults]);
+  // Las tarjetas cuentan los KR vigentes cargados; solo la lista respeta los filtros.
+  const stats = useMemo(() => countKeyResultsByStatus(keyResults.filter((item) => item.archived !== true)), [keyResults]);
+  const archivedCount = useMemo(() => keyResults.filter((item) => item.archived === true).length, [keyResults]);
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
@@ -118,6 +119,24 @@ export function KRs() {
       toast.error(error instanceof Error ? error.message : "No se pudo crear el Key Result");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const restoreKr = async (item: KeyResult) => {
+    setRestoringId(item.id);
+    try {
+      await keyResultsApi.setActive(item.id, true);
+      invalidateScreenDataCache();
+      signalStrategicDataChanged({
+        reason: "key-result-restore",
+        scopes: ["keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+      });
+      toast.success("Key Result restaurado");
+      await load({ force: true, silent: true });
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : "No se pudo restaurar el Key Result");
+    } finally {
+      setRestoringId(null);
     }
   };
 
@@ -230,6 +249,23 @@ export function KRs() {
               {item.label}
             </button>
           ))}
+          <button
+            type="button"
+            aria-pressed={showArchived}
+            onClick={() => setShowArchived((current) => !current)}
+            className="inline-flex items-center gap-1.5"
+            style={{
+              marginLeft: "auto",
+              padding: "7px 11px",
+              border: `1px solid ${showArchived ? COLORS.blue : COLORS.border}`,
+              backgroundColor: showArchived ? "#EEF2FF" : "#fff",
+              color: showArchived ? COLORS.blue : COLORS.gray,
+              fontSize: 11,
+              fontWeight: 850,
+            }}
+          >
+            <Archive size={12} /> Archivados{showArchived && archivedCount > 0 ? ` (${archivedCount})` : ""}
+          </button>
         </div>
       </section>
 
@@ -255,7 +291,15 @@ export function KRs() {
         ) : (
           <motion.div key="cards" {...viewMotion} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 items-start">
             {visibleKrs.map((item, index) => (
-              <KeyResultCard key={item.id} item={item} index={index} onOpen={() => openKr(item)} />
+              <KeyResultCard
+                key={item.id}
+                item={item}
+                index={index}
+                canRestore={canEdit}
+                restoring={restoringId === item.id}
+                onOpen={() => openKr(item)}
+                onRestore={() => void restoreKr(item)}
+              />
             ))}
           </motion.div>
         )}
@@ -268,9 +312,6 @@ export function KRs() {
             canEdit={canEdit}
             onClose={closeKr}
             onChanged={async () => {
-              await load({ force: true, silent: true });
-            }}
-            onDeleted={async () => {
               await load({ force: true, silent: true });
             }}
             renderActions={(keyResult) => (
@@ -297,53 +338,6 @@ export function KRs() {
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function KeyResultCard({ item, index, onOpen }: { item: KeyResult; index: number; onOpen: () => void }) {
-  const reduceMotion = useReducedMotion();
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onOpen();
-    }
-  };
-
-  return (
-    <motion.div
-      layout
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={handleKeyDown}
-      className="kr-detail-card rounded-md overflow-hidden"
-      style={{ cursor: "pointer", minHeight: 292, aspectRatio: "1 / 1", display: "flex", flexDirection: "column" }}
-      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      transition={{ duration: 0.16, ease: "easeOut", delay: Math.min(index * 0.025, 0.12) }}
-      whileHover={reduceMotion ? undefined : { y: -2, transition: { duration: 0.12, ease: "easeOut" } }}
-      whileTap={reduceMotion ? undefined : { scale: 0.997, transition: { duration: 0.08, ease: "easeOut" } }}
-    >
-      <div className="flex flex-1 flex-col p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 space-y-2">
-            <p className="kr-detail-card__description" style={{ fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>KR-{String(item.id).padStart(2, "0")}</p>
-            <p className="kr-detail-card__description" style={{ fontSize: 11, fontWeight: 800 }}>{item.academicPeriodName ?? "Sin periodo"}</p>
-            <span className="kr-detail-card__value inline-flex items-center gap-1.5 rounded px-2 py-1" style={{ fontSize: 10, fontWeight: 850 }}>
-              {lifecycleLabel(keyResultStatusOf(item))}
-            </span>
-          </div>
-          <span className="kr-detail-card__progress rounded-md px-3 py-2" title="Avance registrado" aria-label={`Avance registrado ${item.progressPercentage}%`} style={{ fontSize: 18, fontWeight: 950, lineHeight: 1 }}>{item.progressPercentage}%</span>
-        </div>
-        <div className="flex flex-1 items-center py-4">
-          <h3 className="kr-detail-card__title" style={{ width: "100%", fontSize: 25, fontWeight: 900, lineHeight: 1.08, overflowWrap: "anywhere" }}>{truncateText(item.name, 68)}</h3>
-        </div>
-        <div className="mt-auto pt-3">
-          <p className="kr-detail-card__description" style={{ fontSize: 12, lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.description}</p>
-          <p className="kr-detail-card__description" style={{ fontSize: 11, fontWeight: 850, marginTop: 10 }}>{truncateText(keyResultStrategyLabel(item), 70)}</p>
-        </div>
-      </div>
-    </motion.div>
   );
 }
 

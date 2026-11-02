@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { BarChart3, BookOpen, CalendarDays, CircleCheck, Edit2, Flag, KeyRound, Loader2, Play, Scale, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, BarChart3, BookOpen, CalendarDays, CircleCheck, Edit2, Flag, KeyRound, Loader2, Play, Scale, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { measurementUnitsApi, type MeasurementUnit } from "../../services/catalogsApi";
@@ -8,9 +8,10 @@ import {
   type ProjectKeyResultLinkResponse,
 } from "../../services/projectsApi";
 import { invalidateScreenDataCache } from "../../services/screenDataCache";
-import { ApiError, keyResultsApi, type KeyResult, type KeyResultRequest } from "../../services/strategicApi";
+import { keyResultsApi, type KeyResult, type KeyResultRequest } from "../../services/strategicApi";
 import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicLifecycle";
+import { ConfirmActionModal } from "./ConfirmActionModal";
 import { KrFormModal } from "./KrFormModal";
 import { KeyResultProgressForm } from "./KeyResultProgressForm";
 import { COLORS, formatValueWithUnit } from "./okrsShared";
@@ -21,13 +22,12 @@ interface KeyResultDetailModalProps {
   canEdit: boolean;
   onClose: () => void;
   onChanged?: () => Promise<void>;
-  onDeleted?: () => Promise<void>;
   renderActions?: (keyResult: KeyResult) => ReactNode;
 }
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 
-export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged, onDeleted, renderActions }: KeyResultDetailModalProps) {
+export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged, renderActions }: KeyResultDetailModalProps) {
   const reduceMotion = useReducedMotion();
   const [keyResult, setKeyResult] = useState<KeyResult | null>(null);
   const [links, setLinks] = useState<ProjectKeyResultLinkResponse[]>([]);
@@ -36,7 +36,9 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
   const [saving, setSaving] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [editingKr, setEditingKr] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [archiveConfirm, setArchiveConfirm] = useState(false);
+  const [archiveError, setArchiveError] = useState("");
+  const [restoring, setRestoring] = useState(false);
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -66,7 +68,9 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
   const declaredWeightSum = links[0]?.totalWeightForKeyResult ?? links.reduce((sum, link) => sum + link.contributionWeight, 0);
   const declaredWeightsExceeded = declaredWeightSum > 100;
   const lifecycleAction = keyResult ? keyResultLifecycleAction(keyResult.status ?? "ACTIVO") : null;
-  const keyResultMutable = keyResult?.status !== "CERRADO";
+  const keyResultArchived = keyResult?.archived === true;
+  const keyResultClosed = keyResult?.status === "CERRADO";
+  const keyResultMutable = !keyResultClosed && !keyResultArchived;
 
   const updateKr = async (body: KeyResultRequest) => {
     if (!keyResult) return;
@@ -100,35 +104,60 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
     await onChanged?.();
   };
 
-  const requestDelete = () => {
-    if (links.length > 0) {
-      toast.warning("No se puede eliminar un KR con iniciativas vinculadas. Desvincula las iniciativas primero.");
-      return;
-    }
-    setDeleteConfirm(true);
+  const signalKeyResultChange = (reason: string) => {
+    invalidateScreenDataCache();
+    signalStrategicDataChanged({
+      reason,
+      scopes: ["keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
+    });
   };
 
-  const deleteKr = async () => {
+  const requestArchive = () => {
+    if (links.length > 0) {
+      toast.warning("No se puede archivar un KR con iniciativas vinculadas. Desvincula las iniciativas primero.");
+      return;
+    }
+    setArchiveError("");
+    setArchiveConfirm(true);
+  };
+
+  const closeArchiveConfirm = () => {
+    if (saving) return;
+    setArchiveConfirm(false);
+    setArchiveError("");
+  };
+
+  const archiveKr = async () => {
     if (!keyResult) return;
     setSaving(true);
+    setArchiveError("");
     try {
-      await keyResultsApi.remove(keyResult.id);
-      invalidateScreenDataCache();
-      signalStrategicDataChanged({
-        reason: "key-result-delete",
-        scopes: ["keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
-      });
-      toast.success("Key Result eliminado");
-      await onDeleted?.();
+      await keyResultsApi.setActive(keyResult.id, false);
+      signalKeyResultChange("key-result-archive");
+      toast.success("Key Result archivado");
+      setArchiveConfirm(false);
+      await onChanged?.();
       onClose();
     } catch (error) {
-      const message = error instanceof ApiError && error.status === 409
-        ? "No se puede eliminar este Key Result porque tiene iniciativas vinculadas activas."
-        : error instanceof Error ? error.message : "No se pudo eliminar el Key Result";
-      toast.error(message);
+      setArchiveError(error instanceof Error && error.message ? error.message : "No se pudo archivar el Key Result");
     } finally {
       setSaving(false);
-      setDeleteConfirm(false);
+    }
+  };
+
+  const restoreKr = async () => {
+    if (!keyResult) return;
+    setRestoring(true);
+    try {
+      await keyResultsApi.setActive(keyResult.id, true);
+      signalKeyResultChange("key-result-restore");
+      toast.success("Key Result restaurado");
+      await load(true);
+      await onChanged?.();
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : "No se pudo restaurar el Key Result");
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -200,6 +229,12 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                         <h2 style={{ color: COLORS.blue, fontSize: 26, fontWeight: 950, lineHeight: 1.12, maxWidth: 820 }}>{keyResult.name}</h2>
                         {keyResult.description && <p style={{ color: COLORS.text, fontSize: 14, lineHeight: 1.6, fontWeight: 400, maxWidth: 820 }}>{keyResult.description}</p>}
                       </div>
+
+                      {keyResultArchived && (
+                        <p role="status" className="rounded-md px-3 py-2" style={{ border: "1px solid #FCD34D", backgroundColor: "#FFFBEB", color: "#92400E", fontSize: 12, fontWeight: 800, lineHeight: 1.45, maxWidth: 820 }}>
+                          Este KR está archivado{formatArchivedSince(keyResult.archivedAt)}. No admite cambios hasta que lo restaures.
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -217,7 +252,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                       {renderActions?.(keyResult)}
                       {canEdit && (
                         <>
-                          {lifecycleAction && (
+                          {lifecycleAction && !keyResultArchived && (
                             <button type="button" onClick={() => void transitionKeyResult()} disabled={saving || transitioning} className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60" style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}>
                               {transitioning ? <Loader2 size={12} className="animate-spin" /> : lifecycleAction.target === "ACTIVO" ? <Play size={12} /> : <CircleCheck size={12} />}
                               {lifecycleAction.label}
@@ -228,10 +263,15 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                               <button type="button" onClick={() => setEditingKr(true)} className="hierarchy-detail-header-manage-btn rounded-md" style={{ "--hierarchy-card-accent": COLORS.blue } as CSSProperties}>
                                 <Edit2 size={12} /> Editar KR
                               </button>
-                              <button type="button" onClick={requestDelete} disabled={saving || transitioning} className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60" style={{ "--hierarchy-card-accent": COLORS.orange } as CSSProperties}>
-                                <Trash2 size={12} /> Eliminar
+                              <button type="button" onClick={requestArchive} disabled={saving || transitioning} className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60" style={{ "--hierarchy-card-accent": COLORS.orange } as CSSProperties}>
+                                <Archive size={12} /> Archivar
                               </button>
                             </>
+                          )}
+                          {keyResultArchived && (
+                            <button type="button" onClick={() => void restoreKr()} disabled={restoring} className="hierarchy-detail-header-manage-btn rounded-md disabled:opacity-60" style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}>
+                              {restoring ? <Loader2 size={12} className="animate-spin" /> : <ArchiveRestore size={12} />} Restaurar
+                            </button>
                           )}
                         </>
                       )}
@@ -260,7 +300,12 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                       {canEdit && keyResultMutable && (
                         <KeyResultProgressForm keyResult={keyResult} onRecorded={handleProgressRecorded} />
                       )}
-                      {canEdit && !keyResultMutable && (
+                      {canEdit && keyResultArchived && (
+                        <p className="mt-2" style={{ color: COLORS.gray, fontSize: 11, lineHeight: 1.45 }}>
+                          Este KR está archivado: restáuralo para registrar avance.
+                        </p>
+                      )}
+                      {canEdit && keyResultClosed && !keyResultArchived && (
                         <p className="mt-2" style={{ color: COLORS.gray, fontSize: 11, lineHeight: 1.45 }}>
                           Este KR está cerrado: su avance ya no se puede modificar.
                         </p>
@@ -277,8 +322,8 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
         {editingKr && keyResult && (
           <KrFormModal keyResult={keyResult} units={units} saving={saving} onClose={() => setEditingKr(false)} onSubmit={updateKr} />
         )}
-        {deleteConfirm && keyResult && (
-          <ConfirmActionModal title="Eliminar Key Result" description="Esta acción eliminará el KR. Solo se permite cuando no tiene iniciativas vinculadas." actionLabel="Eliminar" saving={saving} accent={COLORS.orange} onClose={() => setDeleteConfirm(false)} onConfirm={deleteKr}>
+        {archiveConfirm && keyResult && (
+          <ConfirmActionModal title="Archivar Key Result" description="El KR dejará de aparecer en el listado, la jerarquía y los reportes. Podrás restaurarlo desde Archivados. Solo se puede archivar si no tiene iniciativas vinculadas." actionLabel="Archivar" saving={saving} accent={COLORS.orange} error={archiveError} onClose={closeArchiveConfirm} onConfirm={() => void archiveKr()}>
             <p style={{ fontSize: 13, color: COLORS.text, fontWeight: 900, marginTop: 10 }}>{keyResult.name}</p>
           </ConfirmActionModal>
         )}
@@ -287,26 +332,15 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
   );
 }
 
+function formatArchivedSince(archivedAt?: string | null) {
+  if (!archivedAt) return "";
+  const date = new Date(archivedAt);
+  return Number.isNaN(date.getTime()) ? "" : ` desde el ${date.toLocaleDateString("es-CO")}`;
+}
+
 function joinLinkNames(links?: Array<{ name: string }>) {
   const names = (links ?? []).map((link) => link.name).filter(Boolean);
   return names.length ? names.join(", ") : "Sin vínculo";
-}
-
-function ConfirmActionModal({ title, description, actionLabel, saving, accent, onClose, onConfirm, children }: { title: string; description: string; actionLabel: string; saving: boolean; accent: string; onClose: () => void; onConfirm: () => void; children?: ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(17,24,39,0.40)" }} onClick={onClose}>
-      <div className="w-full max-w-md overflow-hidden rounded-lg bg-white" style={{ boxShadow: "0 28px 90px rgba(0,0,0,0.28)" }} onClick={(event) => event.stopPropagation()}>
-        <div className="px-5 py-4" style={{ backgroundColor: accent }}><p style={{ color: "#fff", fontSize: 15, fontWeight: 900 }}>{title}</p></div>
-        <div className="p-5"><p style={{ fontSize: 12, color: COLORS.gray, lineHeight: 1.55 }}>{description}</p>{children}</div>
-        <div className="flex justify-end gap-2 px-5 pb-5">
-          <button type="button" onClick={onClose} disabled={saving} className="detail-invert-button detail-invert-button--outline detail-invert-button--orange" style={{ padding: "8px 12px", border: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 800, backgroundColor: "#fff" }}>Cancelar</button>
-          <button type="button" onClick={onConfirm} disabled={saving} className="detail-invert-button detail-invert-button--solid detail-invert-button--orange inline-flex items-center gap-2 disabled:opacity-60" style={{ padding: "8px 12px", backgroundColor: accent, color: "#fff", fontSize: 12, fontWeight: 900 }}>
-            {saving && <Loader2 size={13} className="animate-spin" />}{actionLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function ContextRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {

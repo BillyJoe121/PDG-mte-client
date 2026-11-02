@@ -111,12 +111,16 @@ export interface KeyResult {
   status: KeyResultStatus;
   createdAt: string;
   plannerUrl?: string | null;
+  /** Archived KRs are hidden from every listing unless `includeArchived` is requested. */
+  archived?: boolean;
+  archivedAt?: string | null;
 }
 
 export interface KeyResultListParams {
   goalId?: number;
   strategicBetId?: number;
   periodId?: number;
+  includeArchived?: boolean;
 }
 
 export interface StrategicHierarchyNode {
@@ -311,7 +315,12 @@ export const goalsApi = {
 
 export const keyResultsApi = {
   list: (params?: KeyResultListParams) =>
-    api<KeyResult[]>(`/key-results${query({ goalId: params?.goalId, strategicBetId: params?.strategicBetId, periodId: params?.periodId })}`),
+    api<KeyResult[]>(`/key-results${query({
+      goalId: params?.goalId,
+      strategicBetId: params?.strategicBetId,
+      periodId: params?.periodId,
+      includeArchived: params?.includeArchived ? "true" : undefined,
+    })}`),
   create: (body: KeyResultRequest) =>
     api<KeyResult>("/key-results", { method: "POST", body: JSON.stringify(body) }),
   get: (id: number) => api<KeyResult>(`/key-results/${id}`),
@@ -321,8 +330,9 @@ export const keyResultsApi = {
     api<KeyResult>(`/key-results/${id}/progress`, { method: "PATCH", body: JSON.stringify(body) }),
   setStatus: (id: number, status: KeyResultStatus) =>
     api<KeyResult>(`/key-results/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
-  remove: (id: number) =>
-    api<void>(`/key-results/${id}`, { method: "DELETE" }),
+  /** Archives (`active: false`) or restores (`active: true`) a key result. */
+  setActive: (id: number, active: boolean) =>
+    api<KeyResult>(`/key-results/${id}/active`, { method: "PATCH", body: JSON.stringify({ active }) }),
 };
 
 export const listKeyResults = (params?: KeyResultListParams) => keyResultsApi.list(params);

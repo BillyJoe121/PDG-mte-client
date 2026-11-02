@@ -80,13 +80,13 @@ describe("strategic hierarchy APIs", () => {
 
     await keyResultsApi.update(9, kr);
     await keyResultsApi.updateProgress(9, { currentValue: 42, progressPercentage: 40 });
-    await keyResultsApi.remove(9);
+    await keyResultsApi.setActive(9, false);
     await hierarchyApi.tree("2026-1");
     await departmentsApi.list();
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/key-results/9`, expect.objectContaining({ method: "PUT", body: JSON.stringify(kr) }));
     expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/key-results/9/progress`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ currentValue: 42, progressPercentage: 40 }) }));
-    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/key-results/9`, expect.objectContaining({ method: "DELETE" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/key-results/9/active`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ active: false }) }));
     expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/strategic-hierarchy/tree?period=2026-1`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(5, `${baseUrl}/departments`, expect.any(Object));
   });
@@ -116,6 +116,39 @@ describe("strategic hierarchy APIs", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/key-results?goalId=3`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/key-results?goalId=3&strategicBetId=4&periodId=5`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/key-results?periodId=5`, expect.any(Object));
+  });
+
+  it("asks for archived key results only when includeArchived is true", async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+
+    await keyResultsApi.list({ includeArchived: true });
+    await keyResultsApi.list({ includeArchived: false });
+    await keyResultsApi.list({ periodId: 5, includeArchived: true });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/key-results?includeArchived=true`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/key-results`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/key-results?periodId=5&includeArchived=true`, expect.any(Object));
+  });
+
+  it("archives and restores a key result through the active endpoint", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ id: 9, archived: true, archivedAt: "2026-11-02T10:00:00Z" }));
+
+    const archived = await keyResultsApi.setActive(9, false);
+    await keyResultsApi.setActive(9, true);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/key-results/9/active`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ active: false }) }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/key-results/9/active`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ active: true }) }));
+    expect(archived).toMatchObject({ id: 9, archived: true });
+  });
+
+  it("surfaces the API message when archiving is refused", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: "El KR tiene iniciativas vinculadas activas." }, 409));
+
+    await expect(keyResultsApi.setActive(9, false)).rejects.toMatchObject({
+      name: "ApiError",
+      status: 409,
+      message: "El KR tiene iniciativas vinculadas activas.",
+    });
   });
 
   it("creates a key result linked to Metas and Apuestas", async () => {
@@ -191,7 +224,7 @@ describe("strategic hierarchy APIs", () => {
   it("returns undefined for no-content strategic deletes", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(null, 204));
 
-    await expect(keyResultsApi.remove(9)).resolves.toBeUndefined();
+    await expect(departmentsApi.remove(9)).resolves.toBeUndefined();
   });
 
   it("supports soft delete and recovery endpoints", async () => {

@@ -165,11 +165,11 @@ Indicadores cuantificables (KRs) vinculados N:M a Metas y Apuestas (al menos una
 
 | Método | Ruta | Descripción | Acceso |
 |:---|:---|:---|:---|
-| **`GET`** | `/api/v1/key-results` | Lista KRs. Filtros opcionales `goalId`, `strategicBetId`, `periodId`. | Autenticado |
+| **`GET`** | `/api/v1/key-results` | Lista KRs. Filtros opcionales `goalId`, `strategicBetId`, `periodId`. Por defecto excluye los archivados; `includeArchived=true` los incluye. | Autenticado |
 | **`POST`** | `/api/v1/key-results` | Crea un KR vinculado a Metas y/o Apuestas. | `ADMIN`, `MANAGER` |
 | **`GET`** | `/api/v1/key-results/{id}` | Obtiene un KR. | Autenticado |
 | **`PUT`** | `/api/v1/key-results/{id}` | Actualiza completamente la configuración de un KR. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
-| **`DELETE`** | `/api/v1/key-results/{id}` | Elimina físicamente un KR. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
+| **`PATCH`** | `/api/v1/key-results/{id}/active` | Archiva (`active=false`) o restaura (`active=true`) un KR. Archivar devuelve 409 si el KR está cerrado o tiene iniciativas vinculadas activas. | `ADMIN`, `MANAGER` |
 
 * **Cuerpo de Solicitud (`KeyResultRequest`):**
   ```json
@@ -182,10 +182,11 @@ Indicadores cuantificables (KRs) vinculados N:M a Metas y Apuestas (al menos una
     "measurementUnitId": "Long (Requerido)",
     "academicPeriodId": "Long (Requerido)",
     "goalIds": ["Long"],
-    "strategicBetIds": ["Long"]
+    "strategicBetIds": ["Long"],
+    "plannerUrl": "String (Opcional, https de Microsoft; vacío o null lo quita)"
   }
   ```
-  `goalIds` y `strategicBetIds` no pueden ir vacíos a la vez (400).
+  `goalIds` y `strategicBetIds` no pueden ir vacíos a la vez (400). La respuesta (`KeyResultResponse`) incluye `plannerUrl`, `archived` y `archivedAt`. Un KR archivado no admite cambios, avances ni nuevos vínculos (409).
 
 ---
 

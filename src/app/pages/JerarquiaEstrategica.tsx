@@ -328,10 +328,6 @@ export function JerarquiaEstrategica() {
             onChanged={async () => {
               await load({ force: true, resetSelection: false, silent: true });
             }}
-            onDeleted={async () => {
-              setViewingKeyResultId(null);
-              await load({ force: true, resetSelection: false, silent: true });
-            }}
           />
         )}
         {viewingProjectId && (
