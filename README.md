@@ -138,6 +138,10 @@ Reporte HTML de Playwright:
 playwright-report/index.html
 ```
 
+### Integracion continua
+
+`.github/workflows/ci.yml` corre `npm ci`, `npm run test:run` y `npm run build` con Node 24 en cada push y pull request a `develop`. En Render el sitio estatico debe tener Auto-Deploy en "After CI Checks Pass" para que un fallo impida desplegar.
+
 ## Inicio de sesión
 
 El acceso es con correo institucional y contraseña. Las cuentas viven en Supabase Auth; el cliente nunca habla con Supabase, todo pasa por la API del MTE:
