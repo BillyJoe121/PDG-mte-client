@@ -58,11 +58,11 @@ export function KrForm({ units, periods, goals, strategicBets, defaults, initial
       <p style={{ fontSize: "11px", fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>{initial ? "Editar KR" : "Nuevo KR"}</p>
       {error && <p role="alert" style={{ fontSize: "11px", color: COLORS.blue }}>{error}</p>}
       <input aria-label="Nombre" aria-invalid={Boolean(errors.name)} value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Nombre" style={formControlStyle} />
-      <textarea aria-label="Descripcion" aria-invalid={Boolean(errors.description)} value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Descripcion" rows={2} style={{ ...formControlStyle, resize: "vertical" }} />
-      <input aria-label="Metrica" aria-invalid={Boolean(errors.metric)} value={form.metric} onChange={(e) => setForm((prev) => ({ ...prev, metric: e.target.value }))} placeholder="Metrica" style={formControlStyle} />
+      <textarea aria-label="Descripción" aria-invalid={Boolean(errors.description)} value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Descripción" rows={2} style={{ ...formControlStyle, resize: "vertical" }} />
+      <input aria-label="Métrica" aria-invalid={Boolean(errors.metric)} value={form.metric} onChange={(e) => setForm((prev) => ({ ...prev, metric: e.target.value }))} placeholder="Métrica" style={formControlStyle} />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <KeyResultValueField label="Valor base" value={form.baseValue} unit={selectedUnit} onChange={(value) => setForm((prev) => ({ ...prev, baseValue: value }))} style={formControlStyle} />
-        <KeyResultValueField label="Valor objetivo" value={form.targetValue} unit={selectedUnit} onChange={(value) => setForm((prev) => ({ ...prev, targetValue: value }))} style={formControlStyle} />
+        <KeyResultValueField label="Valor meta" value={form.targetValue} unit={selectedUnit} onChange={(value) => setForm((prev) => ({ ...prev, targetValue: value }))} style={formControlStyle} />
         <Select value={form.measurementUnitId || undefined} onValueChange={(value) => setForm((prev) => ({ ...prev, measurementUnitId: value }))}>
           <SelectTrigger aria-label="Unidad de medida" aria-invalid={Boolean(errors.measurementUnitId)} className="focus-visible:ring-0" style={formControlStyle}>
             <SelectValue placeholder="Unidad" />
@@ -70,15 +70,15 @@ export function KrForm({ units, periods, goals, strategicBets, defaults, initial
           <SelectContent position="popper" align="start" className="z-[80] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
             {units.map((unit) => (
               <SelectItem key={unit.id} value={String(unit.id)} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
-                {unit.name}
+                {unit.active ? unit.name : `${unit.name} (inactiva)`}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <Select value={form.academicPeriodId || undefined} onValueChange={(value) => setForm((prev) => ({ ...prev, academicPeriodId: value }))}>
-        <SelectTrigger aria-label="Periodo academico" aria-invalid={Boolean(errors.academicPeriodId)} className="focus-visible:ring-0" style={formControlStyle}>
-          <SelectValue placeholder="Periodo academico" />
+        <SelectTrigger aria-label="Periodo académico" aria-invalid={Boolean(errors.academicPeriodId)} className="focus-visible:ring-0" style={formControlStyle}>
+          <SelectValue placeholder="Periodo académico" />
         </SelectTrigger>
         <SelectContent position="popper" align="start" className="z-[80] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
           {periods.map((period) => (

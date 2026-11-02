@@ -31,13 +31,13 @@ export function KrFormModal({ keyResult, defaults, saving, units, onClose, onSub
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      units ? Promise.resolve(units) : loadMeasurementUnits().then((list) => list.filter((unit) => unit.active)),
+      units ? Promise.resolve(units) : loadMeasurementUnits(),
       loadAcademicPeriods(),
       loadGoals(),
       loadStrategicBets(),
     ])
       .then(([nextUnits, periods, goals, bets]) => {
-        if (!cancelled) setOptions({ units: nextUnits, periods, goals, bets });
+        if (!cancelled) setOptions({ units: unitOptionsFor(nextUnits, keyResult), periods, goals, bets });
       })
       .catch((error) => {
         if (cancelled) return;
@@ -118,4 +118,9 @@ function mergeLinks(items: Array<{ id: number; name: string }>, linked: Strategy
   const options = items.map((item) => ({ id: item.id, name: item.name }));
   const known = new Set(options.map((item) => item.id));
   return [...options, ...linked.filter((link) => !known.has(link.id))];
+}
+
+/** Active units, plus the KR's current unit even when it was deactivated, so the select is not left blank. */
+function unitOptionsFor(units: MeasurementUnit[], keyResult: KeyResult | null) {
+  return units.filter((unit) => unit.active || unit.id === keyResult?.measurementUnitId);
 }

@@ -16,3 +16,8 @@ export const CONTRIBUTION_TYPES: { value: ContributionType; label: string }[] = 
   { value: "INDIRECTA", label: "Indirecta" },
   { value: "SOPORTE", label: "Soporte" },
 ];
+
+/** "90 Porcentaje"; shows the value alone when the unit name is missing. */
+export function formatValueWithUnit(value: number | null | undefined, unitName: string | null | undefined) {
+  return [value, unitName].filter((part) => part !== null && part !== undefined && part !== "").join(" ");
+}

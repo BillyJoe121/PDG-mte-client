@@ -54,20 +54,20 @@ export function validateKeyResultForm(
   const unit = units.find((item) => String(item.id) === form.measurementUnitId);
 
   if (!form.name.trim()) errors.name = "El nombre del KR es obligatorio.";
-  if (!form.description.trim()) errors.description = "La descripcion del KR es obligatoria.";
-  if (!form.metric.trim()) errors.metric = "La metrica es obligatoria.";
+  if (!form.description.trim()) errors.description = "La descripción del KR es obligatoria.";
+  if (!form.metric.trim()) errors.metric = "La métrica es obligatoria.";
   if (!form.measurementUnitId || !unit) {
     errors.measurementUnitId = "Selecciona una unidad de medida.";
   } else if (!unit.active) {
-    errors.measurementUnitId = "La unidad de medida seleccionada esta inactiva.";
+    errors.measurementUnitId = "La unidad de medida seleccionada está inactiva. Elige una unidad activa.";
   }
 
   validateValue(form.baseValue, "base", unit, "baseValue", errors);
-  validateValue(form.targetValue, "objetivo", unit, "targetValue", errors);
+  validateValue(form.targetValue, "meta", unit, "targetValue", errors);
 
   const periodId = Number(form.academicPeriodId);
   if (!form.academicPeriodId || !Number.isFinite(periodId) || periodId <= 0) {
-    errors.academicPeriodId = "Selecciona un periodo academico.";
+    errors.academicPeriodId = "Selecciona un periodo académico.";
   }
   if (form.goalIds.length === 0 && form.strategicBetIds.length === 0) {
     errors.links = KEY_RESULT_LINKS_REQUIRED_MESSAGE;
@@ -102,10 +102,10 @@ function validateValue(
 ) {
   const numericValue = Number(value);
   if (value === "" || !Number.isFinite(numericValue)) {
-    errors[field] = `El valor ${label} es obligatorio y debe ser numerico.`;
+    errors[field] = `El valor ${label} es obligatorio y debe ser numérico.`;
   } else if (unit?.type === "PORCENTAJE" && (numericValue < 0 || numericValue > 100)) {
     errors[field] = `El valor ${label} debe estar entre 0 y 100.`;
   } else if (unit?.type === "BOOLEANA" && numericValue !== 0 && numericValue !== 1) {
-    errors[field] = `Selecciona Si o No para el valor ${label}.`;
+    errors[field] = `Selecciona Sí o No para el valor ${label}.`;
   }
 }

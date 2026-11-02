@@ -26,6 +26,7 @@ import {
   type CoverageScope,
 } from "./dashboard/DashboardCoverage";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
+import { buildKeyResultsDrilldownUrl } from "./okrs/keyResultListModel";
 import {
   DashboardKpiGrid,
   DashboardPanel,
@@ -98,12 +99,14 @@ export function Dashboard() {
   };
 
   const openKeyResultsByStatus = useCallback((scope: CoverageScope, item: CoverageItem, status: KeyResultStatus) => {
-    const params = new URLSearchParams();
-    params.set("status", status);
-    // La pantalla de KRs busca por nombre de Meta o Apuesta; los KRs no tienen departamento propio.
-    if (scope !== "department") params.set("q", item.name);
-    navigate(`/krs?${params.toString()}`);
-  }, [navigate]);
+    // Los KR no tienen departamento propio: ese alcance solo lleva estado y periodo.
+    navigate(buildKeyResultsDrilldownUrl({
+      scope,
+      name: item.name,
+      status,
+      period: selectedPeriod || dashboard?.summary.period || undefined,
+    }));
+  }, [navigate, selectedPeriod, dashboard?.summary.period]);
 
   const derived = useMemo<DashboardDerived | null>(() => {
     if (!dashboard) return null;

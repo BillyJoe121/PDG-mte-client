@@ -13,7 +13,7 @@ import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicLifecycle";
 import { KrFormModal } from "./KrFormModal";
 import { KeyResultProgressForm } from "./KeyResultProgressForm";
-import { COLORS } from "./okrsShared";
+import { COLORS, formatValueWithUnit } from "./okrsShared";
 import { PlannerButton } from "../../components/planner/PlannerButton";
 
 interface KeyResultDetailModalProps {
@@ -48,7 +48,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
       ]);
       setKeyResult(nextKeyResult);
       setLinks(nextLinks.filter((link) => link.active !== false));
-      setUnits(unitList.filter((unit) => unit.active));
+      setUnits(unitList);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo cargar el Key Result");
       onClose();
@@ -134,7 +134,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
 
   const transitionKeyResult = async () => {
     if (!keyResult || !lifecycleAction) return;
-    if (lifecycleAction.target === "CERRADO" && !window.confirm("Al cerrar el KR se bloquearan sus cambios ordinarios. ¿Deseas continuar?")) return;
+    if (lifecycleAction.target === "CERRADO" && !window.confirm("Al cerrar el KR se bloquearán sus cambios ordinarios. ¿Deseas continuar?")) return;
     setTransitioning(true);
     try {
       await keyResultsApi.setStatus(keyResult.id, lifecycleAction.target);
@@ -248,8 +248,8 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                       <ContextRow icon={<BookOpen size={14} />} label="Metas" value={goalNames} />
                       <ContextRow icon={<Flag size={14} />} label="Apuestas" value={strategicBetNames} />
                       <ContextRow icon={<CalendarDays size={14} />} label="Periodo" value={keyResult.academicPeriodName ?? "Sin periodo"} />
-                      <ContextRow icon={<BarChart3 size={14} />} label="Metrica" value={keyResult.metric} />
-                      <ContextRow icon={<Scale size={14} />} label="Meta" value={`${keyResult.targetValue} ${keyResult.measurementUnitName}`} />
+                      <ContextRow icon={<BarChart3 size={14} />} label="Métrica" value={keyResult.metric} />
+                      <ContextRow icon={<Scale size={14} />} label="Valor meta" value={formatValueWithUnit(keyResult.targetValue, keyResult.measurementUnitName)} />
                     </div>
                     {declaredWeightsExceeded && (
                       <p role="status" className="rounded-md px-3 py-2" style={{ border: "1px solid #FCD34D", backgroundColor: "#FFFBEB", color: "#92400E", fontSize: 11, fontWeight: 800, lineHeight: 1.45 }}>
@@ -259,7 +259,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                     <div className="rounded-md bg-white p-3" style={{ border: `1px solid ${COLORS.border}` }}>
                       <p style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Avance registrado del KR</p>
                       <dl className="mt-1 space-y-1" style={{ color: COLORS.text, fontSize: 12, lineHeight: 1.45 }}>
-                        <div className="flex justify-between gap-3"><dt>Valor actual</dt><dd><strong>{keyResult.currentValue} {keyResult.measurementUnitName}</strong></dd></div>
+                        <div className="flex justify-between gap-3"><dt>Valor actual</dt><dd><strong>{formatValueWithUnit(keyResult.currentValue, keyResult.measurementUnitName)}</strong></dd></div>
                         <div className="flex justify-between gap-3"><dt>Avance registrado</dt><dd><strong>{keyResult.progressPercentage}%</strong></dd></div>
                       </dl>
                       {canEdit && keyResultMutable && (
@@ -283,7 +283,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
           <KrFormModal keyResult={keyResult} units={units} saving={saving} onClose={() => setEditingKr(false)} onSubmit={updateKr} />
         )}
         {deleteConfirm && keyResult && (
-          <ConfirmActionModal title="Eliminar Key Result" description="Esta accion eliminara el KR. Solo se permite cuando no tiene iniciativas vinculadas." actionLabel="Eliminar" saving={saving} accent={COLORS.orange} onClose={() => setDeleteConfirm(false)} onConfirm={deleteKr}>
+          <ConfirmActionModal title="Eliminar Key Result" description="Esta acción eliminará el KR. Solo se permite cuando no tiene iniciativas vinculadas." actionLabel="Eliminar" saving={saving} accent={COLORS.orange} onClose={() => setDeleteConfirm(false)} onConfirm={deleteKr}>
             <p style={{ fontSize: 13, color: COLORS.text, fontWeight: 900, marginTop: 10 }}>{keyResult.name}</p>
           </ConfirmActionModal>
         )}

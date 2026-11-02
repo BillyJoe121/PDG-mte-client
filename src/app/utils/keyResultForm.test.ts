@@ -38,7 +38,7 @@ describe("key result form rules", () => {
       { ...validForm, measurementUnitId: "2", baseValue: "0", targetValue: "2" },
       [booleanUnit],
     );
-    expect(errors.targetValue).toMatch(/si o no/i);
+    expect(errors.targetValue).toMatch(/sí o no/i);
   });
 
   it("does not allow assigning an inactive unit", () => {
