@@ -8,7 +8,11 @@ export type AuditAction =
   | "PROGRESS_REGISTERED"
   | "LINK_CREATED"
   | "LINK_REMOVED"
-  | "EXTERNAL_SYNC";
+  | "EXTERNAL_SYNC"
+  | "ACCOUNT_LOCKED"
+  | "ACCESS_LINK_CREATED"
+  | "PASSWORD_CHANGED"
+  | "PASSWORD_SET";
 
 export interface AuditFilters {
   action?: AuditAction;

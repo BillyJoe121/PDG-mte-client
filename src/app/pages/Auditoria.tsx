@@ -2,27 +2,7 @@ import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react
 import { Activity, AlertTriangle, CalendarDays, Download, Eye, Filter, Loader2, RefreshCw, ShieldCheck, Users, X } from "lucide-react";
 import { auditApi, type AuditAction, type AuditCount, type AuditFilters, type AuditLogEntry, type AuditSummary } from "../services/auditApi";
 import { downloadCSV, getDateStamp } from "../utils/exportUtils";
-
-const ACTION_LABELS: Record<AuditAction, string> = {
-  CREATE: "Creación",
-  DELETE: "Eliminación",
-  UPDATE: "Actualización",
-  STATUS_CHANGE: "Cambio de estado",
-  PROGRESS_REGISTERED: "Registro de avance",
-  LINK_CREATED: "Vinculación",
-  LINK_REMOVED: "Desvinculación",
-  EXTERNAL_SYNC: "Sincronización externa",
-};
-
-const ENTITY_LABELS: Record<string, string> = {
-  KEY_RESULT: "Resultado clave",
-  PROJECT: "Iniciativa",
-  PROJECT_KEY_RESULT_LINK: "Vínculo iniciativa–KR",
-  STRATEGIC_BET: "Apuesta estratégica",
-  INSTITUTIONAL_GOAL: "Meta institucional",
-  MEASUREMENT_UNIT: "Unidad de medida",
-  ACADEMIC_PERIOD: "Periodo académico",
-};
+import { ACTION_OPTIONS, ENTITY_OPTIONS, labelAction, labelEntity } from "./auditoria/auditLabels";
 
 type DraftFilters = {
   action: "" | AuditAction;
@@ -71,10 +51,6 @@ function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function labelEntity(value: string) {
-  return ENTITY_LABELS[value] ?? value.replaceAll("_", " ");
-}
-
 function Distribution({ title, items, color }: { title: string; items: AuditCount[]; color: string }) {
   const max = Math.max(...items.map((item) => item.count), 1);
   return (
@@ -86,7 +62,7 @@ function Distribution({ title, items, color }: { title: string; items: AuditCoun
             <div key={item.key}>
               <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
                 <span className="truncate font-bold text-gray-700">
-                  {title === "Acciones" ? ACTION_LABELS[item.key as AuditAction] ?? item.key : title === "Entidades" ? labelEntity(item.key) : item.key}
+                  {title === "Acciones" ? labelAction(item.key) : title === "Entidades" ? labelEntity(item.key) : item.key}
                 </span>
                 <span className="whitespace-nowrap text-gray-500">{item.count} eventos</span>
               </div>
@@ -178,13 +154,13 @@ export function Auditoria() {
   const exportVisible = () => {
     downloadCSV(entries.map((entry) => ({
       Fecha: formatDateTime(entry.createdAt), Usuario: entry.actorUsername ?? "SISTEMA", Roles: entry.actorRoles ?? "",
-      Accion: ACTION_LABELS[entry.action] ?? entry.action, Entidad: labelEntity(entry.entityType), IdEntidad: entry.entityId,
+      Accion: labelAction(entry.action), Entidad: labelEntity(entry.entityType), IdEntidad: entry.entityId,
       Resumen: entry.summary, EstadoAnterior: entry.beforeSnapshot ?? "", EstadoPosterior: entry.afterSnapshot ?? "",
     })), `Auditoria_MTE_${getDateStamp()}`);
   };
 
   const activeDays = summary?.trend.filter((point) => point.count > 0).length ?? 0;
-  const mainAction = summary?.byAction[0]?.key as AuditAction | undefined;
+  const mainAction = summary?.byAction[0]?.key;
 
   return (
     <main className="space-y-6 p-4 sm:p-6">
@@ -202,11 +178,13 @@ export function Auditoria() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <label className="text-xs font-bold text-gray-700">Acción
             <select value={draft.action} onChange={(event) => setDraft((current) => ({ ...current, action: event.target.value as "" | AuditAction }))} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-xs font-medium text-gray-900">
-              <option value="">Todas</option>{Object.entries(ACTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              <option value="">Todas</option>{ACTION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </label>
           <label className="text-xs font-bold text-gray-700">Tipo de entidad
-            <input value={draft.entityType} onChange={(event) => setDraft((current) => ({ ...current, entityType: event.target.value }))} placeholder="Ej. KEY_RESULT" className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-xs font-medium text-gray-900" />
+            <select value={draft.entityType} onChange={(event) => setDraft((current) => ({ ...current, entityType: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-xs font-medium text-gray-900">
+              <option value="">Todas</option>{ENTITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
           </label>
           <label className="text-xs font-bold text-gray-700">ID de entidad
             <input value={draft.entityId} onChange={(event) => setDraft((current) => ({ ...current, entityId: event.target.value }))} placeholder="Ej. 12" className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-xs font-medium text-gray-900" />
@@ -243,7 +221,7 @@ export function Auditoria() {
               { label: "Eventos encontrados", value: summary.totalEvents, icon: ShieldCheck, color: "#5454E9" },
               { label: "Usuarios involucrados", value: summary.byActor.length, icon: Users, color: "#4CB979" },
               { label: "Días con actividad", value: activeDays, icon: CalendarDays, color: "#E9683B" },
-              { label: "Acción más frecuente", value: mainAction ? ACTION_LABELS[mainAction] ?? mainAction : "—", icon: Activity, color: "#111827" },
+              { label: "Acción más frecuente", value: mainAction ? labelAction(mainAction) : "—", icon: Activity, color: "#111827" },
             ].map((stat) => (
               <div key={stat.label} className="rounded-xl border border-gray-200 bg-white p-5">
                 <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: `${stat.color}16` }}><stat.icon size={18} color={stat.color} /></div>
@@ -272,7 +250,7 @@ export function Auditoria() {
                     <tr key={entry.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-600">{formatDateTime(entry.createdAt)}</td>
                       <td className="px-4 py-3"><p className="text-xs font-extrabold text-gray-900">{entry.actorUsername ?? "SISTEMA"}</p><p className="mt-0.5 text-[10px] text-gray-400">{entry.actorRoles || "Sin rol registrado"}</p></td>
-                      <td className="px-4 py-3 text-xs font-bold text-[#5454E9]">{ACTION_LABELS[entry.action] ?? entry.action}</td>
+                      <td className="px-4 py-3 text-xs font-bold text-[#5454E9]">{labelAction(entry.action)}</td>
                       <td className="px-4 py-3"><p className="text-xs font-bold text-gray-800">{labelEntity(entry.entityType)}</p><p className="mt-0.5 text-[10px] text-gray-400">ID {entry.entityId}</p></td>
                       <td className="max-w-xs px-4 py-3 text-xs text-gray-600">{entry.summary}</td>
                       <td className="px-4 py-3"><button type="button" aria-label={`Ver detalle de ${entry.summary}`} onClick={() => setSelected(entry)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-[11px] font-extrabold text-gray-700 hover:border-[#5454E9] hover:text-[#5454E9]"><Eye size={13} /> Ver</button></td>
@@ -296,7 +274,7 @@ export function Auditoria() {
               <dl className="grid grid-cols-1 gap-4 rounded-xl bg-gray-50 p-4 sm:grid-cols-4">
                 <div><dt className="text-[10px] font-black uppercase text-gray-400">Fecha</dt><dd className="mt-1 text-xs font-bold text-gray-800">{formatDateTime(selected.createdAt)}</dd></div>
                 <div><dt className="text-[10px] font-black uppercase text-gray-400">Usuario</dt><dd className="mt-1 text-xs font-bold text-gray-800">{selected.actorUsername ?? "SISTEMA"}</dd></div>
-                <div><dt className="text-[10px] font-black uppercase text-gray-400">Acción</dt><dd className="mt-1 text-xs font-bold text-gray-800">{ACTION_LABELS[selected.action] ?? selected.action}</dd></div>
+                <div><dt className="text-[10px] font-black uppercase text-gray-400">Acción</dt><dd className="mt-1 text-xs font-bold text-gray-800">{labelAction(selected.action)}</dd></div>
                 <div><dt className="text-[10px] font-black uppercase text-gray-400">Entidad</dt><dd className="mt-1 text-xs font-bold text-gray-800">{labelEntity(selected.entityType)} · {selected.entityId}</dd></div>
               </dl>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
