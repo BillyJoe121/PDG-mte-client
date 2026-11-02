@@ -5,6 +5,7 @@ import type { AcademicPeriod, MeasurementUnit } from "../../services/catalogsApi
 import type { KeyResult, KeyResultRequest } from "../../services/strategicApi";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { KeyResultValueField } from "../../components/forms/KeyResultValueField";
+import { PlannerUrlField } from "../../components/planner/PlannerUrlField";
 import {
   initialKeyResultFormValues,
   toKeyResultRequest,
@@ -32,7 +33,7 @@ export function KrForm({ units, periods, goals, strategicBets, defaults, initial
   const reduceMotion = useReducedMotion();
   const [form, setForm] = useState<KeyResultFormValues>(() => initialKeyResultFormValues(initial, defaults));
   const [errors, setErrors] = useState<KeyResultFormErrors>({});
-  const { links: linksError, ...fieldErrors } = errors;
+  const { links: linksError, plannerUrl: plannerError, ...fieldErrors } = errors;
   const error = Object.values(fieldErrors)[0] ?? "";
   const linksErrorId = "kr-form-links-error";
 
@@ -88,6 +89,15 @@ export function KrForm({ units, periods, goals, strategicBets, defaults, initial
           ))}
         </SelectContent>
       </Select>
+      <PlannerUrlField
+        id="kr-form-planner-url"
+        value={form.plannerUrl}
+        error={plannerError}
+        onChange={(value) => setForm((prev) => ({ ...prev, plannerUrl: value }))}
+        inputStyle={formControlStyle}
+        labelStyle={{ fontSize: "11px", color: COLORS.gray }}
+        errorColor={COLORS.orange}
+      />
       <div className="grid grid-cols-1 gap-3">
         <KrLinkChecklist
           id="kr-form-goals"

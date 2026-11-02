@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Check, FolderKanban, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
+import { PlannerUrlField } from "../components/planner/PlannerUrlField";
 import { useAuth } from "../context/AuthContext";
 import { departmentsApi, keyResultsApi, type Department, type KeyResult } from "../services/strategicApi";
 import { toKeyResultOptions } from "../utils/keyResultOptions";
 import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
+import { normalizePlannerUrl, validatePlannerUrl } from "../services/plannerService";
 import {
   projectsApi,
   validateProjectSchedule,
@@ -43,7 +45,7 @@ const CONTRIBUTION_TYPES: { value: ContributionType; label: string }[] = [
   { value: "SOPORTE", label: "Soporte" },
 ];
 
-type Errors = Partial<Record<"name" | "description" | "departmentId" | "startPeriod" | "tutors" | "keyResults", string>>;
+type Errors = Partial<Record<"name" | "description" | "departmentId" | "startPeriod" | "tutors" | "keyResults" | "plannerUrl", string>>;
 
 function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -78,6 +80,7 @@ export function NuevoProyecto() {
     startDate: "",
     endDate: "",
     tutors: "",
+    plannerUrl: "",
   });
   const [krLinks, setKrLinks] = useState<ProjectKeyResultDraftRequest[]>([]);
 
@@ -142,6 +145,8 @@ export function NuevoProyecto() {
     const scheduleError = validateProjectSchedule(form);
     if (scheduleError) next.startPeriod = scheduleError;
     if (parseTutors(form.tutors).length === 0) next.tutors = "Ingresa al menos un tutor.";
+    const plannerError = validatePlannerUrl(form.plannerUrl);
+    if (plannerError) next.plannerUrl = plannerError;
     const invalidLink = krLinks.some((link) =>
       !link.keyResultId ||
       link.contributionWeight < 0 ||
@@ -168,6 +173,7 @@ export function NuevoProyecto() {
       endDate: form.endDate || null,
       tutors: parseTutors(form.tutors),
       keyResultLinks: krLinks.length > 0 ? krLinks : undefined,
+      plannerUrl: normalizePlannerUrl(form.plannerUrl),
     };
 
     try {
@@ -290,6 +296,15 @@ export function NuevoProyecto() {
                   <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12 }} />
               </div>
             </div>
+
+            <PlannerUrlField
+              id="new-project-planner-url"
+              value={form.plannerUrl}
+              error={errors.plannerUrl}
+              onChange={(value) => setField("plannerUrl", value)}
+              inputStyle={{ padding: "10px 12px", border: `1.5px solid ${errors.plannerUrl ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 12 }}
+              errorColor={COLORS.orange}
+            />
           </div>
 
           <div className="bg-white rounded-lg p-5 space-y-4" style={{ border: "1.5px solid #E5E7EB" }}>

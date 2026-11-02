@@ -83,6 +83,8 @@ export interface KeyResultRequest {
   academicPeriodId: number;
   goalIds: number[];
   strategicBetIds: number[];
+  /** Optional Microsoft Planner link; null clears it. */
+  plannerUrl?: string | null;
 }
 
 /** Progress recorded manually by a person: both values are sent together. */
@@ -108,6 +110,7 @@ export interface KeyResult {
   strategicBets: StrategyLink[];
   status: KeyResultStatus;
   createdAt: string;
+  plannerUrl?: string | null;
 }
 
 export interface KeyResultListParams {

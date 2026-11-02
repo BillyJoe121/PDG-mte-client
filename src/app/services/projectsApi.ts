@@ -42,6 +42,8 @@ export interface ProjectRequest {
   endDate?: string | null;
   tutors?: string[];
   keyResultLinks?: ProjectKeyResultDraftRequest[];
+  /** Optional Microsoft Planner link; null clears it. */
+  plannerUrl?: string | null;
 }
 
 export interface ProjectUpdateRequest {
@@ -55,6 +57,8 @@ export interface ProjectUpdateRequest {
   endDate?: string | null;
   actualEndDate?: string | null;
   tutors?: string[];
+  /** Optional Microsoft Planner link; null clears it. */
+  plannerUrl?: string | null;
 }
 
 export interface LinkedKeyResult {
@@ -90,6 +94,7 @@ export interface ProjectResponse {
   lastSyncedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  plannerUrl?: string | null;
 }
 
 export interface ProjectProgressRequest {

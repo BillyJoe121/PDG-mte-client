@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { AcademicPeriod } from "../../services/catalogsApi";
 import type { Department, KeyResult } from "../../services/strategicApi";
 import { toKeyResultOptions } from "../../utils/keyResultOptions";
+import { normalizePlannerUrl, validatePlannerUrl } from "../../services/plannerService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import {
   projectsApi,
@@ -25,7 +26,7 @@ interface CreateProjectModalProps {
   onCreated: (projectId: number) => Promise<void> | void;
 }
 
-type Errors = Partial<Record<"name" | "description" | "departmentId" | "startPeriod" | "tutors" | "keyResults", string>>;
+type Errors = Partial<Record<"name" | "description" | "departmentId" | "startPeriod" | "tutors" | "keyResults" | "plannerUrl", string>>;
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 
@@ -44,6 +45,7 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
     startDate: "",
     endDate: "",
     tutors: "",
+    plannerUrl: "",
   });
   const [krLinks, setKrLinks] = useState<ProjectKeyResultDraftRequest[]>([]);
 
@@ -88,6 +90,8 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
     const scheduleError = validateProjectSchedule(form);
     if (scheduleError) next.startPeriod = scheduleError;
     if (parseTutors(form.tutors).length === 0) next.tutors = "Ingresa al menos un tutor.";
+    const plannerError = validatePlannerUrl(form.plannerUrl);
+    if (plannerError) next.plannerUrl = plannerError;
     const invalidLink = krLinks.some((link) => !link.keyResultId || link.contributionWeight < 0 || link.contributionWeight > 100 || !link.contributionType);
     if (invalidLink) next.keyResults = "Cada vinculo KR debe tener peso entre 0 y 100 y tipo de contribucion.";
     setErrors(next);
@@ -110,6 +114,7 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
       endDate: form.endDate || null,
       tutors: parseTutors(form.tutors),
       keyResultLinks: krLinks.length > 0 ? krLinks : undefined,
+      plannerUrl: normalizePlannerUrl(form.plannerUrl),
     };
 
     try {
@@ -199,6 +204,10 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
                 <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={dateInputStyle(false)} />
               </ModalField>
             </div>
+
+            <ModalField label="Enlace de Planner" error={errors.plannerUrl}>
+              <input aria-label="Enlace de Planner" inputMode="url" autoComplete="off" value={form.plannerUrl} onChange={(event) => setField("plannerUrl", event.target.value)} placeholder="https://tasks.office.com/... (opcional)" style={modalInputStyle(Boolean(errors.plannerUrl))} />
+            </ModalField>
 
             <div className="rounded-lg bg-white p-3" style={{ border: "1px solid #EEF2F7" }}>
               <div className="mb-3 flex items-center justify-between gap-3">

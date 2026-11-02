@@ -1,4 +1,5 @@
 import type { MeasurementUnit } from "../services/catalogsApi";
+import { normalizePlannerUrl, validatePlannerUrl } from "../services/plannerService";
 import type { KeyResult, KeyResultRequest } from "../services/strategicApi";
 
 export interface KeyResultFormValues {
@@ -11,6 +12,7 @@ export interface KeyResultFormValues {
   academicPeriodId: string;
   goalIds: number[];
   strategicBetIds: number[];
+  plannerUrl: string;
 }
 
 export type KeyResultFormErrors = Partial<Record<keyof KeyResultFormValues | "links", string>>;
@@ -43,6 +45,7 @@ export function initialKeyResultFormValues(
     strategicBetIds: keyResult
       ? (keyResult.strategicBets ?? []).map((bet) => bet.id)
       : [...(defaults.strategicBetIds ?? [])],
+    plannerUrl: keyResult?.plannerUrl ?? "",
   };
 }
 
@@ -72,6 +75,8 @@ export function validateKeyResultForm(
   if (form.goalIds.length === 0 && form.strategicBetIds.length === 0) {
     errors.links = KEY_RESULT_LINKS_REQUIRED_MESSAGE;
   }
+  const plannerError = validatePlannerUrl(form.plannerUrl);
+  if (plannerError) errors.plannerUrl = plannerError;
   return errors;
 }
 
@@ -86,6 +91,7 @@ export function toKeyResultRequest(form: KeyResultFormValues): KeyResultRequest 
     academicPeriodId: Number(form.academicPeriodId),
     goalIds: [...new Set(form.goalIds)],
     strategicBetIds: [...new Set(form.strategicBetIds)],
+    plannerUrl: normalizePlannerUrl(form.plannerUrl),
   };
 }
 

@@ -213,12 +213,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                           {item.label}
                         </span>
                       ))}
-                      <PlannerButton
-                        type="KEY_RESULT"
-                        entity={{ id: keyResult.id, name: keyResult.name }}
-                        size="sm"
-                        variant="outline"
-                      />
+                      <PlannerButton plannerUrl={keyResult.plannerUrl} size="sm" variant="outline" />
                       {renderActions?.(keyResult)}
                       {canEdit && (
                         <>

@@ -25,6 +25,7 @@ const validForm: KeyResultFormValues = {
   academicPeriodId: "7",
   goalIds: [3],
   strategicBetIds: [],
+  plannerUrl: "",
 };
 
 describe("key result form rules", () => {
@@ -92,6 +93,7 @@ describe("key result form rules", () => {
       academicPeriodId: 7,
       goalIds: [3, 4],
       strategicBetIds: [9],
+      plannerUrl: null,
     });
   });
 

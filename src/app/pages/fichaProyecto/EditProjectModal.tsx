@@ -2,8 +2,10 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { FolderKanban, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { PlannerUrlField } from "../../components/planner/PlannerUrlField";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import type { AcademicPeriod } from "../../services/catalogsApi";
+import { normalizePlannerUrl, validatePlannerUrl } from "../../services/plannerService";
 import type { Department } from "../../services/strategicApi";
 import {
   projectsApi,
@@ -49,8 +51,10 @@ export function EditProjectModal({
     endDate: dateInputValue(project.endDate),
     actualEndDate: dateInputValue(project.actualEndDate),
     tutors: project.tutors.join(", "),
+    plannerUrl: project.plannerUrl ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [plannerError, setPlannerError] = useState("");
 
   const updateField = <K extends keyof typeof form>(field: K, value: (typeof form)[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -74,6 +78,10 @@ export function EditProjectModal({
       return;
     }
 
+    const nextPlannerError = validatePlannerUrl(form.plannerUrl);
+    setPlannerError(nextPlannerError ?? "");
+    if (nextPlannerError) return;
+
     const payload: ProjectUpdateRequest = {
       name: form.name.trim(),
       description: form.description.trim(),
@@ -85,6 +93,7 @@ export function EditProjectModal({
       endDate: form.endDate || null,
       actualEndDate: form.actualEndDate || null,
       tutors,
+      plannerUrl: normalizePlannerUrl(form.plannerUrl),
     };
 
     setSaving(true);
@@ -181,6 +190,20 @@ export function EditProjectModal({
             <ModalField label="Tutores" className="md:col-span-2">
               <input value={form.tutors} onChange={(event) => updateField("tutors", event.target.value)} placeholder="Separados por coma" style={modalInputStyle} />
             </ModalField>
+
+            <div className="md:col-span-2">
+              <PlannerUrlField
+                id="edit-project-planner-url"
+                value={form.plannerUrl}
+                error={plannerError}
+                onChange={(value) => {
+                  updateField("plannerUrl", value);
+                  setPlannerError("");
+                }}
+                inputStyle={modalInputStyle}
+                labelStyle={{ color: "#6B7280", fontSize: 11, fontWeight: 900, marginBottom: 6 }}
+              />
+            </div>
           </div>
         </div>
 

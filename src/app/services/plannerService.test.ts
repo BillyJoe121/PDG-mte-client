@@ -1,75 +1,93 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  DEFAULT_PLANNER_URL,
-  buildPlannerUrl,
-  getPlannerConfig,
-  isPlannerLinked,
-  navigateToPlanner,
-  savePlannerConfig,
-  setEntityPlannerLink,
+  PLANNER_URL_MAX_LENGTH,
+  normalizePlannerUrl,
+  openPlannerUrl,
+  validatePlannerUrl,
 } from "./plannerService";
 
-describe("plannerService", () => {
-  beforeEach(() => {
-    window.localStorage.clear();
-    vi.restoreAllMocks();
+describe("validatePlannerUrl", () => {
+  it("treats a blank link as valid because it clears the link", () => {
+    expect(validatePlannerUrl("")).toBeNull();
+    expect(validatePlannerUrl("   ")).toBeNull();
+    expect(validatePlannerUrl(null)).toBeNull();
+    expect(validatePlannerUrl(undefined)).toBeNull();
   });
 
-  it("returns default configuration when storage is empty", () => {
-    const config = getPlannerConfig();
-    expect(config.defaultPlannerBaseUrl).toBe(DEFAULT_PLANNER_URL);
-    expect(config.customLinks).toEqual({});
+  it.each([
+    "https://tasks.office.com/icesi.edu.co/Home/PlanViews/abc-123",
+    "https://planner.cloud.microsoft/webui/plan/abc",
+    "https://office.com/planner",
+    "https://www.office365.com/planner",
+    "https://icesi.sharepoint.com/sites/mte",
+    "https://www.microsoft.com/planner",
+    "https://tasks.cloud.microsoft/plan/1",
+    "https://TASKS.OFFICE.COM:443/plan",
+    "  https://tasks.office.com/plan  ",
+  ])("accepts %s", (url) => {
+    expect(validatePlannerUrl(url)).toBeNull();
   });
 
-  it("uses entity plannerUrl when provided directly", () => {
-    const url = buildPlannerUrl("PROJECT", {
-      id: 10,
-      name: "Proyecto Alpha",
-      plannerUrl: "https://tasks.office.com/icesi.edu.co/Home/PlanViews/abc-123",
-    });
-    expect(url).toBe("https://tasks.office.com/icesi.edu.co/Home/PlanViews/abc-123");
-    expect(isPlannerLinked("PROJECT", { id: 10, plannerUrl: "https://tasks.office.com/icesi.edu.co/Home/PlanViews/abc-123" })).toBe(true);
+  it("rejects links that are not https", () => {
+    expect(validatePlannerUrl("http://tasks.office.com/plan")).toMatch(/^El enlace de Planner no es válido: .*https/);
+    expect(validatePlannerUrl("javascript:alert(1)")).toMatch(/https/);
+    expect(validatePlannerUrl("tasks.office.com/plan")).toMatch(/https/);
   });
 
-  it("constructs plan URL when plannerPlanId is provided", () => {
-    savePlannerConfig({ tenantId: "icesi.edu.co" });
-    const url = buildPlannerUrl("KEY_RESULT", {
-      id: 4,
-      name: "KR Cobertura",
-      plannerPlanId: "plan-xyz-789",
-    });
-    expect(url).toBe("https://tasks.office.com/icesi.edu.co/Home/PlanViews/plan-xyz-789");
+  it("rejects malformed links", () => {
+    expect(validatePlannerUrl("https://")).toMatch(/mal formada/);
+    expect(validatePlannerUrl("https://exa mple.com")).toMatch(/mal formada/);
   });
 
-  it("allows setting and resolving custom entity links via storage", () => {
-    setEntityPlannerLink("PROJECT", 25, "https://tasks.office.com/custom/plan");
-    expect(isPlannerLinked("PROJECT", { id: 25 })).toBe(true);
-    expect(buildPlannerUrl("PROJECT", { id: 25 })).toBe("https://tasks.office.com/custom/plan");
-
-    // Setting plan ID only
-    setEntityPlannerLink("KEY_RESULT", 99, "plan-99-id");
-    expect(buildPlannerUrl("KEY_RESULT", { id: 99 })).toBe("https://tasks.office.com/Home/PlanViews/plan-99-id");
+  it("rejects user info in the link", () => {
+    expect(validatePlannerUrl("https://user@tasks.office.com/plan")).toMatch(/usuario/);
+    expect(validatePlannerUrl("https://user:secret@tasks.office.com/plan")).toMatch(/usuario/);
   });
 
-  it("falls back to default planner portal if no link is configured", () => {
-    const url = buildPlannerUrl("KEY_RESULT", { id: 1 });
-    expect(url).toBe(DEFAULT_PLANNER_URL);
-    expect(isPlannerLinked("KEY_RESULT", { id: 1 })).toBe(false);
+  it("only allows port 443", () => {
+    expect(validatePlannerUrl("https://tasks.office.com:8443/plan")).toMatch(/443/);
+    expect(validatePlannerUrl("https://tasks.office.com:443/plan")).toBeNull();
   });
 
-  it("navigates and triggers notification callback", () => {
+  it("only allows Microsoft hosts and their subdomains", () => {
+    expect(validatePlannerUrl("https://example.com/plan")).toMatch(/Microsoft/);
+    expect(validatePlannerUrl("https://evil-office.com/plan")).toMatch(/Microsoft/);
+    expect(validatePlannerUrl("https://office.com.evil.net/plan")).toMatch(/Microsoft/);
+    expect(validatePlannerUrl("https://tasks.office.com@evil.net/plan")).toMatch(/usuario/);
+  });
+
+  it("limits the length to 2048 characters", () => {
+    const prefix = "https://tasks.office.com/";
+    expect(validatePlannerUrl(prefix + "a".repeat(PLANNER_URL_MAX_LENGTH - prefix.length))).toBeNull();
+    expect(validatePlannerUrl(prefix + "a".repeat(PLANNER_URL_MAX_LENGTH - prefix.length + 1))).toMatch(/2048/);
+  });
+});
+
+describe("normalizePlannerUrl", () => {
+  it("trims the link and turns blank text into null", () => {
+    expect(normalizePlannerUrl("  https://tasks.office.com/plan ")).toBe("https://tasks.office.com/plan");
+    expect(normalizePlannerUrl("  ")).toBeNull();
+    expect(normalizePlannerUrl(undefined)).toBeNull();
+  });
+});
+
+describe("openPlannerUrl", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("opens a valid link in a new tab without opener access", () => {
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-    const notifySpy = vi.fn();
 
-    const result = navigateToPlanner(
-      "PROJECT",
-      { id: 7, name: "Modernización MTE" },
-      { notify: notifySpy }
-    );
+    expect(openPlannerUrl(" https://tasks.office.com/plan ")).toBe(true);
+    expect(openSpy).toHaveBeenCalledWith("https://tasks.office.com/plan", "_blank", "noopener,noreferrer");
+  });
 
-    expect(result.url).toBe(DEFAULT_PLANNER_URL);
-    expect(result.isLinked).toBe(false);
-    expect(openSpy).toHaveBeenCalledWith(DEFAULT_PLANNER_URL, "_blank", "noopener,noreferrer");
-    expect(notifySpy).toHaveBeenCalled();
+  it("does not open a missing or invalid link", () => {
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    expect(openPlannerUrl(null)).toBe(false);
+    expect(openPlannerUrl("")).toBe(false);
+    expect(openPlannerUrl("javascript:alert(1)")).toBe(false);
+    expect(openPlannerUrl("https://example.com/plan")).toBe(false);
+    expect(openSpy).not.toHaveBeenCalled();
   });
 });

@@ -79,12 +79,7 @@ export function ProjectCardView({ canManage, index = 0, project, onLink, onOpen 
           <div className="mt-3 flex items-center justify-between gap-2">
             <span className="project-card__meta">{typeLabel(project.type)}</span>
             <div className="flex items-center gap-2">
-              <PlannerButton
-                type="PROJECT"
-                entity={{ id: project.id, name: project.name }}
-                size="sm"
-                variant="outline"
-              />
+              <PlannerButton plannerUrl={project.plannerUrl} size="sm" variant="outline" />
               {canManage && (
                 <button
                   type="button"

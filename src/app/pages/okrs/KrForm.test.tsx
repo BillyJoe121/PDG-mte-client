@@ -70,4 +70,41 @@ describe("KrForm", () => {
     }));
     expect(screen.queryByText("Selecciona al menos una Meta o una Apuesta.")).not.toBeInTheDocument();
   });
+
+  it("sends a blank Planner link as null", async () => {
+    const onSubmit = renderForm();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Graduación oportuna" }));
+    fireEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ plannerUrl: null }));
+  });
+
+  it("sends the trimmed Planner link when it is valid", async () => {
+    const onSubmit = renderForm();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Graduación oportuna" }));
+    fireEvent.change(screen.getByLabelText("Enlace de Planner"), {
+      target: { value: "  https://tasks.office.com/plan/1  " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ plannerUrl: "https://tasks.office.com/plan/1" }));
+  });
+
+  it("blocks saving and explains an invalid Planner link", async () => {
+    const onSubmit = renderForm();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Graduación oportuna" }));
+    fireEvent.change(screen.getByLabelText("Enlace de Planner"), {
+      target: { value: "http://example.com/plan" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    expect(await screen.findByText(/El enlace de Planner no es válido/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Enlace de Planner")).toHaveAttribute("aria-invalid", "true");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });
