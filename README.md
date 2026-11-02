@@ -138,16 +138,18 @@ Reporte HTML de Playwright:
 playwright-report/index.html
 ```
 
-## Inicio de sesión institucional
+## Inicio de sesión
 
-El cliente obtiene la configuración pública desde `GET /api/v1/auth/sso/config`; las URLs y credenciales del proveedor se configuran únicamente en el backend. El flujo usa Authorization Code + PKCE S256:
+El acceso es con correo institucional y contraseña. Las cuentas viven en Supabase Auth; el cliente nunca habla con Supabase, todo pasa por la API del MTE:
 
-1. El navegador genera `state`, verificador y desafío PKCE de un solo uso.
-2. El proveedor retorna a `/auth/callback`.
-3. El backend intercambia el código con el redirect fijo configurado.
-4. El cliente valida el bearer en `/api/v1/auth/me` antes de abrir la sesión.
+1. `/login` envía correo y contraseña a `POST /api/v1/auth/login` y recibe un access token.
+2. El cliente valida ese token en `GET /api/v1/auth/me` y solo entonces abre la sesión con el rol y las capacidades que devuelve.
+3. "Cerrar sesión" llama a `POST /api/v1/auth/logout` y borra la sesión local aunque la API no responda.
+4. "Cambiar contraseña" (menú lateral) usa `POST /api/v1/auth/password` y pide la contraseña actual.
 
-El access token vive solo en `sessionStorage`, se elimina al cerrar sesión o expirar y nunca se acepta desde `localStorage`. MTE no almacena contraseñas ni refresh tokens. El acceso demo continúa disponible cuando el backend opera en `MTE_AUTH_MODE=mock`.
+No hay registro abierto ni correo de recuperación. Un administrador genera desde **Usuarios** un enlace de acceso de un solo uso (`POST /api/v1/directory-users/{id}/access-link`) y se lo entrega a la persona por un canal institucional. El enlace abre `/establecer-contrasena`, que envía el token a `POST /api/v1/auth/set-password` y lo quita de la barra de direcciones al terminar. Sirve tanto para el primer ingreso como para restablecer una contraseña olvidada.
+
+Las contraseñas tienen entre 10 y 72 caracteres. El access token vive solo en `sessionStorage`, se elimina al cerrar sesión o al vencer y nunca se acepta desde `localStorage`. Un rol que el cliente no reconoce se trata como visitante (solo lectura).
 
 Ejecutar cobertura y pruebas e2e en secuencia:
 

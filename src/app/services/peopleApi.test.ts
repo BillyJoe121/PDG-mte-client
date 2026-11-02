@@ -44,4 +44,15 @@ describe("directory users API", () => {
     ]);
     expect(fetchMock.mock.calls.map(([, options]) => options.method)).toEqual(["POST", "PUT", "PATCH", "DELETE"]);
   });
+
+  it("requests an access link for one person", async () => {
+    const link = { professorId: 8, email: "ana@icesi.edu.co", url: "https://mte.example/establecer-contrasena?token_hash=x&type=invite", accountCreated: true };
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: vi.fn().mockResolvedValue(link) } as unknown as Response);
+
+    await expect(directoryUsersApi.accessLink(8)).resolves.toEqual(link);
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${baseUrl}/directory-users/8/access-link`);
+    expect(options.method).toBe("POST");
+  });
 });

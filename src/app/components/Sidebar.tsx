@@ -18,6 +18,8 @@ import {
 import { IcesiLogo } from "./IcesiLogo";
 import { useAuth } from "../context/AuthContext";
 import { getLabelRol } from "../utils/roleLabels";
+import { authApi } from "../services/authApi";
+import { CambiarContrasenaModal } from "./CambiarContrasenaModal";
 import { hasPermission, type PermissionAction } from "../security/permissions";
 
 const navItems = [
@@ -48,10 +50,13 @@ const itemColors: Record<string, string> = {
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768);
+  const [changingPassword, setChangingPassword] = useState(false);
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    // Se avisa a la API mientras el token sigue guardado; la sesión local se cierra aunque falle.
+    void authApi.logout().catch(() => undefined);
     logout();
     navigate("/login");
   };
@@ -195,7 +200,26 @@ export function Sidebar() {
             </div>
           </div>
         )}
+        {usuario && (
+          <button
+            type="button"
+            onClick={() => setChangingPassword(true)}
+            className="w-full flex items-center gap-3 py-3 hover:bg-white/5 transition-colors"
+            style={{
+              color: "rgba(255,255,255,0.6)",
+              justifyContent: collapsed ? "center" : "flex-start",
+              paddingLeft: collapsed ? 0 : 20,
+              paddingRight: 16,
+            }}
+            title={collapsed ? "Cambiar contraseña" : undefined}
+            aria-label={collapsed ? "Cambiar contraseña" : undefined}
+          >
+            <KeyRound size={16} aria-hidden="true" />
+            {!collapsed && <span style={{ fontSize: "12px" }}>Cambiar contraseña</span>}
+          </button>
+        )}
         <button
+          type="button"
           onClick={handleLogout}
           className="w-full flex items-center gap-3 py-4 hover:bg-white/5 transition-colors"
           style={{
@@ -205,11 +229,13 @@ export function Sidebar() {
             paddingRight: 16,
           }}
           title={collapsed ? "Cerrar sesión" : undefined}
+          aria-label={collapsed ? "Cerrar sesión" : undefined}
         >
-          <LogOut size={16} />
+          <LogOut size={16} aria-hidden="true" />
           {!collapsed && <span style={{ fontSize: "12px" }}>Cerrar sesión</span>}
         </button>
       </div>
+      <CambiarContrasenaModal open={changingPassword} onOpenChange={setChangingPassword} />
     </aside>
   );
 }

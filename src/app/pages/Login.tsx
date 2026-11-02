@@ -1,319 +1,118 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { IcesiLogo } from "../components/IcesiLogo";
+import { AuthErrorBox, AuthField } from "../components/auth/AuthField";
 import { useAuth } from "../context/AuthContext";
-import { createSsoAuthorizationUrl, ssoApi, type SsoConfig } from "../services/ssoApi";
-import { DEMO_USERS, type DemoUser } from "./login/loginDemoUsers";
+import { authApi, authErrorMessage, normalizeAuthMe, sessionExpiry } from "../services/authApi";
 import { LoginBrandPanel } from "./login/LoginBrandPanel";
-import { LoginDemoAccess } from "./login/LoginDemoAccess";
 
 export function Login() {
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
-  const [focusField, setFocusField] = useState<string | null>(null);
-  const [showDemo, setShowDemo] = useState(false);
-  const [ssoConfig, setSsoConfig] = useState<SsoConfig | null>(null);
-  const [ssoStarting, setSsoStarting] = useState(false);
-  const [ssoMessage, setSsoMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    let active = true;
-    ssoApi.config()
-      .then((config) => { if (active) setSsoConfig(config); })
-      .catch(() => { if (active) setSsoConfig({ enabled: false, providerName: "ICESI", scopes: [] }); });
-    return () => { active = false; };
-  }, []);
-
-  const beginInstitutionalLogin = async () => {
-    if (!ssoConfig?.enabled) return;
-    setSsoStarting(true);
-    setSsoMessage("");
-    try {
-      const authorizationUrl = await createSsoAuthorizationUrl(ssoConfig);
-      window.location.assign(authorizationUrl);
-    } catch (startError) {
-      setSsoMessage(startError instanceof Error ? startError.message : "No se pudo iniciar el acceso institucional.");
-      setSsoStarting(false);
-    }
-  };
-
-  const authenticateDemoUser = (demoUser: DemoUser) => {
-    setError("");
-    login(demoUser);
-    navigate("/dashboard");
-  };
-
-  const handleDemoLogin = (demoUser: DemoUser) => {
-    authenticateDemoUser(demoUser);
-  };
-
-  const handleManualLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!correo || !password) {
-      setError("Por favor, ingresa tu correo y contraseña.");
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const email = correo.trim();
+    if (!email || !password) {
+      setError("Ingresa tu correo y tu contraseña.");
       return;
     }
-    const found = DEMO_USERS.find((u) => u.correo === correo);
-    if (found && password.length >= 4) {
-      authenticateDemoUser(found);
-    } else {
-      setError("Credenciales inválidas. Usa un correo de la lista de demo.");
+    setSubmitting(true);
+    setError("");
+    try {
+      const session = await authApi.login(email, password);
+      const me = await authApi.me(session.accessToken);
+      login({
+        ...normalizeAuthMe(me, { correo: email }),
+        token: session.accessToken,
+        expiresAt: sessionExpiry(session),
+      });
+      navigate("/dashboard", { replace: true });
+    } catch (loginError) {
+      setError(authErrorMessage(loginError));
+      setSubmitting(false);
     }
   };
 
-  const inputBorder = (field: string) =>
-    `1.5px solid ${focusField === field ? "#5454E9" : "#E5E7EB"}`;
+  const clearError = (update: (value: string) => void) => (value: string) => {
+    update(value);
+    setError("");
+  };
 
   return (
-    <div
-      className="min-h-screen flex"
-      style={{ backgroundColor: "#FFFFFF", fontFamily: "Montserrat, sans-serif" }}
-    >
+    <div className="flex min-h-screen bg-white" style={{ fontFamily: "Montserrat, sans-serif" }}>
       <LoginBrandPanel />
 
-      {/* Right panel – Login form */}
-      <div className="flex-1 flex flex-col justify-center items-center p-6 lg:p-12 relative">
-        {/* Mobile logo */}
-        <div className="lg:hidden absolute top-6 left-6">
-          <div
-            className="inline-flex items-center px-4 py-2.5 rounded-md"
-            style={{ backgroundColor: "#5454E9" }}
-          >
+      <div className="relative flex flex-1 flex-col items-center justify-center p-6 lg:p-12">
+        <div className="absolute left-6 top-6 lg:hidden">
+          <div className="inline-flex items-center rounded-md bg-[#5454E9] px-4 py-2.5">
             <IcesiLogo variant="white" size="sm" />
           </div>
         </div>
 
         <div className="w-full max-w-sm">
-          <div className="mb-5 rounded-xl border border-[#DDE3FF] bg-[#F7F8FF] p-4">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#5454E9]">Acceso institucional seguro</p>
-            <p className="mt-2 text-xs leading-5 text-gray-600">
-              {ssoConfig === null
-                ? "Consultando el proveedor de identidad…"
-                : ssoConfig.enabled
-                  ? `Continúa con ${ssoConfig.providerName}; MTE no recibe ni almacena tu contraseña.`
-                  : "El SSO no está configurado en este entorno. El acceso demo permanece disponible para desarrollo."}
-            </p>
-            <button
-              type="button"
-              onClick={() => void beginInstitutionalLogin()}
-              disabled={!ssoConfig?.enabled || ssoStarting}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#5454E9] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-            >
-              {ssoStarting ? "Redirigiendo…" : `Continuar con ${ssoConfig?.providerName ?? "ICESI"}`}
-              {!ssoStarting && <ArrowRight size={15} aria-hidden="true" />}
-            </button>
-            {ssoMessage && <p className="mt-3 text-xs font-semibold text-red-700" role="alert">{ssoMessage}</p>}
-          </div>
-
-          <LoginDemoAccess
-            showDemo={showDemo}
-            onToggle={() => setShowDemo(!showDemo)}
-            onSelect={handleDemoLogin}
-          />
-
-          {!showDemo && (
-            <>
           <div className="mb-10">
-            <p
-              style={{
-                color: "#5454E9",
-                fontSize: "12px",
-                fontWeight: 600,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                marginBottom: 12,
-              }}
-            >
-              MTE · Bienvenido
-            </p>
-            <h1
-              style={{
-                fontSize: "32px",
-                fontWeight: 700,
-                color: "#000000",
-                marginBottom: 8,
-                letterSpacing: "-0.02em",
-                lineHeight: 1.15,
-              }}
-            >
-              Inicia sesión
-            </h1>
-            <p style={{ color: "#717182", fontSize: "14px", lineHeight: 1.5 }}>
-              Usa el acceso institucional o, en desarrollo, una cuenta demo autorizada.
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#5454E9]">MTE · Bienvenido</p>
+            <h1 className="mb-2 text-[32px] font-bold leading-[1.15] tracking-[-0.02em] text-black">Inicia sesión</h1>
+            <p className="text-sm leading-normal text-[#717182]">
+              Ingresa con tu correo institucional y tu contraseña del MTE.
             </p>
           </div>
 
-          {/* Manual form */}
-          <form onSubmit={handleManualLogin} className="space-y-5">
-            {error && (
-              <div
-                className="px-4 py-3 rounded-md flex items-start gap-2"
-                style={{
-                  backgroundColor: "#FEF3F2",
-                  border: "1px solid #FECACA",
-                  color: "#991B1B",
-                  fontSize: "12px",
-                  lineHeight: 1.5,
-                }}
-              >
-                <span style={{ fontWeight: 600 }}>•</span>
-                <span>{error}</span>
-              </div>
-            )}
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            {error && <AuthErrorBox message={error} />}
 
-            <div>
-              <label
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: "#000",
-                  display: "block",
-                  marginBottom: 8,
-                  letterSpacing: "0.01em",
-                }}
-              >
-                Correo institucional
-              </label>
-              <input
-                type="email"
-                value={correo}
-                onChange={(e) => {
-                  setCorreo(e.target.value);
-                  setError("");
-                }}
-                onFocus={() => setFocusField("email")}
-                onBlur={() => setFocusField(null)}
-                placeholder="usuario@icesi.edu.co"
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  border: inputBorder("email"),
-                  borderRadius: 8,
-                  fontSize: "13px",
-                  outline: "none",
-                  backgroundColor: "#fff",
-                  boxSizing: "border-box",
-                  transition: "border-color 0.15s, box-shadow 0.15s",
-                  boxShadow:
-                    focusField === "email"
-                      ? "0 0 0 4px rgba(84,84,233,0.12)"
-                      : "none",
-                }}
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: "#000",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  Contraseña
-                </label>
-                <a
-                  href="#"
-                  style={{
-                    fontSize: "11px",
-                    color: "#5454E9",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                  }}
-                >
-                  ¿Olvidaste tu contraseña?
-                </a>
-              </div>
-              <div className="relative">
-                <input
-                  type={showPass ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError("");
-                  }}
-                  onFocus={() => setFocusField("password")}
-                  onBlur={() => setFocusField(null)}
-                  placeholder="••••••••"
-                  style={{
-                    width: "100%",
-                    padding: "12px 44px 12px 14px",
-                    border: inputBorder("password"),
-                    borderRadius: 8,
-                    fontSize: "13px",
-                    outline: "none",
-                    backgroundColor: "#fff",
-                    boxSizing: "border-box",
-                    transition: "border-color 0.15s, box-shadow 0.15s",
-                    boxShadow:
-                      focusField === "password"
-                        ? "0 0 0 4px rgba(84,84,233,0.12)"
-                        : "none",
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                  style={{ color: "#717182" }}
-                >
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                style={{ accentColor: "#5454E9", width: 14, height: 14 }}
-              />
-              <span style={{ fontSize: "12px", color: "#717182" }}>
-                Mantener sesión iniciada
-              </span>
-            </label>
+            <AuthField
+              id="login-email"
+              label="Correo institucional"
+              type="email"
+              value={correo}
+              onChange={clearError(setCorreo)}
+              autoComplete="username"
+              placeholder="usuario@icesi.edu.co"
+              disabled={submitting}
+            />
+            <AuthField
+              id="login-password"
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={clearError(setPassword)}
+              autoComplete="current-password"
+              disabled={submitting}
+            />
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg group"
-              style={{
-                backgroundColor: "#000000",
-                color: "#fff",
-                fontSize: "13px",
-                fontWeight: 600,
-                letterSpacing: "0.01em",
-                transition: "background-color 0.15s, transform 0.05s",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "#5454E9")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "#000000")
-              }
+              disabled={submitting}
+              className="group flex w-full items-center justify-center gap-2 rounded-lg bg-black py-3 text-[13px] font-semibold tracking-[0.01em] text-white transition-colors duration-150 hover:bg-[#5454E9] disabled:cursor-wait disabled:bg-gray-500"
             >
-              Ingresar al MTE
-              <ArrowRight
-                size={15}
-                style={{ transition: "transform 0.15s" }}
-                className="group-hover:translate-x-0.5"
-              />
+              {submitting ? (
+                <>
+                  <Loader2 size={15} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                  Ingresando…
+                </>
+              ) : (
+                <>
+                  Ingresar al MTE
+                  <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                </>
+              )}
             </button>
           </form>
 
-          <p
-            className="text-center mt-10"
-            style={{ fontSize: "10px", color: "#9CA3AF", letterSpacing: "0.02em" }}
-          >
+          <p className="mt-6 text-xs leading-5 text-[#717182]">
+            ¿Es tu primer ingreso o olvidaste tu contraseña? Pide a un administrador del MTE tu enlace de acceso.
+          </p>
+
+          <p className="mt-10 text-center text-[10px] tracking-[0.02em] text-[#9CA3AF]">
             Acceso restringido a usuarios ICESI · MTE v1.0.0
           </p>
-            </>
-          )}
         </div>
       </div>
     </div>

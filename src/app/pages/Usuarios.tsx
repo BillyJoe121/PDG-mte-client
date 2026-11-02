@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Building2, Download, Edit2, Loader2, Plus, Search, ShieldCheck, Trash2, UserCheck, UserX, Users } from "lucide-react";
+import { Building2, Download, Edit2, Link2, Loader2, Plus, Search, ShieldCheck, Trash2, UserCheck, UserX, Users } from "lucide-react";
+import { AccessLinkDialog } from "../components/AccessLinkDialog";
 import { useAuth } from "../context/AuthContext";
 import { hasPermission } from "../security/permissions";
-import { directoryUsersApi, type DirectoryAccessRole, type DirectoryUser, type DirectoryUserRequest } from "../services/peopleApi";
+import { directoryUsersApi, type AccessLinkResponse, type DirectoryAccessRole, type DirectoryUser, type DirectoryUserRequest } from "../services/peopleApi";
 import { departmentsApi, schoolsApi, type Department, type School } from "../services/strategicApi";
 import { downloadCSV, getDateStamp } from "../utils/exportUtils";
 
@@ -11,12 +12,14 @@ const ROLE_LABELS: Record<DirectoryAccessRole, string> = {
   ADMIN: "Administrador",
   MANAGER: "Gestor estratégico",
   CONTRIBUTOR: "Colaborador",
+  VISITOR: "Visitante",
 };
 
 const ROLE_STYLES: Record<DirectoryAccessRole, { background: string; color: string }> = {
   ADMIN: { background: "#FEF2F2", color: "#991B1B" },
   MANAGER: { background: "#EEF2FF", color: "#3730A3" },
   CONTRIBUTOR: { background: "#ECFDF5", color: "#065F46" },
+  VISITOR: { background: "#F3F4F6", color: "#374151" },
 };
 
 function message(error: unknown) {
@@ -41,6 +44,8 @@ export function Usuarios() {
   const [active, setActive] = useState("ALL");
   const [editingUser, setEditingUser] = useState<DirectoryUser | null | undefined>(undefined);
   const [editingDepartment, setEditingDepartment] = useState<Department | null | undefined>(undefined);
+  const [issuingLinkFor, setIssuingLinkFor] = useState<number | null>(null);
+  const [accessLink, setAccessLink] = useState<{ link: AccessLinkResponse; name: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -87,6 +92,17 @@ export function Usuarios() {
       toast.success(updated.active ? "Usuario activado" : "Usuario desactivado");
     } catch (actionError) {
       toast.error(message(actionError));
+    }
+  };
+
+  const issueAccessLink = async (entry: DirectoryUser) => {
+    setIssuingLinkFor(entry.id);
+    try {
+      setAccessLink({ link: await directoryUsersApi.accessLink(entry.id), name: entry.name });
+    } catch (actionError) {
+      toast.error(message(actionError));
+    } finally {
+      setIssuingLinkFor(null);
     }
   };
 
@@ -191,7 +207,7 @@ export function Usuarios() {
                     <td className="max-w-64 px-4 py-3 text-xs text-gray-700">{entry.departmentName}</td>
                     <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 text-xs font-bold ${entry.active ? "text-emerald-700" : "text-gray-400"}`}>{entry.active ? <UserCheck size={13} /> : <UserX size={13} />}{entry.active ? "Activo" : "Inactivo"}</span></td>
                     <td className="px-4 py-3 text-xs text-gray-500">{entry.lastAccessAt ? new Date(entry.lastAccessAt).toLocaleString("es-CO") : "Sin registro"}</td>
-                    <td className="px-4 py-3"><div className="flex gap-1"><IconButton label="Editar usuario" onClick={() => setEditingUser(entry)}><Edit2 size={14} /></IconButton><IconButton label={entry.active ? "Desactivar usuario" : "Activar usuario"} onClick={() => void setUserActive(entry)}>{entry.active ? <UserX size={14} /> : <UserCheck size={14} />}</IconButton><IconButton label="Eliminar usuario" onClick={() => void removeUser(entry)} danger><Trash2 size={14} /></IconButton></div></td>
+                    <td className="px-4 py-3"><div className="flex gap-1"><IconButton label="Editar usuario" onClick={() => setEditingUser(entry)}><Edit2 size={14} /></IconButton><IconButton label="Generar enlace de acceso" onClick={() => void issueAccessLink(entry)} disabled={issuingLinkFor === entry.id}>{issuingLinkFor === entry.id ? <Loader2 size={14} className="animate-spin motion-reduce:animate-none" /> : <Link2 size={14} />}</IconButton><IconButton label={entry.active ? "Desactivar usuario" : "Activar usuario"} onClick={() => void setUserActive(entry)}>{entry.active ? <UserX size={14} /> : <UserCheck size={14} />}</IconButton><IconButton label="Eliminar usuario" onClick={() => void removeUser(entry)} danger><Trash2 size={14} /></IconButton></div></td>
                   </tr>
                 ))}
               </tbody>
@@ -215,6 +231,7 @@ export function Usuarios() {
       )}
 
       {editingUser !== undefined && <UserDialog user={editingUser} departments={departments} onClose={() => setEditingUser(undefined)} onSaved={(saved) => { setUsers((current) => editingUser ? current.map((entry) => entry.id === saved.id ? saved : entry) : [saved, ...current]); setEditingUser(undefined); }} />}
+      <AccessLinkDialog link={accessLink?.link ?? null} personName={accessLink?.name} onClose={() => setAccessLink(null)} />
       {editingDepartment !== undefined && <DepartmentDialog department={editingDepartment} schools={schools} onClose={() => setEditingDepartment(undefined)} onSaved={(saved) => { setDepartments((current) => editingDepartment ? current.map((entry) => entry.id === saved.id ? saved : entry) : [...current, saved].sort((a, b) => a.name.localeCompare(b.name))); setEditingDepartment(undefined); }} />}
     </div>
   );
@@ -253,7 +270,7 @@ function DepartmentDialog({ department, schools, onClose, onSaved }: { departmen
 function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"><h3 className="mb-5 text-lg font-extrabold">{title}</h3>{children}</div></div>; }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block text-xs font-bold text-gray-800">{label}<div className="mt-1 [&>*]:w-full [&>*]:rounded-md [&>*]:border [&>*]:border-gray-300 [&>*]:px-3 [&>*]:py-2 [&>*]:text-sm [&>*]:outline-none focus-within:[&>*]:border-[#5454E9]">{children}</div></label>; }
 function DialogActions({ saving, onClose, onSave }: { saving: boolean; onClose: () => void; onSave: () => void }) { return <div className="flex justify-end gap-2 pt-2"><button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-xs font-bold">Cancelar</button><button disabled={saving} onClick={onSave} className="rounded-md bg-[#5454E9] px-4 py-2 text-xs font-bold text-white disabled:opacity-60">{saving ? "Guardando…" : "Guardar"}</button></div>; }
-function IconButton({ label, onClick, danger, children }: { label: string; onClick: () => void; danger?: boolean; children: React.ReactNode }) { return <button onClick={onClick} title={label} aria-label={label} className={`flex h-8 w-8 items-center justify-center rounded-md border ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>{children}</button>; }
+function IconButton({ label, onClick, danger, disabled, children }: { label: string; onClick: () => void; danger?: boolean; disabled?: boolean; children: React.ReactNode }) { return <button type="button" onClick={onClick} disabled={disabled} title={label} aria-label={label} className={`flex h-8 w-8 items-center justify-center rounded-md border disabled:cursor-wait disabled:opacity-60 ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>{children}</button>; }
 function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) { return <button role="tab" aria-selected={active} onClick={onClick} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-bold ${active ? "bg-black text-white" : "text-gray-600"}`}>{icon}{label}</button>; }
 function Stat({ label, value }: { label: string; value: number }) { return <div className="rounded-lg border border-gray-200 bg-white p-4"><p className="text-2xl font-black text-[#5454E9]">{value}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">{label}</p></div>; }
 function Restricted() { return <div className="flex h-full flex-col items-center justify-center py-20"><ShieldCheck size={48} className="mb-4 text-gray-300" /><h2 className="text-base font-bold text-gray-700">Acceso restringido</h2><p className="mt-2 text-sm text-gray-500">Sólo el Administrador puede gestionar el directorio institucional.</p></div>; }

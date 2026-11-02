@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { SESSION_REJECTED_EVENT } from "../services/authToken";
 
-export type Rol = "admin" | "manager" | "contributor";
+export type Rol = "admin" | "manager" | "contributor" | "visitor";
 
 export interface UsuarioActual {
   id: string;
@@ -24,40 +25,14 @@ interface AuthContextType {
 
 const SESSION_KEY = "sgp_session_user";
 const TOKEN_KEY = "sgp_access_token";
-const COMPUTING_DEPARTMENT = "Departamento de Computación y Sistemas inteligentes.";
-
-function migrateLegacyDemoUser(user: UsuarioActual): UsuarioActual {
-  if (user.token === "mock-token-ar" || user.nombre === "Ana Maria Rojas" || user.departamento === "Dirección TDI") {
-    return {
-      ...user,
-      id: "U1",
-      nombre: "Hugo Arboleda",
-      correo: "hugo.arboleda@icesi.edu.co",
-      departamento: COMPUTING_DEPARTMENT,
-      iniciales: "HA",
-      token: "mock-token-ha",
-      rol: normalizeRole(user.rol),
-    };
-  }
-  if (user.nombre === "Sistemas MTE" || user.departamento === "TI Institucional") {
-    return {
-      ...user,
-      id: "U10",
-      nombre: "Profesor Demo",
-      correo: "demo.profesor@icesi.edu.co",
-      departamento: COMPUTING_DEPARTMENT,
-      iniciales: "PD",
-      rol: normalizeRole(user.rol),
-    };
-  }
-  return { ...user, rol: normalizeRole(user.rol) };
-}
-
-function normalizeRole(role: unknown): Rol {
+const MAX_TIMER_DELAY = 2_147_483_647;
+// Un rol desconocido nunca recibe permisos de escritura: se trata como visitante.
+export function normalizeRole(role: unknown): Rol {
   const value = String(role ?? "").trim().toLowerCase();
   if (["admin", "administrador", "role_admin"].includes(value)) return "admin";
   if (["manager", "gestor", "director", "decano", "jefe", "user", "usuario", "role_manager"].includes(value)) return "manager";
-  return "contributor";
+  if (["contributor", "colaborador", "profesor", "role_contributor"].includes(value)) return "contributor";
+  return "visitor";
 }
 
 function readSession(): UsuarioActual | null {
@@ -71,7 +46,7 @@ function readSession(): UsuarioActual | null {
       return null;
     }
     const token = sessionStorage.getItem(TOKEN_KEY) ?? stored.token;
-    return migrateLegacyDemoUser({ ...stored, token: token ?? undefined });
+    return { ...stored, rol: normalizeRole(stored.rol), token: token ?? undefined };
   } catch {
     return null;
   }
@@ -90,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioActual | null>(readSession);
 
   const login = useCallback((user: UsuarioActual) => {
-    const normalizedUser = migrateLegacyDemoUser(user);
+    const normalizedUser = { ...user, rol: normalizeRole(user.rol) };
     setUsuario(normalizedUser);
     try {
       const { token: _token, ...safeSession } = normalizedUser;
@@ -111,6 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch { /* ignore */ }
   }, []);
 
+  // La API rechazó el token guardado: se cierra la sesión local para no dejar la interfaz a medias.
+  useEffect(() => {
+    window.addEventListener(SESSION_REJECTED_EVENT, logout);
+    return () => window.removeEventListener(SESSION_REJECTED_EVENT, logout);
+  }, [logout]);
+
   useEffect(() => {
     if (!usuario?.expiresAt) return;
     const remaining = usuario.expiresAt - Date.now();
@@ -118,7 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout();
       return;
     }
-    const timer = window.setTimeout(logout, remaining);
+    // setTimeout desborda por encima de 2^31-1 ms y dispararía de inmediato; acotar solo adelanta el cierre.
+    const timer = window.setTimeout(logout, Math.min(remaining, MAX_TIMER_DELAY));
     return () => window.clearTimeout(timer);
   }, [logout, usuario?.expiresAt]);
 

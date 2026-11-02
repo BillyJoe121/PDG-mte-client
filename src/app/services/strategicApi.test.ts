@@ -220,6 +220,22 @@ describe("strategic hierarchy APIs", () => {
     } satisfies Partial<ApiError>);
   });
 
+  it("announces a rejected stored session, but not a rejected explicit token", async () => {
+    const listener = vi.fn();
+    window.addEventListener("mte:session-rejected", listener);
+    sessionStorage.setItem("sgp_access_token", "session-token");
+    fetchMock.mockResolvedValue(jsonResponse({ message: "Sesión no válida." }, 401));
+
+    await expect(departmentsApi.list()).rejects.toMatchObject({ status: 401 });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    await expect(api("/auth/me", { headers: { Authorization: "Bearer other-token" } })).rejects.toMatchObject({ status: 401 });
+    fetchMock.mockResolvedValue(jsonResponse({ message: "Sin permiso." }, 403));
+    await expect(departmentsApi.list()).rejects.toMatchObject({ status: 403 });
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener("mte:session-rejected", listener);
+  });
+
   it("adds session auth to strategic requests", async () => {
     sessionStorage.setItem("sgp_access_token", "session-token");
 

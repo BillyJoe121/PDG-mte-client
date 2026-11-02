@@ -6,6 +6,7 @@ describe("getLabelRol", () => {
     expect(getLabelRol("admin")).toBe("Administrador");
     expect(getLabelRol("manager")).toBe("Gestor estratégico");
     expect(getLabelRol("contributor")).toBe("Colaborador");
+    expect(getLabelRol("visitor")).toBe("Visitante");
   });
 
   it("returns undefined for an unknown role", () => {

@@ -7,7 +7,7 @@ import type { PermissionAction } from "./security/permissions";
 
 const Layout = lazy(() => import("./components/Layout").then((module) => ({ default: module.Layout })));
 const Login = lazy(() => import("./pages/Login").then((module) => ({ default: module.Login })));
-const SsoCallback = lazy(() => import("./pages/SsoCallback").then((module) => ({ default: module.SsoCallback })));
+const EstablecerContrasena = lazy(() => import("./pages/EstablecerContrasena").then((module) => ({ default: module.EstablecerContrasena })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })));
 const JerarquiaEstrategica = lazy(() => import("./pages/JerarquiaEstrategica").then((module) => ({ default: module.JerarquiaEstrategica })));
 const Proyectos = lazy(() => import("./pages/Proyectos").then((module) => ({ default: module.Proyectos })));
@@ -38,7 +38,7 @@ function protectedPage(action: PermissionAction, children: ReactNode) {
 
 export const router = createBrowserRouter([
   { path: "/login", element: lazyPage(<Login />) },
-  { path: "/auth/callback", element: lazyPage(<SsoCallback />) },
+  { path: "/establecer-contrasena", element: lazyPage(<EstablecerContrasena />) },
   { path: "/presentacion", element: protectedPage("presentacion.view", <PresentacionDashboard />) },
   {
     path: "/",

@@ -25,105 +25,69 @@ async function seedSession(page: Page, user: typeof adminUser | typeof standardU
 }
 
 test.describe('authentication and permissions', () => {
-  test('happy path: completes a PKCE callback and validates the bearer with the backend', async ({ page }) => {
-    const verifier = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~';
-    await page.addInitScript(({ codeVerifier }) => {
-      window.sessionStorage.setItem('mte_sso_transaction', JSON.stringify({
-        state: 'expected-state',
-        codeVerifier,
-        returnTo: '/dashboard',
-        startedAt: Date.now(),
-      }));
-    }, { codeVerifier: verifier });
+  test('happy path: signs in with email and password through the API', async ({ page }) => {
     await page.route('**/api/v1/**', (route) => route.fulfill({ contentType: 'application/json', body: '[]' }));
-    await page.route('**/api/v1/auth/sso/exchange', async (route) => {
-      expect(route.request().postDataJSON()).toEqual({ code: 'single-use-code', codeVerifier: verifier });
-      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ accessToken: 'institutional-token', tokenType: 'Bearer', expiresIn: 3600 }) });
+    await page.route('**/api/v1/auth/login', async (route) => {
+      expect(route.request().headers().authorization).toBeUndefined();
+      expect(route.request().postDataJSON()).toEqual({ email: 'joseph@icesi.edu.co', password: 'una-clave-larga' });
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ accessToken: 'session-token', tokenType: 'bearer', expiresIn: 3600, expiresAt: 0 }) });
     });
     await page.route('**/api/v1/auth/me', async (route) => {
-      expect(route.request().headers().authorization).toBe('Bearer institutional-token');
+      expect(route.request().headers().authorization).toBe('Bearer session-token');
       await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
         user: { externalUserId: 44, username: 'joseph', email: 'joseph@icesi.edu.co', roles: ['MANAGER'], professorName: 'Joseph Velez', departmentName: 'DCSI' },
         capabilities: { viewDashboard: true },
       }) });
     });
-    await page.goto('/auth/callback?code=single-use-code&state=expected-state');
-
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole('heading', { name: /Dashboard de impacto/i })).toBeVisible();
-    await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem('sgp_access_token'))).toBe('institutional-token');
-    await expect.poll(() => page.evaluate(() => JSON.parse(window.sessionStorage.getItem('sgp_session_user') ?? '{}').token)).toBeUndefined();
-  });
-
-  test('sad path: rejects a callback with a mismatched state before token exchange', async ({ page }) => {
-    await page.addInitScript(() => {
-      window.sessionStorage.setItem('mte_sso_transaction', JSON.stringify({
-        state: 'expected-state',
-        codeVerifier: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~',
-        returnTo: '/dashboard',
-        startedAt: Date.now(),
-      }));
-    });
-    let exchangeCalls = 0;
-    await page.route('**/api/v1/auth/sso/exchange', (route) => { exchangeCalls += 1; return route.abort(); });
-
-    await page.goto('/auth/callback?code=single-use-code&state=attacker-state');
-
-    await expect(page.getByRole('alert')).toContainText(/no coincide/i);
-    expect(exchangeCalls).toBe(0);
-  });
-
-  test('happy path: admin can sign in manually and open the dashboard', async ({ page }) => {
-    await page.route('**/api/v1/auth/me', async (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        user: {
-          externalUserId: 10,
-          username: 'demo.profesor',
-          email: 'demo.profesor@icesi.edu.co',
-          roles: ['ADMIN'],
-          professorName: 'Profesor Demo',
-          departmentName: 'DCSI',
-        },
-        capabilities: { viewDashboard: true, manageCatalogs: true },
-      }),
-    }));
     await page.goto('/login');
-    await page.locator('input[type="email"]').fill('demo.profesor@icesi.edu.co');
-    await page.locator('input[type="password"]').fill('demo1234');
+    await page.getByLabel('Correo institucional').fill('joseph@icesi.edu.co');
+    await page.getByLabel('Contraseña', { exact: true }).fill('una-clave-larga');
     await page.getByRole('button', { name: /Ingresar al MTE/i }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole('heading', { name: /Dashboard de impacto/i })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem('sgp_access_token'))).toBe('session-token');
+    await expect.poll(() => page.evaluate(() => JSON.parse(window.sessionStorage.getItem('sgp_session_user') ?? '{}').token)).toBeUndefined();
   });
 
-  test('happy path: quick demo access works offline for each supported role', async ({ page }) => {
-    let authMeCalls = 0;
+  test('happy path: logout closes the API session and returns to login', async ({ page }) => {
+    let logoutAuthorization: string | undefined;
+    await page.addInitScript(() => window.sessionStorage.setItem('sgp_access_token', 'session-token'));
+    await seedSession(page, adminUser);
     await page.route('**/api/v1/**', (route) => route.fulfill({ contentType: 'application/json', body: '[]' }));
-    await page.route('**/api/v1/auth/me', (route) => {
-      authMeCalls += 1;
-      return route.abort();
+    await page.route('**/api/v1/auth/logout', (route) => {
+      logoutAuthorization = route.request().headers().authorization;
+      return route.fulfill({ status: 204 });
     });
-    await page.goto('/login');
-    await page.getByRole('button', { name: /Acceso rápido demo/i }).click();
+    await page.goto('/dashboard');
+    await page.getByRole('button', { name: /Cerrar sesión/i }).click();
 
-    await expect(page.getByRole('button', { name: /Hugo Arboleda.*Gestor estratégico/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Leonardo Bustamante.*Colaborador/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Profesor Demo.*Administrador/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Rocío Segovia/i })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/login$/);
+    await expect.poll(() => logoutAuthorization).toBe('Bearer session-token');
+    await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem('sgp_access_token'))).toBeNull();
+  });
 
-    for (const accountName of ['Hugo Arboleda', 'Leonardo Bustamante', 'Profesor Demo']) {
-      await page.getByRole('button', { name: new RegExp(accountName, 'i') }).click();
-      await expect(page).toHaveURL(/\/dashboard$/);
-      await expect(page.getByRole('heading', { name: /Dashboard de impacto/i })).toBeVisible();
+  test('happy path: an access link sets the first password and leaves no token in the address', async ({ page }) => {
+    await page.route('**/api/v1/auth/set-password', async (route) => {
+      expect(route.request().postDataJSON()).toEqual({ tokenHash: 'abc_123-XYZ', type: 'invite', password: 'una-clave-larga' });
+      await route.fulfill({ status: 204 });
+    });
+    await page.goto('/establecer-contrasena?token_hash=abc_123-XYZ&type=invite');
+    await page.getByLabel('Nueva contraseña').fill('una-clave-larga');
+    await page.getByLabel('Confirma la contraseña').fill('una-clave-larga');
+    await page.getByRole('button', { name: 'Guardar contraseña' }).click();
 
-      await page.getByRole('button', { name: /Cerrar sesión/i }).click();
-      await expect(page).toHaveURL(/\/login$/);
-      await page.getByRole('button', { name: /Acceso rápido demo/i }).click();
-    }
+    await expect(page.getByRole('heading', { name: 'Contraseña guardada' })).toBeVisible();
+    await expect(page).toHaveURL(/\/establecer-contrasena$/);
+  });
 
-    expect(authMeCalls).toBe(0);
+  test('sad path: an altered access link never reaches the API', async ({ page }) => {
+    let calls = 0;
+    await page.route('**/api/v1/auth/set-password', (route) => { calls += 1; return route.abort(); });
+    await page.goto('/establecer-contrasena?token_hash=abc%3Cscript%3E&type=invite');
+
+    await expect(page.getByRole('heading', { name: 'Enlace incompleto' })).toBeVisible();
+    expect(calls).toBe(0);
   });
 
   test('sad path: protected routes redirect anonymous users to login', async ({ page }) => {
@@ -137,16 +101,23 @@ test.describe('authentication and permissions', () => {
     await page.goto('/login');
     await page.getByRole('button', { name: /Ingresar al MTE/i }).click();
 
-    await expect(page.getByText(/Por favor/i)).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveText('Ingresa tu correo y tu contraseña.');
   });
 
-  test('sad path: wrong credentials are rejected', async ({ page }) => {
+  test('sad path: wrong credentials show the API message and open no session', async ({ page }) => {
+    const message = 'No pudimos iniciar sesión con esos datos. Después de 5 intentos fallidos la cuenta se bloquea 15 minutos.';
+    await page.route('**/api/v1/auth/login', (route) => route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'INVALID_LOGIN', message }),
+    }));
     await page.goto('/login');
-    await page.locator('input[type="email"]').fill('nadie@icesi.edu.co');
-    await page.locator('input[type="password"]').fill('demo1234');
+    await page.getByLabel('Correo institucional').fill('nadie@icesi.edu.co');
+    await page.getByLabel('Contraseña', { exact: true }).fill('clave-equivocada');
     await page.getByRole('button', { name: /Ingresar al MTE/i }).click();
 
-    await expect(page.getByText(/Credenciales inválidas/i)).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveText(message);
+    await expect(page).toHaveURL(/\/login$/);
   });
 
   test('sad path: user cannot open user administration', async ({ page }) => {

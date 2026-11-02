@@ -1,6 +1,6 @@
 import { api } from "./strategicApi";
 
-export type DirectoryAccessRole = "ADMIN" | "MANAGER" | "CONTRIBUTOR";
+export type DirectoryAccessRole = "ADMIN" | "MANAGER" | "CONTRIBUTOR" | "VISITOR";
 
 export interface DirectoryUser {
   id: number;
@@ -19,6 +19,14 @@ export interface DirectoryUserRequest {
   departmentId: number;
   accessRole: DirectoryAccessRole;
   active: boolean;
+}
+
+/** Enlace de un solo uso para que la persona defina su contraseña. El MTE no envía correos. */
+export interface AccessLinkResponse {
+  professorId: number;
+  email: string;
+  url: string;
+  accountCreated: boolean;
 }
 
 export interface DirectoryUserFilters {
@@ -53,4 +61,5 @@ export const directoryUsersApi = {
     body: JSON.stringify({ active }),
   }),
   remove: (id: number) => api<void>(`/directory-users/${id}`, { method: "DELETE" }),
+  accessLink: (id: number) => api<AccessLinkResponse>(`/directory-users/${id}/access-link`, { method: "POST" }),
 };

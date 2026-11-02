@@ -60,6 +60,13 @@ const rolePermissions: Record<Rol, PermissionAction[]> = {
     "proyectos.view",
     "proyectos.progress",
   ],
+  visitor: [
+    "dashboard.view",
+    "presentacion.view",
+    "jerarquia.view",
+    "okrs.view",
+    "proyectos.view",
+  ],
 };
 
 export function hasPermission(usuario: UsuarioActual | null, action: PermissionAction) {
@@ -152,6 +159,7 @@ function normalizeCapability(value: string) {
     .replace(/\.+/g, ".");
 }
 
+// /auth/me no publica una capacidad de gestión de usuarios; la API la reserva a ADMIN.
 function hasLegacyUiFallback(usuario: UsuarioActual, action: PermissionAction) {
   if (action === "usuarios.manage") {
     return usuario.roles?.includes("ADMIN") || usuario.rol === "admin";

@@ -1,5 +1,5 @@
-import type { Rol, UsuarioActual } from "../context/AuthContext";
-import { api } from "./strategicApi";
+import { normalizeRole, type Rol, type UsuarioActual } from "../context/AuthContext";
+import { api, ApiError } from "./strategicApi";
 
 export interface AuthUserContext {
   externalUserId?: number | string | null;
@@ -19,10 +19,21 @@ export interface AuthMeResponse {
   capabilities?: string[] | Record<string, boolean | null | undefined> | null;
 }
 
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+  /** Segundos desde epoch en que vence el token. */
+  expiresAt: number;
+}
+
+export type AccessLinkType = "invite" | "recovery" | "magiclink" | "signup" | "email";
+
 const backendRoleToLocalRole: Record<string, Rol> = {
   ADMIN: "admin",
   MANAGER: "manager",
   CONTRIBUTOR: "contributor",
+  VISITOR: "visitor",
   USER: "manager",
   DECANO: "manager",
   DIRECTOR_ESCUELA: "manager",
@@ -30,9 +41,38 @@ const backendRoleToLocalRole: Record<string, Rol> = {
   PROFESOR: "contributor",
 };
 
+function jsonPost<T>(path: string, body: unknown) {
+  return api<T>(path, { method: "POST", body: JSON.stringify(body) });
+}
+
 export const authApi = {
-  me: () => api<AuthMeResponse>("/auth/me"),
+  /** Recibe el token explícito justo después del login, antes de guardar la sesión. */
+  me: (accessToken?: string) =>
+    api<AuthMeResponse>("/auth/me", accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}),
+  login: (email: string, password: string) => jsonPost<LoginResponse>("/auth/login", { email, password }),
+  logout: () => api<void>("/auth/logout", { method: "POST" }),
+  setPassword: (tokenHash: string, type: AccessLinkType, password: string) =>
+    jsonPost<void>("/auth/set-password", { tokenHash, type, password }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    jsonPost<void>("/auth/password", { currentPassword, newPassword }),
 };
+
+/** Momento de vencimiento en milisegundos; Supabase informa `expiresAt` en segundos. */
+export function sessionExpiry(session: LoginResponse, now = Date.now()) {
+  return session.expiresAt > 0 ? session.expiresAt * 1000 : now + session.expiresIn * 1000;
+}
+
+/**
+ * Los mensajes de la API ya están escritos para la persona. Una respuesta sin cuerpo JSON
+ * (p. ej. el proxy del hosting mientras la API arranca) solo trae "Error <código>".
+ */
+export function authErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (!/^Error \d+$/.test(error.message)) return error.message;
+    return "El MTE no respondió como esperábamos. Inténtalo de nuevo en unos minutos.";
+  }
+  return "No pudimos conectar con el MTE. Revisa tu conexión e inténtalo de nuevo.";
+}
 
 export function normalizeAuthMe(
   response: AuthMeResponse,
@@ -66,10 +106,7 @@ export function normalizeAuthMe(
 }
 
 function normalizeFallbackRole(role?: string): Rol {
-  const normalizedRole = role?.trim().toLowerCase();
-  if (normalizedRole === "admin" || normalizedRole === "administrador") return "admin";
-  if (["manager", "gestor", "director", "decano", "jefe", "user", "usuario"].includes(normalizedRole ?? "")) return "manager";
-  return "contributor";
+  return normalizeRole(role);
 }
 
 function toLocalRole(roles: string[]) {

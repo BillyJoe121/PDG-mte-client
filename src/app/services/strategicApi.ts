@@ -2,7 +2,7 @@ import type {
   AcademicPeriod,
   MeasurementUnit,
 } from "./catalogsApi";
-import { getSessionAccessToken } from "./authToken";
+import { getSessionAccessToken, notifySessionRejected } from "./authToken";
 
 export type StrategicStatus = "ACTIVA" | "INACTIVA";
 export type KeyResultStatus = "BORRADOR" | "ACTIVO" | "CERRADO";
@@ -160,7 +160,8 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const token = getSessionAccessToken();
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  if (token && !headers.has("Authorization")) {
+  const usesStoredToken = Boolean(token) && !headers.has("Authorization");
+  if (usesStoredToken) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -180,6 +181,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       token,
       error,
     });
+    if (res.status === 401 && usesStoredToken) notifySessionRejected();
     throw new ApiError(error?.message ?? `Error ${res.status}`, res.status);
   }
 

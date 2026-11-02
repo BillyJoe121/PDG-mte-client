@@ -5,12 +5,11 @@ Este documento contiene un catálogo completo y detallado de **TODOS** los endpo
 ---
 
 ## 🛠️ Resumen de Roles y Permisos
-Los endpoints que requieren autenticación y autorización utilizan Spring Security con control de acceso basado en roles (`@PreAuthorize`). Los roles soportados son:
-- **`ADMIN`**: Administrador global. Tiene acceso a todas las operaciones, incluyendo CRUD de catálogos, roles, personas y logs de auditoría.
-- **`DECANO`**: Decano de facultad. Tiene permisos de visualización global, creación de metas, apuestas estratégicas, proyectos y gestión intermedia.
-- **`DIRECTOR_ESCUELA`**: Director de escuela académica. Permisos similares a Decano para la gestión estratégica y proyectos.
-- **`JEFE_DPTO`**: Jefe de departamento. Puede ver, actualizar y gestionar proyectos, y asociar KR (Key Results) a proyectos.
-- **`PROFESOR`**: Profesor/Docente. Puede listar proyectos, crear proyectos en los que participe y reportar avances/progreso.
+Los endpoints que requieren autenticación esperan un access token emitido por `POST /api/v1/auth/login` (cuentas en Supabase Auth) y controlan el acceso por rol (`@PreAuthorize`). Los roles del MTE son:
+- **`ADMIN`**: administración de la plataforma (usuarios, catálogos, auditoría) además de la gestión estratégica.
+- **`MANAGER`**: gestión estratégica (metas, apuestas, KRs, proyectos y reportes).
+- **`CONTRIBUTOR`**: consulta y registro de avance en sus proyectos.
+- **`VISITOR`**: solo lectura (tablero, estrategia, proyectos y presentación).
 
 ---
 
@@ -39,7 +38,12 @@ Gestiona la información del usuario autenticado actualmente y sus capacidades e
 
 | Método | Ruta | Descripción | Acceso (PreAuthorize) |
 |:---|:---|:---|:---|
-| **`GET`** | `/api/v1/auth/me` | Obtiene el contexto detallado, roles y capacidades del usuario logueado. | Público / Autenticado |
+| **`POST`** | `/api/v1/auth/login` | Inicia sesión con `{email, password}`; responde `{accessToken, tokenType, expiresIn, expiresAt}`. Bloquea la cuenta 15 minutos tras 5 intentos fallidos. | Público |
+| **`POST`** | `/api/v1/auth/set-password` | Define la contraseña con el enlace de acceso: `{tokenHash, type, password}` (10–72 caracteres). Responde 204. | Público |
+| **`POST`** | `/api/v1/auth/logout` | Cierra la sesión en Supabase Auth. Responde 204. | Autenticado |
+| **`POST`** | `/api/v1/auth/password` | Cambia la contraseña: `{currentPassword, newPassword}`. Responde 204. | Autenticado |
+| **`GET`** | `/api/v1/auth/me` | Obtiene el contexto detallado, roles y capacidades del usuario logueado. | Autenticado |
+| **`POST`** | `/api/v1/directory-users/{id}/access-link` | Genera un enlace de acceso de un solo uso: `{professorId, email, url, accountCreated}`. El MTE no envía correos. | `ADMIN` |
 
 #### Detalles:
 * **`GET /api/v1/auth/me`**

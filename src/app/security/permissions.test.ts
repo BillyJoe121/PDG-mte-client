@@ -45,6 +45,24 @@ describe('permissions', () => {
     expect(hasPermission(contributor, 'okrs.manage')).toBe(false);
   });
 
+  it('keeps visitors read-only, with or without backend capabilities', () => {
+    const visitor = { ...baseUser, rol: 'visitor' as const };
+    const fromApi = {
+      ...visitor,
+      roles: ['VISITOR'],
+      capabilities: ['viewDashboard', 'viewStrategy', 'viewProjects', 'viewPresentation'],
+    };
+
+    for (const user of [visitor, fromApi]) {
+      expect(hasPermission(user, 'dashboard.view')).toBe(true);
+      expect(hasPermission(user, 'proyectos.view')).toBe(true);
+      expect(hasPermission(user, 'proyectos.progress')).toBe(false);
+      expect(hasPermission(user, 'proyectos.create')).toBe(false);
+      expect(hasPermission(user, 'okrs.manage')).toBe(false);
+      expect(hasPermission(user, 'usuarios.manage')).toBe(false);
+    }
+  });
+
   it('uses backend capabilities when they are present', () => {
     const userWithCapabilities = {
       ...baseUser,
