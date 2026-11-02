@@ -170,6 +170,7 @@ Indicadores cuantificables (KRs) vinculados N:M a Metas y Apuestas (al menos una
 | **`GET`** | `/api/v1/key-results/{id}` | Obtiene un KR. | Autenticado |
 | **`PUT`** | `/api/v1/key-results/{id}` | Actualiza completamente la configuración de un KR. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
 | **`PATCH`** | `/api/v1/key-results/{id}/active` | Archiva (`active=false`) o restaura (`active=true`) un KR. Archivar devuelve 409 si el KR está cerrado o tiene iniciativas vinculadas activas. | `ADMIN`, `MANAGER` |
+| **`GET`** | `/api/v1/key-results/{id}/progress-records` | Historial de avances manuales del KR, del más reciente al más antiguo (fecha, autor, valor y porcentaje anterior y actual). | Autenticado |
 
 * **Cuerpo de Solicitud (`KeyResultRequest`):**
   ```json

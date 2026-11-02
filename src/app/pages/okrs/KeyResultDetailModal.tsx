@@ -14,6 +14,7 @@ import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicL
 import { ConfirmActionModal } from "./ConfirmActionModal";
 import { KrFormModal } from "./KrFormModal";
 import { KeyResultProgressForm } from "./KeyResultProgressForm";
+import { KeyResultProgressHistory } from "./KeyResultProgressHistory";
 import { COLORS, formatValueWithUnit } from "./okrsShared";
 import { PlannerButton } from "../../components/planner/PlannerButton";
 
@@ -38,6 +39,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
   const [editingKr, setEditingKr] = useState(false);
   const [archiveConfirm, setArchiveConfirm] = useState(false);
   const [archiveError, setArchiveError] = useState("");
+  const [historyVersion, setHistoryVersion] = useState(0);
   const [restoring, setRestoring] = useState(false);
 
   const load = async (silent = false) => {
@@ -94,6 +96,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
   };
 
   const handleProgressRecorded = async () => {
+    setHistoryVersion((version) => version + 1);
     invalidateScreenDataCache();
     signalStrategicDataChanged({
       reason: "key-result-progress",
@@ -315,6 +318,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                 </div>
               </section>
 
+              <KeyResultProgressHistory keyResultId={keyResult.id} unitName={keyResult.measurementUnitName} refreshKey={historyVersion} />
             </>
           ) : null}
         </div>

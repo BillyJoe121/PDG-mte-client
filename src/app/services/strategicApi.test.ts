@@ -130,6 +130,17 @@ describe("strategic hierarchy APIs", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/key-results?periodId=5&includeArchived=true`, expect.any(Object));
   });
 
+  it("reads the progress history of a key result", async () => {
+    const records = [{ id: 2, keyResultId: 9, previousValue: 10, currentValue: 20, previousPercentage: 10, progressPercentage: 20, authorName: "Ana", authorEmail: "ana@icesi.edu.co", recordedAt: "2026-11-02T10:00:00Z" }];
+    fetchMock.mockResolvedValue(jsonResponse(records));
+
+    const result = await keyResultsApi.progressRecords(9);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/key-results/9/progress-records`, expect.any(Object));
+    expect(result).toEqual(records);
+  });
+
   it("archives and restores a key result through the active endpoint", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ id: 9, archived: true, archivedAt: "2026-11-02T10:00:00Z" }));
 

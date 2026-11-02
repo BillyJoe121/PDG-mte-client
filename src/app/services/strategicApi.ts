@@ -93,6 +93,19 @@ export interface KeyResultProgressRequest {
   progressPercentage: number;
 }
 
+/** One manual progress entry. Previous values are null on the first record of a KR. */
+export interface KeyResultProgressRecord {
+  id: number;
+  keyResultId: number;
+  previousValue: number | null;
+  currentValue: number;
+  previousPercentage: number | null;
+  progressPercentage: number;
+  authorName: string | null;
+  authorEmail: string | null;
+  recordedAt: string;
+}
+
 export interface KeyResult {
   id: number;
   name: string;
@@ -330,6 +343,8 @@ export const keyResultsApi = {
     api<KeyResult>(`/key-results/${id}/progress`, { method: "PATCH", body: JSON.stringify(body) }),
   setStatus: (id: number, status: KeyResultStatus) =>
     api<KeyResult>(`/key-results/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  /** Progress history of a key result, newest first. */
+  progressRecords: (id: number) => api<KeyResultProgressRecord[]>(`/key-results/${id}/progress-records`),
   /** Archives (`active: false`) or restores (`active: true`) a key result. */
   setActive: (id: number, active: boolean) =>
     api<KeyResult>(`/key-results/${id}/active`, { method: "PATCH", body: JSON.stringify({ active }) }),

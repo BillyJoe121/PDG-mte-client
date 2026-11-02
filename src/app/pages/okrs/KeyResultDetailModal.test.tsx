@@ -6,6 +6,8 @@ import type { KeyResult } from "../../services/strategicApi";
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   setActive: vi.fn(),
+  records: vi.fn(),
+  updateProgress: vi.fn(),
   links: vi.fn(),
   units: vi.fn(),
   toastSuccess: vi.fn(),
@@ -26,7 +28,11 @@ vi.mock("../../services/projectsApi", async (importOriginal) => {
 });
 vi.mock("../../services/strategicApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../services/strategicApi")>();
-  return { ...actual, keyResultsApi: { ...actual.keyResultsApi, get: mocks.get, setActive: mocks.setActive } };
+  return {
+    ...actual,
+    keyResultsApi: { ...actual.keyResultsApi, get: mocks.get, setActive: mocks.setActive, progressRecords: mocks.records },
+    updateKeyResultProgress: mocks.updateProgress,
+  };
 });
 
 import { ApiError } from "../../services/strategicApi";
@@ -68,6 +74,7 @@ describe("KeyResultDetailModal archive", () => {
     mocks.links.mockResolvedValue([]);
     mocks.units.mockResolvedValue([]);
     mocks.setActive.mockResolvedValue(archivedKr);
+    mocks.records.mockResolvedValue([]);
   });
 
   it("offers Archivar instead of Eliminar and archives after confirmation", async () => {
@@ -149,5 +156,91 @@ describe("KeyResultDetailModal archive", () => {
     expect(screen.getByRole("button", { name: "Archivar" })).toBeInTheDocument();
     expect(onChanged).toHaveBeenCalledTimes(1);
     expect(mocks.toastSuccess).toHaveBeenCalledWith("Key Result restaurado");
+  });
+});
+
+const olderRecord = {
+  id: 1,
+  keyResultId: 5,
+  previousValue: null,
+  currentValue: 72,
+  previousPercentage: null,
+  progressPercentage: 10,
+  authorName: "Ana Gómez",
+  authorEmail: "ana@icesi.edu.co",
+  recordedAt: "2026-10-01T14:00:00Z",
+};
+const newerRecord = {
+  ...olderRecord,
+  id: 2,
+  previousValue: 72,
+  currentValue: 75,
+  previousPercentage: 10,
+  progressPercentage: 25,
+  authorName: null,
+  authorEmail: "luis@icesi.edu.co",
+  recordedAt: "2026-11-01T14:00:00Z",
+};
+
+describe("KeyResultDetailModal progress history", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((mock) => mock.mockReset());
+    mocks.get.mockResolvedValue(activeKr);
+    mocks.links.mockResolvedValue([]);
+    mocks.units.mockResolvedValue([]);
+    mocks.records.mockResolvedValue([newerRecord, olderRecord]);
+  });
+
+  it("lists the progress records newest first under Historial de avance", async () => {
+    renderModal();
+
+    const section = (await screen.findByRole("heading", { name: "Historial de avance" })).closest("section") as HTMLElement;
+    const items = await within(section).findAllByRole("listitem");
+    expect(mocks.records).toHaveBeenCalledWith(5);
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent("luis@icesi.edu.co");
+    expect(items[0]).toHaveTextContent("72 Porcentaje → 75 Porcentaje");
+    expect(items[0]).toHaveTextContent("10% → 25%");
+    expect(items[1]).toHaveTextContent("Ana Gómez");
+    expect(items[1]).toHaveTextContent("— → 72 Porcentaje");
+  });
+
+  it("shows the empty state and keeps the history visible to read-only users", async () => {
+    mocks.records.mockResolvedValue([]);
+    renderModal(false);
+
+    expect(await screen.findByText("Sin registros de avance")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Valor actual \(/)).not.toBeInTheDocument();
+  });
+
+  it("shows the history of an archived KR", async () => {
+    mocks.get.mockResolvedValue(archivedKr);
+    renderModal();
+
+    expect(await screen.findAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("shows a history error without breaking the rest of the detail", async () => {
+    mocks.records.mockRejectedValue(new Error("boom"));
+    renderModal();
+
+    expect(await screen.findByText("Elevar permanencia")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo cargar el historial de avance.");
+  });
+
+  it("reloads the history after recording progress", async () => {
+    const user = userEvent.setup();
+    mocks.records.mockResolvedValueOnce([olderRecord]);
+    mocks.updateProgress.mockResolvedValue({ ...activeKr, currentValue: 80, progressPercentage: 40 });
+    renderModal();
+    expect(await screen.findAllByRole("listitem")).toHaveLength(1);
+
+    await user.type(screen.getByLabelText(/^Valor actual \(/), "80");
+    await user.type(screen.getByLabelText("Avance registrado (%)"), "40");
+    await user.click(screen.getByRole("button", { name: "Registrar avance" }));
+
+    await waitFor(() => expect(mocks.updateProgress).toHaveBeenCalledWith(5, { currentValue: 80, progressPercentage: 40 }));
+    await waitFor(() => expect(mocks.records).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getAllByRole("listitem")).toHaveLength(2));
   });
 });
