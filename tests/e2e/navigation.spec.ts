@@ -36,7 +36,7 @@ test.describe('admin navigation', () => {
     await page.goto('/usuarios');
 
     await expect(page.getByRole('heading', { name: /Usuarios, departamentos y responsables/i })).toBeVisible();
-    await expect(page.getByText('Sistemas MTE')).toBeVisible();
+    await expect(page.getByLabel(/Tabla de usuarios/).getByText('Sistemas MTE')).toBeVisible();
     await expect(page.getByRole('button', { name: /Nuevo Usuario/i })).toBeVisible();
   });
 
