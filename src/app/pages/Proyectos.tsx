@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion, type MotionProps } from "motion/react";
 import { Loader2, Target } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
@@ -92,7 +92,7 @@ export function Proyectos() {
 
   const visibleProjects = useMemo(() => filterProjects(projects, search), [projects, search]);
   const stats = useMemo(() => buildProjectStats(visibleProjects), [visibleProjects]);
-  const viewMotion = reduceMotion ? { initial: false } : {
+  const viewMotion: MotionProps = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -4 },

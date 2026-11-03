@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion, type MotionProps } from "motion/react";
 import { AlertTriangle, Archive, BookOpen, Flag, KeyRound, Loader2, Plus, RefreshCw, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
@@ -76,7 +76,7 @@ export function KRs() {
   // Las tarjetas cuentan los KR vigentes cargados; solo la lista respeta los filtros.
   const stats = useMemo(() => countKeyResultsByStatus(keyResults.filter((item) => item.archived !== true)), [keyResults]);
   const archivedCount = useMemo(() => keyResults.filter((item) => item.archived === true).length, [keyResults]);
-  const viewMotion = reduceMotion ? { initial: false } : {
+  const viewMotion: MotionProps = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -4 },

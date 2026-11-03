@@ -94,6 +94,12 @@ Pruebas unitarias y de integracion en modo interactivo/watch:
 npm test
 ```
 
+Verificacion de tipos (TypeScript en modo estricto, sin generar archivos; cubre `src/` y `tests/`):
+
+```bash
+npm run typecheck
+```
+
 Pruebas unitarias y de integracion una sola vez:
 
 ```bash
@@ -140,7 +146,7 @@ playwright-report/index.html
 
 ### Integracion continua
 
-`.github/workflows/ci.yml` corre `npm ci`, `npm run test:run`, las pruebas e2e (`npx playwright install --with-deps chromium` y `npm run test:e2e`) y `npm run build` con Node 24 en Ubuntu 24.04, en cada push y pull request a `develop`. El runner esta fijado en 24.04 porque Playwright 1.60 no tiene Chromium para Ubuntu 26.04. En Render el sitio estatico debe tener Auto-Deploy en "After CI Checks Pass" para que un fallo impida desplegar.
+`.github/workflows/ci.yml` corre `npm ci`, `npm run typecheck`, `npm run test:run`, las pruebas e2e (`npx playwright install --with-deps chromium` y `npm run test:e2e`) y `npm run build` con Node 24 en Ubuntu 24.04, en cada push y pull request a `develop`. El runner esta fijado en 24.04 porque Playwright 1.60 no tiene Chromium para Ubuntu 26.04. En Render el sitio estatico debe tener Auto-Deploy en "After CI Checks Pass" para que un fallo impida desplegar.
 
 ## Inicio de sesión
 
@@ -172,6 +178,7 @@ npm run test:all
 | `npm run build` | Genera el build de produccion en `dist/`. |
 | `npm run build:verified` | Genera el build y valida presupuestos gzip. |
 | `npx vite preview` | Sirve localmente el build generado. |
+| `npm run typecheck` | Verifica los tipos con TypeScript (`tsconfig.json`). |
 | `npm test` | Ejecuta Vitest en modo watch. |
 | `npm run test:run` | Ejecuta Vitest una sola vez. |
 | `npm run test:coverage` | Ejecuta Vitest con cobertura. |

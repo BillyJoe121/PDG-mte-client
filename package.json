@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json",
     "check:performance": "node scripts/check-performance-budget.mjs",
     "build:verified": "npm run build && npm run check:performance",
     "dev": "vite",
@@ -77,10 +78,13 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "4.7.0",
     "@vitest/coverage-v8": "^4.1.6",
     "jsdom": "^29.1.1",
     "tailwindcss": "4.1.12",
+    "typescript": "~5.9.3",
     "vite": "6.3.5",
     "vitest": "^4.1.6"
   },
