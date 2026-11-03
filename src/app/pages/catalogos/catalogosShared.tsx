@@ -34,6 +34,10 @@ export const unitTypeRule: Record<MeasurementUnitType, string> = {
   OTRA: "Acepta un valor numerico con una unidad personalizada.",
 };
 
+/** Los periodos academicos se nombran por semestre: AAAA-1 o AAAA-2. */
+export const PERIOD_NAME_PATTERN = /^\d{4}-[12]$/;
+export const PERIOD_NAME_FORMAT_MESSAGE = "Usa el formato AAAA-1 o AAAA-2, por ejemplo 2026-2.";
+
 export const emptyPeriodForm: PeriodForm = {
   name: "",
   startDate: "",

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Catalogos } from "./Catalogos";
@@ -59,6 +59,34 @@ describe("Catalogos", () => {
     await waitFor(() => expect(api.createUnit).toHaveBeenCalledWith({
       name: "Estudiantes",
       type: "NUMERICA",
+    }));
+  });
+
+  it("exige nombres de periodo con formato AAAA-1 o AAAA-2 antes de crear", async () => {
+    const user = userEvent.setup();
+    render(<Catalogos />);
+    await screen.findByText("2026-1");
+
+    const name = screen.getByRole("textbox", { name: "Nombre del periodo" });
+    expect(name).toHaveAccessibleDescription("Formato AAAA-1 o AAAA-2.");
+    await user.type(name, "2026-3");
+    await user.click(screen.getByRole("button", { name: /Crear/i }));
+
+    expect(await screen.findByText("Usa el formato AAAA-1 o AAAA-2, por ejemplo 2026-2.")).toBeInTheDocument();
+    expect(api.createPeriod).not.toHaveBeenCalled();
+
+    await user.clear(name);
+    await user.type(name, " 2026-2 ");
+    const [startDate, endDate] = document.querySelectorAll<HTMLInputElement>('input[type="date"]');
+    fireEvent.change(startDate, { target: { value: "2026-07-01" } });
+    fireEvent.change(endDate, { target: { value: "2026-12-15" } });
+    await user.click(screen.getByRole("button", { name: /Crear/i }));
+
+    await waitFor(() => expect(api.createPeriod).toHaveBeenCalledWith({
+      name: "2026-2",
+      startDate: "2026-07-01",
+      endDate: "2026-12-15",
+      status: "PLANIFICACION",
     }));
   });
 

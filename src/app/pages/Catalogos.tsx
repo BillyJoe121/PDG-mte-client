@@ -15,6 +15,8 @@ import { PeriodosPanel } from "./catalogos/PeriodosPanel";
 import { UnidadesPanel } from "./catalogos/UnidadesPanel";
 import {
   COLORS,
+  PERIOD_NAME_FORMAT_MESSAGE,
+  PERIOD_NAME_PATTERN,
   type CatalogosTab,
   type PeriodForm,
   type UnitForm,
@@ -82,6 +84,7 @@ export function Catalogos() {
   const validatePeriod = () => {
     const name = periodForm.name.trim();
     if (!name) return "El nombre del periodo es obligatorio.";
+    if (!PERIOD_NAME_PATTERN.test(name)) return PERIOD_NAME_FORMAT_MESSAGE;
     if (!periodForm.startDate) return "La fecha de inicio es obligatoria.";
     if (!periodForm.endDate) return "La fecha de fin es obligatoria.";
     if (periodForm.endDate <= periodForm.startDate) {
