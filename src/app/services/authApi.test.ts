@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { authApi, authErrorMessage, normalizeAuthMe, sessionExpiry } from "./authApi";
+import { authApi, authErrorMessage, normalizeAuthMe, sessionExpiry, type AuthMeResponse } from "./authApi";
 import { ApiError } from "./strategicApi";
 
 const baseUrl = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -100,10 +100,11 @@ describe("auth API", () => {
   });
 
   it("deduplicates nullable arrays and accepts capability lists", () => {
+    // Malformed payload on purpose: normalizeAuthMe must tolerate nulls its declared types exclude.
     const user = normalizeAuthMe({
       user: { roles: ["MANAGER", null, "MANAGER"], permissions: ["READ", undefined, "READ"] },
       capabilities: ["viewDashboard", null, "viewDashboard"],
-    });
+    } as unknown as AuthMeResponse);
 
     expect(user.roles).toEqual(["MANAGER"]);
     expect(user.permissions).toEqual(["READ"]);
