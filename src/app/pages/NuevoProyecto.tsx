@@ -153,7 +153,8 @@ export function NuevoProyecto() {
       link.contributionWeight > 100 ||
       !link.contributionType
     );
-    if (invalidLink) next.keyResults = "Cada vinculo KR debe tener peso entre 0 y 100 y tipo de contribucion.";
+    if (krLinks.length === 0) next.keyResults = "Selecciona al menos un Key Result.";
+    else if (invalidLink) next.keyResults = "Cada vinculo KR debe tener peso entre 0 y 100 y tipo de contribucion.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -209,7 +210,7 @@ export function NuevoProyecto() {
         </div>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 950, color: "#000" }}>Nueva iniciativa</h1>
-          <p style={{ fontSize: 12, color: "#717182", marginTop: 3 }}>Crea una iniciativa local y, si aplica, vinculala de inmediato a uno o varios Key Results.</p>
+          <p style={{ fontSize: 12, color: "#717182", marginTop: 3 }}>Crea una iniciativa local y vinculala a uno o varios Key Results.</p>
         </div>
       </div>
 
@@ -310,8 +311,8 @@ export function NuevoProyecto() {
           <div className="bg-white rounded-lg p-5 space-y-4" style={{ border: "1.5px solid #E5E7EB" }}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 style={{ fontSize: 13, fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Key Results opcionales</h2>
-                <p style={{ fontSize: 12, color: "#717182", marginTop: 8 }}>Puedes vincular varios KRs con peso y tipo de contribucion desde la creacion.</p>
+                <h2 style={{ fontSize: 13, fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Key Results *</h2>
+                <p style={{ fontSize: 12, color: "#717182", marginTop: 8 }}>Selecciona al menos un KR. El primero que elijas queda como KR principal de la iniciativa; puedes vincular mas con su peso y tipo de contribucion.</p>
               </div>
               <span style={{ fontSize: 12, fontWeight: 900, color: COLORS.blue }}>{krLinks.length} seleccionado(s)</span>
             </div>
@@ -327,7 +328,7 @@ export function NuevoProyecto() {
                   return (
                     <div key={kr.id} className="rounded-lg p-3" style={{ border: `1.5px solid ${selected ? COLORS.blue : "#E5E7EB"}`, backgroundColor: selected ? "#EEF2FF" : "#FAFAFA" }}>
                       <div className="flex items-start gap-3">
-                        <button type="button" onClick={() => toggleKeyResult(kr.id)} className="w-5 h-5 rounded flex items-center justify-center mt-0.5" style={{ backgroundColor: selected ? COLORS.blue : "#fff", border: `2px solid ${selected ? COLORS.blue : "#D1D5DB"}` }}>
+                        <button type="button" aria-label={`Seleccionar KR ${kr.id}`} aria-pressed={selected} onClick={() => toggleKeyResult(kr.id)} className="w-5 h-5 rounded flex items-center justify-center mt-0.5" style={{ backgroundColor: selected ? COLORS.blue : "#fff", border: `2px solid ${selected ? COLORS.blue : "#D1D5DB"}` }}>
                           {selected && <Check size={12} color="#fff" />}
                         </button>
                         <div className="flex-1 min-w-0">
