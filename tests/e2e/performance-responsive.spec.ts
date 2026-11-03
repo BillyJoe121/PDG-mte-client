@@ -44,6 +44,6 @@ test('mobile dashboard avoids horizontal overflow and defers heavy charts', asyn
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(chartRequests).toHaveLength(0);
 
-  await page.getByText('Cobertura por apuesta estrategica').scrollIntoViewIfNeeded();
+  await page.getByRole('heading', { name: 'KRs por apuesta estrategica' }).scrollIntoViewIfNeeded();
   await expect.poll(() => chartRequests.length).toBeGreaterThan(0);
 });
