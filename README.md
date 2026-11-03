@@ -140,7 +140,7 @@ playwright-report/index.html
 
 ### Integracion continua
 
-`.github/workflows/ci.yml` corre `npm ci`, `npm run test:run` y `npm run build` con Node 24 en cada push y pull request a `develop`. En Render el sitio estatico debe tener Auto-Deploy en "After CI Checks Pass" para que un fallo impida desplegar.
+`.github/workflows/ci.yml` corre `npm ci`, `npm run test:run`, las pruebas e2e (`npx playwright install --with-deps chromium` y `npm run test:e2e`) y `npm run build` con Node 24 en Ubuntu 24.04, en cada push y pull request a `develop`. El runner esta fijado en 24.04 porque Playwright 1.60 no tiene Chromium para Ubuntu 26.04. En Render el sitio estatico debe tener Auto-Deploy en "After CI Checks Pass" para que un fallo impida desplegar.
 
 ## Inicio de sesión
 
