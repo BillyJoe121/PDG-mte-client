@@ -66,8 +66,8 @@ test("presentation renders options hub and supports general report, comparison a
   await expect(page.getByRole("button", { name: "Descargar estructura de diapositivas en CSV" })).toBeVisible();
   // Cover, then the consolidated report slide, then the slides returned by the API
   await expect(page.getByText("1 / 3")).toBeVisible();
-  // Keyboard navigation ignores keys while a button has focus, so release the mode button first
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  // The arrows change slides even while the mode button that was just clicked keeps the focus
+  await expect(page.getByRole("navigation", { name: "Modos de presentación" }).getByRole("button", { name: "Diapositivas" })).toBeFocused();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByText("2 / 3")).toBeVisible();
   await page.keyboard.press("ArrowRight");
