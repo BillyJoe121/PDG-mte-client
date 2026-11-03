@@ -3,6 +3,8 @@ import { Edit2, Loader2, Plus, Power, Save, Trash2, X } from "lucide-react";
 import type { AcademicPeriod, PeriodStatus } from "../../services/catalogsApi";
 import { COLORS, PeriodBadge, type PeriodForm, periodStatusLabel } from "./catalogosShared";
 
+const PERIOD_NAME_HINT_ID = "period-name-format-hint";
+
 interface PeriodosPanelProps {
   editingPeriodId: number | null;
   periodForm: PeriodForm;
@@ -41,12 +43,19 @@ export function PeriodosPanel({
           {editingPeriodId ? "Editar periodo" : "Nuevo periodo"}
         </h2>
         <div className="space-y-3">
-          <input
-            value={periodForm.name}
-            onChange={(e) => onFormChange((form) => ({ ...form, name: e.target.value }))}
-            placeholder='Nombre, ej: "2026-1"'
-            style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #000", borderRadius: 8, fontSize: "13px" }}
-          />
+          <div>
+            <input
+              value={periodForm.name}
+              onChange={(e) => onFormChange((form) => ({ ...form, name: e.target.value }))}
+              aria-label="Nombre del periodo"
+              aria-describedby={PERIOD_NAME_HINT_ID}
+              placeholder="Nombre, ej: 2026-2"
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #000", borderRadius: 8, fontSize: "13px" }}
+            />
+            <p id={PERIOD_NAME_HINT_ID} style={{ marginTop: 4, fontSize: "11px", color: COLORS.gray }}>
+              Formato AAAA-1 o AAAA-2.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <input
               type="date"
