@@ -33,8 +33,22 @@ function normalizeKeyboardKey(key: string) {
   return key === " " ? "Space" : key;
 }
 
-function isFormControl(target: EventTarget | null) {
-  return target instanceof HTMLElement && ["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(target.tagName);
+// Fields where the arrow keys move the caret or change the value; slide shortcuts stay out of them.
+function isTextEntry(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    (["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName) ||
+      target.closest('[contenteditable]:not([contenteditable="false"])') !== null)
+  );
+}
+
+// A focused button keeps Space and Enter for its own activation.
+function isButtonActivation(target: EventTarget | null, key: string) {
+  return (
+    (key === "Space" || key === "Enter") &&
+    target instanceof HTMLElement &&
+    target.closest('button, [role="button"]') !== null
+  );
 }
 
 export function PresentacionDashboard() {
@@ -127,8 +141,9 @@ export function PresentacionDashboard() {
   // Keyboard navigation
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isFormControl(event.target)) return;
+      if (isTextEntry(event.target)) return;
       const key = normalizeKeyboardKey(event.key);
+      if (isButtonActivation(event.target, key)) return;
 
       if (key === "Escape") {
         if (selectedEntity) {
