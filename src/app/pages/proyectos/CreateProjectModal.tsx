@@ -93,7 +93,8 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
     const plannerError = validatePlannerUrl(form.plannerUrl);
     if (plannerError) next.plannerUrl = plannerError;
     const invalidLink = krLinks.some((link) => !link.keyResultId || link.contributionWeight < 0 || link.contributionWeight > 100 || !link.contributionType);
-    if (invalidLink) next.keyResults = "Cada vinculo KR debe tener peso entre 0 y 100 y tipo de contribucion.";
+    if (krLinks.length === 0) next.keyResults = "Selecciona al menos un Key Result.";
+    else if (invalidLink) next.keyResults = "Cada vinculo KR debe tener peso entre 0 y 100 y tipo de contribucion.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -212,7 +213,7 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
             <div className="rounded-lg bg-white p-3" style={{ border: "1px solid #EEF2F7" }}>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <span style={{ display: "block", fontSize: 11, fontWeight: 850, color: COLORS.text, textTransform: "uppercase" }}>Key Results opcionales</span>
+                  <span style={{ display: "block", fontSize: 11, fontWeight: 850, color: COLORS.text, textTransform: "uppercase" }}>Key Results *</span>
                   <span style={{ display: "block", marginTop: 2, fontSize: 11, color: "#9CA3AF", fontWeight: 700 }}>{krLinks.length} seleccionado(s)</span>
                 </div>
                 <Plus size={15} color={COLORS.green} />
