@@ -11,10 +11,10 @@ export function Footer() {
         <div className="flex items-center gap-4">
           <IcesiLogo variant="white" size="sm" />
           <div style={{ borderLeft: "1px solid rgba(255,255,255,0.3)", paddingLeft: 16 }}>
-            <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "11px", fontWeight: 600 }}>
+            <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "10.5px", fontWeight: 600 }}>
               MTE · Modulo de Trazabilidad Estrategica
             </p>
-            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "10px" }}>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "9px" }}>
               Escuela TDI · Facultad de Ingeniería, Diseño y Ciencias Aplicadas
             </p>
           </div>
@@ -26,7 +26,7 @@ export function Footer() {
             <a
               key={link}
               href="#"
-              style={{ color: "rgba(255,255,255,0.7)", fontSize: "11px", textDecoration: "none" }}
+              style={{ color: "rgba(255,255,255,0.7)", fontSize: "10.5px", textDecoration: "none" }}
               className="hover:text-white transition-colors"
             >
               {link}
@@ -36,7 +36,7 @@ export function Footer() {
 
         {/* Version */}
         <div>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px" }}>
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "9px" }}>
             v1.0.0 · © 2026 Universidad ICESI
           </p>
         </div>

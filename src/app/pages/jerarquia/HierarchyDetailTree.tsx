@@ -37,21 +37,21 @@ export function HierarchyDetailTree({
   const children = root.children ?? [];
 
   return (
-    <section className="rounded-md bg-white p-5" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <section className="rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p style={{ color: COLORS.text, fontSize: 15, fontWeight: 900 }}>Contenido jerarquico</p>
-          <p style={{ color: COLORS.gray, fontSize: 11, marginTop: 3 }}>
+          <p style={{ color: COLORS.text, fontSize: 13, fontWeight: 900 }}>Contenido jerarquico</p>
+          <p style={{ color: COLORS.gray, fontSize: 10.5, marginTop: 2 }}>
             Los elementos se organizan desde el nivel superior hacia las iniciativas relacionadas.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-1.5">
           {onCreateChild && createChildLabel && (
-            <button onClick={onCreateChild} className="btn-primary-orange active:scale-95">
-              <Plus size={14} /> {createChildLabel}
+            <button onClick={onCreateChild} className="btn-primary-orange active:scale-95" style={{ fontSize: 11, padding: "5px 10px", gap: 5, minHeight: 24 }}>
+              <Plus size={11} /> {createChildLabel}
             </button>
           )}
-          <span style={{ color: COLORS.gray, fontSize: 11, fontWeight: 850 }}>{children.length} elementos directos</span>
+          <span style={{ color: COLORS.gray, fontSize: 9, fontWeight: 850 }}>{children.length} elementos directos</span>
         </div>
       </div>
 
@@ -89,11 +89,11 @@ function HierarchyChildSections({
   onManage: (node: StrategicHierarchyNode) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {groupHierarchyNodes(nodes).map((group) => (
-        <div key={group.type} className="space-y-2">
+        <div key={group.type} className="space-y-1.5">
           <HierarchySectionTitle type={group.type} depth={depth} />
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {group.nodes.map((child, childIndex) => {
               const childKey = getTreeNodeKey(child, parentKey);
               return (
@@ -124,13 +124,13 @@ function HierarchySectionTitle({ type, depth }: { type: StrategicHierarchyNode["
       style={{
         marginLeft: depth * HIERARCHY_DEPTH_INDENT,
         color: accent,
-        fontSize: 11,
-        fontWeight: 950,
-        letterSpacing: "0.08em",
+        fontSize: 9,
+        fontWeight: 900,
+        letterSpacing: "0.07em",
         textTransform: "uppercase",
       }}
     >
-      <span style={{ width: 18, height: 3, borderRadius: 999, backgroundColor: accent }} />
+      <span style={{ width: 14, height: 2, borderRadius: 999, backgroundColor: accent }} />
       {getHierarchySectionLabel(type)}
     </div>
   );
@@ -160,7 +160,7 @@ function TreeNode({
   const theme = getNodeTheme(node.nodeType);
   const Icon = icon;
   const progressText = recordedProgressText(node);
-  const titleSize = node.nodeType === "STRATEGIC_BET" || node.nodeType === "GOAL" ? "18px" : "14px";
+  const titleSize = node.nodeType === "STRATEGIC_BET" || node.nodeType === "GOAL" ? "13px" : "11px";
   const toggleNode = () => {
     if (hasChildren) onToggle(nodeKey);
   };
@@ -185,7 +185,7 @@ function TreeNode({
         aria-expanded={hasChildren ? isExpanded : undefined}
         onClick={toggleNode}
         onKeyDown={handleKeyDown}
-        className="hierarchy-detail-node rounded-md p-4"
+        className="hierarchy-detail-node rounded-md p-2.5"
         style={{
           "--hierarchy-node-accent": theme.background,
           cursor: hasChildren ? "pointer" : "default",
@@ -197,33 +197,33 @@ function TreeNode({
         whileHover={reduceMotion ? undefined : hierarchyHoverMotion}
         whileTap={reduceMotion ? undefined : hierarchyTapMotion}
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2">
           <motion.div
             className="hierarchy-detail-node__icon mt-0.5 flex items-center justify-center"
-            style={{ width: 22 }}
+            style={{ width: 15 }}
             animate={reduceMotion ? undefined : { rotate: isExpanded ? 0 : -2 }}
             transition={shortMotionTransition}
           >
-            {hasChildren ? (isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />) : null}
+            {hasChildren ? (isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />) : null}
           </motion.div>
-          <Icon size={18} className="hierarchy-detail-node__icon mt-0.5" />
+          <Icon size={13} className="hierarchy-detail-node__icon mt-0.5" />
           <div className="flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                 <p className="hierarchy-detail-node__title" style={{ fontSize: titleSize, fontWeight: 850, lineHeight: 1.25 }}>{node.label}</p>
-                {node.badge && <span className="hierarchy-detail-node__badge" style={{ fontSize: "10px", fontWeight: 850, padding: "2px 6px", borderRadius: 4 }}>{node.badge}</span>}
-                {progressText && <span className="hierarchy-detail-node__strong" title="Avance registrado" style={{ fontSize: "11px", fontWeight: 850 }}>{progressText}</span>}
+                {node.badge && <span className="hierarchy-detail-node__badge" style={{ fontSize: "8.5px", fontWeight: 850, padding: "1px 5px", borderRadius: 4 }}>{node.badge}</span>}
+                {progressText && <span className="hierarchy-detail-node__strong" title="Avance registrado" style={{ fontSize: "9px", fontWeight: 850 }}>{progressText}</span>}
               </div>
               <button
                 type="button"
                 onClick={handleManage}
                 className="hierarchy-detail-node__action shrink-0 rounded-md"
-                style={{ fontSize: "11px", fontWeight: 850, padding: "6px 10px" }}
+                style={{ fontSize: "11px", fontWeight: 850, padding: "4px 8px", minHeight: 24 }}
               >
                 Gestionar
               </button>
             </div>
-            {node.description && <p className="hierarchy-detail-node__description" style={{ fontSize: "12px", marginTop: 5, lineHeight: 1.45 }}>{node.description}</p>}
+            {node.description && <p className="hierarchy-detail-node__description" style={{ fontSize: "10.5px", marginTop: 3, lineHeight: 1.5 }}>{node.description}</p>}
             {node.executionSummary && <SummaryInline summary={node.executionSummary} theme={theme} />}
           </div>
         </div>
@@ -232,7 +232,7 @@ function TreeNode({
         {isExpanded && hasChildren && (
         <motion.div
           key="children"
-          className="mt-2 overflow-hidden"
+          className="mt-1.5 overflow-hidden"
           initial={reduceMotion ? false : { opacity: 0, height: 0 }}
           animate={reduceMotion ? undefined : { opacity: 1, height: "auto" }}
           exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
@@ -256,11 +256,11 @@ function TreeNode({
 function SummaryInline({ summary, theme }: { summary: ExecutionSummary; theme: NodeTheme }) {
   void theme;
   return (
-    <div className="flex flex-wrap items-center gap-3 mt-2">
-      <span className="hierarchy-detail-node__description" style={{ fontSize: "10px" }}>{summary.summaryText}</span>
-      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>KRs cerrados {summary.completedKeyResults}</span>
-      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>KRs activos {summary.inProgressKeyResults}</span>
-      <span className="hierarchy-detail-node__strong" style={{ fontSize: "10px", fontWeight: 850 }}>Iniciativas en progreso {summary.inProgressProjects}</span>
+    <div className="flex flex-wrap items-center gap-2 mt-1.5">
+      <span className="hierarchy-detail-node__description" style={{ fontSize: "8.5px" }}>{summary.summaryText}</span>
+      <span className="hierarchy-detail-node__strong" style={{ fontSize: "8.5px", fontWeight: 850 }}>KRs cerrados {summary.completedKeyResults}</span>
+      <span className="hierarchy-detail-node__strong" style={{ fontSize: "8.5px", fontWeight: 850 }}>KRs activos {summary.inProgressKeyResults}</span>
+      <span className="hierarchy-detail-node__strong" style={{ fontSize: "8.5px", fontWeight: 850 }}>Iniciativas en progreso {summary.inProgressProjects}</span>
     </div>
   );
 }

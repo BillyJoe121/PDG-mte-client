@@ -18,7 +18,6 @@ import {
 import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
 import { KrFormModal } from "./okrs/KrFormModal";
 import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
-import { HierarchyOverview } from "./jerarquia/HierarchyOverview";
 import { ArchivedStrategyModal } from "./jerarquia/ArchivedStrategyModal";
 import {
   GoalCreateModal,
@@ -236,14 +235,13 @@ export function JerarquiaEstrategica() {
       <div className="flex-1 overflow-y-auto px-6 py-5">
         <AnimatePresence mode="wait" initial={false}>
         {loading ? (
-          <motion.div key="loading" {...viewMotion} className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "13px", fontWeight: 800 }}>
+          <motion.div key="loading" {...viewMotion} className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "11px", fontWeight: 800 }}>
             <Loader2 size={18} className="mr-2 animate-spin" /> Cargando jerarquia...
           </motion.div>
         ) : (
           <motion.div key={selectedHierarchyRoot ? "arbol-detail" : `arbol-cards-${view}`} {...viewMotion}>
             {!selectedHierarchyRoot ? (
               <div className="space-y-5">
-                <HierarchyOverview nodes={tree} />
                 <HierarchyRootGallery nodes={filteredHierarchyRoots} onSelect={openHierarchyRoot} />
                 {tree.length > 0 && filteredHierarchyRoots.length === 0 && <EmptyState text="No hay apuestas o metas que coincidan con la busqueda." />}
               </div>

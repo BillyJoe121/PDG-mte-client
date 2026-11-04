@@ -21,7 +21,7 @@ export const hierarchyNodeLabel: Record<HierarchyNodeType, string> = {
 export const hierarchyNodeTheme: Record<HierarchyNodeType, NodeTheme> = {
   STRATEGIC_BET: theme("#4F46E5"),
   GOAL: theme("#4CB979"),
-  KEY_RESULT: theme("#5454E9"),
+  KEY_RESULT: theme("#E9683B"),
   PROJECT: theme("#4CB979"),
 };
 

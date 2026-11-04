@@ -56,7 +56,7 @@ export function SlideProgressRow({
   badge?: string;
 }) {
   const numeric = boundedPercent(value);
-  const color = "#5454E9";
+  const color = "#E9683B";
 
   return (
     <div className="border-b border-[#DFE3EC] py-1.5 last:border-b-0">

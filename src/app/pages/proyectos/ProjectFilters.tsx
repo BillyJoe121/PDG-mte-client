@@ -39,35 +39,40 @@ export function ProjectFilters({
   type,
 }: ProjectFiltersProps) {
   return (
-    <div className="sticky top-0 z-30 -mx-6 mb-5 flex flex-wrap items-center gap-3 bg-[#F8FAFC]/95 px-6 py-3 backdrop-blur" style={{ borderTop: `1px solid ${COLORS.border}`, borderBottom: `1px solid ${COLORS.border}` }}>
-      <FilterSelect value={status} onChange={(value) => onStatusChange(value as ProjectStatus | "todos")} options={STATUS_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Estado" } : option)} />
-      <FilterSelect value={type} onChange={(value) => onTypeChange(value as ProjectType | "todos")} options={TYPE_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Tipo" } : option)} />
-      <FilterSelect width={170} value={departmentId} onChange={onDepartmentChange} options={[{ value: "todos", label: "Todos: Departamento" }, ...departments.map((department) => ({ value: String(department.id), label: department.name }))]} />
-      <FilterSelect value={period} onChange={onPeriodChange} options={[{ value: "todos", label: "Todos: Periodo" }, ...periods.map((item) => ({ value: item.name, label: item.name }))]} />
-      <button onClick={onReset} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "8px 11px", fontSize: "12px", fontWeight: 750, backgroundColor: "#fff", color: "#374151", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>Limpiar</button>
-      <div className="ml-0 flex min-h-[38px] min-w-0 w-full flex-1 items-center gap-2 rounded-md px-3 sm:ml-auto sm:min-w-[220px]" style={{ maxWidth: 360, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-        <Search size={15} color={COLORS.gray} />
-        <input
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Buscar iniciativa..."
-          style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
-        />
+    <div className="flex-shrink-0 bg-white px-6 pt-5 pb-4" style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 basis-full flex-wrap items-center gap-2 lg:flex-1 lg:basis-0">
+          <FilterSelect ariaLabel="Filtrar por estado" value={status} onChange={(value) => onStatusChange(value as ProjectStatus | "todos")} options={STATUS_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Estado" } : option)} />
+          <FilterSelect ariaLabel="Filtrar por tipo" value={type} onChange={(value) => onTypeChange(value as ProjectType | "todos")} options={TYPE_OPTIONS.map((option) => option.value === "todos" ? { ...option, label: "Todos: Tipo" } : option)} />
+          <FilterSelect ariaLabel="Filtrar por departamento" width={164} value={departmentId} onChange={onDepartmentChange} options={[{ value: "todos", label: "Todos: Departamento" }, ...departments.map((department) => ({ value: String(department.id), label: department.name }))]} />
+          <FilterSelect ariaLabel="Filtrar por periodo" value={period} onChange={onPeriodChange} options={[{ value: "todos", label: "Todos: Periodo" }, ...periods.map((item) => ({ value: item.name, label: item.name }))]} />
+          <button type="button" onClick={onReset} className="min-h-[38px]" style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "0 11px", fontSize: "11px", fontWeight: 750, backgroundColor: "#fff", color: "#374151", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>Limpiar</button>
+          <div className="flex min-h-[38px] min-w-0 w-full flex-1 items-center gap-2 rounded-md px-3 sm:min-w-[160px]" style={{ maxWidth: 360, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+            <Search size={15} color={COLORS.gray} />
+            <input
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Buscar iniciativa..."
+              aria-label="Buscar iniciativas"
+              style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 10.5, fontWeight: 750 }}
+            />
+          </div>
+        </div>
+        {onCreateProject && (
+          <button type="button" onClick={onCreateProject} className="btn-primary-green min-h-[38px] active:scale-95">
+            <Plus size={15} />
+            Nueva iniciativa
+          </button>
+        )}
       </div>
-      {onCreateProject && (
-        <button onClick={onCreateProject} className="btn-primary-green active:scale-95">
-          <Plus size={15} />
-          Nueva iniciativa
-        </button>
-      )}
     </div>
   );
 }
 
-function FilterSelect({ value, onChange, options, width = 150 }: { value: string; onChange: (value: string) => void; options: { value: string; label: string }[]; width?: number }) {
+function FilterSelect({ ariaLabel, value, onChange, options, width = 130 }: { ariaLabel: string; value: string; onChange: (value: string) => void; options: { value: string; label: string }[]; width?: number }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="focus-visible:ring-0" style={{ ...filterSelectStyle, width }}>
+      <SelectTrigger aria-label={ariaLabel} className="focus-visible:ring-0" style={{ ...filterSelectStyle, width }}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
@@ -82,12 +87,11 @@ function FilterSelect({ value, onChange, options, width = 150 }: { value: string
 }
 
 const filterSelectStyle = {
-  width: 150,
   minHeight: 38,
   border: `1px solid ${COLORS.border}`,
   borderRadius: 8,
-  padding: "8px 11px",
-  fontSize: 12,
+  padding: "8px 9px",
+  fontSize: 10.5,
   fontWeight: 750,
   backgroundColor: "#F8FAFC",
   color: COLORS.text,

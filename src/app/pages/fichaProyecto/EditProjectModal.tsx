@@ -125,8 +125,8 @@ export function EditProjectModal({
               <FolderKanban size={18} />
             </div>
             <div>
-              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Iniciativa</p>
-              <h2 style={{ color: "#fff", fontSize: 20, fontWeight: 950, lineHeight: 1.1, marginTop: 4 }}>Editar iniciativa</h2>
+              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 9, fontWeight: 850, textTransform: "uppercase" }}>Iniciativa</p>
+              <h2 style={{ color: "#fff", fontSize: 17, fontWeight: 950, lineHeight: 1.1, marginTop: 4 }}>Editar iniciativa</h2>
             </div>
           </div>
           <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.14)" }} aria-label="Cerrar">
@@ -201,7 +201,7 @@ export function EditProjectModal({
                   setPlannerError("");
                 }}
                 inputStyle={modalInputStyle}
-                labelStyle={{ color: "#6B7280", fontSize: 11, fontWeight: 900, marginBottom: 6 }}
+                labelStyle={{ color: "#6B7280", fontSize: 10.5, fontWeight: 900, marginBottom: 6 }}
               />
             </div>
           </div>
@@ -224,7 +224,7 @@ export function EditProjectModal({
 function ModalField({ children, className = "", label }: { children: ReactNode; className?: string; label: string }) {
   return (
     <label className={`block ${className}`}>
-      <span style={{ display: "block", color: "#6B7280", fontSize: 11, fontWeight: 900, textTransform: "uppercase", marginBottom: 6 }}>{label}</span>
+      <span style={{ display: "block", color: "#6B7280", fontSize: 10.5, fontWeight: 900, textTransform: "uppercase", marginBottom: 6 }}>{label}</span>
       {children}
     </label>
   );

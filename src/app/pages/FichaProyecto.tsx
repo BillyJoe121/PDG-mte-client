@@ -1,8 +1,17 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, Edit2, Loader2, Target, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "../components/ui/select";
+import {
+  DETAIL_ACTIONS_CLASS,
+  DETAIL_BUTTON_CLASS,
+  DETAIL_PRIMARY_BUTTON_CLASS,
+  DetailBadge,
+  DetailBody,
+  DetailHeading,
+  DetailTopBar,
+} from "../components/DetailModal";
+import { PageTabs, TabButton } from "../components/PageToolbar";
 import { useAuth } from "../context/AuthContext";
 import { hasPermission } from "../security/permissions";
 import type { AcademicPeriod } from "../services/catalogsApi";
@@ -22,18 +31,18 @@ import { LinkKeyResultModal } from "./fichaProyecto/LinkKeyResultModal";
 import { RegisterProgressModal } from "./fichaProyecto/RegisterProgressModal";
 import { ProjectResponsiblesModal } from "./fichaProyecto/ProjectResponsiblesModal";
 import { EditProjectModal } from "./fichaProyecto/EditProjectModal";
-import { Breadcrumb, ProjectHero } from "./fichaProyecto/ProjectDetailPanels";
-import { HistorySection, KeyResultsSection, ProjectAside, SummarySection } from "./fichaProyecto/ProjectDetailSections";
+import { ProjectAside, ProjectStatusSelect } from "./fichaProyecto/ProjectDetailPanels";
+import { HistorySection, KeyResultsSection, SummarySection } from "./fichaProyecto/ProjectDetailSections";
 import {
-  COLORS,
   STATUS_LABELS,
   availableStatusTransitions,
   errorMessage,
-  statusColor,
 } from "./fichaProyecto/projectDetailShared";
-import { getProgressColor, secondaryButtonStyle, shortMotionTransition } from "./fichaProyecto/projectDetailUi";
+import { TYPE_LABELS, getProgressColor, shortMotionTransition } from "./fichaProyecto/projectDetailUi";
 
 type ProjectTab = "resumen" | "historial" | "kr";
+
+const CLOSE_LABEL = "Cerrar detalle de iniciativa";
 
 export function ProjectDetailContent({ projectId, onBack }: { projectId: number; onBack: () => void }) {
   const { usuario } = useAuth();
@@ -96,27 +105,24 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
 
   if (loading) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center bg-[#F8FAFC] p-8">
-        <div className="rounded-md bg-white px-6 py-5 text-center" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
-          <Loader2 size={22} className="mx-auto mb-3 animate-spin" color={COLORS.green} />
-          <p style={{ fontSize: 13, color: COLORS.gray, fontWeight: 800 }}>Cargando ficha de la iniciativa...</p>
+      <>
+        <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} />
+        <div className="flex min-h-[420px] items-center justify-center text-sm font-bold text-gray-500">
+          <Loader2 size={18} className="mr-2 animate-spin" /> Cargando ficha de la iniciativa...
         </div>
-      </div>
+      </>
     );
   }
 
   if (error || !project || !detail) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center bg-[#F8FAFC] p-8">
-        <div className="max-w-md rounded-md bg-white p-6 text-center" style={{ border: `1px solid ${error ? "#FCA5A5" : COLORS.border}` }}>
-          <Target size={30} color={error ? "#DC2626" : "#D1D5DB"} className="mx-auto mb-3" />
-          <p style={{ fontSize: 15, color: error ? "#991B1B" : COLORS.gray, fontWeight: 850 }}>{error || "Iniciativa no encontrada."}</p>
-          <button onClick={onBack} className="mt-4 inline-flex items-center justify-center gap-2 rounded-md" style={secondaryButtonStyle}>
-            <ArrowLeft size={14} />
-            Volver a iniciativas
-          </button>
+      <>
+        <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} />
+        <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 p-8 text-center">
+          <p className={`text-sm font-bold ${error ? "text-[#B42318]" : "text-gray-500"}`}>{error || "Iniciativa no encontrada."}</p>
+          <button type="button" onClick={onBack} className={DETAIL_BUTTON_CLASS}>Volver a iniciativas</button>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -167,81 +173,49 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
   };
 
   return (
-    <div className="min-h-full bg-[#F8FAFC]">
-      <div className="mx-auto max-w-7xl px-6 pb-5 pt-4">
-        <Breadcrumb projectName={project.name} onBack={onBack} />
+    <>
+      <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack}>
+        <DetailBadge tone="initiative">Iniciativa PROY-{String(project.id).padStart(2, "0")}</DetailBadge>
+        <DetailBadge>{STATUS_LABELS[project.status]}</DetailBadge>
+        <DetailBadge>{TYPE_LABELS[project.type]}</DetailBadge>
+      </DetailTopBar>
 
-        <ProjectHero
-          progressColor={progressColor}
-          project={project}
-        />
+      <DetailBody>
+        <DetailHeading title={project.name} description={project.description} />
 
-        <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_330px]">
-          <main className="min-w-0 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-white p-2" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-              <div className="flex flex-wrap items-center gap-2">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 transition-colors"
-                    style={{
-                      backgroundColor: activeTab === tab.key ? COLORS.green : "transparent",
-                      color: activeTab === tab.key ? "#fff" : COLORS.gray,
-                      fontSize: 12,
-                      fontWeight: 900,
-                    }}
-                  >
-                    {tab.label}
-                    {tab.count !== null && (
-                      <span className="rounded px-1.5 py-0.5" style={{ backgroundColor: activeTab === tab.key ? "rgba(255,255,255,0.2)" : "#EEF2F7", color: activeTab === tab.key ? "#fff" : COLORS.text, fontSize: 10 }}>
-                        {tab.count}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
+        <div className={DETAIL_ACTIONS_CLASS}>
+          <PageTabs label="Secciones de la iniciativa">
+            {tabs.map((tab) => (
+              <TabButton
+                key={tab.key}
+                active={activeTab === tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                label={tab.count === null ? tab.label : `${tab.label} (${tab.count})`}
+              />
+            ))}
+          </PageTabs>
 
-              <div className="flex flex-wrap items-center gap-2">
-                {statusTransitions.length > 0 ? (
-                  <Select value="" onValueChange={(value) => handleUpdateStatus(value as ProjectStatus)} disabled={savingStatus}>
-                    <SelectTrigger className="focus-visible:ring-0 w-auto bg-white shadow-sm" style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, height: 32, padding: "0 10px", fontSize: 12, fontWeight: 900, color: COLORS.text, opacity: savingStatus ? 0.65 : 1 }}>
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: statusColor(project.status) }} />
-                        <span>{savingStatus ? "Guardando..." : STATUS_LABELS[project.status]}</span>
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
-                      {statusTransitions.map((nextStatus) => (
-                        <SelectItem key={nextStatus} value={nextStatus} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
-                          Cambiar a {STATUS_LABELS[nextStatus]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="flex items-center gap-2 bg-white" style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, height: 32, padding: "0 10px", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: statusColor(project.status) }} />
-                    <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 900 }}>{STATUS_LABELS[project.status]}</span>
-                  </div>
-                )}
+          <div className="flex flex-wrap items-center gap-2">
+            {statusTransitions.length > 0 && (
+              <ProjectStatusSelect saving={savingStatus} transitions={statusTransitions} onChange={(status) => void handleUpdateStatus(status)} />
+            )}
+            {canManageProject && (
+              <>
+                <button type="button" onClick={() => setShowResponsiblesModal(true)} className={DETAIL_BUTTON_CLASS}>Responsables</button>
+                <button type="button" onClick={() => setShowEditModal(true)} className={DETAIL_BUTTON_CLASS}>Editar iniciativa</button>
+              </>
+            )}
+            {canRegisterProgress && (
+              <button type="button" onClick={() => setShowProgressModal(true)} className={DETAIL_PRIMARY_BUTTON_CLASS}>Registrar avance</button>
+            )}
+          </div>
+        </div>
 
-                {canManageProject && (
-                  <div className="flex flex-wrap items-center gap-2" style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}>
-                    <button onClick={() => setShowResponsiblesModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
-                      <Users size={13} /> Responsables
-                    </button>
-                    <button onClick={() => setShowEditModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
-                      <Edit2 size={13} /> Editar iniciativa
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
+        <div className="grid grid-cols-1 divide-y divide-gray-200 xl:grid-cols-[minmax(0,1fr)_260px] xl:divide-x xl:divide-y-0">
+          <div className="min-w-0">
             <AnimatePresence mode="wait" initial={false}>
               {activeTab === "resumen" && (
-                <motion.div key="resumen" {...viewMotion} className="space-y-3">
+                <motion.div key="resumen" {...viewMotion} className="divide-y divide-gray-200">
                   <SummarySection
                     chain={chain}
                     detail={detail}
@@ -253,16 +227,12 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
 
               {activeTab === "historial" && (
                 <motion.div key="historial" {...viewMotion}>
-                  <HistorySection
-                    canRegisterProgress={canRegisterProgress}
-                    history={history}
-                    onRegisterProgress={() => setShowProgressModal(true)}
-                  />
+                  <HistorySection history={history} />
                 </motion.div>
               )}
 
               {activeTab === "kr" && (
-                <motion.div key="kr" {...viewMotion}>
+                <motion.div key="kr" {...viewMotion} className="divide-y divide-gray-200">
                   <KeyResultsSection
                     canManageLinks={canManageLinks}
                     chain={chain}
@@ -271,10 +241,10 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
                       setEditLinkData(null);
                       setShowLinkModal(true);
                     }}
-                      onEditLink={(link) => {
-                        setEditLinkData({
-                          linkId: link.id,
-                          keyResultId: String(link.keyResultId),
+                    onEditLink={(link) => {
+                      setEditLinkData({
+                        linkId: link.id,
+                        keyResultId: String(link.keyResultId),
                         weight: link.contributionWeight,
                         contributionType: link.contributionType,
                       });
@@ -285,15 +255,11 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
                 </motion.div>
               )}
             </AnimatePresence>
-          </main>
+          </div>
 
-          <ProjectAside
-            canRegisterProgress={canRegisterProgress}
-            onRegisterProgress={() => setShowProgressModal(true)}
-            project={project}
-          />
+          <ProjectAside project={project} />
         </div>
-      </div>
+      </DetailBody>
 
       {showProgressModal && (
         <RegisterProgressModal
@@ -344,6 +310,6 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
           onConfirm={() => handleRemoveLink(unlinkTarget.id)}
         />
       )}
-    </div>
+    </>
   );
 }

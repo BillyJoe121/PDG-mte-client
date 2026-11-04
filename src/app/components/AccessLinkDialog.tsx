@@ -48,7 +48,7 @@ export function AccessLinkDialog({ link, personName, onClose }: AccessLinkDialog
               <button
                 type="button"
                 onClick={() => void copy()}
-                className="flex items-center gap-1.5 rounded-md bg-[#5454E9] px-3 py-2 text-xs font-bold text-white hover:bg-[#3F3FD1]"
+                className="flex items-center gap-1.5 rounded-md bg-[#5454E9] px-3 py-2 text-sm font-bold text-white hover:bg-[#3F3FD1]"
               >
                 <Copy size={14} aria-hidden="true" />
                 Copiar

@@ -112,14 +112,14 @@ export function CambiarContrasenaModal({ open, onOpenChange }: CambiarContrasena
               type="button"
               onClick={() => handleOpenChange(false)}
               disabled={submitting}
-              className="rounded-lg border border-gray-300 px-4 py-2.5 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-gray-300 px-4 py-2.5 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#5454E9] disabled:cursor-wait disabled:bg-gray-500"
+              className="flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#5454E9] disabled:cursor-wait disabled:bg-gray-500"
             >
               {submitting && <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
               {submitting ? "Guardando…" : "Guardar contraseña"}

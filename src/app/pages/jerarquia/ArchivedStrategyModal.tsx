@@ -61,7 +61,7 @@ export function ArchivedStrategyModal({ canManageStrategy, onClose, onChanged }:
         <header className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] px-5 py-4">
           <div>
             <h2 id="archived-title" className="text-sm font-black text-[#111827]">Elementos archivados</h2>
-            <p className="mt-1 text-[11px] font-medium text-[#717182]">La restauracion conserva relaciones e historial.</p>
+            <p className="mt-1 text-[10.5px] font-medium text-[#717182]">La restauracion conserva relaciones e historial.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Cerrar archivo" className="rounded-md border border-[#E5E7EB] p-2"><X size={15} /></button>
         </header>
@@ -100,7 +100,7 @@ function ArchivedGroup({
   if (items.length === 0) return null;
   return (
     <div>
-      <h3 className="mb-2 text-[10px] font-black uppercase tracking-wide text-[#717182]">{title} ({items.length})</h3>
+      <h3 className="mb-2 text-[9px] font-black uppercase tracking-wide text-[#717182]">{title} ({items.length})</h3>
       <div className="space-y-2">
         {items.map((item) => {
           const key = `${kind}:${item.id}`;
@@ -108,7 +108,7 @@ function ArchivedGroup({
             <div key={key} className="flex items-center justify-between gap-4 rounded-md border border-[#E5E7EB] bg-[#F8FAFC] p-3">
               <div className="min-w-0">
                 <p className="truncate text-xs font-extrabold text-[#111827]">{item.name}</p>
-                <p className="mt-1 line-clamp-1 text-[10px] text-[#717182]">{item.description}</p>
+                <p className="mt-1 line-clamp-1 text-[9px] text-[#717182]">{item.description}</p>
               </div>
               {canRestore && (
                 <button type="button" disabled={Boolean(restoringKey)} onClick={() => void onRestore(kind, item.id)} className="flex shrink-0 items-center gap-1.5 rounded-md bg-[#047857] px-3 py-2 text-[11px] font-extrabold text-white disabled:opacity-50">

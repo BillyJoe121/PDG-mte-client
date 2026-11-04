@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Building2, Loader2, RefreshCw, Target } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { DETAIL_BUTTON_CLASS, DETAIL_PRIMARY_BUTTON_CLASS } from "../components/DetailModal";
+import { PageTabs, TabButton } from "../components/PageToolbar";
 import { useAudit } from "../context/AuditContext";
 import { useGlobalFilters } from "../context/FiltersContext";
 import type { AcademicPeriod } from "../services/catalogsApi";
@@ -10,7 +12,6 @@ import { loadReportComparison, loadReportsScreen } from "../services/screenDataC
 import type { ConsolidatedReport, PeriodComparison } from "../services/reportsApi";
 import { buildExportFilename, downloadCSV, printPDF } from "../utils/exportUtils";
 import {
-  COLORS,
   activeLabel,
   buildCsvRows,
   getErrorMessage,
@@ -19,15 +20,16 @@ import {
   type ReportTab,
 } from "./reportes/reportUtils";
 import {
-  ComparisonCard,
-  ConsolidatedDeepDive,
+  ComparisonTable,
   DepartmentTable,
   EmptyState,
   ExportButton,
   GeneralSummary,
+  PeriodField,
+  PrintHeading,
   RankingTable,
-  ReportPanel,
   ReportSelect,
+  TopKeyResults,
 } from "./reportes/ReportSections";
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
@@ -37,6 +39,13 @@ const viewMotion = {
   exit: { opacity: 0, y: -4 },
   transition: shortMotionTransition,
 } as const;
+
+const REPORT_TABS: Array<{ key: ReportTab; label: string }> = [
+  { key: "general", label: "Consolidado" },
+  { key: "departments", label: "Departamentos" },
+  { key: "ranking", label: "Avance de KRs" },
+  { key: "comparison", label: "Comparativa" },
+];
 
 export function Reportes() {
   const { filters, setFilter } = useGlobalFilters();
@@ -59,6 +68,11 @@ export function Reportes() {
   const sortedPeriods = useMemo(
     () => [...periods].sort((a, b) => b.startDate.localeCompare(a.startDate)),
     [periods],
+  );
+
+  const periodOptions = useMemo(
+    () => sortedPeriods.map((item) => ({ value: item.name, label: item.name })),
+    [sortedPeriods],
   );
 
   const params = useMemo(() => ({
@@ -194,96 +208,60 @@ export function Reportes() {
 
   return (
     <div className="min-h-full bg-[#F8FAFC]">
-      <div className="sgp-screen-only sticky top-0 z-40 bg-white px-6 py-3" style={{ borderBottom: "1px solid #E5E7EB" }}>
+      <div className="sgp-screen-only sticky top-0 z-40 border-b border-gray-200 bg-white px-6 pb-4 pt-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <PageTabs label="Secciones del reporte">
+              {REPORT_TABS.map((item) => (
+                <TabButton key={item.key} active={tab === item.key} onClick={() => setTab(item.key)} label={item.label} />
+              ))}
+            </PageTabs>
             <ReportSelect
+              label="Filtrar por periodo"
               value={period}
               onChange={handlePeriodChange}
               allLabel="Periodo activo"
-              options={sortedPeriods.map((item) => ({ value: item.name, label: item.name }))}
+              options={periodOptions}
             />
             <ReportSelect
+              label="Filtrar por departamento"
               value={departmentId}
               onChange={setDepartmentId}
               allLabel="Todos: Departamento"
               options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
-              width={200}
+              widthClassName="w-[170px]"
             />
-            <button onClick={clearFilters} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "8px 11px", fontSize: 12, fontWeight: 750, backgroundColor: "#fff", color: "#374151", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-              Limpiar
-            </button>
+            <button type="button" onClick={clearFilters} className={DETAIL_BUTTON_CLASS}>Limpiar</button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-shrink-0 items-center gap-2">
             <button
+              type="button"
               onClick={() => void loadReport({ force: true })}
               disabled={loading}
-              className="flex items-center justify-center rounded-md disabled:opacity-50"
-              style={{ width: 38, height: 38, border: "1px solid #E5E7EB", backgroundColor: "#fff" }}
+              className={`${DETAIL_BUTTON_CLASS} w-[38px]`}
               title="Recargar reporte"
+              aria-label="Recargar reporte"
             >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
             </button>
             <ExportButton format="pdf" active={exporting === "pdf"} disabled={!!exporting} onClick={() => void exportWithFilters("pdf")} />
             <ExportButton format="csv" active={exporting === "csv"} disabled={!!exporting} onClick={() => void exportWithFilters("csv")} />
           </div>
         </div>
-
-        <div className="mt-3 flex w-fit overflow-hidden rounded-md bg-white shadow-[0_1px_2px_rgba(17,24,39,0.05)]" style={{ border: `1.5px solid ${COLORS.border}` }}>
-          {[
-            { key: "general", label: "Consolidado" },
-            { key: "departments", label: "Departamentos" },
-            { key: "ranking", label: "Avance de KRs" },
-            { key: "comparison", label: "Comparativa" },
-          ].map((item, index, arr) => (
-            <button
-              key={item.key}
-              onClick={() => setTab(item.key as ReportTab)}
-              style={{
-                padding: "9px 15px",
-                backgroundColor: tab === item.key ? "#EEF2FF" : "#fff",
-                color: tab === item.key ? COLORS.blue : "#374151",
-                borderRight: index === arr.length - 1 ? "none" : `1.5px solid ${COLORS.border}`,
-                fontSize: 12,
-                fontWeight: 800,
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="px-6 py-5">
-        <div className="sgp-screen-only mb-5 hidden flex-wrap items-center gap-3 rounded-md bg-white px-4 py-3" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-          <ReportSelect
-            value={period}
-            onChange={handlePeriodChange}
-            allLabel="Periodo activo"
-            options={sortedPeriods.map((item) => ({ value: item.name, label: item.name }))}
-          />
-          <ReportSelect
-            value={departmentId}
-            onChange={setDepartmentId}
-            allLabel="Todos: Departamento"
-            options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
-            width={210}
-          />
-          <button onClick={clearFilters} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "8px 11px", fontSize: 12, fontWeight: 750, backgroundColor: "#fff", color: "#374151", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-            Limpiar
-          </button>
-        </div>
-
         {error && (
-          <motion.div {...viewMotion} className="mb-5 flex items-center gap-2 rounded-md px-4 py-3" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 800 }}>
-            <AlertTriangle size={15} /> {error}
+          <motion.div {...viewMotion} role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {error}
           </motion.div>
         )}
 
         {loading && !report ? (
-          <motion.div {...viewMotion} className="flex items-center justify-center rounded-md bg-white py-20" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
-            <Loader2 size={18} className="mr-2 animate-spin" /> Cargando reportes...
+          <motion.div {...viewMotion} role="status" className="flex min-h-64 items-center justify-center rounded-lg border border-gray-200 bg-white">
+            <Loader2 className="animate-spin text-[#5454E9]" size={24} />
+            <span className="ml-3 text-sm font-semibold text-gray-600">Cargando reportes…</span>
           </motion.div>
         ) : report ? (
           <motion.div {...viewMotion} className="report-print-area">
@@ -293,80 +271,53 @@ export function Reportes() {
               <p>{reportSubtitle}</p>
             </div>
             {(tab === "general" || isPrintingPdf) && (
-              <div className="space-y-5">
-                {isPrintingPdf && (
-                  <h2 className="hidden print:block" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, marginTop: 10 }}>Consolidado estrategico</h2>
-                )}
+              <div className="space-y-4">
+                {isPrintingPdf && <PrintHeading>Consolidado estratégico</PrintHeading>}
                 <GeneralSummary report={report.general} />
-                <ConsolidatedDeepDive report={report} />
-                {!isPrintingPdf && (
-                  <ReportPanel title="Resumen por departamento" subtitle="Insumo tabular para exportacion y revision institucional." icon={<Building2 size={16} />}>
-                    <DepartmentTable data={report.departments} />
-                  </ReportPanel>
-                )}
+                <TopKeyResults data={report.keyResultRanking} />
               </div>
             )}
 
             {(tab === "departments" || isPrintingPdf) && (
               <div className={isPrintingPdf ? "mt-8" : ""}>
-                {isPrintingPdf && (
-                  <h2 className="hidden print:block mb-4" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, pageBreakBefore: "always" }}>Desempeño por departamentos</h2>
-                )}
-                <ReportPanel title="Reporte por departamento" subtitle="Detalle operativo para descarga y trazabilidad por unidad." icon={<Building2 size={16} />}>
-                  <DepartmentTable data={report.departments} />
-                </ReportPanel>
+                {isPrintingPdf && <PrintHeading newPage>Desempeño por departamentos</PrintHeading>}
+                <DepartmentTable data={report.departments} />
               </div>
             )}
 
             {(tab === "ranking" || isPrintingPdf) && (
               <div className={isPrintingPdf ? "mt-8" : ""}>
-                {isPrintingPdf && (
-                  <h2 className="hidden print:block mb-4" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, pageBreakBefore: "always" }}>KRs por avance registrado</h2>
-                )}
-                <ReportPanel title="KRs por avance registrado" subtitle="Ordenados por el porcentaje que registró cada responsable. El sistema no calcula este avance." icon={<Target size={16} />}>
-                  <RankingTable data={report.keyResultRanking} />
-                </ReportPanel>
+                {isPrintingPdf && <PrintHeading newPage>KRs por avance registrado</PrintHeading>}
+                <RankingTable data={report.keyResultRanking} />
               </div>
             )}
 
             {(tab === "comparison" || isPrintingPdf) && (
-              <div className={`space-y-5 ${isPrintingPdf ? "mt-8" : ""}`}>
-                {isPrintingPdf && (
-                  <h2 className="hidden print:block mb-4" style={{ fontSize: 16, fontWeight: 900, color: COLORS.blue, borderBottom: `2px solid ${COLORS.border}`, paddingBottom: 8, pageBreakBefore: "always" }}>Comparativa de periodos</h2>
-                )}
-                <div className="sgp-screen-only rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-                  <div className="flex flex-wrap items-end gap-3">
-                    <div>
-                      <label style={{ display: "block", fontSize: 10, fontWeight: 850, color: COLORS.gray, marginBottom: 6, textTransform: "uppercase" }}>Periodo base</label>
-                      <ReportSelect value={basePeriod} onChange={setBasePeriod} options={sortedPeriods.map((item) => ({ value: item.name, label: item.name }))} />
-                    </div>
-                    <div>
-                      <label style={{ display: "block", fontSize: 10, fontWeight: 850, color: COLORS.gray, marginBottom: 6, textTransform: "uppercase" }}>Periodo comparado</label>
-                      <ReportSelect value={comparePeriod} onChange={setComparePeriod} options={sortedPeriods.map((item) => ({ value: item.name, label: item.name }))} />
-                    </div>
-                    <button onClick={() => void loadComparison({ force: true })} disabled={comparisonLoading || !basePeriod || !comparePeriod} className="flex items-center gap-2 rounded-md disabled:opacity-50" style={{ padding: "9px 13px", backgroundColor: COLORS.blue, color: "#fff", fontSize: 12, fontWeight: 850, boxShadow: `0 10px 22px ${COLORS.blue}33` }}>
-                      {comparisonLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Comparar
-                    </button>
-                  </div>
+              <div className={`space-y-4 ${isPrintingPdf ? "mt-8" : ""}`}>
+                {isPrintingPdf && <PrintHeading newPage>Comparativa de periodos</PrintHeading>}
+                <div className="sgp-screen-only flex flex-wrap items-end gap-2">
+                  <PeriodField label="Periodo base" value={basePeriod} onChange={setBasePeriod} options={periodOptions} />
+                  <PeriodField label="Periodo comparado" value={comparePeriod} onChange={setComparePeriod} options={periodOptions} />
+                  <button type="button" onClick={() => void loadComparison({ force: true })} disabled={comparisonLoading || !basePeriod || !comparePeriod} className={DETAIL_PRIMARY_BUTTON_CLASS}>
+                    {comparisonLoading && <Loader2 size={14} className="animate-spin" />} Comparar
+                  </button>
                 </div>
 
                 {comparisonLoading ? (
-                  <div className="flex items-center justify-center rounded-md bg-white py-14" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
-                    <Loader2 size={18} className="mr-2 animate-spin" /> Cargando comparativa...
+                  <div role="status" className="flex min-h-40 items-center justify-center rounded-lg border border-gray-200 bg-white">
+                    <Loader2 className="animate-spin text-[#5454E9]" size={24} />
+                    <span className="ml-3 text-sm font-semibold text-gray-600">Cargando comparativa…</span>
                   </div>
                 ) : comparison ? (
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    <ComparisonCard title={`Base: ${comparison.basePeriod}`} report={comparison.base} color={COLORS.blue} />
-                    <ComparisonCard title={`Comparado: ${comparison.comparePeriod}`} report={comparison.compare} color={COLORS.green} />
-                  </div>
+                  <ComparisonTable comparison={comparison} />
                 ) : (
-                  <EmptyState text="Aún no hay comparativa. Selecciona el periodo base y el periodo comparado y pulsa Comparar." />
+                  <EmptyState text="Aún no hay comparativa. Elige los dos periodos y pulsa Comparar." />
                 )}
               </div>
             )}
           </motion.div>
         ) : !error ? (
-          <EmptyState text="No hay reporte consolidado para los filtros seleccionados. Cambia el periodo o el departamento y vuelve a cargar." />
+          <EmptyState text="No hay reporte consolidado para los filtros seleccionados. Cambia el periodo o el departamento." />
         ) : null}
       </div>
     </div>

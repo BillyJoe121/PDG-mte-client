@@ -114,34 +114,34 @@ export function HierarchyDetailHeader({ node, onManage, onBack }: { node: Strate
       className="hierarchy-detail-context overflow-hidden rounded-md bg-white animate-fade-in"
       style={{ "--hierarchy-card-accent": accent } as CSSProperties}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.45fr)_minmax(220px,0.55fr)]">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.45fr)_minmax(180px,0.55fr)]">
         {/* Left column */}
-        <div className="flex flex-col gap-4 p-5 justify-between">
-          <div className="space-y-4">
+        <div className="flex flex-col gap-3 p-4 justify-between">
+          <div className="space-y-2.5">
             {/* Back button with brand main colors */}
             <button
               type="button"
               onClick={onBack}
               className="hierarchy-detail-header-back-btn rounded-md self-start"
             >
-              <ArrowLeft size={12} style={{ strokeWidth: 3 }} /> Volver
+              <ArrowLeft size={11} style={{ strokeWidth: 3 }} /> Volver
             </button>
 
             {/* Icon + type label */}
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: `color-mix(in srgb, ${accent} 10%, white)`, border: `1px solid color-mix(in srgb, ${accent} 34%, white)`, color: accent }}>
-                <Icon size={13} />
+              <span className="flex h-6 w-6 items-center justify-center rounded-md" style={{ backgroundColor: `color-mix(in srgb, ${accent} 10%, white)`, border: `1px solid color-mix(in srgb, ${accent} 34%, white)`, color: accent }}>
+                <Icon size={12} />
               </span>
-              <span style={{ color: accent, fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              <span style={{ color: accent, fontSize: 9, fontWeight: 900, letterSpacing: "0.07em", textTransform: "uppercase" }}>
                 {getRootTypeLabel(node)}
               </span>
             </div>
 
             {/* Title & Description under title */}
-            <div className="space-y-2">
-              <h2 style={{ color: accent, fontSize: 26, fontWeight: 950, lineHeight: 1.12, maxWidth: 820 }}>{node.label}</h2>
+            <div className="space-y-1.5">
+              <h2 style={{ color: accent, fontSize: 17, fontWeight: 900, lineHeight: 1.13, maxWidth: 680 }}>{node.label}</h2>
               {node.description && (
-                <p style={{ color: COLORS.text, fontSize: 14, lineHeight: 1.6, fontWeight: 400, maxWidth: 820 }}>
+                <p style={{ color: COLORS.text, fontSize: 10.5, lineHeight: 1.5, fontWeight: 400, maxWidth: 680 }}>
                   {node.description}
                 </p>
               )}
@@ -149,11 +149,11 @@ export function HierarchyDetailHeader({ node, onManage, onBack }: { node: Strate
           </div>
 
           {/* Pills + manage button below description */}
-          <div className="flex flex-wrap items-center gap-2 pt-2">
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
             {pillItems.map((item) => (
               <span
                 key={item.label}
-                style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC", color: COLORS.gray, fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 5 }}
+                style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC", color: COLORS.gray, fontSize: 8.5, fontWeight: 700, padding: "4px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 4 }}
               >
                 <span style={{ color: accent, fontWeight: 900, fontSize: 13 }}>{item.value}</span>
                 {item.label}
@@ -164,32 +164,32 @@ export function HierarchyDetailHeader({ node, onManage, onBack }: { node: Strate
               onClick={() => onManage(node)}
               className="hierarchy-detail-header-manage-btn rounded-md"
             >
-              Gestionar {node.nodeType === "GOAL" ? "meta" : "apuesta"} <ChevronRight size={12} />
+              Gestionar {node.nodeType === "GOAL" ? "meta" : "apuesta"} <ChevronRight size={11} />
             </button>
           </div>
         </div>
 
         {/* Right column – summary takes the whole height */}
-        <div className="flex flex-col justify-between gap-3 p-5" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
+        <div className="flex flex-col justify-between gap-2 p-4" style={{ borderLeft: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
           {(node.badge || progressText || summaryText) ? (
-            <div className="space-y-2 w-full flex flex-col h-full justify-between">
-              <div className="space-y-2 flex-grow flex flex-col justify-center">
+            <div className="space-y-1.5 w-full flex flex-col h-full justify-between">
+              <div className="space-y-1.5 flex-grow flex flex-col justify-center">
                 {node.badge && (
-                  <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
-                    <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>{getNodeBadgeLabel(node.nodeType)}</span>
-                    <span style={{ color: COLORS.text, fontSize: 12, fontWeight: 400 }}>{node.badge}</span>
+                  <div className="flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
+                    <span style={{ color: COLORS.gray, fontSize: 8.5, fontWeight: 850, textTransform: "uppercase" }}>{getNodeBadgeLabel(node.nodeType)}</span>
+                    <span style={{ color: COLORS.text, fontSize: 10, fontWeight: 400 }}>{node.badge}</span>
                   </div>
                 )}
                 {progressText && (
-                  <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
-                    <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Avance registrado</span>
-                    <span style={{ color: accent, fontSize: 14, fontWeight: 700 }}>{progressText}</span>
+                  <div className="flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
+                    <span style={{ color: COLORS.gray, fontSize: 8.5, fontWeight: 850, textTransform: "uppercase" }}>Avance registrado</span>
+                    <span style={{ color: accent, fontSize: 10, fontWeight: 700 }}>{progressText}</span>
                   </div>
                 )}
                 {summaryText && (
-                  <div className="rounded-md px-3 py-3 flex-grow flex flex-col justify-start min-h-[130px]" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
-                    <span style={{ display: "block", color: COLORS.gray, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 6 }}>Resumen</span>
-                    <p style={{ color: COLORS.text, fontSize: 14.5, lineHeight: 1.55, fontWeight: 400 }}>{summaryText}</p>
+                  <div className="rounded-md px-2.5 py-2 flex-grow flex flex-col justify-start min-h-[90px]" style={{ backgroundColor: "#fff", border: `1px solid ${COLORS.border}` }}>
+                    <span style={{ display: "block", color: COLORS.gray, fontSize: 8.5, fontWeight: 900, textTransform: "uppercase", marginBottom: 4 }}>Resumen</span>
+                    <p style={{ color: COLORS.text, fontSize: 10.5, lineHeight: 1.5, fontWeight: 400 }}>{summaryText}</p>
                   </div>
                 )}
               </div>

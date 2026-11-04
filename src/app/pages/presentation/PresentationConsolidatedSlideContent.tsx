@@ -47,7 +47,7 @@ function SummarySlide({ general }: { general: GeneralReport }) {
         label="KRs cerrados"
         value={general.closedKeyResults ?? 0}
         sub="Solo cuentan los KRs en estado Cerrado"
-        color="#222245"
+        color="#E9683B"
         icon={<Layers size={16} />}
       />
     </div>

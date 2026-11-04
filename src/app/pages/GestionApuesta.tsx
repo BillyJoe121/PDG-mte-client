@@ -123,7 +123,7 @@ export function GestionApuesta() {
   return (
     <div className="mx-auto max-w-4xl px-6 pb-5 pt-3">
       <div className="mb-3 flex items-center gap-3">
-        <button onClick={() => navigate("/jerarquia")} className="detail-invert-button detail-invert-button--outline detail-invert-button--blue flex items-center gap-2 px-3 py-2 rounded-lg" style={{ border: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 800 }}>
+        <button onClick={() => navigate("/jerarquia")} className="detail-invert-button detail-invert-button--outline detail-invert-button--blue flex items-center gap-2 px-3 py-2 rounded-lg" style={{ border: `1px solid ${COLORS.border}`, fontSize: 11, fontWeight: 800 }}>
           <ArrowLeft size={14} /> Jerarquia
         </button>
       </div>
@@ -135,13 +135,13 @@ export function GestionApuesta() {
               <span className="flex h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.28)", color: "#fff" }}>
                 <Flag size={18} />
               </span>
-              <span style={{ color: "rgba(255,255,255,0.82)", fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              <span style={{ color: "rgba(255,255,255,0.82)", fontSize: 9, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 Estrategia #{bet.id}
               </span>
             </div>
             <div>
-              <h1 style={{ fontSize: 22, fontWeight: 950, color: "#fff", lineHeight: 1.12 }}>{bet.name}</h1>
-              <p style={{ color: "rgba(255,255,255,0.86)", fontSize: 12, lineHeight: 1.4, marginTop: 6 }}>{bet.description}</p>
+              <h1 style={{ fontSize: 17, fontWeight: 950, color: "#fff", lineHeight: 1.12 }}>{bet.name}</h1>
+              <p style={{ color: "rgba(255,255,255,0.86)", fontSize: 10.5, lineHeight: 1.4, marginTop: 6 }}>{bet.description}</p>
             </div>
           </div>
           <div className="flex flex-col justify-center gap-2 p-4" style={{ backgroundColor: COLORS.subtle, borderLeft: `1px solid ${COLORS.border}` }}>
@@ -186,9 +186,9 @@ export function GestionApuesta() {
 function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <label style={{ display: "block" }}>
-      <span style={{ display: "block", marginBottom: 6, fontSize: 11, fontWeight: 850, color: "#111827", textTransform: "uppercase" }}>{label}</span>
+      <span style={{ display: "block", marginBottom: 6, fontSize: 10.5, fontWeight: 850, color: "#111827", textTransform: "uppercase" }}>{label}</span>
       {children}
-      {error && <span style={{ display: "block", marginTop: 4, fontSize: 11, color: COLORS.orange }}>{error}</span>}
+      {error && <span style={{ display: "block", marginTop: 4, fontSize: 10.5, color: COLORS.orange }}>{error}</span>}
     </label>
   );
 }
@@ -196,21 +196,21 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 function HeroInfo({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md bg-white px-3 py-2.5" style={{ border: `1px solid ${COLORS.border}` }}>
-      <span style={{ display: "block", color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>{label}</span>
-      <span style={{ display: "block", color: COLORS.text, fontSize: 12, fontWeight: 900, marginTop: 4 }}>{value}</span>
+      <span style={{ display: "block", color: COLORS.gray, fontSize: 9, fontWeight: 850, textTransform: "uppercase" }}>{label}</span>
+      <span style={{ display: "block", color: COLORS.text, fontSize: 10.5, fontWeight: 900, marginTop: 4 }}>{value}</span>
     </div>
   );
 }
 
 function Loading({ text }: { text: string }) {
-  return <div className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: 13, fontWeight: 800 }}><Loader2 size={18} className="mr-2 animate-spin" /> {text}</div>;
+  return <div className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: 11, fontWeight: 800 }}><Loader2 size={18} className="mr-2 animate-spin" /> {text}</div>;
 }
 
 function NotFound({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-64 gap-4 p-8">
       <AlertTriangle size={40} color={COLORS.orange} />
-      <p style={{ fontSize: 16, fontWeight: 800 }}>Apuesta no encontrada</p>
+      <p style={{ fontSize: 13, fontWeight: 800 }}>Apuesta no encontrada</p>
       <button onClick={onBack} className="detail-invert-button detail-invert-button--solid detail-invert-button--blue flex items-center gap-2" style={primaryButtonStyle}><ArrowLeft size={14} /> Volver</button>
     </div>
   );
@@ -221,8 +221,8 @@ function LoadError({ message, onRetry, onBack }: { message: string; onRetry: () 
     <div className="flex flex-col items-center justify-center h-64 gap-4 p-8 text-center">
       <AlertTriangle size={40} color={COLORS.orange} />
       <div>
-        <p style={{ fontSize: 16, fontWeight: 800 }}>No se pudo cargar la apuesta</p>
-        <p style={{ color: COLORS.gray, fontSize: 12, marginTop: 4 }}>{message}</p>
+        <p style={{ fontSize: 13, fontWeight: 800 }}>No se pudo cargar la apuesta</p>
+        <p style={{ color: COLORS.gray, fontSize: 10.5, marginTop: 4 }}>{message}</p>
       </div>
       <div className="flex gap-2">
         <button onClick={onBack} style={secondaryButtonStyle}><ArrowLeft size={14} className="inline mr-1" /> Volver</button>
@@ -237,7 +237,7 @@ const inputStyle = (error: boolean): CSSProperties => ({
   padding: "10px 12px",
   border: `1.5px solid ${error ? COLORS.orange : COLORS.border}`,
   borderRadius: 8,
-  fontSize: 13,
+  fontSize: 11,
   outline: "none",
 });
 
@@ -246,7 +246,7 @@ const primaryButtonStyle: CSSProperties = {
   backgroundColor: COLORS.blue,
   color: "#fff",
   borderRadius: 8,
-  fontSize: 13,
+  fontSize: 11,
   fontWeight: 850,
 };
 
@@ -256,6 +256,6 @@ const secondaryButtonStyle: CSSProperties = {
   color: "#374151",
   border: `1px solid ${COLORS.border}`,
   borderRadius: 8,
-  fontSize: 13,
+  fontSize: 11,
   fontWeight: 800,
 };

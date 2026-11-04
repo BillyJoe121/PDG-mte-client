@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
+import { CounterStrip } from "../components/CounterStrip";
 import {
   consistencyApi,
   type ConsistencyModule,
@@ -11,20 +11,13 @@ import {
 import { loadConsistencyCheck } from "../services/screenDataCache";
 import { resolveConsistencyActionTarget } from "../utils/consistencyAction";
 import {
-  COLORS,
   DEFAULT_STALE_DAYS,
   buildModuleStats,
+  getModuleLabel,
   shortMotionTransition,
 } from "./consistencia/consistencyShared";
 import { FilterPanel } from "./consistencia/ConsistencyFilterPanel";
-import {
-  ConsistencyHero,
-  EmptyState,
-  IssueCard,
-  LoadingState,
-  MetricCard,
-  ModulePanel,
-} from "./consistencia/ConsistencyIssueViews";
+import { EmptyState, IssueTable, LoadingState } from "./consistencia/ConsistencyIssueViews";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -40,7 +33,6 @@ export function Consistencia() {
   const [search, setSearch] = useState("");
   const [severity, setSeverity] = useState<ConsistencySeverity | "todas">("todas");
   const [moduleFilter, setModuleFilter] = useState<ConsistencyModule | "todos">("todos");
-  const [selectedIssueId, setSelectedIssueId] = useState("");
   const [data, setData] = useState<ConsistencyResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -86,8 +78,6 @@ export function Consistencia() {
       );
     }), [issues, search]);
 
-  const selectedIssue = filtered.find((issue) => issue.id === selectedIssueId) ?? filtered[0] ?? null;
-  const stats = data?.summary ?? { total: 0, high: 0, medium: 0, low: 0 };
   const moduleStats = useMemo(() => buildModuleStats(issues), [issues]);
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
@@ -127,71 +117,57 @@ export function Consistencia() {
     setSearch("");
     setSeverity("todas");
     setModuleFilter("todos");
-    setSelectedIssueId("");
   };
 
   return (
     <div className="min-h-full bg-[#F8FAFC]">
-      <div className="mx-auto max-w-7xl p-6">
-        <ConsistencyHero />
+      <FilterPanel
+        moduleFilter={moduleFilter}
+        onModuleChange={setModuleFilter}
+        onExport={() => void exportCsv()}
+        onReset={resetFilters}
+        onSearchChange={setSearch}
+        onSeverityChange={(value) => setSeverity(value as ConsistencySeverity | "todas")}
+        exporting={exporting}
+        loading={loading}
+        search={search}
+        severity={severity}
+      />
 
+      <div className="space-y-4 px-6 py-5">
         {error && (
-          <motion.div {...viewMotion} className="mt-3 flex items-center gap-2 rounded-md px-4 py-3" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 850 }}>
-            <AlertTriangle size={15} />
+          <motion.div {...viewMotion} role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
             {error}
           </motion.div>
         )}
 
-        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Total hallazgos" value={stats.total} sub={`${filtered.length} visibles con busqueda`} icon={<ShieldAlert size={16} />} color={COLORS.blue} />
-          <MetricCard label="Alta severidad" value={stats.high} sub="Requieren accion inmediata" icon={<AlertTriangle size={16} />} color={COLORS.orange} />
-          <MetricCard label="Media severidad" value={stats.medium} sub="Riesgos de seguimiento" icon={<ShieldAlert size={16} />} color={COLORS.orange} />
-          <MetricCard label="Baja severidad" value={stats.low} sub="Ajustes de cobertura" icon={<ShieldCheck size={16} />} color={COLORS.blue} />
-        </div>
+        {data && (
+          <CounterStrip
+            items={[
+              { label: "Hallazgos", value: data.summary.total },
+              { label: "Severidad alta", value: data.summary.high },
+              { label: "Severidad media", value: data.summary.medium },
+              { label: "Severidad baja", value: data.summary.low },
+              ...moduleStats.map((item) => ({ label: getModuleLabel(item.module), value: item.count })),
+            ]}
+          />
+        )}
 
-        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-          <main className="min-w-0 space-y-4">
-            <FilterPanel
-              moduleFilter={moduleFilter}
-              onModuleChange={setModuleFilter}
-              onExport={() => void exportCsv()}
-              onReset={resetFilters}
-              onSearchChange={setSearch}
-              onSeverityChange={(value) => setSeverity(value as ConsistencySeverity | "todas")}
-              exporting={exporting}
-              loading={loading}
-              search={search}
-              severity={severity}
-            />
-
-            <AnimatePresence mode="wait" initial={false}>
-              {loading && !data ? (
-                <motion.div key="loading" {...viewMotion}>
-                  <LoadingState />
-                </motion.div>
-              ) : filtered.length === 0 ? (
-                <motion.div key="empty" {...viewMotion}>
-                  <EmptyState />
-                </motion.div>
-              ) : (
-                <motion.div key="issues" {...viewMotion} className="space-y-3">
-                  {filtered.map((issue, index) => (
-                    <IssueCard
-                      key={issue.id}
-                      index={index}
-                      issue={issue}
-                      onOpen={() => goToIssue(issue.actionUrl)}
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </main>
-
-          <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
-            <ModulePanel modules={moduleStats} />
-          </aside>
-        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          {loading && !data ? (
+            <motion.div key="loading" {...viewMotion}>
+              <LoadingState />
+            </motion.div>
+          ) : !data ? null : filtered.length === 0 ? (
+            <motion.div key="empty" {...viewMotion}>
+              <EmptyState />
+            </motion.div>
+          ) : (
+            <motion.div key="issues" {...viewMotion}>
+              <IssueTable issues={filtered} onOpen={(issue) => goToIssue(issue.actionUrl)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

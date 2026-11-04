@@ -25,21 +25,21 @@ import { hasPermission, type PermissionAction } from "../security/permissions";
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, action: "dashboard.view" as PermissionAction },
   { to: "/jerarquia", label: "Jerarquía Estratégica", icon: Layers, action: "jerarquia.view" as PermissionAction },
-  { to: "/catalogos", label: "Catálogos", icon: Database, action: "catalogos.manage" as PermissionAction },
   { to: "/krs", label: "KRs", icon: KeyRound, action: "okrs.view" as PermissionAction },
   { to: "/proyectos", label: "Iniciativas", icon: FolderKanban, action: "proyectos.view" as PermissionAction },
   { to: "/reportes", label: "Reportes y exportaciones", icon: BarChart3, action: "reportes.view" as PermissionAction },
   { to: "/consistencia", label: "Consistencia", icon: ShieldAlert, action: "consistencia.view" as PermissionAction },
   { to: "/presentacion", label: "Modo Presentación", icon: Presentation, action: "presentacion.view" as PermissionAction },
+  { to: "/catalogos", label: "Catálogos", icon: Database, action: "catalogos.manage" as PermissionAction },
   { to: "/usuarios", label: "Usuarios", icon: Users, action: "usuarios.manage" as PermissionAction },
-  { to: "/auditoria", label: "Auditoria", icon: ScrollText, action: "auditoria.view" as PermissionAction },
+  { to: "/auditoria", label: "Auditoría", icon: ScrollText, action: "auditoria.view" as PermissionAction },
 ];
 
 const itemColors: Record<string, string> = {
   "/dashboard": "#E4EB60",     // amarillo
   "/jerarquia": "#5454E9",     // azul
   "/catalogos": "#E9683B",     // naranja
-  "/krs": "#5454E9",           // azul
+  "/krs": "#E9683B",           // naranja
   "/proyectos": "#E4EB60",     // amarillo
   "/reportes": "#5454E9",      // azul
   "/consistencia": "#E9683B",  // naranja
@@ -81,19 +81,14 @@ export function Sidebar() {
     >
       {/* Logo area */}
       <div
-        className="flex items-center justify-between px-4"
+        className={`relative flex items-center ${collapsed ? "pl-[3px]" : "px-4"}`}
         style={{ backgroundColor: "#5454E9", height: 64, minHeight: 64 }}
       >
-        {!collapsed && <IcesiLogo variant="white" size="md" />}
-        {collapsed && (
-          <div className="mx-auto">
-            <IcesiLogo variant="white" size="md" />
-          </div>
-        )}
+        <IcesiLogo variant="white" size="md" />
         <button
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
-          className="flex items-center justify-center rounded-full w-6 h-6 hover:opacity-80 transition-opacity"
+          className="absolute right-0 top-1/2 flex h-10 w-5 -translate-y-1/2 items-center justify-center rounded-none hover:opacity-80 transition-opacity"
           style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", flexShrink: 0 }}
           title={collapsed ? "Expandir menú" : "Colapsar menú"}
         >
@@ -104,14 +99,14 @@ export function Sidebar() {
       {/* Subtitle */}
       {!collapsed && (
         <div className="px-4 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "9px", letterSpacing: "0.1em", textTransform: "uppercase" }}>
             MTE · Escuela TDI
           </p>
         </div>
       )}
 
       {/* Nav items */}
-      <nav className="flex-1 overflow-y-auto py-3">
+      <nav className="flex-1 overflow-y-auto py-2">
         {filteredItems.map((item, idx) => (
           <NavLink
             key={item.to}
@@ -123,8 +118,8 @@ export function Sidebar() {
               gap: collapsed ? 0 : 12,
               paddingLeft: collapsed ? 0 : 0,
               paddingRight: collapsed ? 0 : 16,
-              paddingTop: 13,
-              paddingBottom: 13,
+              paddingTop: 9,
+              paddingBottom: 9,
               justifyContent: collapsed ? "center" : "flex-start",
               backgroundColor: isActive ? "#E4EB60" : "transparent",
               color: isActive ? "#000000" : "#FFFFFF",
@@ -156,7 +151,7 @@ export function Sidebar() {
                 {!collapsed && (
                   <span
                     style={{
-                      fontSize: "13px",
+                      fontSize: "11px",
                       fontWeight: isActive ? 700 : 500,
                       letterSpacing: "0.01em",
                       whiteSpace: "nowrap",
@@ -181,19 +176,19 @@ export function Sidebar() {
       {/* User / bottom section */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
         {!collapsed && usuario && (
-          <div className="px-4 py-3">
+          <div className="px-4 py-2">
             <div className="flex items-center gap-3">
               <div
                 className="flex items-center justify-center rounded-full flex-shrink-0"
-                style={{ width: 32, height: 32, backgroundColor: "#5454E9", color: "#fff", fontSize: "11px", fontWeight: 700 }}
+                style={{ width: 32, height: 32, backgroundColor: "#5454E9", color: "#fff", fontSize: "10.5px", fontWeight: 700 }}
               >
                 {usuario.iniciales}
               </div>
               <div className="overflow-hidden">
-                <p style={{ color: "#fff", fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <p style={{ color: "#fff", fontSize: "10.5px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {usuario.nombre}
                 </p>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "10px" }}>
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "9px" }}>
                   {getLabelRol(usuario.rol)}
                 </p>
               </div>
@@ -204,7 +199,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => setChangingPassword(true)}
-            className="w-full flex items-center gap-3 py-3 hover:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-3 py-2 hover:bg-white/5 transition-colors"
             style={{
               color: "rgba(255,255,255,0.6)",
               justifyContent: collapsed ? "center" : "flex-start",
@@ -215,13 +210,13 @@ export function Sidebar() {
             aria-label={collapsed ? "Cambiar contraseña" : undefined}
           >
             <KeyRound size={16} aria-hidden="true" />
-            {!collapsed && <span style={{ fontSize: "12px" }}>Cambiar contraseña</span>}
+            {!collapsed && <span style={{ fontSize: "10.5px" }}>Cambiar contraseña</span>}
           </button>
         )}
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 py-4 hover:bg-white/5 transition-colors"
+          className="w-full flex items-center gap-3 py-2 hover:bg-white/5 transition-colors"
           style={{
             color: "rgba(255,255,255,0.6)",
             justifyContent: collapsed ? "center" : "flex-start",
@@ -232,7 +227,7 @@ export function Sidebar() {
           aria-label={collapsed ? "Cerrar sesión" : undefined}
         >
           <LogOut size={16} aria-hidden="true" />
-          {!collapsed && <span style={{ fontSize: "12px" }}>Cerrar sesión</span>}
+          {!collapsed && <span style={{ fontSize: "10.5px" }}>Cerrar sesión</span>}
         </button>
       </div>
       <CambiarContrasenaModal open={changingPassword} onOpenChange={setChangingPassword} />

@@ -232,7 +232,7 @@ export function PresentacionDashboard() {
 
   return (
     <main
-      className={`flex ${
+      className={`type-scale-exempt flex ${
         activeMode === "slides"
           ? "fixed inset-0 z-30 h-[100dvh] max-h-[100dvh] overflow-hidden print:relative print:h-auto print:overflow-visible"
           : "min-h-[100dvh]"

@@ -15,7 +15,7 @@ export default function App() {
         <Toaster
           position="bottom-right"
           toastOptions={{
-            style: { fontFamily: "Montserrat, sans-serif", fontSize: "13px" },
+            style: { fontFamily: "Montserrat, sans-serif", fontSize: "11px" },
           }}
           richColors
         />

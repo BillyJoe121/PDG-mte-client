@@ -45,7 +45,7 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white" style={{ fontFamily: "Montserrat, sans-serif" }}>
+    <div className="type-scale-exempt flex min-h-screen bg-white" style={{ fontFamily: "Montserrat, sans-serif" }}>
       <LoginBrandPanel />
 
       <div className="relative flex flex-1 flex-col items-center justify-center p-6 lg:p-12">

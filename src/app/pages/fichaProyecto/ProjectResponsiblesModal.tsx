@@ -103,7 +103,7 @@ export function ProjectResponsiblesModal({ projectId, departmentId, projectName,
           <div className="flex items-center gap-3">
             <Users size={20} color="#fff" />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-wide text-white/75">Responsables de iniciativa</p>
+              <p className="text-[9px] font-black uppercase tracking-wide text-white/75">Responsables de iniciativa</p>
               <h2 id="project-responsibles-title" className="text-base font-black text-white">{projectName}</h2>
             </div>
           </div>
@@ -153,7 +153,7 @@ export function ProjectResponsiblesModal({ projectId, departmentId, projectName,
                           <p className="text-sm font-extrabold text-slate-800">{assignment.teacherName} <span className="font-semibold text-slate-500">· {assignment.roleName}</span></p>
                           <p className="text-xs text-slate-500">{assignment.joinedAt} — {assignment.leftAt || "vigente"}</p>
                         </div>
-                        <button type="button" disabled={saving} onClick={() => void remove(assignment)} className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-bold text-red-700 disabled:opacity-60"><Trash2 size={13} /> Retirar</button>
+                        <button type="button" disabled={saving} onClick={() => void remove(assignment)} className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-sm font-bold text-red-700 disabled:opacity-60"><Trash2 size={13} /> Retirar</button>
                       </li>
                     ))}
                   </ul>

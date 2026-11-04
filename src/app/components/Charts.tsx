@@ -42,7 +42,7 @@ export function SvgBarChart({
         <line key={`yg-${v}`} x1={PAD.left} x2={W - PAD.right} y1={toY(v)} y2={toY(v)} stroke="#F3F4F6" strokeWidth={1} />
       ))}
       {yTicks.map((v) => (
-        <text key={`yl-${v}`} x={PAD.left - 5} y={toY(v) + 4} textAnchor="end" fontSize={8} fill="#9CA3AF">{v}</text>
+        <text key={`yl-${v}`} x={PAD.left - 5} y={toY(v) + 4} textAnchor="end" fontSize={8.5} fill="#9CA3AF">{v}</text>
       ))}
       {data.map((d, i) => {
         const val = Number(d[dataKey]) || 0;
@@ -61,7 +61,7 @@ export function SvgBarChart({
                 x={toX(i)}
                 y={H - PAD.bottom + 14}
                 textAnchor="end"
-                fontSize={8}
+                fontSize={8.5}
                 fill="#9CA3AF"
                 transform={`rotate(${labelAngle}, ${toX(i)}, ${H - PAD.bottom + 14})`}
               >
@@ -111,7 +111,7 @@ export function SvgGroupedBarChart({
         <line key={`yg-${v}`} x1={PAD.left} x2={W - PAD.right} y1={toY(v)} y2={toY(v)} stroke="#F3F4F6" strokeWidth={1} />
       ))}
       {yTicks.map((v) => (
-        <text key={`yl-${v}`} x={PAD.left - 5} y={toY(v) + 4} textAnchor="end" fontSize={8} fill="#9CA3AF">{v}</text>
+        <text key={`yl-${v}`} x={PAD.left - 5} y={toY(v) + 4} textAnchor="end" fontSize={8.5} fill="#9CA3AF">{v}</text>
       ))}
       {data.map((d, gi) => {
         const groupX = PAD.left + gi * groupW + groupW / 2 - (series.length * (barW + 3)) / 2;
@@ -167,7 +167,7 @@ export function SvgLineChart({
         <line key={`yg-${v}`} x1={PAD.left} x2={W - PAD.right} y1={toY(v)} y2={toY(v)} stroke="#F3F4F6" strokeWidth={1} />
       ))}
       {yTicks.map((v) => (
-        <text key={`yl-${v}`} x={PAD.left - 5} y={toY(v) + 4} textAnchor="end" fontSize={8} fill="#9CA3AF">{v}</text>
+        <text key={`yl-${v}`} x={PAD.left - 5} y={toY(v) + 4} textAnchor="end" fontSize={8.5} fill="#9CA3AF">{v}</text>
       ))}
       {series.map((s) => {
         const pts = data.map((d, i) => `${toX(i)},${toY(Number(d[s.key]) || 0)}`).join(" ");
@@ -223,7 +223,7 @@ export function SvgHBarChart({
         <line key={`xg-${v}`} x1={toX(v)} x2={toX(v)} y1={PAD.top} y2={H - PAD.bottom} stroke="#F3F4F6" strokeWidth={1} />
       ))}
       {xTicks.map((v) => (
-        <text key={`xl-${v}`} x={toX(v)} y={H - PAD.bottom + 14} textAnchor="middle" fontSize={8} fill="#9CA3AF">{v}</text>
+        <text key={`xl-${v}`} x={toX(v)} y={H - PAD.bottom + 14} textAnchor="middle" fontSize={8.5} fill="#9CA3AF">{v}</text>
       ))}
       {data.map((d, i) => {
         const val = Number(d[dataKey]) || 0;
@@ -252,7 +252,7 @@ export function ChartLegend({ items }: { items: { label: string; color: string }
       {items.map((l) => (
         <div key={l.label} className="flex items-center gap-1.5">
           <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: l.color }} />
-          <span style={{ fontSize: 10, color: "#374151" }}>{l.label}</span>
+          <span style={{ fontSize: 9, color: "#374151" }}>{l.label}</span>
         </div>
       ))}
     </div>

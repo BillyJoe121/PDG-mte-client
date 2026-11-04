@@ -5,19 +5,6 @@ import {
   type PeriodComparison,
 } from "../../services/reportsApi";
 
-export const COLORS = {
-  blue: "#5454E9",
-  green: "#4CB979",
-  orange: "#E9683B",
-  red: "#DC2626",
-  yellow: "#E4EB60",
-  purple: "#7C3AED",
-  gray: "#717182",
-  text: "#111827",
-  border: "#D9DEE8",
-  subtle: "#F7F8FB",
-};
-
 export type ReportTab = "general" | "departments" | "ranking" | "comparison";
 
 export function getErrorMessage(error: unknown) {

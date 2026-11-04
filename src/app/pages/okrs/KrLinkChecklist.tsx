@@ -40,15 +40,15 @@ export function KrLinkChecklist({
     >
       <legend id={legendId} className="sr-only">{legend}</legend>
       <div className="mb-2 flex items-center justify-between gap-2" aria-hidden="true">
-        <span className="flex items-center gap-2" style={{ color: COLORS.text, fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>
+        <span className="flex items-center gap-2" style={{ color: COLORS.text, fontSize: 10.5, fontWeight: 900, textTransform: "uppercase" }}>
           {icon} {legend}
         </span>
-        <span style={{ color: COLORS.gray, fontSize: 10, fontWeight: 800 }}>{selectedIds.length} seleccionada{selectedIds.length === 1 ? "" : "s"}</span>
+        <span style={{ color: COLORS.gray, fontSize: 9, fontWeight: 800 }}>{selectedIds.length} seleccionada{selectedIds.length === 1 ? "" : "s"}</span>
       </div>
       {options.length === 0 ? (
-        <p style={{ color: COLORS.gray, fontSize: 11 }}>{emptyText}</p>
+        <p style={{ color: COLORS.gray, fontSize: 10.5 }}>{emptyText}</p>
       ) : (
-        <div className="grid max-h-36 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
+        <div className="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
           {options.map((option) => {
             const checked = selectedIds.includes(option.id);
             const inputId = `${id}-${option.id}`;
@@ -56,10 +56,10 @@ export function KrLinkChecklist({
               <label
                 key={option.id}
                 htmlFor={inputId}
-                className="flex cursor-pointer items-start gap-2 rounded-md p-2"
+                className="flex cursor-pointer items-start gap-2.5 rounded-md p-3"
                 style={{
-                  border: `1.5px solid ${checked ? COLORS.blue : COLORS.border}`,
-                  backgroundColor: checked ? "#EEF2FF" : "#F8FAFC",
+                  border: `1.5px solid ${checked ? COLORS.orange : COLORS.border}`,
+                  backgroundColor: checked ? "#FDF0EB" : "#F8FAFC",
                 }}
               >
                 <input
@@ -67,9 +67,9 @@ export function KrLinkChecklist({
                   type="checkbox"
                   checked={checked}
                   onChange={() => onToggle(option.id)}
-                  style={{ marginTop: 2, accentColor: COLORS.blue }}
+                  style={{ marginTop: 2, accentColor: COLORS.orange }}
                 />
-                <span style={{ color: COLORS.text, fontSize: 12, fontWeight: 800, lineHeight: 1.25 }}>{option.name}</span>
+                <span style={{ color: COLORS.text, fontSize: 10.5, fontWeight: 800, lineHeight: 1.25 }}>{option.name}</span>
               </label>
             );
           })}

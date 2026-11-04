@@ -36,7 +36,7 @@ function AxisTick({ x, y, payload, maxLines }: { x?: number; y?: number; payload
   return (
     <g transform={`translate(${x ?? 0},${y ?? 0})`}>
       {wrapLabel(String(payload?.value ?? ""), maxLines).map((line, index) => (
-        <text key={`${line}-${index}`} x={0} y={index * 17 + 14} textAnchor="middle" fill="#717182" fontSize={12} fontWeight={700}>{line}</text>
+        <text key={`${line}-${index}`} x={0} y={index * 17 + 14} textAnchor="middle" fill="#717182" fontSize={10.5} fontWeight={700}>{line}</text>
       ))}
     </g>
   );
@@ -53,15 +53,15 @@ export default function DashboardCoverageChart<T extends StatusCounts>({ data, m
 
   return (
     <div className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-3">
-      {total > 1 && <p className="mb-2 text-[10px] font-extrabold uppercase text-[#9CA3AF]">{metricLabel}s {index * 6 + 1}-{index * 6 + data.length}</p>}
+      {total > 1 && <p className="mb-2 text-[9px] font-extrabold uppercase text-[#9CA3AF]">{metricLabel}s {index * 6 + 1}-{index * 6 + data.length}</p>}
       <div style={{ width: "100%", height: 260 + axisHeight }}>
         <ResponsiveContainer>
           <BarChart data={data} margin={{ top: 8, right: 12, left: -18, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
             <XAxis dataKey="name" interval={0} height={axisHeight} tick={<AxisTick maxLines={labelMaxLines} />} tickLine={false} />
-            <YAxis allowDecimals={false} domain={[0, yMax]} tick={{ fontSize: 11, fill: "#717182" }} />
-            <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 800, paddingTop: 8 }} />
-            <Tooltip cursor={{ fill: "#F8FAFC" }} formatter={(value, name) => [Number(value), `${String(name)} - clic para ver KRs`]} contentStyle={{ padding: "6px 10px", fontSize: "10px", borderRadius: "6px", lineHeight: "1.2" }} />
+            <YAxis allowDecimals={false} domain={[0, yMax]} tick={{ fontSize: 10.5, fill: "#717182" }} />
+            <Legend iconType="circle" wrapperStyle={{ fontSize: 10.5, fontWeight: 800, paddingTop: 8 }} />
+            <Tooltip cursor={{ fill: "#F8FAFC" }} formatter={(value, name) => [Number(value), `${String(name)} - clic para ver KRs`]} contentStyle={{ padding: "6px 10px", fontSize: "9px", borderRadius: "6px", lineHeight: "1.2" }} />
             {KEY_RESULT_STATUS_ORDER.map((status) => (
               <Bar key={status} className="cursor-pointer" dataKey={keyResultStatusCountField[status]} name={keyResultStatusLabel[status]} fill={keyResultStatusColor[status]} onClick={(payload) => handleClick(payload, status)} />
             ))}

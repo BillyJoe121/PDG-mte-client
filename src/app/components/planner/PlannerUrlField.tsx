@@ -15,7 +15,7 @@ export function PlannerUrlField({ id, value, error, onChange, inputStyle, labelS
   const errorId = `${id}-error`;
   return (
     <div>
-      <label htmlFor={id} style={{ display: "block", fontSize: 12, fontWeight: 850, textTransform: "uppercase", ...labelStyle }}>
+      <label htmlFor={id} style={{ display: "block", fontSize: 10.5, fontWeight: 850, textTransform: "uppercase", ...labelStyle }}>
         Enlace de Planner
       </label>
       <input
@@ -31,7 +31,7 @@ export function PlannerUrlField({ id, value, error, onChange, inputStyle, labelS
         style={{ width: "100%", marginTop: 6, ...inputStyle }}
       />
       {error && (
-        <p id={errorId} role="alert" style={{ fontSize: 11, color: errorColor, fontWeight: 800, marginTop: 4 }}>
+        <p id={errorId} role="alert" style={{ fontSize: 10.5, color: errorColor, fontWeight: 800, marginTop: 4 }}>
           {error}
         </p>
       )}

@@ -89,8 +89,8 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
               <TrendingUp size={18} color="#fff" />
             </div>
             <div>
-              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: 850, textTransform: "uppercase" }}>Registrar avance</p>
-              <h2 style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>{project.name}</h2>
+              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 9, fontWeight: 850, textTransform: "uppercase" }}>Registrar avance</p>
+              <h2 style={{ color: "#fff", fontSize: 17, fontWeight: 900, lineHeight: 1.15 }}>{project.name}</h2>
             </div>
           </div>
           <button onClick={onClose} className="detail-invert-button detail-invert-button--header detail-invert-button--green flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }}>
@@ -98,25 +98,25 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
           </button>
         </div>
         <div className="p-5 space-y-4" style={{ backgroundColor: "#F8FAFC" }}>
-          {error && <p style={{ fontSize: 12, color: "#991B1B", backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", borderRadius: 6, padding: 10 }}>{error}</p>}
+          {error && <p style={{ fontSize: 10.5, color: "#991B1B", backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", borderRadius: 6, padding: 10 }}>{error}</p>}
           <div>
             <div className="flex items-center justify-between">
-              <label style={{ fontSize: 12, fontWeight: 800 }}>Avance global</label>
-              <span style={{ fontSize: 22, fontWeight: 850, color }}>{progressPercent}%</span>
+              <label style={{ fontSize: 10.5, fontWeight: 800 }}>Avance global</label>
+              <span style={{ fontSize: 17, fontWeight: 850, color }}>{progressPercent}%</span>
             </div>
             <div className="flex items-center gap-3 mt-2">
               <input type="range" min={0} max={100} step={0.5} value={progressPercent} onChange={(event) => setProgressPercent(Number(event.target.value))} style={{ flex: 1, accentColor: color }} />
-              <input type="number" min={0} max={100} step={0.5} value={progressPercent} onChange={(event) => setProgressPercent(Math.max(0, Math.min(100, Number(event.target.value))))} style={{ width: 78, padding: "7px 9px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 12, fontWeight: 700 }} />
+              <input type="number" min={0} max={100} step={0.5} value={progressPercent} onChange={(event) => setProgressPercent(Math.max(0, Math.min(100, Number(event.target.value))))} style={{ width: 78, padding: "7px 9px", border: "1px solid #D1D5DB", borderRadius: 5, fontSize: 10.5, fontWeight: 700 }} />
             </div>
             <div className="mt-2"><ProgressBar value={progressPercent} color={color} /></div>
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 850, textTransform: "uppercase" }}>Comentario *</label>
-            <textarea value={comment} onChange={(event) => { setComment(event.target.value); setError(""); }} rows={4} placeholder="Describe lo que se avanzo, decisiones o bloqueos..." style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #D8DEE8", borderRadius: 8, fontSize: 13, resize: "vertical", backgroundColor: "#fff" }} />
+            <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Comentario *</label>
+            <textarea value={comment} onChange={(event) => { setComment(event.target.value); setError(""); }} rows={4} placeholder="Describe lo que se avanzo, decisiones o bloqueos..." style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #D8DEE8", borderRadius: 8, fontSize: 11, resize: "vertical", backgroundColor: "#fff" }} />
           </div>
           <div className="rounded-md bg-white p-3" style={{ border: "1px solid #EEF2F7" }}>
             <div className="mb-2 flex items-center justify-between gap-3">
-              <label style={{ fontSize: 11, fontWeight: 850, textTransform: "uppercase" }}>Hitos opcionales</label>
+              <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Hitos opcionales</label>
               <button type="button" onClick={addMilestone} className="detail-invert-button detail-invert-button--outline detail-invert-button--green inline-flex items-center gap-1 rounded-md" style={{ padding: "7px 10px", border: "1px solid #D8DEE8", backgroundColor: "#fff", color: COLORS.green, fontSize: 11, fontWeight: 850 }}>
                 <Plus size={13} />
                 Agregar
@@ -129,7 +129,7 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
                     value={milestone}
                     onChange={(event) => updateMilestone(index, event.target.value)}
                     placeholder={index === 0 ? "Entrega de prototipo funcional" : "Nuevo hito"}
-                    style={{ width: "100%", minHeight: 38, padding: "8px 11px", border: "1.5px solid #D8DEE8", borderRadius: 8, fontSize: 13, outline: "none", backgroundColor: "#F8FAFC" }}
+                    style={{ width: "100%", minHeight: 38, padding: "8px 11px", border: "1.5px solid #D8DEE8", borderRadius: 8, fontSize: 11, outline: "none", backgroundColor: "#F8FAFC" }}
                   />
                   <button type="button" onClick={() => removeMilestone(index)} className="detail-invert-button detail-invert-button--outline detail-invert-button--orange flex h-9 w-9 shrink-0 items-center justify-center rounded-md" style={{ border: "1px solid #FED7AA", backgroundColor: "#fff", color: COLORS.orange }} aria-label="Eliminar hito">
                     <Trash2 size={14} />
@@ -140,8 +140,8 @@ export function RegisterProgressModal({ project, onClose, onSaved }: RegisterPro
           </div>
         </div>
         <div className="flex justify-end gap-3 px-5 pb-5">
-          <button onClick={onClose} className="detail-invert-button detail-invert-button--outline detail-invert-button--green" style={{ padding: "10px 16px", border: "1px solid #D8DEE8", borderRadius: 8, fontSize: 12, fontWeight: 800, color: "#374151", backgroundColor: "#fff" }}>Cancelar</button>
-          <button disabled={saving} onClick={save} className="detail-invert-button detail-invert-button--solid detail-invert-button--green inline-flex items-center gap-2" style={{ padding: "10px 16px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 850, opacity: saving ? 0.65 : 1, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
+          <button onClick={onClose} className="detail-invert-button detail-invert-button--outline detail-invert-button--green" style={{ padding: "10px 16px", border: "1px solid #D8DEE8", borderRadius: 8, fontSize: 11, fontWeight: 800, color: "#374151", backgroundColor: "#fff" }}>Cancelar</button>
+          <button disabled={saving} onClick={save} className="detail-invert-button detail-invert-button--solid detail-invert-button--green inline-flex items-center gap-2" style={{ padding: "10px 16px", backgroundColor: COLORS.green, color: "#fff", borderRadius: 8, fontSize: 11, fontWeight: 850, opacity: saving ? 0.65 : 1, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             Guardar avance
           </button>

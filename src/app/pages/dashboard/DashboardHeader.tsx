@@ -38,9 +38,9 @@ export function DashboardHeader({
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>Centro de mando estrategico</p>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: COLORS.text, lineHeight: 1.15, marginTop: 3 }}>Dashboard de impacto</h1>
-          <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 5 }}>
+          <p style={{ fontSize: 9, fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>Centro de mando estrategico</p>
+          <h1 style={{ fontSize: 17, fontWeight: 900, color: COLORS.text, lineHeight: 1.15, marginTop: 3 }}>Dashboard de impacto</h1>
+          <p style={{ fontSize: 10.5, color: "#9CA3AF", marginTop: 5 }}>
             Seguimiento ejecutivo del portafolio para {firstName}.
             {summary && (
               <>
@@ -75,7 +75,7 @@ export function DashboardHeader({
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
           </button>
-          <span className="rounded-md px-3 py-2" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 11, fontWeight: 850 }}>
+          <span className="rounded-md px-3 py-2" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, fontSize: 10.5, fontWeight: 850 }}>
             {selectedPeriod || activePeriodName}
           </span>
         </div>
@@ -90,7 +90,7 @@ const selectControlStyle: CSSProperties = {
   border: `1px solid ${COLORS.border}`,
   borderRadius: 8,
   padding: "8px 11px",
-  fontSize: 12,
+  fontSize: 10.5,
   fontWeight: 750,
   backgroundColor: "#F8FAFC",
   color: COLORS.text,

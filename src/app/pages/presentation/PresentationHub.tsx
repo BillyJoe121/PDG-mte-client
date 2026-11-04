@@ -63,7 +63,7 @@ export function PresentationHub({ periodName, bets, goals, onSelectOption }: Pro
             </div>
             <div className="rounded-lg border border-[#DFE3EC] bg-[#F7F8FC] px-4 py-2.5 text-center min-w-[110px]">
               <span className="block text-[11px] font-extrabold uppercase text-[#717182]">KRs</span>
-              <span className="block text-2xl font-black text-[#222245]">{totalKeyResults}</span>
+              <span className="block text-2xl font-black text-[#E9683B]">{totalKeyResults}</span>
               <span className="block text-[10px] font-bold text-emerald-700">{completedKeyResults} cumplidos</span>
             </div>
           </div>

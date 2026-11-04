@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ApiError, updateKeyResultProgress, type KeyResult } from "../../services/strategicApi";
-import { COLORS } from "./okrsShared";
+import { DETAIL_PRIMARY_BUTTON_CLASS } from "../../components/DetailModal";
 
 interface KeyResultProgressFormProps {
   keyResult: KeyResult;
@@ -89,56 +89,56 @@ export function KeyResultProgressForm({ keyResult, onRecorded }: KeyResultProgre
     }
   };
 
-  const inputStyle = (hasError: boolean) => ({
-    border: `1px solid ${hasError ? COLORS.orange : COLORS.border}`,
-    color: COLORS.text,
-  });
-  const labelStyle = { color: COLORS.gray, fontSize: 10, fontWeight: 850, textTransform: "uppercase" as const };
-  const errorStyle = { color: "#B42318", fontSize: 11, fontWeight: 700, marginTop: 4 };
+  const inputClass = (hasError: boolean) =>
+    `mt-1 h-[38px] w-full rounded-md border bg-white px-2.5 text-sm text-[#111827] ${hasError ? "border-[#B42318]" : "border-gray-300"}`;
+  const labelClass = "text-[9px] font-extrabold uppercase tracking-wide text-gray-500";
+  const errorClass = "mt-1 text-xs font-bold text-[#B42318]";
 
   return (
-    <form className="mt-3 space-y-2" noValidate onSubmit={(event) => void submit(event)} aria-label="Registrar avance del KR">
-      <div>
-        <label htmlFor={currentId} style={labelStyle}>Valor actual ({keyResult.measurementUnitName})</label>
-        <input
-          id={currentId}
-          type="number"
-          step="any"
-          required
-          value={draft.currentValue}
-          onChange={(event) => updateField("currentValue", event.target.value)}
-          placeholder={`Valor medido en ${keyResult.measurementUnitName}`}
-          aria-invalid={Boolean(fieldErrors.currentValue)}
-          aria-describedby={fieldErrors.currentValue ? `${currentId}-error` : undefined}
-          className="mt-1 w-full rounded-md px-3 py-2 text-sm"
-          style={inputStyle(Boolean(fieldErrors.currentValue))}
-        />
-        {fieldErrors.currentValue && <p id={`${currentId}-error`} style={errorStyle}>{fieldErrors.currentValue}</p>}
+    <form className="mt-3 space-y-3 border-t border-gray-100 pt-3" noValidate onSubmit={(event) => void submit(event)} aria-label="Registrar avance del KR">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="min-w-0">
+          <label htmlFor={currentId} className={labelClass}>Valor actual ({keyResult.measurementUnitName})</label>
+          <input
+            id={currentId}
+            type="number"
+            step="any"
+            required
+            value={draft.currentValue}
+            onChange={(event) => updateField("currentValue", event.target.value)}
+            placeholder={`Valor medido en ${keyResult.measurementUnitName}`}
+            aria-invalid={Boolean(fieldErrors.currentValue)}
+            aria-describedby={fieldErrors.currentValue ? `${currentId}-error` : undefined}
+            className={inputClass(Boolean(fieldErrors.currentValue))}
+          />
+          {fieldErrors.currentValue && <p id={`${currentId}-error`} className={errorClass}>{fieldErrors.currentValue}</p>}
+        </div>
+        <div className="min-w-0">
+          <label htmlFor={progressId} className={labelClass}>Avance registrado (%)</label>
+          <input
+            id={progressId}
+            type="number"
+            step="any"
+            min={0}
+            max={100}
+            required
+            value={draft.progressPercentage}
+            onChange={(event) => updateField("progressPercentage", event.target.value)}
+            placeholder="De 0 a 100"
+            aria-invalid={Boolean(fieldErrors.progressPercentage)}
+            aria-describedby={fieldErrors.progressPercentage ? `${progressId}-error` : undefined}
+            className={inputClass(Boolean(fieldErrors.progressPercentage))}
+          />
+          {fieldErrors.progressPercentage && <p id={`${progressId}-error`} className={errorClass}>{fieldErrors.progressPercentage}</p>}
+        </div>
       </div>
-      <div>
-        <label htmlFor={progressId} style={labelStyle}>Avance registrado (%)</label>
-        <input
-          id={progressId}
-          type="number"
-          step="any"
-          min={0}
-          max={100}
-          required
-          value={draft.progressPercentage}
-          onChange={(event) => updateField("progressPercentage", event.target.value)}
-          placeholder="De 0 a 100"
-          aria-invalid={Boolean(fieldErrors.progressPercentage)}
-          aria-describedby={fieldErrors.progressPercentage ? `${progressId}-error` : undefined}
-          className="mt-1 w-full rounded-md px-3 py-2 text-sm"
-          style={inputStyle(Boolean(fieldErrors.progressPercentage))}
-        />
-        {fieldErrors.progressPercentage && <p id={`${progressId}-error`} style={errorStyle}>{fieldErrors.progressPercentage}</p>}
+      {submitError && <p role="alert" className={errorClass}>{submitError}</p>}
+      <div className="flex justify-end">
+        <button type="submit" disabled={saving} className={DETAIL_PRIMARY_BUTTON_CLASS}>
+          {saving && <Loader2 size={14} className="animate-spin" />}
+          {saving ? "Registrando..." : "Registrar avance"}
+        </button>
       </div>
-      {submitError && <p role="alert" style={{ ...errorStyle, marginTop: 0 }}>{submitError}</p>}
-      <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-[#5454E9] px-3 py-2 text-sm font-black text-white disabled:opacity-60">
-        {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-        {saving ? "Registrando..." : "Registrar avance"}
-      </button>
     </form>
   );
 }

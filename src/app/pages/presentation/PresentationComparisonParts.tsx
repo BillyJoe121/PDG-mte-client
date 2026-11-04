@@ -51,8 +51,8 @@ export function PeriodStatsCard({
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-2">
           <p className="text-[#717182] font-semibold text-[11px]">KRs Totales</p>
-          <p className="text-base font-black text-[#222245]">{stats.totalKeyResults}</p>
-          <p className="text-[10px] font-bold text-indigo-700">
+          <p className="text-base font-black text-[#E9683B]">{stats.totalKeyResults}</p>
+          <p className="text-[10px] font-bold text-[#E9683B]">
             {stats.activeKeyResults} activos · {stats.closedKeyResults} cerrados
           </p>
         </div>

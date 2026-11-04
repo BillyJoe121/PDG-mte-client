@@ -126,10 +126,10 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-center">
                 <div className="flex items-center justify-center gap-1 text-xs font-extrabold text-[#717182]">
-                  <Target size={14} className="text-[#5454E9]" aria-hidden="true" />
+                  <Target size={14} className="text-[#E9683B]" aria-hidden="true" />
                   <span>Resultados Clave (KRs)</span>
                 </div>
-                <div className="mt-2 text-2xl font-black text-[#222245]">
+                <div className="mt-2 text-2xl font-black text-[#E9683B]">
                   {summary?.completedKeyResults ?? 0}
                   <span className="text-sm font-semibold text-[#717182]">
                     {" "}/ {((summary?.completedKeyResults ?? 0) + (summary?.inProgressKeyResults ?? 0))}

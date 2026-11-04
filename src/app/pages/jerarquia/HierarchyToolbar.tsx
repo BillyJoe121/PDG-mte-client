@@ -58,8 +58,8 @@ export function HierarchyToolbar({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="hidden">
-          <h1 style={{ fontSize: "22px", fontWeight: 800, color: COLORS.text }}>Jerarquia Estrategica</h1>
-          <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 4 }}>
+          <h1 style={{ fontSize: "17px", fontWeight: 800, color: COLORS.text }}>Jerarquia Estrategica</h1>
+          <p style={{ fontSize: "10.5px", color: "#9CA3AF", marginTop: 4 }}>
             {betsCount} apuestas · {goalsCount} metas · {totalKrs} KRs · {totalProjects} iniciativas
           </p>
         </div>
@@ -75,7 +75,7 @@ export function HierarchyToolbar({
                 onClick={() => onViewChange(item.value as View)}
                 style={{
                   padding: "0 14px",
-                  fontSize: "12px",
+                  fontSize: "11px",
                   fontWeight: 750,
                   backgroundColor: view === item.value ? "#EEF2FF" : "#fff",
                   color: view === item.value ? COLORS.blue : "#374151",
@@ -98,23 +98,23 @@ export function HierarchyToolbar({
                 value={search}
                 onChange={(event) => onSearchChange(event.target.value)}
                 placeholder="Buscar por palabra clave..."
-                style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
+                style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 10.5, fontWeight: 750 }}
               />
             </div>
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {(canCreate || canManageKeyResults) && (
-            <button onClick={onShowArchived} className="flex items-center gap-2 rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-extrabold text-[#374151]">
+            <button onClick={onShowArchived} className="flex items-center gap-2 rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-sm font-extrabold text-[#374151]">
               <Archive size={13} /> Archivados
             </button>
           )}
           {canCreate && (
             <>
-              <button onClick={() => onCreate("goal")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.green, color: "#fff", fontSize: "12px", fontWeight: 750 }}>
+              <button onClick={() => onCreate("goal")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.green, color: "#fff", fontSize: "11px", fontWeight: 750 }}>
                 <Plus size={13} /> Nueva Meta
               </button>
-              <button onClick={() => onCreate("bet")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: getNodeTheme("STRATEGIC_BET").background, color: "#fff", fontSize: "12px", fontWeight: 750 }}>
+              <button onClick={() => onCreate("bet")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: getNodeTheme("STRATEGIC_BET").background, color: "#fff", fontSize: "11px", fontWeight: 750 }}>
                 <Plus size={13} /> Nueva Apuesta
               </button>
             </>
@@ -137,7 +137,7 @@ export function HierarchyToolbar({
               onClick={() => onViewChange(item.value as View)}
               style={{
                 padding: "0 16px",
-                fontSize: "12px",
+                fontSize: "11px",
                 fontWeight: 750,
                 backgroundColor: view === item.value ? "#EEF2FF" : "#fff",
                 color: view === item.value ? COLORS.blue : "#374151",
@@ -160,12 +160,12 @@ export function HierarchyToolbar({
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder="Buscar por palabra clave..."
-              style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
+              style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 10.5, fontWeight: 750 }}
             />
           </div>
         )}
       </div>
-      <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 8 }}>
+      <p style={{ fontSize: "10.5px", color: "#9CA3AF", marginTop: 8 }}>
         {betsCount} apuestas {"\u00B7"} {goalsCount} metas {"\u00B7"} {totalKrs} KRs {"\u00B7"} {totalProjects} iniciativas
       </p>
     </motion.div>
@@ -176,7 +176,7 @@ const selectControlStyle: CSSProperties = {
   ...modalSelectStyle(false),
   width: 190,
   padding: "8px 34px 8px 11px",
-  fontSize: "12px",
+  fontSize: "10.5px",
   fontWeight: 750,
 };
 

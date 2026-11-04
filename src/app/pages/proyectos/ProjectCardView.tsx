@@ -45,7 +45,7 @@ export function ProjectCardView({ canManage, index = 0, project, onLink, onOpen 
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
             <p className="project-card__eyebrow">PROY-{String(project.id).padStart(2, "0")}</p>
-            <p className="project-card__meta">{project.departmentName ?? "Sin departamento"} - {project.startPeriod}</p>
+            <p className="project-card__meta project-card__meta--clamped" title={project.departmentName ?? undefined}>{project.startPeriod} - {project.departmentName ?? "Sin departamento"}</p>
             <span className="project-card__status inline-flex items-center gap-1.5 rounded">
               <status.Icon size={12} />
               {status.label}

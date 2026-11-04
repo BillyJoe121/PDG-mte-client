@@ -18,7 +18,6 @@ import { CreateProjectModal } from "./proyectos/CreateProjectModal";
 import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
 import { ProjectCardView } from "./proyectos/ProjectCardView";
 import { ProjectFilters } from "./proyectos/ProjectFilters";
-import { ProjectStats, buildProjectStats } from "./proyectos/ProjectStats";
 import { COLORS, STATUS_OPTIONS, errorMessage } from "./proyectos/proyectosShared";
 
 export function Proyectos() {
@@ -91,7 +90,6 @@ export function Proyectos() {
   }, [searchParams]);
 
   const visibleProjects = useMemo(() => filterProjects(projects, search), [projects, search]);
-  const stats = useMemo(() => buildProjectStats(visibleProjects), [visibleProjects]);
   const viewMotion: MotionProps = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
@@ -124,9 +122,7 @@ export function Proyectos() {
   };
 
   return (
-    <div className="screen-projects p-6 pt-4">
-      <ProjectStats stats={stats} />
-
+    <div className="screen-projects flex h-full flex-col overflow-hidden">
       <ProjectFilters
         departmentId={departmentId}
         departments={departments}
@@ -150,37 +146,39 @@ export function Proyectos() {
         type={type}
       />
 
-      {error && (
-        <div className="mb-4 rounded-lg p-4" style={{ border: "1px solid #FCA5A5", backgroundColor: "#FEF3F2", color: "#991B1B", fontSize: 13, fontWeight: 750 }}>
-          {error}
-        </div>
-      )}
-
-      <AnimatePresence mode="wait" initial={false}>
-        {loading ? (
-          <motion.div key="loading" {...viewMotion} className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "13px", fontWeight: 800 }}>
-            <Loader2 size={18} className="mr-2 animate-spin" /> Cargando iniciativas...
-          </motion.div>
-        ) : visibleProjects.length === 0 ? (
-          <motion.div key="empty" {...viewMotion} className="py-16 text-center">
-            <Target size={32} color="#D1D5DB" className="mx-auto mb-3" />
-            <p style={{ fontSize: "14px", color: "#9CA3AF" }}>No se encontraron iniciativas.</p>
-          </motion.div>
-        ) : (
-          <motion.div key="cards" {...viewMotion} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 items-start">
-            {visibleProjects.map((project, index) => (
-              <ProjectCardView
-                key={project.id}
-                project={project}
-                canManage={Boolean(canCreate)}
-                index={index}
-                onLink={() => setLinkProject(project)}
-                onOpen={() => openProject(project.id)}
-              />
-            ))}
-          </motion.div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        {error && (
+          <div className="mb-4 rounded-lg p-4" style={{ border: "1px solid #FCA5A5", backgroundColor: "#FEF3F2", color: "#991B1B", fontSize: 11, fontWeight: 750 }}>
+            {error}
+          </div>
         )}
-      </AnimatePresence>
+
+        <AnimatePresence mode="wait" initial={false}>
+          {loading ? (
+            <motion.div key="loading" {...viewMotion} className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "11px", fontWeight: 800 }}>
+              <Loader2 size={18} className="mr-2 animate-spin" /> Cargando iniciativas...
+            </motion.div>
+          ) : visibleProjects.length === 0 ? (
+            <motion.div key="empty" {...viewMotion} className="py-16 text-center">
+              <Target size={32} color="#D1D5DB" className="mx-auto mb-3" />
+              <p style={{ fontSize: "11px", color: "#9CA3AF" }}>No se encontraron iniciativas.</p>
+            </motion.div>
+          ) : (
+            <motion.div key="cards" {...viewMotion} className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {visibleProjects.map((project, index) => (
+                <ProjectCardView
+                  key={project.id}
+                  project={project}
+                  canManage={Boolean(canCreate)}
+                  index={index}
+                  onLink={() => setLinkProject(project)}
+                  onOpen={() => openProject(project.id)}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <AnimatePresence>
         {creatingProject && (

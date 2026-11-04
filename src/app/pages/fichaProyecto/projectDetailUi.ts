@@ -4,8 +4,8 @@ import { COLORS } from "./projectDetailShared";
 
 export const TYPE_LABELS = {
   GRADO: "Proyecto de grado",
-  INVESTIGACION: "Investigacion",
-  EXTENSION: "Extension",
+  INVESTIGACION: "Investigación",
+  EXTENSION: "Extensión",
   MACROPROYECTO: "Macroproyecto",
 } as const;
 
@@ -29,36 +29,11 @@ export function parseTutors(value: string) {
     .filter(Boolean);
 }
 
-export const heroEyebrowStyle: CSSProperties = {
-  color: "rgba(255,255,255,0.74)",
-  fontSize: 10,
-  fontWeight: 900,
-  textTransform: "uppercase",
-};
-
-export const heroTitleStyle: CSSProperties = {
-  color: "#fff",
-  fontSize: 28,
-  fontWeight: 950,
-  lineHeight: 1.08,
-  marginTop: 10,
-  maxWidth: 920,
-  overflowWrap: "anywhere",
-};
-
-export const heroDescriptionStyle: CSSProperties = {
-  color: "rgba(255,255,255,0.84)",
-  fontSize: 12,
-  marginTop: 8,
-  lineHeight: 1.45,
-  maxWidth: 860,
-};
-
 export const primaryButtonStyle: CSSProperties = {
   padding: "9px 12px",
   backgroundColor: COLORS.green,
   color: "#fff",
-  fontSize: 12,
+  fontSize: 10.5,
   fontWeight: 900,
 };
 
@@ -67,7 +42,7 @@ export const secondaryButtonStyle: CSSProperties = {
   backgroundColor: "#fff",
   color: COLORS.text,
   border: `1px solid ${COLORS.border}`,
-  fontSize: 12,
+  fontSize: 10.5,
   fontWeight: 900,
 };
 
@@ -77,7 +52,7 @@ export const selectControlStyle: CSSProperties = {
   border: `1px solid ${COLORS.border}`,
   borderRadius: 8,
   padding: "8px 11px",
-  fontSize: 12,
+  fontSize: 10.5,
   fontWeight: 750,
   backgroundColor: "#F8FAFC",
   color: COLORS.text,
@@ -89,7 +64,7 @@ export const modalInputStyle: CSSProperties = {
   border: `1px solid ${COLORS.border}`,
   borderRadius: 8,
   padding: "9px 11px",
-  fontSize: 13,
+  fontSize: 11,
   fontWeight: 750,
   backgroundColor: "#F8FAFC",
   color: COLORS.text,

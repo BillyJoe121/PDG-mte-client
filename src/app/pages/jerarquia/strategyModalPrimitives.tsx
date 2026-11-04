@@ -50,8 +50,8 @@ export function HierarchyModal({ title, icon, accent, onClose, children }: { tit
               {icon}
             </div>
             <div>
-              <p style={{ fontSize: 10, fontWeight: 850, color: "rgba(255,255,255,0.76)", textTransform: "uppercase" }}>Jerarquia estrategica</p>
-              <h2 style={{ fontSize: 20, fontWeight: 900, color: "#fff", lineHeight: 1.15 }}>{title}</h2>
+              <p style={{ fontSize: 9, fontWeight: 850, color: "rgba(255,255,255,0.76)", textTransform: "uppercase" }}>Jerarquia estrategica</p>
+              <h2 style={{ fontSize: 17, fontWeight: 900, color: "#fff", lineHeight: 1.15 }}>{title}</h2>
             </div>
           </div>
           <button type="button" onClick={onClose} className="w-9 h-9 rounded-md flex items-center justify-center" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
@@ -69,9 +69,9 @@ export function HierarchyModal({ title, icon, accent, onClose, children }: { tit
 export function ModalField({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <div style={{ display: "block", padding: 10, borderRadius: 9, backgroundColor: "#fff", border: "1px solid #EEF2F7" }}>
-      <span style={{ display: "block", fontSize: 11, fontWeight: 850, color: COLORS.text, textTransform: "uppercase", marginBottom: 7 }}>{label}</span>
+      <span style={{ display: "block", fontSize: 10.5, fontWeight: 850, color: COLORS.text, textTransform: "uppercase", marginBottom: 7 }}>{label}</span>
       {children}
-      {error && <span style={{ display: "block", marginTop: 4, fontSize: 11, color: COLORS.orange }}>{error}</span>}
+      {error && <span style={{ display: "block", marginTop: 4, fontSize: 10.5, color: COLORS.orange }}>{error}</span>}
     </div>
   );
 }
@@ -79,10 +79,10 @@ export function ModalField({ label, error, children }: { label: string; error?: 
 export function ModalActions({ onClose, saving, submitLabel, accent }: { onClose: () => void; saving: boolean; submitLabel: string; accent: string }) {
   return (
     <div className="flex items-center justify-end gap-3 pt-3">
-      <button type="button" onClick={onClose} style={{ padding: "10px 16px", fontSize: 12, fontWeight: 800, color: "#374151", border: "1px solid #D8DEE8", borderRadius: 8, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
+      <button type="button" onClick={onClose} style={{ padding: "10px 16px", fontSize: 11, fontWeight: 800, color: "#374151", border: "1px solid #D8DEE8", borderRadius: 8, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
         Cancelar
       </button>
-      <button type="submit" disabled={saving} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", fontSize: 12, fontWeight: 850, color: "#fff", backgroundColor: accent, borderRadius: 8, boxShadow: `0 10px 22px ${accent}40` }}>
+      <button type="submit" disabled={saving} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", fontSize: 11, fontWeight: 850, color: "#fff", backgroundColor: accent, borderRadius: 8, boxShadow: `0 10px 22px ${accent}40` }}>
         {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
         {submitLabel}
       </button>
@@ -95,7 +95,7 @@ export function modalInputStyle(error: boolean): CSSProperties {
     width: "100%",
     minHeight: 38,
     padding: "8px 11px",
-    fontSize: 12,
+    fontSize: 10.5,
     border: `1.5px solid ${error ? COLORS.orange : "#D8DEE8"}`,
     borderRadius: 8,
     outline: "none",
@@ -158,7 +158,7 @@ export function ModalDatePicker({ value, onChange, error }: { value: string; onC
             nav_button_next: "absolute right-1",
             table: "w-full border-collapse",
             head_row: "flex",
-            head_cell: "w-8 rounded-md text-[10px] font-black uppercase text-[#717182]",
+            head_cell: "w-8 rounded-md text-[9px] font-black uppercase text-[#717182]",
             row: "mt-1 flex w-full",
             cell: "relative p-0 text-center text-xs",
             day: "h-8 w-8 rounded-md p-0 text-xs font-bold text-[#111827] hover:bg-[#EEF2FF] hover:text-[#5454E9] focus:bg-[#EEF2FF] focus:text-[#5454E9]",

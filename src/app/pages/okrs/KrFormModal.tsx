@@ -64,7 +64,7 @@ export function KrFormModal({ keyResult, defaults, saving, units, onClose, onSub
       transition={{ duration: 0.16, ease: "easeOut" }}
     >
       <motion.div
-        className="w-full max-w-2xl overflow-hidden rounded-lg bg-white"
+        className="w-full max-w-[840px] overflow-hidden rounded-lg bg-white"
         style={{ boxShadow: "0 28px 90px rgba(0,0,0,0.28)", border: "1px solid rgba(255,255,255,0.55)" }}
         onClick={(event) => event.stopPropagation()}
         initial={reduceMotion ? false : { opacity: 0, scale: 0.985, y: 8 }}
@@ -72,21 +72,21 @@ export function KrFormModal({ keyResult, defaults, saving, units, onClose, onSub
         exit={reduceMotion ? undefined : { opacity: 0, scale: 0.985, y: 6 }}
         transition={{ duration: 0.16, ease: "easeOut" }}
       >
-        <div className="flex items-center justify-between gap-4 p-5" style={{ backgroundColor: COLORS.blue }}>
+        <div className="flex items-center justify-between gap-4 p-5" style={{ backgroundColor: COLORS.orange }}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.36)" }}>
               <KeyRound size={18} color="#fff" />
             </div>
             <div>
-              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 10, textTransform: "uppercase", fontWeight: 850 }}>
+              <p style={{ color: "rgba(255,255,255,0.76)", fontSize: 9, textTransform: "uppercase", fontWeight: 850 }}>
                 {keyResult ? `KR #${keyResult.id} · ${linkedCount} vínculo${linkedCount === 1 ? "" : "s"} estratégico${linkedCount === 1 ? "" : "s"}` : "Vinculado a Metas y Apuestas"}
               </p>
-              <h3 style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>
+              <h3 style={{ color: "#fff", fontSize: 17, fontWeight: 900, lineHeight: 1.15 }}>
                 {keyResult ? "Editar Key Result" : "Crear Key Result"}
               </h3>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="detail-invert-button detail-invert-button--header detail-invert-button--blue flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
+          <button type="button" onClick={onClose} className="detail-invert-button detail-invert-button--header detail-invert-button--orange flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
             <X size={18} color="#fff" />
           </button>
         </div>
@@ -104,7 +104,7 @@ export function KrFormModal({ keyResult, defaults, saving, units, onClose, onSub
               onSubmit={onSubmit}
             />
           ) : (
-            <div className="flex items-center justify-center py-10" style={{ color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>
+            <div className="flex items-center justify-center py-10" style={{ color: COLORS.gray, fontSize: 10.5, fontWeight: 800 }}>
               <Loader2 size={16} className="mr-2 animate-spin" /> Cargando metas y apuestas...
             </div>
           )}

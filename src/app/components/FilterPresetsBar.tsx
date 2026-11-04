@@ -42,16 +42,16 @@ export function FilterPresetsBar({
 
   return (
     <div className="bg-white rounded-md p-4 flex flex-wrap items-center gap-3" style={{ border: "1px solid #E5E7EB" }}>
-      <div className="flex items-center gap-2" style={{ color: "#111827", fontSize: "12px", fontWeight: 750 }}>
+      <div className="flex items-center gap-2" style={{ color: "#111827", fontSize: "10.5px", fontWeight: 750 }}>
         <Bookmark size={14} color={COLORS.blue} /> Presets de filtros
       </div>
       <input
         value={presetName}
         onChange={(event) => setPresetName(event.target.value)}
         placeholder="Nombre del preset"
-        style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "7px 10px", fontSize: "12px", minWidth: 180 }}
+        style={{ border: "1px solid #D1D5DB", borderRadius: 5, padding: "7px 10px", fontSize: "10.5px", minWidth: 180 }}
       />
-      <button onClick={handleSavePreset} style={{ padding: "7px 12px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 5, fontSize: "12px", fontWeight: 750 }}>
+      <button onClick={handleSavePreset} style={{ padding: "7px 12px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 5, fontSize: "11px", fontWeight: 750 }}>
         Guardar vista
       </button>
       <div className="flex flex-wrap items-center gap-2">
@@ -65,7 +65,7 @@ export function FilterPresetsBar({
             </button>
           </div>
         ))}
-        {presets.length === 0 && <span style={{ fontSize: "11px", color: "#9CA3AF" }}>No hay presets guardados.</span>}
+        {presets.length === 0 && <span style={{ fontSize: "10.5px", color: "#9CA3AF" }}>No hay presets guardados.</span>}
       </div>
     </div>
   );

@@ -60,7 +60,7 @@ export function EstablecerContrasena() {
   };
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#F8FAFC] p-6" style={{ fontFamily: "Montserrat, sans-serif" }}>
+    <main className="type-scale-exempt grid min-h-screen place-items-center bg-[#F8FAFC] p-6" style={{ fontFamily: "Montserrat, sans-serif" }}>
       {done ? (
         <section className={`${cardClass} text-center`} aria-live="polite">
           <CheckCircle2 className="mx-auto text-[#16A34A]" size={38} aria-hidden="true" />

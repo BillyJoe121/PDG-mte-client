@@ -35,27 +35,11 @@ const users = [
   person(7, "Gina Auditora", "AUDITOR"),
 ];
 
-function stat(label: string) {
-  return screen.getByText(label, { selector: "p" }).previousElementSibling?.textContent;
-}
-
 describe("Usuarios", () => {
   beforeEach(() => {
     mocks.listUsers.mockReset().mockResolvedValue(users);
     mocks.listDepartments.mockReset().mockResolvedValue([{ id: 1, name: "Sistemas" }]);
     mocks.listSchools.mockReset().mockResolvedValue([]);
-  });
-
-  it("counts users by role, including administrators and visitors", async () => {
-    render(<Usuarios />);
-    await screen.findByText("Ana Admin");
-
-    expect(stat("Usuarios")).toBe("7");
-    expect(stat("Activos")).toBe("6");
-    expect(stat("Administradores")).toBe("2");
-    expect(stat("Gestores")).toBe("1");
-    expect(stat("Colaboradores")).toBe("1");
-    expect(stat("Visitantes")).toBe("2");
   });
 
   it("disables the access link for inactive users only", async () => {

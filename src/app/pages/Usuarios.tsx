@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Building2, Download, Edit2, Link2, Loader2, Plus, Search, ShieldCheck, Trash2, UserCheck, UserX, Users } from "lucide-react";
+import { Building2, Download, Edit2, Link2, Loader2, Plus, Search, ShieldCheck, Trash2, UserCheck, UserX } from "lucide-react";
+import { PageTabs, TabButton, TOOLBAR_SELECT_CLASS } from "../components/PageToolbar";
 import { AccessLinkDialog } from "../components/AccessLinkDialog";
 import { useAuth } from "../context/AuthContext";
 import { hasPermission } from "../security/permissions";
@@ -38,6 +39,9 @@ function message(error: unknown) {
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 }
+
+/** Borders, header and seven rows; longer lists scroll inside the table. */
+const USERS_TABLE_HEIGHT = 2 + 38 + 7 * 61;
 
 export function Usuarios() {
   const { usuario } = useAuth();
@@ -148,98 +152,97 @@ export function Usuarios() {
   })), `Usuarios_MTE_${getDateStamp()}`);
 
   return (
-    <div className="space-y-5 p-4 sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#5454E9]">Directorio institucional</p>
-          <h2 className="mt-1 text-xl font-extrabold text-black">Usuarios, departamentos y responsables</h2>
-          <p className="mt-1 text-xs text-gray-500">Administra identidades persistidas que también pueden asignarse como responsables de iniciativas.</p>
-        </div>
-        <div className="flex rounded-lg border border-gray-200 bg-white p-1" role="tablist" aria-label="Secciones del directorio">
-          <TabButton active={tab === "users"} onClick={() => setTab("users")} icon={<Users size={14} />} label="Usuarios" />
-          <TabButton active={tab === "departments"} onClick={() => setTab("departments")} icon={<Building2 size={14} />} label="Departamentos" />
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="flex-shrink-0 bg-white px-6 pt-5 pb-4" style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 basis-full flex-wrap items-center gap-2 lg:flex-1 lg:basis-0">
+            <PageTabs label="Secciones del directorio">
+              <TabButton active={tab === "users"} onClick={() => setTab("users")} label="Usuarios" />
+              <TabButton active={tab === "departments"} onClick={() => setTab("departments")} label="Departamentos" />
+            </PageTabs>
+            {!loading && tab === "users" && (
+              <>
+                <select value={role} onChange={(event) => setRole(event.target.value as typeof role)} className={`${TOOLBAR_SELECT_CLASS} w-[134px]`} aria-label="Filtrar por rol">
+                  <option value="ALL">Todos: Rol</option>
+                  {Object.entries(ROLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+                <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} className={`${TOOLBAR_SELECT_CLASS} w-[154px]`} aria-label="Filtrar por departamento">
+                  <option value="ALL">Todos: Departamento</option>
+                  {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+                </select>
+                <select value={active} onChange={(event) => setActive(event.target.value)} className={`${TOOLBAR_SELECT_CLASS} w-[112px]`} aria-label="Filtrar por estado">
+                  <option value="ALL">Todos: Estado</option>
+                  <option value="true">Activos</option>
+                  <option value="false">Inactivos</option>
+                </select>
+                <label className="flex h-[38px] w-full min-w-0 flex-1 items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 sm:min-w-[120px]" style={{ maxWidth: 360 }}>
+                  <Search size={14} className="flex-shrink-0 text-gray-400" />
+                  <span className="sr-only">Buscar usuarios</span>
+                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o correo" className="h-full min-w-0 flex-1 border-0 bg-transparent text-xs outline-none" />
+                </label>
+              </>
+            )}
+          </div>
+          {!loading && tab === "users" && (
+            <div className="flex flex-shrink-0 items-center gap-2">
+              <button type="button" onClick={exportUsers} className="inline-flex h-[38px] items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 text-sm font-bold"><Download size={14} /> Exportar</button>
+              <button type="button" onClick={() => setEditingUser(null)} className="inline-flex h-[38px] items-center gap-1.5 rounded-md bg-[#5454E9] px-2.5 text-sm font-bold text-white"><Plus size={14} /> Nuevo usuario</button>
+            </div>
+          )}
+          {!loading && tab === "departments" && (
+            <button type="button" onClick={() => setEditingDepartment(null)} className="inline-flex h-[38px] flex-shrink-0 items-center gap-2 rounded-md bg-[#5454E9] px-3 text-sm font-bold text-white"><Plus size={14} /> Nuevo departamento</button>
+          )}
         </div>
       </div>
 
-      {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
-          <span>{error}</span>
-          <button onClick={() => void load()} className="font-bold underline">Reintentar</button>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="flex min-h-64 items-center justify-center rounded-lg border border-gray-200 bg-white" role="status">
-          <Loader2 className="animate-spin text-[#5454E9]" size={24} />
-          <span className="ml-3 text-sm font-semibold text-gray-600">Cargando directorio…</span>
-        </div>
-      ) : tab === "users" ? (
-        <section className="space-y-4" aria-label="Gestión de usuarios">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label="Usuarios" value={users.length} />
-            <Stat label="Activos" value={users.filter((entry) => entry.active).length} />
-            <Stat label="Administradores" value={users.filter((entry) => entry.accessRole === "ADMIN").length} />
-            <Stat label="Gestores" value={users.filter((entry) => entry.accessRole === "MANAGER").length} />
-            <Stat label="Colaboradores" value={users.filter((entry) => entry.accessRole === "CONTRIBUTOR").length} />
-            <Stat label="Visitantes" value={users.filter((entry) => entry.accessRole === "VISITOR").length} />
+      <div className={`flex min-h-0 flex-1 flex-col gap-3 px-6 py-5 ${tab === "users" ? "overflow-hidden" : "overflow-y-auto"}`}>
+        {error && (
+          <div className="flex flex-shrink-0 items-center justify-between rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+            <span>{error}</span>
+            <button onClick={() => void load()} className="font-bold underline">Reintentar</button>
           </div>
+        )}
 
-          <div className="flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white p-3">
-            <label className="flex min-w-52 flex-1 items-center gap-2 rounded-md border border-gray-300 px-3">
-              <Search size={14} className="text-gray-400" />
-              <span className="sr-only">Buscar usuarios</span>
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o correo" className="h-9 min-w-0 flex-1 border-0 text-xs outline-none" />
-            </label>
-            <select value={role} onChange={(event) => setRole(event.target.value as typeof role)} className="h-9 rounded-md border border-gray-300 bg-white px-3 text-xs" aria-label="Filtrar por rol">
-              <option value="ALL">Todos los roles</option>
-              {Object.entries(ROLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-            <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} className="h-9 max-w-60 rounded-md border border-gray-300 bg-white px-3 text-xs" aria-label="Filtrar por departamento">
-              <option value="ALL">Todos los departamentos</option>
-              {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
-            </select>
-            <select value={active} onChange={(event) => setActive(event.target.value)} className="h-9 rounded-md border border-gray-300 bg-white px-3 text-xs" aria-label="Filtrar por estado">
-              <option value="ALL">Todos los estados</option>
-              <option value="true">Activos</option>
-              <option value="false">Inactivos</option>
-            </select>
-            <button onClick={exportUsers} className="inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 px-3 text-xs font-bold"><Download size={14} /> Exportar</button>
-            <button onClick={() => setEditingUser(null)} className="inline-flex h-9 items-center gap-2 rounded-md bg-[#5454E9] px-4 text-xs font-bold text-white"><Plus size={14} /> Nuevo usuario</button>
+        {loading ? (
+          <div className="flex min-h-64 items-center justify-center rounded-lg border border-gray-200 bg-white" role="status">
+            <Loader2 className="animate-spin text-[#5454E9]" size={24} />
+            <span className="ml-3 text-sm font-semibold text-gray-600">Cargando directorio…</span>
           </div>
-
-          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white" tabIndex={0} aria-label="Tabla de usuarios del directorio">
-            <table className="w-full min-w-[820px] border-collapse text-left">
-              <thead className="bg-black text-[10px] uppercase tracking-wide text-white"><tr>{["Usuario", "Rol", "Departamento", "Estado", "Último acceso", "Acciones"].map((label) => <th key={label} className="px-4 py-3">{label}</th>)}</tr></thead>
-              <tbody>
+        ) : tab === "users" ? (
+          <section className="flex min-h-0 flex-col" aria-label="Gestión de usuarios">
+            <div className="min-h-0 overflow-auto rounded-lg border border-gray-200 bg-white" style={{ height: USERS_TABLE_HEIGHT }} tabIndex={0} aria-label="Tabla de usuarios del directorio">
+              <table className="w-full min-w-[820px] border-collapse text-left">
+                <thead className="text-[9px] uppercase tracking-wide text-white"><tr>{["Usuario", "Rol", "Departamento", "Estado", "Último acceso", "Acciones"].map((label) => <th key={label} className="sticky top-0 z-10 whitespace-nowrap bg-black px-4 py-3">{label}</th>)}</tr></thead>
+                <tbody>
                 {visibleUsers.map((entry) => (
                   <tr key={entry.id} className="border-t border-gray-100">
-                    <td className="px-4 py-3"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#5454E9] text-[10px] font-extrabold text-white">{initials(entry.name)}</span><div><p className="text-xs font-bold text-black">{entry.name}</p><p className="text-[11px] text-gray-500">{entry.email}</p></div></div></td>
-                    <td className="px-4 py-3"><span className="rounded px-2 py-1 text-[10px] font-bold" style={roleStyle(entry.accessRole)}>{roleLabel(entry.accessRole)}</span></td>
-                    <td className="max-w-64 px-4 py-3 text-xs text-gray-700">{entry.departmentName}</td>
+                    <td className="whitespace-nowrap px-4 py-3"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#5454E9] text-[9px] font-extrabold text-white">{initials(entry.name)}</span><div><p className="text-xs font-bold text-black">{entry.name}</p><p className="text-[10.5px] text-gray-500">{entry.email}</p></div></div></td>
+                    <td className="whitespace-nowrap px-4 py-3"><span className="rounded px-2 py-1 text-[9px] font-bold" style={roleStyle(entry.accessRole)}>{roleLabel(entry.accessRole)}</span></td>
+                    <td className="max-w-64 px-4 py-3 text-xs text-gray-700" title={entry.departmentName}><span className="line-clamp-2">{entry.departmentName}</span></td>
                     <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 text-xs font-bold ${entry.active ? "text-emerald-700" : "text-gray-400"}`}>{entry.active ? <UserCheck size={13} /> : <UserX size={13} />}{entry.active ? "Activo" : "Inactivo"}</span></td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{entry.lastAccessAt ? new Date(entry.lastAccessAt).toLocaleString("es-CO") : "Sin registro"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">{entry.lastAccessAt ? new Date(entry.lastAccessAt).toLocaleString("es-CO") : "Sin registro"}</td>
                     <td className="px-4 py-3"><div className="flex gap-1"><IconButton label="Editar usuario" onClick={() => setEditingUser(entry)}><Edit2 size={14} /></IconButton><IconButton label="Generar enlace de acceso" onClick={() => void issueAccessLink(entry)} disabled={!entry.active || issuingLinkFor === entry.id}>{issuingLinkFor === entry.id ? <Loader2 size={14} className="animate-spin motion-reduce:animate-none" /> : <Link2 size={14} />}</IconButton><IconButton label={entry.active ? "Desactivar usuario" : "Activar usuario"} onClick={() => void setUserActive(entry)}>{entry.active ? <UserX size={14} /> : <UserCheck size={14} />}</IconButton><IconButton label="Eliminar usuario" onClick={() => void removeUser(entry)} danger><Trash2 size={14} /></IconButton></div></td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-            {!visibleUsers.length && <p className="p-10 text-center text-sm text-gray-500">No hay usuarios que coincidan con los filtros.</p>}
-          </div>
-        </section>
-      ) : (
-        <section className="space-y-4" aria-label="Gestión de departamentos">
-          <div className="flex justify-end"><button onClick={() => setEditingDepartment(null)} className="inline-flex h-9 items-center gap-2 rounded-md bg-[#5454E9] px-4 text-xs font-bold text-white"><Plus size={14} /> Nuevo departamento</button></div>
+                </tbody>
+              </table>
+              {!visibleUsers.length && <p className="p-10 text-center text-sm text-gray-500">No hay usuarios que coincidan con los filtros.</p>}
+            </div>
+          </section>
+        ) : (
+          <section aria-label="Gestión de departamentos">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {departments.map((department) => (
               <article key={department.id} className="rounded-lg border border-gray-200 bg-white p-4">
-                <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-extrabold text-black">{department.name}</p><p className="mt-1 text-[11px] font-semibold text-[#5454E9]">{department.schoolName ?? "Escuela sin nombre"}</p></div><Building2 size={18} className="text-gray-400" /></div>
+                <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-extrabold text-black">{department.name}</p><p className="mt-1 text-[10.5px] font-semibold text-[#5454E9]">{department.schoolName ?? "Escuela sin nombre"}</p></div><Building2 size={18} className="text-gray-400" /></div>
                 <p className="mt-3 min-h-10 text-xs leading-5 text-gray-600">{department.description || "Sin descripción."}</p>
                 <div className="mt-4 flex justify-end gap-2"><IconButton label="Editar departamento" onClick={() => setEditingDepartment(department)}><Edit2 size={14} /></IconButton><IconButton label="Eliminar departamento" onClick={() => void removeDepartment(department)} danger><Trash2 size={14} /></IconButton></div>
               </article>
             ))}
           </div>
-        </section>
-      )}
+          </section>
+        )}
+      </div>
 
       {editingUser !== undefined && <UserDialog user={editingUser} departments={departments} onClose={() => setEditingUser(undefined)} onSaved={(saved) => { setUsers((current) => editingUser ? current.map((entry) => entry.id === saved.id ? saved : entry) : [saved, ...current]); setEditingUser(undefined); }} />}
       <AccessLinkDialog link={accessLink?.link ?? null} personName={accessLink?.name} onClose={() => setAccessLink(null)} />
@@ -280,8 +283,6 @@ function DepartmentDialog({ department, schools, onClose, onSaved }: { departmen
 
 function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"><h3 className="mb-5 text-lg font-extrabold">{title}</h3>{children}</div></div>; }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block text-xs font-bold text-gray-800">{label}<div className="mt-1 [&>*]:w-full [&>*]:rounded-md [&>*]:border [&>*]:border-gray-300 [&>*]:px-3 [&>*]:py-2 [&>*]:text-sm [&>*]:outline-none focus-within:[&>*]:border-[#5454E9]">{children}</div></label>; }
-function DialogActions({ saving, onClose, onSave }: { saving: boolean; onClose: () => void; onSave: () => void }) { return <div className="flex justify-end gap-2 pt-2"><button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-xs font-bold">Cancelar</button><button disabled={saving} onClick={onSave} className="rounded-md bg-[#5454E9] px-4 py-2 text-xs font-bold text-white disabled:opacity-60">{saving ? "Guardando…" : "Guardar"}</button></div>; }
+function DialogActions({ saving, onClose, onSave }: { saving: boolean; onClose: () => void; onSave: () => void }) { return <div className="flex justify-end gap-2 pt-2"><button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-bold">Cancelar</button><button disabled={saving} onClick={onSave} className="rounded-md bg-[#5454E9] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{saving ? "Guardando…" : "Guardar"}</button></div>; }
 function IconButton({ label, onClick, danger, disabled, children }: { label: string; onClick: () => void; danger?: boolean; disabled?: boolean; children: React.ReactNode }) { return <button type="button" onClick={onClick} disabled={disabled} title={label} aria-label={label} className={`flex h-8 w-8 items-center justify-center rounded-md border disabled:cursor-wait disabled:opacity-60 ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>{children}</button>; }
-function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) { return <button role="tab" aria-selected={active} onClick={onClick} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-bold ${active ? "bg-black text-white" : "text-gray-600"}`}>{icon}{label}</button>; }
-function Stat({ label, value }: { label: string; value: number }) { return <div className="rounded-lg border border-gray-200 bg-white p-4"><p className="text-2xl font-black text-[#5454E9]">{value}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">{label}</p></div>; }
 function Restricted() { return <div className="flex h-full flex-col items-center justify-center py-20"><ShieldCheck size={48} className="mb-4 text-gray-300" /><h2 className="text-base font-bold text-gray-700">Acceso restringido</h2><p className="mt-2 text-sm text-gray-500">Sólo el Administrador puede gestionar el directorio institucional.</p></div>; }

@@ -49,12 +49,37 @@ describe("Reportes", () => {
     render(<Reportes />);
 
     expect(await screen.findByText(/no hay kRs con avance registrado en este corte/i)).toBeInTheDocument();
-    expect(screen.getByText(/no hay departamentos con registros para los filtros seleccionados/i)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.queryByText(/cobertura|promedio|en riesgo/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Avance de KRs" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Departamentos" }));
+    expect(screen.getByText(/no hay departamentos con registros para los filtros seleccionados/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Avance de KRs" }));
     expect(screen.getByText(/no hay kRs con avance registrado para los filtros seleccionados/i)).toBeInTheDocument();
+  });
+
+  it("compares the recorded counts of both periods side by side", async () => {
+    mocks.loadReportsScreen.mockResolvedValue({
+      periods: [...periods, { id: 2, name: "2025-2", status: "CERRADO", startDate: "2025-07-01", endDate: "2025-12-31" }],
+      departments: [],
+      report: { general: emptyGeneral, departments: [], keyResultRanking: [] },
+    });
+    mocks.loadReportComparison.mockResolvedValue({
+      basePeriod: "2025-2",
+      comparePeriod: "2026-1",
+      base: { ...emptyGeneral, totalProjects: 4 },
+      compare: { ...emptyGeneral, totalProjects: 9 },
+    });
+    render(<Reportes />);
+    await screen.findByText(/no hay kRs con avance registrado en este corte/i);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Comparativa" }));
+
+    const table = await screen.findByRole("table", { name: "Comparativa de periodos" });
+    expect(table).toHaveTextContent("Base: 2025-2");
+    expect(table).toHaveTextContent("Comparado: 2026-1");
+    expect(screen.getByRole("row", { name: "Iniciativas 4 9" })).toBeInTheDocument();
   });
 
   it("explains what to do when the API returns no consolidated report", async () => {
@@ -80,7 +105,7 @@ describe("Reportes", () => {
     render(<Reportes />);
 
     await screen.findAllByText("KR registrado alto");
-    fireEvent.click(screen.getByRole("button", { name: "Avance de KRs" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Avance de KRs" }));
 
     const names = screen.getAllByText(/KR registrado (alto|bajo)/).map((el) => el.textContent);
     expect(names).toEqual(["KR registrado alto", "KR registrado bajo"]);

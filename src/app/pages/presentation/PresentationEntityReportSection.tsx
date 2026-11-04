@@ -112,13 +112,13 @@ export function EntityReportSection<T extends ReportEntity>({ items, periodName,
                     return (
                       <div className="rounded-lg border border-[#DFE3EC] bg-white p-3 shadow-xl text-xs">
                         <p className="font-black text-[#222245] text-sm mb-1">{data.fullName}</p>
-                        <p className="text-[#4CB979] font-bold">
+                        <p className="text-[#B8461F] font-bold">
                           KRs completados: <span className="text-[#222245]">{data.completedKrs}</span>
                         </p>
-                        <p className="text-[#5454E9] font-bold">
+                        <p className="text-[#E9683B] font-bold">
                           KRs en progreso: <span className="text-[#222245]">{data.inProgressKrs}</span>
                         </p>
-                        <p className="text-[#E9683B] font-bold">
+                        <p className="text-[#4CB979] font-bold">
                           Iniciativas vinculadas: <span className="text-[#222245]">{data.totalProjects}</span>
                         </p>
                         <p className="mt-2 text-[11px] font-extrabold text-[#5454E9]">Haz clic para ver el detalle</p>
@@ -130,9 +130,9 @@ export function EntityReportSection<T extends ReportEntity>({ items, periodName,
                   wrapperStyle={{ paddingTop: 10, fontSize: 12, fontWeight: 700 }}
                   formatter={(value) => CHART_LABELS[value] || value}
                 />
-                <Bar dataKey="completedKrs" fill="#4CB979" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="inProgressKrs" fill="#5454E9" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="totalProjects" fill="#E9683B" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="completedKrs" fill="#B8461F" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="inProgressKrs" fill="#E9683B" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="totalProjects" fill="#4CB979" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

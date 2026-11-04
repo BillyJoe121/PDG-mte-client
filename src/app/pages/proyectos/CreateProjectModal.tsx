@@ -155,8 +155,8 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
               <FolderKanban size={18} color="#fff" />
             </div>
             <div>
-              <p style={{ fontSize: 10, fontWeight: 850, color: "rgba(255,255,255,0.76)", textTransform: "uppercase" }}>Iniciativas</p>
-              <h2 style={{ fontSize: 20, fontWeight: 900, color: "#fff", lineHeight: 1.15 }}>Nueva Iniciativa</h2>
+              <p style={{ fontSize: 9, fontWeight: 850, color: "rgba(255,255,255,0.76)", textTransform: "uppercase" }}>Iniciativas</p>
+              <h2 style={{ fontSize: 17, fontWeight: 900, color: "#fff", lineHeight: 1.15 }}>Nueva Iniciativa</h2>
             </div>
           </div>
           <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
@@ -213,29 +213,29 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
             <div className="rounded-lg bg-white p-3" style={{ border: "1px solid #EEF2F7" }}>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <span style={{ display: "block", fontSize: 11, fontWeight: 850, color: COLORS.text, textTransform: "uppercase" }}>Key Results *</span>
-                  <span style={{ display: "block", marginTop: 2, fontSize: 11, color: "#9CA3AF", fontWeight: 700 }}>{krLinks.length} seleccionado(s)</span>
+                  <span style={{ display: "block", fontSize: 10.5, fontWeight: 850, color: COLORS.text, textTransform: "uppercase" }}>Key Results *</span>
+                  <span style={{ display: "block", marginTop: 2, fontSize: 10.5, color: "#9CA3AF", fontWeight: 700 }}>{krLinks.length} seleccionado(s)</span>
                 </div>
-                <Plus size={15} color={COLORS.green} />
+                <Plus size={15} color={COLORS.orange} />
               </div>
-              {errors.keyResults && <span style={{ display: "block", marginBottom: 6, fontSize: 11, color: COLORS.orange }}>{errors.keyResults}</span>}
+              {errors.keyResults && <span style={{ display: "block", marginBottom: 6, fontSize: 10.5, color: COLORS.orange }}>{errors.keyResults}</span>}
               {keyResults.length === 0 ? (
-                <p style={{ fontSize: 12, color: "#9CA3AF" }}>No hay Key Results disponibles.</p>
+                <p style={{ fontSize: 10.5, color: "#9CA3AF" }}>No hay Key Results disponibles.</p>
               ) : (
                 <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
                   {keyResults.map((kr) => {
                     const link = krLinks.find((item) => item.keyResultId === kr.id);
                     const selected = Boolean(link);
                     return (
-                      <div key={kr.id} className="rounded-md p-3" style={{ border: `1.5px solid ${selected ? COLORS.green : "#D8DEE8"}`, backgroundColor: selected ? "#ECFDF5" : "#F8FAFC" }}>
+                      <div key={kr.id} className="rounded-md p-3" style={{ border: `1.5px solid ${selected ? COLORS.orange : "#D8DEE8"}`, backgroundColor: selected ? "#FDF0EB" : "#F8FAFC" }}>
                         <div className="flex items-start gap-3">
-                          <button type="button" onClick={() => toggleKeyResult(kr.id)} className="mt-0.5 flex h-5 w-5 items-center justify-center rounded" style={{ backgroundColor: selected ? COLORS.green : "#fff", border: `2px solid ${selected ? COLORS.green : "#D1D5DB"}` }}>
+                          <button type="button" onClick={() => toggleKeyResult(kr.id)} className="mt-0.5 flex h-5 w-5 items-center justify-center rounded" style={{ backgroundColor: selected ? COLORS.orange : "#fff", border: `2px solid ${selected ? COLORS.orange : "#D1D5DB"}` }}>
                             {selected && <Check size={12} color="#fff" />}
                           </button>
                           <div className="min-w-0 flex-1">
-                            <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.green, textTransform: "uppercase" }}>KR {kr.id} · {kr.strategyLabel}{kr.period ? ` · ${kr.period}` : ""}</p>
-                            <p style={{ fontSize: 12, fontWeight: 850, color: COLORS.text, marginTop: 3 }}>{kr.name || kr.description}</p>
-                            <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 2 }}>{kr.metric}</p>
+                            <p style={{ fontSize: 9, fontWeight: 900, color: COLORS.orange, textTransform: "uppercase" }}>KR {kr.id} · {kr.strategyLabel}{kr.period ? ` · ${kr.period}` : ""}</p>
+                            <p style={{ fontSize: 10.5, fontWeight: 850, color: COLORS.text, marginTop: 3 }}>{kr.name || kr.description}</p>
+                            <p style={{ fontSize: 10.5, color: COLORS.gray, marginTop: 2 }}>{kr.metric}</p>
                           </div>
                           {selected && (
                             <button type="button" onClick={() => toggleKeyResult(kr.id)} className="flex h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: "#fff", border: "1px solid #D8DEE8" }}>
@@ -271,9 +271,9 @@ function parseTutors(value: string) {
 function ModalField({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <div style={{ display: "block", padding: 10, borderRadius: 9, backgroundColor: "#fff", border: "1px solid #EEF2F7" }}>
-      <span style={{ display: "block", fontSize: 11, fontWeight: 850, color: COLORS.text, textTransform: "uppercase", marginBottom: 7 }}>{label}</span>
+      <span style={{ display: "block", fontSize: 10.5, fontWeight: 850, color: COLORS.text, textTransform: "uppercase", marginBottom: 7 }}>{label}</span>
       {children}
-      {error && <span style={{ display: "block", marginTop: 4, fontSize: 11, color: COLORS.orange }}>{error}</span>}
+      {error && <span style={{ display: "block", marginTop: 4, fontSize: 10.5, color: COLORS.orange }}>{error}</span>}
     </div>
   );
 }
@@ -281,10 +281,10 @@ function ModalField({ label, error, children }: { label: string; error?: string;
 function ModalActions({ onClose, saving }: { onClose: () => void; saving: boolean }) {
   return (
     <div className="flex items-center justify-end gap-3 pt-3">
-      <button type="button" onClick={onClose} style={{ padding: "10px 16px", fontSize: 12, fontWeight: 800, color: "#374151", border: "1px solid #D8DEE8", borderRadius: 8, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
+      <button type="button" onClick={onClose} style={{ padding: "10px 16px", fontSize: 11, fontWeight: 800, color: "#374151", border: "1px solid #D8DEE8", borderRadius: 8, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
         Cancelar
       </button>
-      <button type="submit" disabled={saving} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", fontSize: 12, fontWeight: 850, color: "#fff", backgroundColor: COLORS.green, borderRadius: 8, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
+      <button type="submit" disabled={saving} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", fontSize: 11, fontWeight: 850, color: "#fff", backgroundColor: COLORS.green, borderRadius: 8, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
         {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
         Crear Iniciativa
       </button>
@@ -314,7 +314,7 @@ function modalInputStyle(error: boolean): CSSProperties {
     width: "100%",
     minHeight: 38,
     padding: "8px 11px",
-    fontSize: 12,
+    fontSize: 10.5,
     border: `1.5px solid ${error ? COLORS.orange : "#D8DEE8"}`,
     borderRadius: 8,
     outline: "none",
@@ -339,7 +339,7 @@ function dateInputStyle(error: boolean): CSSProperties {
   return {
     ...modalInputStyle(error),
     padding: "10px 14px",
-    fontSize: 13,
+    fontSize: 11,
     border: `1.5px solid ${error ? COLORS.orange : "#E5E7EB"}`,
     backgroundColor: "#fff",
   };
@@ -358,7 +358,7 @@ const compactInputStyle: CSSProperties = {
   width: "100%",
   minHeight: 36,
   padding: "8px 10px",
-  fontSize: 12,
+  fontSize: 10.5,
   border: "1.5px solid #D8DEE8",
   borderRadius: 8,
   outline: "none",

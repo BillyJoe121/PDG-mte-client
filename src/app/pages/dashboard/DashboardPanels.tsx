@@ -54,7 +54,7 @@ export function buildKpis(summary: DashboardSummary, totalProjects: number) {
       value: summary.closedKeyResults,
       sub: "Su avance registrado ya no cambia",
       icon: CheckCircle2,
-      color: COLORS.blue,
+      color: COLORS.orange,
     },
   ];
 }
@@ -101,9 +101,9 @@ function MetricCard({
         </div>
         <span style={{ width: 34, height: 5, borderRadius: 99, backgroundColor: solid ? "rgba(255,255,255,0.72)" : color, opacity: 0.86 }} />
       </div>
-      <p style={{ fontSize: 25, fontWeight: 900, color: solid ? "#fff" : color, lineHeight: 1.05, marginTop: 14 }}>{value}</p>
-      <p style={{ fontSize: 11, fontWeight: 850, color: solid ? "#fff" : COLORS.text, marginTop: 5 }}>{label}</p>
-      <p style={{ fontSize: 11, color: solid ? "rgba(255,255,255,0.82)" : COLORS.gray, marginTop: 3, lineHeight: 1.35 }}>{sub}</p>
+      <p style={{ fontSize: 17, fontWeight: 900, color: solid ? "#fff" : color, lineHeight: 1.05, marginTop: 14 }}>{value}</p>
+      <p style={{ fontSize: 10.5, fontWeight: 850, color: solid ? "#fff" : COLORS.text, marginTop: 5 }}>{label}</p>
+      <p style={{ fontSize: 10.5, color: solid ? "rgba(255,255,255,0.82)" : COLORS.gray, marginTop: 3, lineHeight: 1.35 }}>{sub}</p>
     </motion.div>
   );
 }
@@ -116,8 +116,8 @@ export function DashboardPanel({ title, subtitle, icon, children }: { title: str
           {icon}
         </div>
         <div>
-          <h2 style={{ fontSize: 15, fontWeight: 900, color: COLORS.text, lineHeight: 1.15 }}>{title}</h2>
-          <p style={{ fontSize: 11, color: COLORS.gray, marginTop: 3, lineHeight: 1.4 }}>{subtitle}</p>
+          <h2 style={{ fontSize: 13, fontWeight: 900, color: COLORS.text, lineHeight: 1.15 }}>{title}</h2>
+          <p style={{ fontSize: 10.5, color: COLORS.gray, marginTop: 3, lineHeight: 1.4 }}>{subtitle}</p>
         </div>
       </div>
       {children}
@@ -183,9 +183,9 @@ function DistributionRow({ color, label, total, value }: { color: string; label:
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-          <span style={{ fontSize: 12, fontWeight: 850, color: COLORS.text }}>{label}</span>
+          <span style={{ fontSize: 10.5, fontWeight: 850, color: COLORS.text }}>{label}</span>
         </div>
-        <span style={{ fontSize: 12, fontWeight: 900, color }}>{value}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 900, color }}>{value}</span>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
         <div style={{ width: `${width}%`, height: "100%", backgroundColor: color }} />

@@ -45,16 +45,26 @@ describe("Auditoria", () => {
     render(<Auditoria />);
 
     expect(await screen.findByText("Resultado clave actualizado")).toBeInTheDocument();
-    expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("Días con actividad")).toBeInTheDocument();
-    expect(screen.queryByText(/promedio/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /Tendencia diaria/i })).toBeInTheDocument();
-
     await user.click(screen.getByRole("button", { name: /Ver detalle de Resultado clave actualizado/i }));
     const dialog = screen.getByRole("dialog", { name: /Detalle del evento/i });
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByText(/"name": "Anterior"/)).toBeInTheDocument();
     expect(within(dialog).getByText(/"name": "Actual"/)).toBeInTheDocument();
+  });
+
+  it("keeps the trends in their own tab without reloading the audit", async () => {
+    const user = userEvent.setup();
+    render(<Auditoria />);
+    await screen.findByText("Resultado clave actualizado");
+    expect(screen.queryByRole("img", { name: /Tendencia diaria/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Tendencias" }));
+
+    expect(screen.getByRole("img", { name: /Tendencia diaria/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Entidades" })).toBeInTheDocument();
+    expect(screen.queryByText(/promedio/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Resultado clave actualizado")).not.toBeInTheDocument();
+    expect(mocks.list).toHaveBeenCalledTimes(1);
   });
 
   it("applies backend filters consistently", async () => {

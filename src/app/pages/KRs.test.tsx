@@ -29,24 +29,16 @@ function renderAt(url: string) {
   return render(<MemoryRouter initialEntries={[url]}><KRs /></MemoryRouter>);
 }
 
-function summaryCard(label: string) {
-  return screen.getByText(label, { selector: "p" }).previousElementSibling?.textContent;
-}
-
 describe("KRs", () => {
   beforeEach(() => {
     mocks.loadKeyResults.mockReset().mockResolvedValue(items);
   });
 
-  it("counts every loaded KR in the summary cards while the list is filtered by status", async () => {
+  it("filters the list by the status in the URL", async () => {
     renderAt("/krs?status=CERRADO");
 
     expect(await screen.findByText("Graduación")).toBeInTheDocument();
     expect(screen.queryByText("Retención")).not.toBeInTheDocument();
-    expect(summaryCard("Total")).toBe("4");
-    expect(summaryCard("Borrador")).toBe("1");
-    expect(summaryCard("Activos")).toBe("1");
-    expect(summaryCard("Cerrados")).toBe("2");
   });
 
   it("shows an explicit error state with a retry instead of the empty message", async () => {

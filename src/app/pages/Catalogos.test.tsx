@@ -50,7 +50,7 @@ describe("Catalogos", () => {
     render(<Catalogos />);
 
     expect(await screen.findByText("2026-1")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Unidades/i }));
+    await user.click(screen.getByRole("tab", { name: /Unidades/i }));
     expect(screen.getAllByText("Porcentaje").length).toBeGreaterThan(1);
 
     await user.type(screen.getByRole("textbox", { name: /nombre/i }), "Estudiantes");

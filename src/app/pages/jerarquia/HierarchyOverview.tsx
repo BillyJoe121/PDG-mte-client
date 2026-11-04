@@ -13,7 +13,7 @@ export function HierarchyOverview({ nodes }: { nodes: StrategicHierarchyNode[] }
           <h2 id="hierarchy-overview-title" className="text-xs font-black uppercase tracking-wide text-[#111827]">
             Cobertura de la jerarquia
           </h2>
-          <p className="mt-1 text-[11px] font-medium text-[#717182]">Elementos unicos visibles con el filtro actual.</p>
+          <p className="mt-1 text-[10.5px] font-medium text-[#717182]">Elementos unicos visibles con el filtro actual.</p>
         </div>
         <p className="sr-only">{accessibleSummary}</p>
       </div>
@@ -21,7 +21,7 @@ export function HierarchyOverview({ nodes }: { nodes: StrategicHierarchyNode[] }
         {summary.map((item) => (
           <div key={item.type} className="rounded-md border border-[#E5E7EB] bg-[#F8FAFC] p-2.5">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-[10px] font-extrabold text-[#374151]">{item.label}</span>
+              <span className="text-[9px] font-extrabold text-[#374151]">{item.label}</span>
               <strong className="text-sm text-[#111827]">{item.count}</strong>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-[#E5E7EB]">
