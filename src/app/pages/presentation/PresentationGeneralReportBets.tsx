@@ -19,7 +19,7 @@ export function GeneralReportBetsSection({ bets, periodName, onSelectBet }: Prop
       config={{
         summaryCardClass: "presentation-bets-summary-card",
         accent: "#5454E9",
-        icon: <Flag size={22} aria-hidden="true" />,
+        icon: <Flag size={16} aria-hidden="true" />,
         title: "Apuestas Estratégicas del periodo",
         subtitle: "KRs e iniciativas registrados para cada apuesta estratégica",
         itemLabel: "Apuesta",

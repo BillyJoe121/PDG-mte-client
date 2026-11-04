@@ -71,7 +71,7 @@ export function DashboardKpiGrid({ kpis }: { kpis: DashboardKpi[] }) {
   );
 }
 
-function MetricCard({
+export function MetricCard({
   label,
   value,
   sub,

@@ -12,20 +12,19 @@ import { ExternalLink, Flag, Target } from "lucide-react";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
 import type { ComparisonType } from "./PresentationTypes";
 import type { ComparisonEntity } from "./PresentationComparisonData";
+import { PresentationStatusBadge } from "./PresentationLayout";
 
 const ENTITY_CARD_VARIANTS = {
   A: {
-    border: "border-[#5454E9]/30",
-    strip: "bg-[#5454E9]",
-    pill: "bg-[#5454E9]",
+    border: "border-[#D9DEE8] border-t-[3px] border-t-[#5454E9]",
+    text: "text-[#5454E9]",
     accentText: "text-[#5454E9]",
     betLabel: "Apuesta A",
     goalLabel: "Meta A",
   },
   B: {
-    border: "border-[#4CB979]/30",
-    strip: "bg-[#4CB979]",
-    pill: "bg-[#4CB979]",
+    border: "border-[#D9DEE8] border-t-[3px] border-t-[#4CB979]",
+    text: "text-[#2F855A]",
     accentText: "text-[#4CB979]",
     betLabel: "Apuesta B",
     goalLabel: "Meta B",
@@ -51,19 +50,20 @@ export function EntityComparisonCard({
   const style = ENTITY_CARD_VARIANTS[variant];
   const summary = entity.data?.executionSummary;
   return (
-    <div className={`relative overflow-hidden rounded-xl border-2 ${style.border} bg-white p-6 shadow-sm`}>
-      <div className={`absolute top-0 left-0 right-0 h-1.5 ${style.strip}`} />
+    <div className={`relative overflow-hidden rounded-md border ${style.border} bg-white p-4 shadow-[0_1px_2px_rgba(17,24,39,0.05)]`}>
       <div className="flex items-center justify-between">
-        <span className={`inline-flex items-center gap-1.5 rounded-sm ${style.pill} px-2.5 py-0.5 text-xs font-black uppercase tracking-wider text-white`}>
+        <span className={`inline-flex items-center gap-1.5 ${style.text} text-[9px] font-black uppercase tracking-[0.04em]`}>
           {entity.type === "bet" ? <Flag size={12} /> : <Target size={12} />}
           {entity.type === "bet" ? style.betLabel : style.goalLabel}
         </span>
-        <span className="rounded-sm bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-          {entity.data?.status ?? "Sin registro"}
-        </span>
+        {entity.data?.status ? (
+          <PresentationStatusBadge status={entity.data.status} />
+        ) : (
+          <span className="text-[10px] font-bold text-[#717182]">Sin registro</span>
+        )}
       </div>
 
-      <h3 className="mt-3 text-xl font-black text-[#222245]">{name}</h3>
+      <h3 className="mt-2 text-[13px] font-black text-[#111827]">{name}</h3>
       <p className="mt-1 line-clamp-2 text-xs font-medium text-[#717182]">
         {entity.data?.description || "Sin descripción disponible."}
       </p>
@@ -75,9 +75,9 @@ export function EntityComparisonCard({
           ["Iniciativas completadas", summary?.completedProjects ?? 0],
           ["Iniciativas en progreso", summary?.inProgressProjects ?? 0],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-2">
+          <div key={label} className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-2">
             <dt className="text-[11px] font-semibold text-[#717182]">{label}</dt>
-            <dd className={`text-base font-black ${style.accentText}`}>{value}</dd>
+            <dd className={`text-[15px] font-black ${style.accentText}`}>{value}</dd>
           </div>
         ))}
       </dl>
@@ -116,19 +116,19 @@ export function ComparisonChartSection({
   shortNameB: string;
 }) {
   return (
-    <section className="rounded-xl border border-[#DFE3EC] bg-white p-6 sm:p-8 shadow-[0_12px_28px_rgba(34,34,69,0.06)] sgp-print-avoid">
-      <div className="border-b border-[#DFE3EC] pb-4">
-        <h2 className="text-xl font-black text-[#222245]">
+    <section className="rounded-md border border-[#D9DEE8] bg-white p-4 shadow-[0_1px_2px_rgba(17,24,39,0.05)] sgp-print-avoid">
+      <div>
+        <h2 className="text-[13px] font-black text-[#111827]">
           Comparativa visual de registros
         </h2>
-        <p className="text-xs font-semibold text-[#717182]">
+        <p className="mt-0.5 text-[10.5px] text-[#717182]">
           {compType === "period-vs-period"
             ? `Conteos de KRs e iniciativas registrados en el Periodo ${selectedPeriodA} y en el Periodo ${selectedPeriodB}.`
             : "Conteos de KRs e iniciativas registrados para cada una de las dos entidades seleccionadas."}
         </p>
       </div>
 
-      <div className="mt-6 h-[340px] w-full">
+      <div className="mt-4 h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
@@ -137,7 +137,7 @@ export function ComparisonChartSection({
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E9ECF2" />
             <XAxis
               dataKey="metric"
-              tick={{ fill: "#222245", fontSize: 11, fontWeight: 700 }}
+              tick={{ fill: "#111827", fontSize: 11, fontWeight: 700 }}
               height={40}
             />
             <YAxis
@@ -145,11 +145,12 @@ export function ComparisonChartSection({
               tick={{ fill: "#717182", fontSize: 11, fontWeight: 600 }}
             />
             <Tooltip
+              cursor={{ fill: "#F1F3F8" }}
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
                 return (
-                  <div className="rounded-lg border border-[#DFE3EC] bg-white p-3 shadow-xl text-xs">
-                    <p className="font-black text-[#222245] text-sm mb-2">{label}</p>
+                  <div className="rounded-md border border-[#D9DEE8] bg-white p-3 text-xs shadow-[0_1px_2px_rgba(17,24,39,0.05)]">
+                    <p className="font-black text-[#111827] text-sm mb-2">{label}</p>
                     {payload.map((item, idx) => (
                       <p
                         key={`tt-${idx}`}
@@ -157,7 +158,7 @@ export function ComparisonChartSection({
                         style={{ color: item.color }}
                       >
                         <span>{item.name}:</span>
-                        <span className="font-black text-[#222245]">{item.value}</span>
+                        <span className="font-black text-[#111827]">{item.value}</span>
                       </p>
                     ))}
                   </div>
@@ -177,13 +178,15 @@ export function ComparisonChartSection({
               dataKey={compType === "period-vs-period" ? "periodA" : "entityA"}
               name={compType === "period-vs-period" ? `Periodo ${selectedPeriodA}` : shortNameA}
               fill="#5454E9"
-              radius={[4, 4, 0, 0]}
+              maxBarSize={36}
+              radius={[3, 3, 0, 0]}
             />
             <Bar
               dataKey={compType === "period-vs-period" ? "periodB" : "entityB"}
               name={compType === "period-vs-period" ? `Periodo ${selectedPeriodB}` : shortNameB}
               fill="#4CB979"
-              radius={[4, 4, 0, 0]}
+              maxBarSize={36}
+              radius={[3, 3, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>

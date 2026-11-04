@@ -2,6 +2,8 @@ import { useNavigate } from "react-router";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Award, Calendar, Download, ExternalLink, Flag, Printer, Target, X } from "lucide-react";
 import { Modal } from "../../components/Modal";
+import { ToolbarButton } from "../../components/ScreenToolbar";
+import { PresentationStatusBadge } from "./PresentationLayout";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
 import { PRESENTATION_COLORS } from "./PresentationTypes";
 import { exportDetailModalCsv, printPresentationView } from "./presentationExportUtils";
@@ -25,32 +27,20 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
   return (
     <Modal onClose={onClose}>
       <div className="presentation-detail-modal-content flex min-h-0 flex-1 flex-col">
-        {/* Accent Bar */}
-        <div
-          className="h-1.5 w-full"
-          style={{ backgroundColor: isBet ? PRESENTATION_COLORS.blue : PRESENTATION_COLORS.green }}
-        />
-
         {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-[#DFE3EC] p-6">
+        <div className="flex items-start justify-between border-b border-[#E5E7EB] px-6 py-5">
           <div className="min-w-0 pr-4">
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className="inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white"
-                style={{ backgroundColor: isBet ? PRESENTATION_COLORS.blue : PRESENTATION_COLORS.green }}
+                className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.06em]"
+                style={{ color: isBet ? PRESENTATION_COLORS.blue : "#2F855A" }}
               >
                 {isBet ? <Flag size={12} aria-hidden="true" /> : <Target size={12} aria-hidden="true" />}
                 {isBet ? "Apuesta Estratégica" : "Meta Institucional"}
               </span>
-              <span
-                className={`inline-flex rounded-sm px-2 py-0.5 text-xs font-bold ${
-                  entity.data.status === "ACTIVA" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {entity.data.status}
-              </span>
+              <PresentationStatusBadge status={entity.data.status} />
             </div>
-            <DialogPrimitive.Title className="mt-3 text-2xl font-black text-[#222245]">
+            <DialogPrimitive.Title className="mt-1.5 text-[18px] font-black leading-tight text-[#111827]">
               {entity.data.name}
             </DialogPrimitive.Title>
           </div>
@@ -58,7 +48,7 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
             type="button"
             onClick={onClose}
             aria-label="Cerrar ventana modal"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[#D9DEE8] text-[#717182] hover:bg-[#F7F8FC] hover:text-[#222245] sgp-screen-only"
+            className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-md border border-[#D9DEE8] bg-white text-[#717182] transition-colors hover:bg-[#F8FAFC] hover:text-[#111827] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9] sgp-screen-only"
           >
             <X size={18} aria-hidden="true" />
           </button>
@@ -76,16 +66,16 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
 
           {/* Goal specifics */}
           {goal && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-4 sgp-print-avoid">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-4 sgp-print-avoid">
               <div>
                 <span className="block text-xs font-bold uppercase text-[#717182]">Indicador de Referencia</span>
-                <span className="mt-1 block text-sm font-black text-[#222245]">
+                <span className="mt-1 block text-sm font-black text-[#111827]">
                   {goal.referenceIndicator || "No especificado"}
                 </span>
               </div>
               <div>
                 <span className="block text-xs font-bold uppercase text-[#717182]">Meta Esperada / Unidad</span>
-                <span className="mt-1 block text-sm font-black text-[#222245]">
+                <span className="mt-1 block text-sm font-black text-[#111827]">
                   {goal.expectedValue} {goal.measurementUnitName || "unidades"}
                 </span>
               </div>
@@ -97,7 +87,7 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
             <div className="flex items-center gap-1.5">
               <Calendar size={14} className="text-[#5454E9]" aria-hidden="true" />
               <span>Vigencia:</span>
-              <span className="text-[#222245]">
+              <span className="text-[#111827]">
                 {entity.data.startDate || "Inicio abierto"} — {entity.data.endDate || "Continuo"}
               </span>
             </div>
@@ -109,7 +99,7 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
               KRs e iniciativas registrados
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-center">
+              <div className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-4 text-center">
                 <div className="flex items-center justify-center gap-1 text-xs font-extrabold text-[#717182]">
                   <Target size={14} className="text-[#E9683B]" aria-hidden="true" />
                   <span>Resultados Clave (KRs)</span>
@@ -128,12 +118,12 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
                 </span>
               </div>
 
-              <div className="rounded-md border border-[#DFE3EC] bg-[#F7F8FC] p-4 text-center">
+              <div className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-4 text-center">
                 <div className="flex items-center justify-center gap-1 text-xs font-extrabold text-[#717182]">
                   <Award size={14} className="text-[#E9683B]" aria-hidden="true" />
                   <span>Iniciativas</span>
                 </div>
-                <div className="mt-2 text-2xl font-black text-[#222245]">
+                <div className="mt-2 text-2xl font-black text-[#111827]">
                   {summary?.completedProjects ?? 0}
                   <span className="text-sm font-semibold text-[#717182]">
                     {" "}/ {((summary?.completedProjects ?? 0) + (summary?.inProgressProjects ?? 0))}
@@ -155,18 +145,18 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
               <h3 className="mb-2 text-xs font-extrabold uppercase tracking-wider text-[#717182]">
                 Historial de Ejecución por Periodo
               </h3>
-              <div className="overflow-x-auto rounded-md border border-[#DFE3EC]">
+              <div className="overflow-x-auto rounded-md border border-[#D9DEE8]">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-[#DFE3EC] bg-[#F7F8FC] font-extrabold text-[#717182]">
+                  <thead className="border-b border-[#D9DEE8] bg-[#F8FAFC] font-extrabold text-[#717182]">
                     <tr>
                       <th className="px-3 py-2">Periodo</th>
                       <th className="px-3 py-2 text-center">KRs</th>
                       <th className="px-3 py-2 text-center">Iniciativas</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#DFE3EC] font-semibold text-[#222245]">
+                  <tbody className="divide-y divide-[#D9DEE8] font-semibold text-[#111827]">
                     {summary.periods.map((p) => (
-                      <tr key={p.period} className="hover:bg-[#F7F8FC]">
+                      <tr key={p.period} className="hover:bg-[#F8FAFC]">
                         <td className="px-3 py-2 font-bold">{p.period}</td>
                         <td className="px-3 py-2 text-center">
                           <span className="text-indigo-700 font-bold">{p.completedKeyResults}</span> / {p.completedKeyResults + p.inProgressKeyResults}
@@ -184,10 +174,9 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
         </div>
 
         {/* Modal Footer */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#DFE3EC] bg-[#F7F8FC] px-6 py-4 sgp-screen-only">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E5E7EB] bg-[#F8FAFC] px-6 py-3.5 sgp-screen-only">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <ToolbarButton
               onClick={() =>
                 printPresentationView(`Ficha Técnica - ${entity.data.name}`, {
                   subtitle: `${isBet ? "Apuesta Estratégica" : "Meta Institucional"} | Estado: ${entity.data.status}`,
@@ -195,34 +184,25 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
                 })
               }
               aria-label="Exportar ficha técnica a PDF"
-              className="inline-flex items-center gap-1.5 rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-black text-[#222245] shadow-xs hover:bg-[#F3F4F6] transition-colors"
+              title="Exportar ficha técnica a PDF"
             >
-              <Printer size={14} className="text-[#5454E9]" aria-hidden="true" />
-              <span>PDF Ficha</span>
-            </button>
-            <button
-              type="button"
+              <Printer size={14} aria-hidden="true" /> PDF Ficha
+            </ToolbarButton>
+            <ToolbarButton
               onClick={() => exportDetailModalCsv(entity, "Vigente")}
               aria-label="Descargar ficha técnica en CSV"
-              className="inline-flex items-center gap-1.5 rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-black text-[#222245] shadow-xs hover:bg-[#F3F4F6] transition-colors"
+              title="Descargar ficha técnica en CSV"
             >
-              <Download size={14} className="text-[#4CB979]" aria-hidden="true" />
-              <span>CSV Ficha</span>
-            </button>
+              <Download size={14} aria-hidden="true" /> CSV Ficha
+            </ToolbarButton>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-[#D9DEE8] bg-white px-4 py-2 text-sm font-bold text-[#4B5563] hover:bg-[#F3F4F6]"
-            >
-              Cerrar
-            </button>
+            <ToolbarButton onClick={onClose}>Cerrar</ToolbarButton>
             <button
               type="button"
               onClick={() => navigate(editRoute)}
-              className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:opacity-95"
+              className="inline-flex min-h-[38px] items-center gap-2 rounded-md px-4 text-[11px] font-extrabold text-white hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9] focus-visible:ring-offset-2"
               style={{ backgroundColor: isBet ? PRESENTATION_COLORS.blue : PRESENTATION_COLORS.green }}
             >
               <span>Ir a la gestión detallada</span>

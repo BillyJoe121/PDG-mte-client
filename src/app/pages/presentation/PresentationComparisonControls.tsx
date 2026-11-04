@@ -44,19 +44,19 @@ export function ComparisonControlsBar({
   handleSwap,
 }: Props) {
   return (
-    <div className="mt-6 grid grid-cols-1 items-center gap-4 rounded-xl border border-[#DFE3EC] bg-[#F7F8FC] p-4 sm:grid-cols-[1fr_auto_1fr]">
+    <div className="mt-3 grid grid-cols-1 items-center gap-3 rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-3 sm:grid-cols-[1fr_auto_1fr]">
       {compType === "period-vs-period" ? (
         <>
           {/* Period Picker A */}
           <div>
-            <label htmlFor="select-period-a" className="block text-xs font-black uppercase text-[#5454E9]">
+            <label htmlFor="select-period-a" className="block text-[9px] font-black uppercase text-[#5454E9]">
               Periodo Base (A)
             </label>
             <select
               id="select-period-a"
               value={selectedPeriodA}
               onChange={(e) => setSelectedPeriodA(e.target.value)}
-              className="mt-1 w-full rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-bold text-[#222245] shadow-xs focus:border-[#5454E9] focus:outline-hidden"
+              className="mt-1 min-h-[38px] w-full rounded-md border border-[#D9DEE8] bg-white px-2.5 text-[10.5px] font-bold text-[#111827] shadow-xs focus:border-[#5454E9] focus:outline-hidden"
             >
               {availablePeriods.map((p) => (
                 <option key={`pa-${p.id}`} value={p.name}>
@@ -73,7 +73,7 @@ export function ComparisonControlsBar({
               onClick={handleSwap}
               title="Intercambiar orden de periodos"
               aria-label="Intercambiar periodos"
-              className="grid h-10 w-10 place-items-center rounded-full border border-[#D9DEE8] bg-white text-[#717182] shadow-xs hover:bg-[#E9ECF2] hover:text-[#222245]"
+              className="grid h-[38px] w-[38px] place-items-center rounded-md border border-[#D9DEE8] bg-white text-[#717182] shadow-xs hover:bg-[#E9ECF2] hover:text-[#111827]"
             >
               <ArrowLeftRight size={16} aria-hidden="true" />
             </button>
@@ -81,14 +81,14 @@ export function ComparisonControlsBar({
 
           {/* Period Picker B */}
           <div>
-            <label htmlFor="select-period-b" className="block text-xs font-black uppercase text-[#4CB979]">
+            <label htmlFor="select-period-b" className="block text-[9px] font-black uppercase text-[#4CB979]">
               Periodo de Comparación (B)
             </label>
             <select
               id="select-period-b"
               value={selectedPeriodB}
               onChange={(e) => setSelectedPeriodB(e.target.value)}
-              className="mt-1 w-full rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-bold text-[#222245] shadow-xs focus:border-[#4CB979] focus:outline-hidden"
+              className="mt-1 min-h-[38px] w-full rounded-md border border-[#D9DEE8] bg-white px-2.5 text-[10.5px] font-bold text-[#111827] shadow-xs focus:border-[#4CB979] focus:outline-hidden"
             >
               {availablePeriods.map((p) => (
                 <option key={`pb-${p.id}`} value={p.name}>
@@ -102,7 +102,7 @@ export function ComparisonControlsBar({
         <>
           {/* Entity Picker A */}
           <div>
-            <label htmlFor="select-entity-a" className="block text-xs font-black uppercase text-[#5454E9]">
+            <label htmlFor="select-entity-a" className="block text-[9px] font-black uppercase text-[#5454E9]">
               {compType === "goal-vs-goal" ? "Seleccionar Meta A" : "Seleccionar Apuesta A"}
             </label>
             <select
@@ -113,7 +113,7 @@ export function ComparisonControlsBar({
                 if (compType === "goal-vs-goal") setSelectedGoalAId(id);
                 else setSelectedBetAId(id);
               }}
-              className="mt-1 w-full rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-bold text-[#222245] shadow-xs focus:border-[#5454E9] focus:outline-hidden"
+              className="mt-1 min-h-[38px] w-full rounded-md border border-[#D9DEE8] bg-white px-2.5 text-[10.5px] font-bold text-[#111827] shadow-xs focus:border-[#5454E9] focus:outline-hidden"
             >
               {compType === "goal-vs-goal"
                 ? goals.map((g) => (
@@ -137,12 +137,12 @@ export function ComparisonControlsBar({
                 onClick={handleSwap}
                 title="Intercambiar orden"
                 aria-label="Intercambiar orden de entidades"
-                className="grid h-10 w-10 place-items-center rounded-full border border-[#D9DEE8] bg-white text-[#717182] shadow-xs hover:bg-[#E9ECF2] hover:text-[#222245]"
+                className="grid h-[38px] w-[38px] place-items-center rounded-md border border-[#D9DEE8] bg-white text-[#717182] shadow-xs hover:bg-[#E9ECF2] hover:text-[#111827]"
               >
                 <ArrowLeftRight size={16} aria-hidden="true" />
               </button>
             ) : (
-              <div className="grid h-10 w-10 place-items-center rounded-full bg-[#E9ECF2] text-xs font-black text-[#717182]">
+              <div className="grid h-[38px] w-[38px] place-items-center rounded-md bg-[#E9ECF2] text-xs font-black text-[#717182]">
                 VS
               </div>
             )}
@@ -150,7 +150,7 @@ export function ComparisonControlsBar({
 
           {/* Entity Picker B */}
           <div>
-            <label htmlFor="select-entity-b" className="block text-xs font-black uppercase text-[#4CB979]">
+            <label htmlFor="select-entity-b" className="block text-[9px] font-black uppercase text-[#4CB979]">
               {compType === "bet-vs-bet" ? "Seleccionar Apuesta B" : "Seleccionar Meta B"}
             </label>
             <select
@@ -161,7 +161,7 @@ export function ComparisonControlsBar({
                 if (compType === "bet-vs-bet") setSelectedBetBId(id);
                 else setSelectedGoalBId(id);
               }}
-              className="mt-1 w-full rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-bold text-[#222245] shadow-xs focus:border-[#4CB979] focus:outline-hidden"
+              className="mt-1 min-h-[38px] w-full rounded-md border border-[#D9DEE8] bg-white px-2.5 text-[10.5px] font-bold text-[#111827] shadow-xs focus:border-[#4CB979] focus:outline-hidden"
             >
               {compType === "bet-vs-bet"
                 ? bets.map((b) => (
