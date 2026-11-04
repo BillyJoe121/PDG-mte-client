@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Building2, Download, Edit2, Link2, Loader2, Plus, Search, ShieldCheck, Trash2, UserCheck, UserX } from "lucide-react";
 import { PageTabs, TabButton, TOOLBAR_SELECT_CLASS } from "../components/PageToolbar";
 import { AccessLinkDialog } from "../components/AccessLinkDialog";
+import { useConfirm } from "../components/ConfirmDialog";
+import { FORM_CONTROL_CLASS, FormActions, FormField, FormSelect } from "../components/forms/FormField";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 import { hasPermission } from "../security/permissions";
 import { directoryUsersApi, type AccessLinkResponse, type DirectoryAccessRole, type DirectoryUser, type DirectoryUserRequest } from "../services/peopleApi";
@@ -45,6 +48,7 @@ const USERS_TABLE_HEIGHT = 2 + 38 + 7 * 61;
 
 export function Usuarios() {
   const { usuario } = useAuth();
+  const { confirm, confirmDialog } = useConfirm();
   const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
@@ -120,7 +124,12 @@ export function Usuarios() {
   };
 
   const removeUser = async (entry: DirectoryUser) => {
-    if (!window.confirm(`¿Eliminar a ${entry.name}? Esta acción se bloqueará si conserva responsabilidades.`)) return;
+    const accepted = await confirm({
+      title: "Eliminar usuario",
+      description: `¿Eliminar a ${entry.name}? Esta acción se bloqueará si conserva responsabilidades.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!accepted) return;
     try {
       await directoryUsersApi.remove(entry.id);
       setUsers((current) => current.filter((user) => user.id !== entry.id));
@@ -131,7 +140,12 @@ export function Usuarios() {
   };
 
   const removeDepartment = async (entry: Department) => {
-    if (!window.confirm(`¿Eliminar el departamento ${entry.name}?`)) return;
+    const accepted = await confirm({
+      title: "Eliminar departamento",
+      description: `¿Eliminar el departamento ${entry.name}?`,
+      confirmLabel: "Eliminar",
+    });
+    if (!accepted) return;
     try {
       await departmentsApi.remove(entry.id);
       setDepartments((current) => current.filter((department) => department.id !== entry.id));
@@ -247,11 +261,13 @@ export function Usuarios() {
       {editingUser !== undefined && <UserDialog user={editingUser} departments={departments} onClose={() => setEditingUser(undefined)} onSaved={(saved) => { setUsers((current) => editingUser ? current.map((entry) => entry.id === saved.id ? saved : entry) : [saved, ...current]); setEditingUser(undefined); }} />}
       <AccessLinkDialog link={accessLink?.link ?? null} personName={accessLink?.name} onClose={() => setAccessLink(null)} />
       {editingDepartment !== undefined && <DepartmentDialog department={editingDepartment} schools={schools} onClose={() => setEditingDepartment(undefined)} onSaved={(saved) => { setDepartments((current) => editingDepartment ? current.map((entry) => entry.id === saved.id ? saved : entry) : [...current, saved].sort((a, b) => a.name.localeCompare(b.name))); setEditingDepartment(undefined); }} />}
+      {confirmDialog}
     </div>
   );
 }
 
 function UserDialog({ user, departments, onClose, onSaved }: { user: DirectoryUser | null; departments: Department[]; onClose: () => void; onSaved: (user: DirectoryUser) => void }) {
+  const formId = useId();
   const [form, setForm] = useState<DirectoryUserRequest>({ name: user?.name ?? "", email: user?.email ?? "", departmentId: user?.departmentId ?? departments[0]?.id ?? 0, accessRole: user?.accessRole ?? "CONTRIBUTOR", active: user?.active ?? true });
   const [saving, setSaving] = useState(false);
   const save = async () => {
@@ -263,10 +279,52 @@ function UserDialog({ user, departments, onClose, onSaved }: { user: DirectoryUs
       onSaved(saved);
     } catch (error) { toast.error(message(error)); } finally { setSaving(false); }
   };
-  return <Dialog title={user ? "Editar usuario" : "Nuevo usuario"} onClose={onClose}><div className="space-y-4"><Field label="Nombre"><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field><Field label="Correo institucional"><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></Field><Field label="Rol de acceso"><select value={form.accessRole} onChange={(event) => setForm({ ...form, accessRole: event.target.value as DirectoryAccessRole })}>{Object.entries(ROLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field label="Departamento"><select value={form.departmentId} onChange={(event) => setForm({ ...form, departmentId: Number(event.target.value) })}>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></Field><label className="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /> Usuario activo</label><DialogActions saving={saving} onClose={onClose} onSave={() => void save()} /></div></Dialog>;
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void save();
+  };
+  return (
+    <Modal size="sm" onClose={onClose}>
+      <ModalHeader title={user ? "Editar usuario" : "Nuevo usuario"} onClose={onClose} />
+      <ModalBody>
+        <form id={formId} onSubmit={submit} noValidate className="space-y-4">
+          <FormField label="Nombre">
+            <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={FORM_CONTROL_CLASS} />
+          </FormField>
+          <FormField label="Correo institucional">
+            <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className={FORM_CONTROL_CLASS} />
+          </FormField>
+          <FormField label="Rol de acceso">
+            <FormSelect
+              label="Rol de acceso"
+              value={form.accessRole}
+              options={Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }))}
+              onChange={(value) => setForm({ ...form, accessRole: value as DirectoryAccessRole })}
+            />
+          </FormField>
+          <FormField label="Departamento">
+            <FormSelect
+              label="Departamento"
+              value={form.departmentId ? String(form.departmentId) : ""}
+              options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
+              onChange={(value) => setForm({ ...form, departmentId: Number(value) })}
+            />
+          </FormField>
+          <label className="flex items-center gap-2 text-xs font-bold text-gray-800">
+            <input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} className="h-4 w-4 accent-[#5454E9]" />
+            Usuario activo
+          </label>
+        </form>
+      </ModalBody>
+      <ModalFooter>
+        <FormActions saving={saving} formId={formId} onCancel={onClose} />
+      </ModalFooter>
+    </Modal>
+  );
 }
 
 function DepartmentDialog({ department, schools, onClose, onSaved }: { department: Department | null; schools: School[]; onClose: () => void; onSaved: (department: Department) => void }) {
+  const formId = useId();
   const [name, setName] = useState(department?.name ?? "");
   const [description, setDescription] = useState(department?.description ?? "");
   const [schoolId, setSchoolId] = useState(department?.schoolId ?? schools[0]?.id ?? 0);
@@ -278,11 +336,40 @@ function DepartmentDialog({ department, schools, onClose, onSaved }: { departmen
     const request = { name: name.trim(), description: description.trim(), schoolId, externalDepartmentId: externalId ? Number(externalId) : null };
     try { const saved = department ? await departmentsApi.update(department.id, request) : await departmentsApi.create(request); toast.success(department ? "Departamento actualizado" : "Departamento creado"); onSaved(saved); } catch (error) { toast.error(message(error)); } finally { setSaving(false); }
   };
-  return <Dialog title={department ? "Editar departamento" : "Nuevo departamento"} onClose={onClose}><div className="space-y-4"><Field label="Nombre"><input value={name} onChange={(event) => setName(event.target.value)} /></Field><Field label="Descripción"><textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} /></Field><Field label="Escuela"><select value={schoolId} onChange={(event) => setSchoolId(Number(event.target.value))}>{schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></Field><Field label="ID externo (opcional)"><input type="number" min="1" value={externalId} onChange={(event) => setExternalId(event.target.value)} /></Field><DialogActions saving={saving} onClose={onClose} onSave={() => void save()} /></div></Dialog>;
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void save();
+  };
+  return (
+    <Modal size="sm" onClose={onClose}>
+      <ModalHeader title={department ? "Editar departamento" : "Nuevo departamento"} onClose={onClose} />
+      <ModalBody>
+        <form id={formId} onSubmit={submit} noValidate className="space-y-4">
+          <FormField label="Nombre">
+            <input value={name} onChange={(event) => setName(event.target.value)} className={FORM_CONTROL_CLASS} />
+          </FormField>
+          <FormField label="Descripción">
+            <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className={`${FORM_CONTROL_CLASS} resize-y`} />
+          </FormField>
+          <FormField label="Escuela">
+            <FormSelect
+              label="Escuela"
+              value={schoolId ? String(schoolId) : ""}
+              options={schools.map((school) => ({ value: String(school.id), label: school.name }))}
+              onChange={(value) => setSchoolId(Number(value))}
+            />
+          </FormField>
+          <FormField label="ID externo (opcional)">
+            <input type="number" min="1" value={externalId} onChange={(event) => setExternalId(event.target.value)} className={FORM_CONTROL_CLASS} />
+          </FormField>
+        </form>
+      </ModalBody>
+      <ModalFooter>
+        <FormActions saving={saving} formId={formId} onCancel={onClose} />
+      </ModalFooter>
+    </Modal>
+  );
 }
 
-function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"><h3 className="mb-5 text-lg font-extrabold">{title}</h3>{children}</div></div>; }
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block text-xs font-bold text-gray-800">{label}<div className="mt-1 [&>*]:w-full [&>*]:rounded-md [&>*]:border [&>*]:border-gray-300 [&>*]:px-3 [&>*]:py-2 [&>*]:text-sm [&>*]:outline-none focus-within:[&>*]:border-[#5454E9]">{children}</div></label>; }
-function DialogActions({ saving, onClose, onSave }: { saving: boolean; onClose: () => void; onSave: () => void }) { return <div className="flex justify-end gap-2 pt-2"><button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-bold">Cancelar</button><button disabled={saving} onClick={onSave} className="rounded-md bg-[#5454E9] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{saving ? "Guardando…" : "Guardar"}</button></div>; }
 function IconButton({ label, onClick, danger, disabled, children }: { label: string; onClick: () => void; danger?: boolean; disabled?: boolean; children: React.ReactNode }) { return <button type="button" onClick={onClick} disabled={disabled} title={label} aria-label={label} className={`flex h-8 w-8 items-center justify-center rounded-md border disabled:cursor-wait disabled:opacity-60 ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>{children}</button>; }
 function Restricted() { return <div className="flex h-full flex-col items-center justify-center py-20"><ShieldCheck size={48} className="mb-4 text-gray-300" /><h2 className="text-base font-bold text-gray-700">Acceso restringido</h2><p className="mt-2 text-sm text-gray-500">Sólo el Administrador puede gestionar el directorio institucional.</p></div>; }

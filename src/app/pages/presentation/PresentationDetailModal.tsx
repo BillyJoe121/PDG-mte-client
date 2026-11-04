@@ -1,6 +1,7 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Award, Calendar, Download, ExternalLink, Flag, Printer, Target, X } from "lucide-react";
+import { Modal } from "../../components/Modal";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
 import { PRESENTATION_COLORS } from "./PresentationTypes";
 import { exportDetailModalCsv, printPresentationView } from "./presentationExportUtils";
@@ -13,14 +14,6 @@ interface Props {
 export function PresentationDetailModal({ entity, onClose }: Props) {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   if (!entity) return null;
 
   const isBet = entity.type === "bet";
@@ -30,16 +23,8 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
   const editRoute = isBet ? `/apuestas/${entity.data.id}` : `/metas/${entity.data.id}`;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="presentation-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#222245]/60 p-4 backdrop-blur-xs motion-reduce:backdrop-blur-none"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="presentation-detail-modal-content relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-[#DFE3EC] bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150 motion-reduce:animate-none">
+    <Modal onClose={onClose}>
+      <div className="presentation-detail-modal-content flex min-h-0 flex-1 flex-col">
         {/* Accent Bar */}
         <div
           className="h-1.5 w-full"
@@ -65,9 +50,9 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
                 {entity.data.status}
               </span>
             </div>
-            <h2 id="presentation-modal-title" className="mt-3 text-2xl font-black text-[#222245]">
+            <DialogPrimitive.Title className="mt-3 text-2xl font-black text-[#222245]">
               {entity.data.name}
-            </h2>
+            </DialogPrimitive.Title>
           </div>
           <button
             type="button"
@@ -246,6 +231,6 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, Download, Eye, Loader2, ShieldCheck, X } from "lucide-react";
+import { Activity, Download, Eye, Loader2, ShieldCheck } from "lucide-react";
 import { auditApi, type AuditAction, type AuditCount, type AuditFilters, type AuditLogEntry, type AuditSummary } from "../services/auditApi";
+import { Modal, ModalBody, ModalHeader } from "../components/Modal";
 import { PageTabs, TabButton, TOOLBAR_SELECT_CLASS } from "../components/PageToolbar";
 import { downloadCSV, getDateStamp } from "../utils/exportUtils";
 import { ACTION_OPTIONS, ENTITY_OPTIONS, labelAction, labelEntity } from "./auditoria/auditLabels";
@@ -8,6 +9,8 @@ import { ACTION_OPTIONS, ENTITY_OPTIONS, labelAction, labelEntity } from "./audi
 const TOOLBAR_INPUT_CLASS = "h-[38px] rounded-md border border-gray-300 bg-white px-2 text-xs text-[#111827]";
 const TOOLBAR_BUTTON_CLASS = "inline-flex h-[38px] items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 text-sm font-bold";
 const DATE_INPUT_CLASS = "h-full w-[80px] border-0 bg-transparent text-xs text-[#111827] outline-none";
+const AUDIT_LABEL_CLASS = "text-[9px] font-extrabold uppercase tracking-wide text-gray-500";
+const AUDIT_SNAPSHOT_CLASS = "min-h-40 overflow-x-auto whitespace-pre-wrap rounded-md border border-gray-200 bg-gray-50 p-3 text-xs leading-relaxed text-[#111827]";
 
 /** Borders, header and seven rows; longer lists scroll inside the table. */
 const AUDIT_TABLE_HEIGHT = 2 + 38 + 7 * 55;
@@ -138,12 +141,6 @@ export function Auditoria() {
   }, [filters]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    if (!selected) return undefined;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setSelected(null); };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selected]);
 
   const applyFilters = (event: FormEvent) => {
     event.preventDefault();
@@ -251,26 +248,24 @@ export function Auditoria() {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={(event) => { if (event.currentTarget === event.target) setSelected(null); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="audit-detail-title" className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <header className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white p-5">
-              <div><p className="text-[9px] font-black uppercase tracking-wider text-[#5454E9]">Evento #{selected.id}</p><h2 id="audit-detail-title" className="mt-1 text-xl font-black text-gray-950">Detalle del evento</h2><p className="mt-1 text-sm text-gray-500">{selected.summary}</p></div>
-              <button type="button" aria-label="Cerrar detalle" onClick={() => setSelected(null)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"><X size={20} /></button>
-            </header>
-            <div className="space-y-5 p-5">
-              <dl className="grid grid-cols-1 gap-4 rounded-xl bg-gray-50 p-4 sm:grid-cols-4">
-                <div><dt className="text-[9px] font-black uppercase text-gray-400">Fecha</dt><dd className="mt-1 text-xs font-bold text-gray-800">{formatDateTime(selected.createdAt)}</dd></div>
-                <div><dt className="text-[9px] font-black uppercase text-gray-400">Usuario</dt><dd className="mt-1 text-xs font-bold text-gray-800">{selected.actorUsername ?? "SISTEMA"}</dd></div>
-                <div><dt className="text-[9px] font-black uppercase text-gray-400">Acción</dt><dd className="mt-1 text-xs font-bold text-gray-800">{labelAction(selected.action)}</dd></div>
-                <div><dt className="text-[9px] font-black uppercase text-gray-400">Entidad</dt><dd className="mt-1 text-xs font-bold text-gray-800">{labelEntity(selected.entityType)} · {selected.entityId}</dd></div>
-              </dl>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div><h3 className="mb-2 text-xs font-black text-gray-700">Estado anterior</h3><pre className="min-h-40 overflow-x-auto whitespace-pre-wrap rounded-xl bg-gray-950 p-4 text-xs leading-relaxed text-gray-100">{formatSnapshot(selected.beforeSnapshot)}</pre></div>
-                <div><h3 className="mb-2 text-xs font-black text-gray-700">Estado posterior</h3><pre className="min-h-40 overflow-x-auto whitespace-pre-wrap rounded-xl bg-gray-950 p-4 text-xs leading-relaxed text-gray-100">{formatSnapshot(selected.afterSnapshot)}</pre></div>
-              </div>
+        <Modal size="lg" onClose={() => setSelected(null)}>
+          <ModalHeader title="Detalle del evento" closeLabel="Cerrar detalle" onClose={() => setSelected(null)}>
+            <span className="text-xs text-gray-500">Evento #{selected.id}</span>
+          </ModalHeader>
+          <ModalBody>
+            <p className="text-sm leading-relaxed text-gray-600" style={{ overflowWrap: "anywhere" }}>{selected.summary}</p>
+            <dl className="grid grid-cols-1 gap-4 rounded-md border border-gray-200 p-4 sm:grid-cols-4">
+              <div><dt className={AUDIT_LABEL_CLASS}>Fecha</dt><dd className="mt-1 text-sm leading-snug text-[#111827]">{formatDateTime(selected.createdAt)}</dd></div>
+              <div><dt className={AUDIT_LABEL_CLASS}>Usuario</dt><dd className="mt-1 text-sm leading-snug text-[#111827]" style={{ overflowWrap: "anywhere" }}>{selected.actorUsername ?? "SISTEMA"}</dd></div>
+              <div><dt className={AUDIT_LABEL_CLASS}>Acción</dt><dd className="mt-1 text-sm leading-snug text-[#111827]">{labelAction(selected.action)}</dd></div>
+              <div><dt className={AUDIT_LABEL_CLASS}>Entidad</dt><dd className="mt-1 text-sm leading-snug text-[#111827]" style={{ overflowWrap: "anywhere" }}>{labelEntity(selected.entityType)} · {selected.entityId}</dd></div>
+            </dl>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div><h3 className={`mb-2 ${AUDIT_LABEL_CLASS}`}>Estado anterior</h3><pre className={AUDIT_SNAPSHOT_CLASS}>{formatSnapshot(selected.beforeSnapshot)}</pre></div>
+              <div><h3 className={`mb-2 ${AUDIT_LABEL_CLASS}`}>Estado posterior</h3><pre className={AUDIT_SNAPSHOT_CLASS}>{formatSnapshot(selected.afterSnapshot)}</pre></div>
             </div>
-          </section>
-        </div>
+          </ModalBody>
+        </Modal>
       )}
     </div>
   );

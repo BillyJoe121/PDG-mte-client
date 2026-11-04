@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Auditoria } from "./Auditoria";
@@ -50,6 +50,27 @@ describe("Auditoria", () => {
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByText(/"name": "Anterior"/)).toBeInTheDocument();
     expect(within(dialog).getByText(/"name": "Actual"/)).toBeInTheDocument();
+  });
+
+  it("closes the detail with Escape, its close button or a press on the overlay", async () => {
+    const user = userEvent.setup();
+    render(<Auditoria />);
+    const open = async () => {
+      await user.click(await screen.findByRole("button", { name: /Ver detalle de Resultado clave actualizado/i }));
+      return screen.getByRole("dialog", { name: /Detalle del evento/i });
+    };
+
+    await open();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await open();
+    await user.click(screen.getByRole("button", { name: "Cerrar detalle" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    const dialog = await open();
+    fireEvent.mouseDown(dialog.parentElement as HTMLElement);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("keeps the trends in their own tab without reloading the audit", async () => {

@@ -146,6 +146,8 @@ export function PresentacionDashboard() {
       if (isButtonActivation(event.target, key)) return;
 
       if (key === "Escape") {
+        // The open detail dialog already handled this Escape and closed itself.
+        if (event.defaultPrevented) return;
         if (selectedEntity) {
           setSelectedEntity(null);
           return;

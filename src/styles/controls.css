@@ -329,3 +329,8 @@ input[type=number] {
     opacity: 1;
   }
 }
+
+/* An open dialog turns off pointer events on the body; visible toasts stay usable above it. */
+[data-sonner-toast][data-visible="true"] {
+  pointer-events: auto;
+}

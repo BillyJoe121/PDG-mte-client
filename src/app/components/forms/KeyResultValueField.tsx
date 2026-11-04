@@ -9,6 +9,7 @@ interface KeyResultValueFieldProps {
   invalid?: boolean;
   onChange: (value: string) => void;
   style?: CSSProperties;
+  className?: string;
 }
 
 export function KeyResultValueField({
@@ -18,6 +19,7 @@ export function KeyResultValueField({
   invalid = false,
   onChange,
   style,
+  className,
 }: KeyResultValueFieldProps) {
   const input = getKeyResultValueInput(unit);
 
@@ -29,6 +31,7 @@ export function KeyResultValueField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         style={style}
+        className={className}
       >
         <option value="">{label}</option>
         <option value="0">No</option>
@@ -49,6 +52,7 @@ export function KeyResultValueField({
       onChange={(event) => onChange(event.target.value)}
       placeholder={label}
       style={style}
+      className={className}
     />
   );
 }

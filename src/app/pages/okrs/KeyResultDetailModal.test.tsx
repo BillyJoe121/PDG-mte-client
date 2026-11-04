@@ -6,6 +6,7 @@ import type { KeyResult } from "../../services/strategicApi";
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   setActive: vi.fn(),
+  update: vi.fn(),
   records: vi.fn(),
   updateProgress: vi.fn(),
   links: vi.fn(),
@@ -13,6 +14,9 @@ const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
   toastWarning: vi.fn(),
+  loadAcademicPeriods: vi.fn(),
+  loadGoals: vi.fn(),
+  loadStrategicBets: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -22,6 +26,10 @@ vi.mock("../../services/catalogsApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../services/catalogsApi")>();
   return { ...actual, measurementUnitsApi: { ...actual.measurementUnitsApi, list: mocks.units } };
 });
+vi.mock("../../services/screenDataCache", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../services/screenDataCache")>();
+  return { ...actual, loadAcademicPeriods: mocks.loadAcademicPeriods, loadGoals: mocks.loadGoals, loadStrategicBets: mocks.loadStrategicBets };
+});
 vi.mock("../../services/projectsApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../services/projectsApi")>();
   return { ...actual, projectKeyResultLinksApi: { ...actual.projectKeyResultLinksApi, list: mocks.links } };
@@ -30,7 +38,7 @@ vi.mock("../../services/strategicApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../services/strategicApi")>();
   return {
     ...actual,
-    keyResultsApi: { ...actual.keyResultsApi, get: mocks.get, setActive: mocks.setActive, progressRecords: mocks.records },
+    keyResultsApi: { ...actual.keyResultsApi, get: mocks.get, setActive: mocks.setActive, update: mocks.update, progressRecords: mocks.records },
     updateKeyResultProgress: mocks.updateProgress,
   };
 });
@@ -66,6 +74,77 @@ function renderModal(canEdit = true) {
   render(<KeyResultDetailModal keyResultId={5} canEdit={canEdit} onClose={onClose} onChanged={onChanged} />);
   return { onClose, onChanged };
 }
+
+describe("KeyResultDetailModal edit mode", () => {
+  const linkedKr: KeyResult = { ...activeKr, academicPeriodId: 4, goals: [{ id: 3, name: "Graduación oportuna" }] };
+
+  async function openEditMode() {
+    const user = userEvent.setup();
+    const handlers = renderModal();
+    await user.click(await screen.findByRole("button", { name: "Editar KR" }));
+    await screen.findByRole("textbox", { name: "Nombre" });
+    return { user, ...handlers };
+  }
+
+  beforeEach(() => {
+    Object.values(mocks).forEach((mock) => mock.mockReset());
+    mocks.get.mockResolvedValue(linkedKr);
+    mocks.links.mockResolvedValue([]);
+    mocks.units.mockResolvedValue([{ id: 1, name: "Porcentaje", type: "PORCENTAJE", active: true }]);
+    mocks.records.mockResolvedValue([]);
+    mocks.update.mockResolvedValue(linkedKr);
+    mocks.loadAcademicPeriods.mockResolvedValue([{ id: 4, name: "2026-1", startDate: "2026-01-01", endDate: "2026-06-30", status: "ACTIVO" }]);
+    mocks.loadGoals.mockResolvedValue([{ id: 3, name: "Graduación oportuna" }]);
+    mocks.loadStrategicBets.mockResolvedValue([]);
+  });
+
+  it("edits inside the same modal, without a second dialog", async () => {
+    await openEditMode();
+
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.getByText("Key Result #5")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Datos del KR" })).not.toBeInTheDocument();
+  });
+
+  it("saves from the top bar and returns to the detail", async () => {
+    const { user } = await openEditMode();
+
+    await user.clear(screen.getByRole("textbox", { name: "Nombre" }));
+    await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Nombre nuevo");
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(5, expect.objectContaining({ name: "Nombre nuevo" })));
+    expect(await screen.findByRole("button", { name: "Editar KR" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cerrar detalle de KR" }));
+    expect(screen.queryByRole("dialog", { name: "Descartar cambios" })).not.toBeInTheDocument();
+  });
+
+  it("leaves at once when nothing changed", async () => {
+    const { user } = await openEditMode();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(await screen.findByRole("button", { name: "Editar KR" })).toBeInTheDocument();
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it("asks before losing unsaved changes, on Cancelar and on closing", async () => {
+    const { user, onClose } = await openEditMode();
+    await user.type(screen.getByRole("textbox", { name: "Nombre" }), " editado");
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    const onCancel = await screen.findByRole("dialog", { name: "Descartar cambios" });
+    await user.click(within(onCancel).getByRole("button", { name: "Cancelar" }));
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveValue("Elevar permanencia editado");
+
+    await user.click(screen.getByRole("button", { name: "Cerrar detalle de KR" }));
+    const onCloseDialog = await screen.findByRole("dialog", { name: "Descartar cambios" });
+    expect(onClose).not.toHaveBeenCalled();
+    await user.click(within(onCloseDialog).getByRole("button", { name: "Descartar" }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe("KeyResultDetailModal archive", () => {
   beforeEach(() => {
@@ -117,7 +196,7 @@ describe("KeyResultDetailModal archive", () => {
     await user.click(await screen.findByRole("button", { name: "Archivar" }));
 
     expect(mocks.toastWarning).toHaveBeenCalledWith(expect.stringContaining("No se puede archivar"));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Archivar Key Result" })).not.toBeInTheDocument();
     expect(mocks.setActive).not.toHaveBeenCalled();
   });
 

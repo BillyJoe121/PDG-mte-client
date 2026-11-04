@@ -1,6 +1,3 @@
-import type { ReactNode } from "react";
-import { COLORS } from "./okrsShared";
-
 export interface KrLinkOption {
   id: number;
   name: string;
@@ -9,7 +6,6 @@ export interface KrLinkOption {
 interface KrLinkChecklistProps {
   id: string;
   legend: string;
-  icon: ReactNode;
   options: KrLinkOption[];
   selectedIds: number[];
   invalid?: boolean;
@@ -21,7 +17,6 @@ interface KrLinkChecklistProps {
 export function KrLinkChecklist({
   id,
   legend,
-  icon,
   options,
   selectedIds,
   invalid = false,
@@ -35,18 +30,15 @@ export function KrLinkChecklist({
       aria-labelledby={legendId}
       aria-describedby={describedBy}
       aria-invalid={invalid || undefined}
-      className="rounded-md bg-white p-3"
-      style={{ border: `1px solid ${invalid ? COLORS.orange : "#EEF2F7"}` }}
+      className={`rounded-md border p-3 ${invalid ? "border-[#B42318]" : "border-gray-200"}`}
     >
       <legend id={legendId} className="sr-only">{legend}</legend>
       <div className="mb-2 flex items-center justify-between gap-2" aria-hidden="true">
-        <span className="flex items-center gap-2" style={{ color: COLORS.text, fontSize: 10.5, fontWeight: 900, textTransform: "uppercase" }}>
-          {icon} {legend}
-        </span>
-        <span style={{ color: COLORS.gray, fontSize: 9, fontWeight: 800 }}>{selectedIds.length} seleccionada{selectedIds.length === 1 ? "" : "s"}</span>
+        <span className="text-xs font-bold text-gray-800">{legend}</span>
+        <span className="text-xs text-gray-500">{selectedIds.length} seleccionada{selectedIds.length === 1 ? "" : "s"}</span>
       </div>
       {options.length === 0 ? (
-        <p style={{ color: COLORS.gray, fontSize: 10.5 }}>{emptyText}</p>
+        <p className="text-xs text-gray-500">{emptyText}</p>
       ) : (
         <div className="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
           {options.map((option) => {
@@ -56,20 +48,16 @@ export function KrLinkChecklist({
               <label
                 key={option.id}
                 htmlFor={inputId}
-                className="flex cursor-pointer items-start gap-2.5 rounded-md p-3"
-                style={{
-                  border: `1.5px solid ${checked ? COLORS.orange : COLORS.border}`,
-                  backgroundColor: checked ? "#FDF0EB" : "#F8FAFC",
-                }}
+                className={`flex cursor-pointer items-start gap-2.5 rounded-md border p-2.5 ${checked ? "border-[#5454E9] bg-[#F4F4FE]" : "border-gray-200 hover:bg-gray-50"}`}
               >
                 <input
                   id={inputId}
                   type="checkbox"
                   checked={checked}
                   onChange={() => onToggle(option.id)}
-                  style={{ marginTop: 2, accentColor: COLORS.orange }}
+                  className="mt-0.5 accent-[#5454E9]"
                 />
-                <span style={{ color: COLORS.text, fontSize: 10.5, fontWeight: 800, lineHeight: 1.25 }}>{option.name}</span>
+                <span className="text-sm leading-snug text-[#111827]" style={{ overflowWrap: "anywhere" }}>{option.name}</span>
               </label>
             );
           })}

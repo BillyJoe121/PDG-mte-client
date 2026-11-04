@@ -315,7 +315,7 @@ export function KRs() {
 
       <AnimatePresence>
         {creating && (
-          <KrFormModal keyResult={null} saving={saving} onClose={() => setCreating(false)} onSubmit={createKr} />
+          <KrFormModal saving={saving} onClose={() => setCreating(false)} onSubmit={createKr} />
         )}
       </AnimatePresence>
     </div>

@@ -1,12 +1,13 @@
-import { type CSSProperties, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
-import { Check, FolderKanban, Loader2, Plus, Save, Trash2, X } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
+import { Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { AcademicPeriod } from "../../services/catalogsApi";
 import type { Department, KeyResult } from "../../services/strategicApi";
 import { toKeyResultOptions } from "../../utils/keyResultOptions";
 import { normalizePlannerUrl, validatePlannerUrl } from "../../services/plannerService";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { FORM_CONTROL_CLASS, FORM_LABEL_CLASS, FormActions, FormField, FormSelect } from "../../components/forms/FormField";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../components/Modal";
+import { PlannerUrlField } from "../../components/planner/PlannerUrlField";
 import {
   projectsApi,
   validateProjectSchedule,
@@ -16,7 +17,8 @@ import {
   type ProjectStatus,
   type ProjectType,
 } from "../../services/projectsApi";
-import { COLORS, CONTRIBUTION_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, errorMessage } from "./proyectosShared";
+import { parseTutors } from "../fichaProyecto/projectDetailUi";
+import { CONTRIBUTION_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, errorMessage } from "./proyectosShared";
 
 interface CreateProjectModalProps {
   departments: Department[];
@@ -28,10 +30,8 @@ interface CreateProjectModalProps {
 
 type Errors = Partial<Record<"name" | "description" | "departmentId" | "startPeriod" | "tutors" | "keyResults" | "plannerUrl", string>>;
 
-const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
-
 export function CreateProjectModal({ departments, keyResults: availableKeyResults, periods, onClose, onCreated }: CreateProjectModalProps) {
-  const reduceMotion = useReducedMotion();
+  const formId = useId();
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [form, setForm] = useState({
@@ -129,124 +129,134 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
     }
   };
 
+  const periodOptions = periods.map((period) => ({ value: period.name, label: period.name }));
+
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4 py-5"
-      style={{ backgroundColor: "rgba(17,24,39,0.50)", backdropFilter: "blur(5px)" }}
-      onClick={onClose}
-      initial={reduceMotion ? false : { opacity: 0 }}
-      animate={reduceMotion ? undefined : { opacity: 1 }}
-      exit={reduceMotion ? undefined : { opacity: 0 }}
-      transition={shortMotionTransition}
-    >
-      <motion.form
-        onSubmit={submit}
-        className="w-full max-w-4xl overflow-hidden rounded-lg bg-white"
-        style={{ boxShadow: "0 28px 90px rgba(0,0,0,0.28)", border: "1px solid rgba(255,255,255,0.55)" }}
-        onClick={(event) => event.stopPropagation()}
-        initial={reduceMotion ? false : { opacity: 0, scale: 0.985, y: 8 }}
-        animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}
-        exit={reduceMotion ? undefined : { opacity: 0, scale: 0.985, y: 6 }}
-        transition={shortMotionTransition}
-      >
-        <div className="flex items-start justify-between gap-4 p-5" style={{ backgroundColor: COLORS.green }}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.36)" }}>
-              <FolderKanban size={18} color="#fff" />
-            </div>
-            <div>
-              <p style={{ fontSize: 9, fontWeight: 850, color: "rgba(255,255,255,0.76)", textTransform: "uppercase" }}>Iniciativas</p>
-              <h2 style={{ fontSize: 17, fontWeight: 900, color: "#fff", lineHeight: 1.15 }}>Nueva Iniciativa</h2>
-            </div>
+    <Modal size="lg" onClose={onClose}>
+      <ModalHeader title="Nueva Iniciativa" onClose={onClose} />
+      <ModalBody>
+        <form id={formId} onSubmit={submit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <FormField label="Nombre" error={errors.name}>
+              <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Iniciativa de analitica curricular" aria-invalid={Boolean(errors.name)} className={FORM_CONTROL_CLASS} />
+            </FormField>
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" }} aria-label="Cerrar modal">
-            <X size={18} color="#fff" />
-          </button>
-        </div>
-
-        <div className="max-h-[calc(100vh-150px)] overflow-y-auto p-5" style={{ backgroundColor: "#F8FAFC" }}>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.2fr_0.8fr]">
-              <ModalField label="Nombre" error={errors.name}>
-                <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Iniciativa de analitica curricular" style={modalInputStyle(Boolean(errors.name))} />
-              </ModalField>
-              <ModalField label="Departamento" error={errors.departmentId}>
-                <ModalSelect value={form.departmentId} onChange={(value) => setField("departmentId", value)} error={Boolean(errors.departmentId)} placeholder="Selecciona" options={departments.map((department) => ({ value: String(department.id), label: department.name }))} />
-              </ModalField>
-            </div>
-
-            <ModalField label="Descripcion" error={errors.description}>
-              <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={3} placeholder="Describe alcance, propósito y entregables principales." style={{ ...modalInputStyle(Boolean(errors.description)), resize: "vertical" }} />
-            </ModalField>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <ModalField label="Tipo">
-                <ModalSelect value={form.type} onChange={(value) => setField("type", value as ProjectType)} error={false} placeholder="Tipo" options={TYPE_OPTIONS.filter((option) => option.value !== "todos").map((option) => ({ value: option.value, label: option.label }))} />
-              </ModalField>
-              <ModalField label="Estado inicial">
-                <ModalSelect value={form.status} onChange={(value) => setField("status", value as ProjectStatus)} error={false} placeholder="Estado" options={STATUS_OPTIONS.filter((option) => option.value !== "todos").map((option) => ({ value: option.value, label: option.label }))} />
-              </ModalField>
-              <ModalField label="Tutores" error={errors.tutors}>
-                <input value={form.tutors} onChange={(event) => setField("tutors", event.target.value)} placeholder="Tutora A, Tutor B" style={modalInputStyle(Boolean(errors.tutors))} />
-              </ModalField>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-              <ModalField label="Periodo inicio" error={errors.startPeriod}>
-                <ModalSelect value={form.startPeriod} onChange={(value) => setField("startPeriod", value)} error={Boolean(errors.startPeriod)} placeholder="Inicio" options={periods.map((period) => ({ value: period.name, label: period.name }))} />
-              </ModalField>
-              <ModalField label="Periodo fin">
-                <ModalSelect value={form.endPeriod || "__none"} onChange={(value) => setField("endPeriod", value === "__none" ? "" : value)} error={false} placeholder="Fin" options={[{ value: "__none", label: "Sin definir" }, ...periods.map((period) => ({ value: period.name, label: period.name }))]} />
-              </ModalField>
-              <ModalField label="Fecha inicio">
-                <input type="date" value={form.startDate} onChange={(event) => setField("startDate", event.target.value)} style={dateInputStyle(false)} />
-              </ModalField>
-              <ModalField label="Fecha fin">
-                <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={dateInputStyle(false)} />
-              </ModalField>
-            </div>
-
-            <ModalField label="Enlace de Planner" error={errors.plannerUrl}>
-              <input aria-label="Enlace de Planner" inputMode="url" autoComplete="off" value={form.plannerUrl} onChange={(event) => setField("plannerUrl", event.target.value)} placeholder="https://tasks.office.com/... (opcional)" style={modalInputStyle(Boolean(errors.plannerUrl))} />
-            </ModalField>
-
-            <div className="rounded-lg bg-white p-3" style={{ border: "1px solid #EEF2F7" }}>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <span style={{ display: "block", fontSize: 10.5, fontWeight: 850, color: COLORS.text, textTransform: "uppercase" }}>Key Results *</span>
-                  <span style={{ display: "block", marginTop: 2, fontSize: 10.5, color: "#9CA3AF", fontWeight: 700 }}>{krLinks.length} seleccionado(s)</span>
-                </div>
-                <Plus size={15} color={COLORS.orange} />
-              </div>
-              {errors.keyResults && <span style={{ display: "block", marginBottom: 6, fontSize: 10.5, color: COLORS.orange }}>{errors.keyResults}</span>}
+          <div className="md:col-span-2">
+            <FormField label="Descripción" error={errors.description}>
+              <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={3} placeholder="Describe alcance, propósito y entregables principales." aria-invalid={Boolean(errors.description)} className={`${FORM_CONTROL_CLASS} resize-y`} />
+            </FormField>
+          </div>
+          <FormField label="Tipo">
+            <FormSelect
+              label="Tipo"
+              value={form.type}
+              options={TYPE_OPTIONS.filter((option) => option.value !== "todos").map((option) => ({ value: option.value, label: option.label }))}
+              onChange={(value) => setField("type", value as ProjectType)}
+            />
+          </FormField>
+          <FormField label="Departamento" error={errors.departmentId}>
+            <FormSelect
+              label="Departamento"
+              value={form.departmentId}
+              invalid={Boolean(errors.departmentId)}
+              options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
+              onChange={(value) => setField("departmentId", value)}
+            />
+          </FormField>
+          <FormField label="Estado inicial">
+            <FormSelect
+              label="Estado inicial"
+              value={form.status}
+              options={STATUS_OPTIONS.filter((option) => option.value !== "todos").map((option) => ({ value: option.value, label: option.label }))}
+              onChange={(value) => setField("status", value as ProjectStatus)}
+            />
+          </FormField>
+          <FormField label="Tutores" error={errors.tutors}>
+            <input value={form.tutors} onChange={(event) => setField("tutors", event.target.value)} placeholder="Tutora A, Tutor B" aria-invalid={Boolean(errors.tutors)} className={FORM_CONTROL_CLASS} />
+          </FormField>
+          <FormField label="Periodo inicio" error={errors.startPeriod}>
+            <FormSelect label="Periodo inicio" value={form.startPeriod} invalid={Boolean(errors.startPeriod)} options={periodOptions} onChange={(value) => setField("startPeriod", value)} />
+          </FormField>
+          <FormField label="Periodo fin">
+            <FormSelect
+              label="Periodo fin"
+              value={form.endPeriod || "__none"}
+              options={[{ value: "__none", label: "Sin definir" }, ...periodOptions]}
+              onChange={(value) => setField("endPeriod", value === "__none" ? "" : value)}
+            />
+          </FormField>
+          <FormField label="Fecha inicio">
+            <input type="date" value={form.startDate} onChange={(event) => setField("startDate", event.target.value)} className={FORM_CONTROL_CLASS} />
+          </FormField>
+          <FormField label="Fecha fin">
+            <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} className={FORM_CONTROL_CLASS} />
+          </FormField>
+          <div className="md:col-span-2">
+            <PlannerUrlField
+              id="create-project-planner-url"
+              value={form.plannerUrl}
+              error={errors.plannerUrl}
+              onChange={(value) => setField("plannerUrl", value)}
+              inputClassName={FORM_CONTROL_CLASS}
+              labelClassName={FORM_LABEL_CLASS}
+              errorColor="#B42318"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <FormField label="Key Results *" group hint={`${krLinks.length} seleccionado(s)`} error={errors.keyResults}>
               {keyResults.length === 0 ? (
-                <p style={{ fontSize: 10.5, color: "#9CA3AF" }}>No hay Key Results disponibles.</p>
+                <p className="text-xs text-gray-500">No hay Key Results disponibles.</p>
               ) : (
                 <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
                   {keyResults.map((kr) => {
                     const link = krLinks.find((item) => item.keyResultId === kr.id);
                     const selected = Boolean(link);
                     return (
-                      <div key={kr.id} className="rounded-md p-3" style={{ border: `1.5px solid ${selected ? COLORS.orange : "#D8DEE8"}`, backgroundColor: selected ? "#FDF0EB" : "#F8FAFC" }}>
+                      <div key={kr.id} className={`rounded-md border p-3 ${selected ? "border-[#5454E9] bg-gray-50" : "border-gray-200 bg-white"}`}>
                         <div className="flex items-start gap-3">
-                          <button type="button" onClick={() => toggleKeyResult(kr.id)} className="mt-0.5 flex h-5 w-5 items-center justify-center rounded" style={{ backgroundColor: selected ? COLORS.orange : "#fff", border: `2px solid ${selected ? COLORS.orange : "#D1D5DB"}` }}>
-                            {selected && <Check size={12} color="#fff" />}
+                          <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={selected}
+                            aria-label={`Seleccionar KR ${kr.id}`}
+                            onClick={() => toggleKeyResult(kr.id)}
+                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${selected ? "border-[#5454E9] bg-[#5454E9] text-white" : "border-gray-300 bg-white"}`}
+                          >
+                            {selected && <Check size={12} aria-hidden="true" />}
                           </button>
                           <div className="min-w-0 flex-1">
-                            <p style={{ fontSize: 9, fontWeight: 900, color: COLORS.orange, textTransform: "uppercase" }}>KR {kr.id} · {kr.strategyLabel}{kr.period ? ` · ${kr.period}` : ""}</p>
-                            <p style={{ fontSize: 10.5, fontWeight: 850, color: COLORS.text, marginTop: 3 }}>{kr.name || kr.description}</p>
-                            <p style={{ fontSize: 10.5, color: COLORS.gray, marginTop: 2 }}>{kr.metric}</p>
+                            <p className="text-xs font-bold text-[#5454E9]">KR {kr.id} · {kr.strategyLabel}{kr.period ? ` · ${kr.period}` : ""}</p>
+                            <p className="mt-0.5 text-sm font-bold text-[#111827]" style={{ overflowWrap: "anywhere" }}>{kr.name || kr.description}</p>
+                            <p className="mt-0.5 text-xs text-gray-500">{kr.metric}</p>
                           </div>
                           {selected && (
-                            <button type="button" onClick={() => toggleKeyResult(kr.id)} className="flex h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: "#fff", border: "1px solid #D8DEE8" }}>
-                              <Trash2 size={13} color={COLORS.orange} />
+                            <button
+                              type="button"
+                              onClick={() => toggleKeyResult(kr.id)}
+                              aria-label={`Quitar KR ${kr.id}`}
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                            >
+                              <Trash2 size={14} aria-hidden="true" />
                             </button>
                           )}
                         </div>
                         {selected && link && (
                           <div className="ml-8 mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <input type="number" min={0} max={100} value={link.contributionWeight} onChange={(event) => updateLink(kr.id, { contributionWeight: Math.max(0, Math.min(100, Number(event.target.value))) })} style={compactInputStyle} />
-                            <ModalSelect compact value={link.contributionType} onChange={(value) => updateLink(kr.id, { contributionType: value as ContributionType })} error={false} placeholder="Tipo" options={CONTRIBUTION_OPTIONS} />
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              aria-label={`Peso de contribución KR ${kr.id}`}
+                              value={link.contributionWeight}
+                              onChange={(event) => updateLink(kr.id, { contributionWeight: Math.max(0, Math.min(100, Number(event.target.value))) })}
+                              className={FORM_CONTROL_CLASS}
+                            />
+                            <FormSelect
+                              label={`Tipo de contribución KR ${kr.id}`}
+                              value={link.contributionType}
+                              options={CONTRIBUTION_OPTIONS}
+                              onChange={(value) => updateLink(kr.id, { contributionType: value as ContributionType })}
+                            />
                           </div>
                         )}
                       </div>
@@ -254,114 +264,13 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
                   })}
                 </div>
               )}
-            </div>
-
-            <ModalActions onClose={onClose} saving={saving} />
+            </FormField>
           </div>
-        </div>
-      </motion.form>
-    </motion.div>
+        </form>
+      </ModalBody>
+      <ModalFooter>
+        <FormActions formId={formId} saving={saving} submitLabel="Crear Iniciativa" onCancel={onClose} />
+      </ModalFooter>
+    </Modal>
   );
 }
-
-function parseTutors(value: string) {
-  return value.split(",").map((tutor) => tutor.trim()).filter(Boolean);
-}
-
-function ModalField({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
-  return (
-    <div style={{ display: "block", padding: 10, borderRadius: 9, backgroundColor: "#fff", border: "1px solid #EEF2F7" }}>
-      <span style={{ display: "block", fontSize: 10.5, fontWeight: 850, color: COLORS.text, textTransform: "uppercase", marginBottom: 7 }}>{label}</span>
-      {children}
-      {error && <span style={{ display: "block", marginTop: 4, fontSize: 10.5, color: COLORS.orange }}>{error}</span>}
-    </div>
-  );
-}
-
-function ModalActions({ onClose, saving }: { onClose: () => void; saving: boolean }) {
-  return (
-    <div className="flex items-center justify-end gap-3 pt-3">
-      <button type="button" onClick={onClose} style={{ padding: "10px 16px", fontSize: 11, fontWeight: 800, color: "#374151", border: "1px solid #D8DEE8", borderRadius: 8, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
-        Cancelar
-      </button>
-      <button type="submit" disabled={saving} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 20px", fontSize: 11, fontWeight: 850, color: "#fff", backgroundColor: COLORS.green, borderRadius: 8, boxShadow: `0 10px 22px ${COLORS.green}40` }}>
-        {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-        Crear Iniciativa
-      </button>
-    </div>
-  );
-}
-
-function ModalSelect({ value, onChange, error, placeholder, options, compact = false }: { value: string; onChange: (value: string) => void; error: boolean; placeholder: string; options: Array<{ value: string; label: string }>; compact?: boolean }) {
-  return (
-    <Select value={value || undefined} onValueChange={onChange}>
-      <SelectTrigger className="focus-visible:ring-0" style={compact ? compactSelectStyle(error) : modalSelectStyle(error)}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]" onClick={(event) => event.stopPropagation()}>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-function modalInputStyle(error: boolean): CSSProperties {
-  return {
-    width: "100%",
-    minHeight: 38,
-    padding: "8px 11px",
-    fontSize: 10.5,
-    border: `1.5px solid ${error ? COLORS.orange : "#D8DEE8"}`,
-    borderRadius: 8,
-    outline: "none",
-    backgroundColor: "#F8FAFC",
-    color: COLORS.text,
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85)",
-  };
-}
-
-function modalSelectStyle(error: boolean): CSSProperties {
-  return {
-    ...modalInputStyle(error),
-    appearance: "none",
-    cursor: "pointer",
-    fontWeight: 750,
-    height: 38,
-    padding: "8px 11px",
-  };
-}
-
-function dateInputStyle(error: boolean): CSSProperties {
-  return {
-    ...modalInputStyle(error),
-    padding: "10px 14px",
-    fontSize: 11,
-    border: `1.5px solid ${error ? COLORS.orange : "#E5E7EB"}`,
-    backgroundColor: "#fff",
-  };
-}
-
-function compactSelectStyle(error: boolean): CSSProperties {
-  return {
-    ...modalSelectStyle(error),
-    minHeight: 36,
-    height: 36,
-    backgroundColor: "#fff",
-  };
-}
-
-const compactInputStyle: CSSProperties = {
-  width: "100%",
-  minHeight: 36,
-  padding: "8px 10px",
-  fontSize: 10.5,
-  border: "1.5px solid #D8DEE8",
-  borderRadius: 8,
-  outline: "none",
-  backgroundColor: "#fff",
-  color: COLORS.text,
-};

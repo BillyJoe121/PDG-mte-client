@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { AlertTriangle, Archive, ArchiveRestore, ArrowLeft, Flag, Loader2, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { strategicBetsApi, type StrategicBet } from "../services/strategicApi";
+import { useConfirm } from "../components/ConfirmDialog";
 
 const COLORS = {
   blue: "#5454E9",
@@ -18,6 +19,7 @@ type Errors = Partial<Record<"name" | "description" | "endDate", string>>;
 export function GestionApuesta() {
   const { betId } = useParams<{ betId: string }>();
   const navigate = useNavigate();
+  const { confirm, confirmDialog } = useConfirm();
   const id = Number(betId);
   const [bet, setBet] = useState<StrategicBet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,7 +97,7 @@ export function GestionApuesta() {
   const changeStatus = async () => {
     if (!bet) return;
     const activate = bet.status === "INACTIVA";
-    if (!activate && !window.confirm("La apuesta dejara de aparecer en la jerarquia activa. Podras restaurarla desde Archivados.")) return;
+    if (!activate && !(await confirm({ title: "Archivar apuesta", description: "La apuesta dejara de aparecer en la jerarquia activa. Podras restaurarla desde Archivados.", confirmLabel: "Archivar" }))) return;
     setChangingStatus(true);
     try {
       const updated = await strategicBetsApi.setActive(bet.id, activate);
@@ -179,6 +181,7 @@ export function GestionApuesta() {
           </button>
         </div>
       </form>
+      {confirmDialog}
     </div>
   );
 }

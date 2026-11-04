@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -32,7 +32,6 @@ const bet = {
 describe("GestionApuesta", () => {
   afterEach(() => {
     cleanup();
-    vi.unstubAllGlobals();
   });
   beforeEach(() => {
     api.get.mockReset().mockResolvedValue(bet);
@@ -78,8 +77,7 @@ describe("GestionApuesta", () => {
     expect(api.get).toHaveBeenCalledTimes(2);
   });
 
-  it("archives the bet without deleting it", async () => {
-    vi.stubGlobal("confirm", vi.fn(() => true));
+  it("archives the bet without deleting it after confirming", async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={["/jerarquia/apuestas/5/gestionar"]}>
@@ -88,8 +86,27 @@ describe("GestionApuesta", () => {
     );
 
     await user.click(await screen.findByRole("button", { name: /archivar apuesta/i }));
+    const dialog = await screen.findByRole("dialog", { name: "Archivar apuesta" });
+    expect(api.setActive).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: "Archivar" }));
 
     await waitFor(() => expect(api.setActive).toHaveBeenCalledWith(5, false));
     expect(await screen.findByRole("button", { name: /restaurar apuesta/i })).toBeInTheDocument();
+  });
+
+  it("keeps the bet active when the archive confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/jerarquia/apuestas/5/gestionar"]}>
+        <Routes><Route path="/jerarquia/apuestas/:betId/gestionar" element={<GestionApuesta />} /></Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /archivar apuesta/i }));
+    const dialog = await screen.findByRole("dialog", { name: "Archivar apuesta" });
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Archivar apuesta" })).not.toBeInTheDocument());
+    expect(api.setActive).not.toHaveBeenCalled();
   });
 });

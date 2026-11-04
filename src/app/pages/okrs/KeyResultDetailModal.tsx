@@ -10,12 +10,14 @@ import { invalidateScreenDataCache } from "../../services/screenDataCache";
 import { keyResultsApi, type KeyResult, type KeyResultRequest } from "../../services/strategicApi";
 import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicLifecycle";
-import { ConfirmActionModal } from "./ConfirmActionModal";
-import { KrFormModal } from "./KrFormModal";
+import { KrEditPanel } from "./KrFormModal";
 import { KeyResultProgressForm } from "./KeyResultProgressForm";
 import { KeyResultProgressHistory } from "./KeyResultProgressHistory";
-import { COLORS, formatValueWithUnit } from "./okrsShared";
+import { formatValueWithUnit } from "./okrsShared";
+import { ConfirmDialog, useConfirm } from "../../components/ConfirmDialog";
+import { Modal } from "../../components/Modal";
 import { PlannerButton } from "../../components/planner/PlannerButton";
+import { useDiscardGuard } from "../../hooks/useDiscardGuard";
 import {
   DETAIL_ACTIONS_CLASS,
   DETAIL_BUTTON_CLASS,
@@ -24,7 +26,6 @@ import {
   DetailField,
   DetailFields,
   DetailHeading,
-  DetailModalFrame,
   DetailNotice,
   DetailSection,
   DetailTopBar,
@@ -52,6 +53,9 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
   const [archiveError, setArchiveError] = useState("");
   const [historyVersion, setHistoryVersion] = useState(0);
   const [restoring, setRestoring] = useState(false);
+  const guard = useDiscardGuard();
+  const { confirm, confirmDialog } = useConfirm();
+  const requestClose = () => guard.run(onClose);
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -177,7 +181,11 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
 
   const transitionKeyResult = async () => {
     if (!keyResult || !lifecycleAction) return;
-    if (lifecycleAction.target === "CERRADO" && !window.confirm("Al cerrar el KR se bloquearán sus cambios ordinarios. ¿Deseas continuar?")) return;
+    if (lifecycleAction.target === "CERRADO" && !(await confirm({
+      title: "Cerrar Key Result",
+      description: "Al cerrar el KR se bloquearán sus cambios ordinarios.",
+      confirmLabel: lifecycleAction.label,
+    }))) return;
     setTransitioning(true);
     try {
       await keyResultsApi.setStatus(keyResult.id, lifecycleAction.target);
@@ -192,8 +200,8 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
   };
 
   return (
-    <DetailModalFrame widthClassName="max-w-5xl" onClose={onClose}>
-      <DetailTopBar closeLabel="Cerrar detalle de KR" onClose={onClose}>
+    <Modal label="Detalle de KR" size="lg" onClose={requestClose}>
+      <DetailTopBar closeLabel="Cerrar detalle de KR" onClose={requestClose}>
         {keyResult && (
           <>
             <DetailBadge tone="keyResult">Key Result #{keyResult.id}</DetailBadge>
@@ -202,95 +210,98 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
         )}
       </DetailTopBar>
 
-      <DetailBody>
-        {loading ? (
-          <div className="flex items-center justify-center py-16 text-sm font-bold text-gray-500">
-            <Loader2 size={18} className="mr-2 animate-spin" /> Cargando detalle del KR...
-          </div>
-        ) : keyResult ? (
-          <>
-            <DetailHeading title={keyResult.name} description={keyResult.description}>
-              {keyResultArchived && (
-                <DetailNotice>Este KR está archivado{formatArchivedSince(keyResult.archivedAt)}. No admite cambios hasta que lo restaures.</DetailNotice>
-              )}
-              {declaredWeightsExceeded && (
-                <DetailNotice>Los pesos declarados por las iniciativas vinculadas suman más de 100 %. Revisa los vínculos de este KR.</DetailNotice>
-              )}
-            </DetailHeading>
+      {editingKr && keyResult ? (
+        <KrEditPanel keyResult={keyResult} units={units} saving={saving} onCancel={() => guard.run(() => setEditingKr(false))} onDirtyChange={guard.setDirty} onSubmit={updateKr} />
+      ) : (
+        <DetailBody>
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-sm font-bold text-gray-500">
+              <Loader2 size={18} className="mr-2 animate-spin" /> Cargando detalle del KR...
+            </div>
+          ) : keyResult ? (
+            <>
+              <DetailHeading title={keyResult.name} description={keyResult.description}>
+                {keyResultArchived && (
+                  <DetailNotice>Este KR está archivado{formatArchivedSince(keyResult.archivedAt)}. No admite cambios hasta que lo restaures.</DetailNotice>
+                )}
+                {declaredWeightsExceeded && (
+                  <DetailNotice>Los pesos declarados por las iniciativas vinculadas suman más de 100 %. Revisa los vínculos de este KR.</DetailNotice>
+                )}
+              </DetailHeading>
 
-            <div className={DETAIL_ACTIONS_CLASS}>
-              <div className="flex flex-wrap items-center gap-2">
-                <PlannerButton plannerUrl={keyResult.plannerUrl} variant="outline" className={DETAIL_BUTTON_CLASS} style={PLANNER_BUTTON_STYLE} />
-                {renderActions?.(keyResult)}
-              </div>
-              {canEdit && (
+              <div className={DETAIL_ACTIONS_CLASS}>
                 <div className="flex flex-wrap items-center gap-2">
-                  {lifecycleAction && !keyResultArchived && (
-                    <button type="button" onClick={() => void transitionKeyResult()} disabled={saving || transitioning} className={DETAIL_BUTTON_CLASS}>
-                      {transitioning && <Loader2 size={12} className="animate-spin" />}
-                      {lifecycleAction.label}
-                    </button>
-                  )}
-                  {keyResultMutable && (
-                    <>
-                      <button type="button" onClick={() => setEditingKr(true)} className={DETAIL_BUTTON_CLASS}>Editar KR</button>
-                      <button type="button" onClick={requestArchive} disabled={saving || transitioning} className={DETAIL_BUTTON_CLASS}>Archivar</button>
-                    </>
-                  )}
-                  {keyResultArchived && (
-                    <button type="button" onClick={() => void restoreKr()} disabled={restoring} className={DETAIL_BUTTON_CLASS}>
-                      {restoring && <Loader2 size={12} className="animate-spin" />} Restaurar
-                    </button>
-                  )}
+                  <PlannerButton plannerUrl={keyResult.plannerUrl} variant="outline" className={DETAIL_BUTTON_CLASS} style={PLANNER_BUTTON_STYLE} />
+                  {renderActions?.(keyResult)}
                 </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 divide-y divide-gray-200 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-              <DetailSection title="Datos del KR">
-                <DetailFields>
-                  <DetailField label="Metas">{goalNames}</DetailField>
-                  <DetailField label="Apuestas">{strategicBetNames}</DetailField>
-                  <DetailField label="Periodo">{keyResult.academicPeriodName ?? "Sin periodo"}</DetailField>
-                  <DetailField label="Métrica">{keyResult.metric}</DetailField>
-                  <DetailField label="Iniciativas">{links.length}</DetailField>
-                </DetailFields>
-              </DetailSection>
-
-              <DetailSection title="Avance registrado">
-                <DetailFields>
-                  <DetailField label="Valor meta">{formatValueWithUnit(keyResult.targetValue, keyResult.measurementUnitName)}</DetailField>
-                  <DetailField label="Valor actual">{formatValueWithUnit(keyResult.currentValue, keyResult.measurementUnitName)}</DetailField>
-                  <DetailField label="Avance">{keyResult.progressPercentage}%</DetailField>
-                </DetailFields>
-                {canEdit && keyResultMutable && (
-                  <KeyResultProgressForm keyResult={keyResult} onRecorded={handleProgressRecorded} />
+                {canEdit && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {lifecycleAction && !keyResultArchived && (
+                      <button type="button" onClick={() => void transitionKeyResult()} disabled={saving || transitioning} className={DETAIL_BUTTON_CLASS}>
+                        {transitioning && <Loader2 size={12} className="animate-spin" />}
+                        {lifecycleAction.label}
+                      </button>
+                    )}
+                    {keyResultMutable && (
+                      <>
+                        <button type="button" onClick={() => setEditingKr(true)} className={DETAIL_BUTTON_CLASS}>Editar KR</button>
+                        <button type="button" onClick={requestArchive} disabled={saving || transitioning} className={DETAIL_BUTTON_CLASS}>Archivar</button>
+                      </>
+                    )}
+                    {keyResultArchived && (
+                      <button type="button" onClick={() => void restoreKr()} disabled={restoring} className={DETAIL_BUTTON_CLASS}>
+                        {restoring && <Loader2 size={12} className="animate-spin" />} Restaurar
+                      </button>
+                    )}
+                  </div>
                 )}
-                {canEdit && keyResultArchived && (
-                  <p className="mt-3 text-xs leading-snug text-gray-500">Este KR está archivado: restáuralo para registrar avance.</p>
-                )}
-                {canEdit && keyResultClosed && !keyResultArchived && (
-                  <p className="mt-3 text-xs leading-snug text-gray-500">Este KR está cerrado: su avance ya no se puede modificar.</p>
-                )}
-              </DetailSection>
-            </div>
+              </div>
 
-            <div className="border-t border-gray-200">
-              <KeyResultProgressHistory keyResultId={keyResult.id} unitName={keyResult.measurementUnitName} refreshKey={historyVersion} />
-            </div>
-          </>
-        ) : null}
-      </DetailBody>
+              <div className="grid grid-cols-1 divide-y divide-gray-200 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+                <DetailSection title="Datos del KR">
+                  <DetailFields>
+                    <DetailField label="Metas">{goalNames}</DetailField>
+                    <DetailField label="Apuestas">{strategicBetNames}</DetailField>
+                    <DetailField label="Periodo">{keyResult.academicPeriodName ?? "Sin periodo"}</DetailField>
+                    <DetailField label="Métrica">{keyResult.metric}</DetailField>
+                    <DetailField label="Iniciativas">{links.length}</DetailField>
+                  </DetailFields>
+                </DetailSection>
 
-      {editingKr && keyResult && (
-        <KrFormModal keyResult={keyResult} units={units} saving={saving} onClose={() => setEditingKr(false)} onSubmit={updateKr} />
+                <DetailSection title="Avance registrado">
+                  <DetailFields>
+                    <DetailField label="Valor meta">{formatValueWithUnit(keyResult.targetValue, keyResult.measurementUnitName)}</DetailField>
+                    <DetailField label="Valor actual">{formatValueWithUnit(keyResult.currentValue, keyResult.measurementUnitName)}</DetailField>
+                    <DetailField label="Avance">{keyResult.progressPercentage}%</DetailField>
+                  </DetailFields>
+                  {canEdit && keyResultMutable && (
+                    <KeyResultProgressForm keyResult={keyResult} onRecorded={handleProgressRecorded} />
+                  )}
+                  {canEdit && keyResultArchived && (
+                    <p className="mt-3 text-xs leading-snug text-gray-500">Este KR está archivado: restáuralo para registrar avance.</p>
+                  )}
+                  {canEdit && keyResultClosed && !keyResultArchived && (
+                    <p className="mt-3 text-xs leading-snug text-gray-500">Este KR está cerrado: su avance ya no se puede modificar.</p>
+                  )}
+                </DetailSection>
+              </div>
+
+              <div className="border-t border-gray-200">
+                <KeyResultProgressHistory keyResultId={keyResult.id} unitName={keyResult.measurementUnitName} refreshKey={historyVersion} />
+              </div>
+            </>
+          ) : null}
+        </DetailBody>
       )}
+
       {archiveConfirm && keyResult && (
-        <ConfirmActionModal title="Archivar Key Result" description="El KR dejará de aparecer en el listado, la jerarquía y los reportes. Podrás restaurarlo desde Archivados. Solo se puede archivar si no tiene iniciativas vinculadas." actionLabel="Archivar" saving={saving} accent={COLORS.orange} error={archiveError} onClose={closeArchiveConfirm} onConfirm={() => void archiveKr()}>
-          <p style={{ fontSize: 11, color: COLORS.text, fontWeight: 900, marginTop: 10 }}>{keyResult.name}</p>
-        </ConfirmActionModal>
+        <ConfirmDialog title="Archivar Key Result" description="El KR dejará de aparecer en el listado, la jerarquía y los reportes. Podrás restaurarlo desde Archivados. Solo se puede archivar si no tiene iniciativas vinculadas." confirmLabel="Archivar" saving={saving} error={archiveError} onCancel={closeArchiveConfirm} onConfirm={() => void archiveKr()}>
+          <p className="text-xs font-bold text-[#111827]">{keyResult.name}</p>
+        </ConfirmDialog>
       )}
-    </DetailModalFrame>
+      {confirmDialog}
+      {guard.dialog}
+    </Modal>
   );
 }
 

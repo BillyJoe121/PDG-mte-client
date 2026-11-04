@@ -19,12 +19,7 @@ import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
 import { KrFormModal } from "./okrs/KrFormModal";
 import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
 import { ArchivedStrategyModal } from "./jerarquia/ArchivedStrategyModal";
-import {
-  GoalCreateModal,
-  GoalEditModal,
-  StrategicBetCreateModal,
-  StrategicBetEditModal,
-} from "./jerarquia/StrategyFormModals";
+import { GoalFormModal, StrategicBetFormModal } from "./jerarquia/StrategyFormModals";
 import {
   COLORS,
   countNodes,
@@ -281,7 +276,7 @@ export function JerarquiaEstrategica() {
           />
         )}
         {createModal === "bet" && (
-          <StrategicBetCreateModal
+          <StrategicBetFormModal
             onClose={() => setCreateModal(null)}
             onCreated={async () => {
               setCreateModal(null);
@@ -290,7 +285,7 @@ export function JerarquiaEstrategica() {
           />
         )}
         {createModal === "goal" && (
-          <GoalCreateModal
+          <GoalFormModal
             onClose={() => setCreateModal(null)}
             onCreated={async () => {
               setCreateModal(null);
@@ -299,7 +294,7 @@ export function JerarquiaEstrategica() {
           />
         )}
         {editingBet && (
-          <StrategicBetEditModal
+          <StrategicBetFormModal
             bet={editingBet}
             onClose={() => setEditingBet(null)}
             onSaved={async () => {
@@ -309,7 +304,7 @@ export function JerarquiaEstrategica() {
           />
         )}
         {editingGoal && (
-          <GoalEditModal
+          <GoalFormModal
             goal={editingGoal}
             onClose={() => setEditingGoal(null)}
             onSaved={async () => {
@@ -339,7 +334,6 @@ export function JerarquiaEstrategica() {
         )}
         {creatingKrForNode && (
           <KrFormModal
-            keyResult={null}
             saving={savingKr}
             defaults={{
               goalIds: creatingKrForNode.nodeType === "GOAL" ? [Number(creatingKrForNode.id)] : [],

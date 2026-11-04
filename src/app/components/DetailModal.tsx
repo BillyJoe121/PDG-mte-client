@@ -1,6 +1,5 @@
 import { useId, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
 
 /** Pieces shared by the key result and initiative detail modals. */
 export const DETAIL_BUTTON_CLASS = "inline-flex h-[38px] flex-shrink-0 items-center justify-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 text-sm font-bold text-[#111827] hover:bg-gray-50 disabled:opacity-60";
@@ -16,35 +15,6 @@ const BADGE_TONES = {
   keyResult: "bg-[#FDF0EB] text-[#B8461F]",
   initiative: "bg-[#ECFDF5] text-[#065F46]",
 } as const;
-
-const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
-
-export function DetailModalFrame({ widthClassName, onClose, children }: { widthClassName: string; onClose: () => void; children: ReactNode }) {
-  const reduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center px-5 py-7"
-      style={{ backgroundColor: "rgba(17,24,39,0.50)", backdropFilter: "blur(5px)" }}
-      onClick={onClose}
-      initial={reduceMotion ? false : { opacity: 0 }}
-      animate={reduceMotion ? undefined : { opacity: 1 }}
-      exit={reduceMotion ? undefined : { opacity: 0 }}
-      transition={shortMotionTransition}
-    >
-      <motion.div
-        className={`flex max-h-[86vh] w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white ${widthClassName}`}
-        onClick={(event) => event.stopPropagation()}
-        initial={reduceMotion ? false : { opacity: 0, scale: 0.985, y: 8 }}
-        animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}
-        exit={reduceMotion ? undefined : { opacity: 0, scale: 0.985, y: 6 }}
-        transition={shortMotionTransition}
-      >
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
 
 /** Stays in place while the body scrolls, so closing is always within reach. */
 export function DetailTopBar({ closeLabel, onClose, children }: { closeLabel: string; onClose: () => void; children?: ReactNode }) {

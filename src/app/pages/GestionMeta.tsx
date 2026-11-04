@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { measurementUnitsApi, type MeasurementUnit } from "../services/catalogsApi";
 import { goalsApi, type Goal } from "../services/strategicApi";
 import { getGoalValueInput, validateGoalForm, type GoalFormErrors, type GoalFormValues } from "../utils/goalForm";
+import { useConfirm } from "../components/ConfirmDialog";
 
 const COLORS = {
   green: "#4CB979",
@@ -18,6 +19,7 @@ const COLORS = {
 export function GestionMeta() {
   const { goalId } = useParams<{ goalId: string }>();
   const navigate = useNavigate();
+  const { confirm, confirmDialog } = useConfirm();
   const id = Number(goalId);
   const [goal, setGoal] = useState<Goal | null>(null);
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
@@ -106,7 +108,7 @@ export function GestionMeta() {
   const changeStatus = async () => {
     if (!goal) return;
     const activate = goal.status === "INACTIVA";
-    if (!activate && !window.confirm("La meta dejara de aparecer en la jerarquia activa. Podras restaurarla desde Archivados.")) return;
+    if (!activate && !(await confirm({ title: "Archivar meta", description: "La meta dejara de aparecer en la jerarquia activa. Podras restaurarla desde Archivados.", confirmLabel: "Archivar" }))) return;
     setChangingStatus(true);
     try {
       const updated = await goalsApi.setActive(goal.id, activate);
@@ -216,6 +218,7 @@ export function GestionMeta() {
           </button>
         </div>
       </form>
+      {confirmDialog}
     </div>
   );
 }

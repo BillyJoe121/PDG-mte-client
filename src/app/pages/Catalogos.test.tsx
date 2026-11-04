@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Catalogos } from "./Catalogos";
@@ -9,6 +9,8 @@ const api = vi.hoisted(() => ({
   createPeriod: vi.fn(),
   listUnits: vi.fn(),
   createUnit: vi.fn(),
+  removePeriod: vi.fn(),
+  removeUnit: vi.fn(),
 }));
 
 vi.mock("../context/AuthContext", () => ({
@@ -22,12 +24,12 @@ vi.mock("../services/catalogsApi", async (importOriginal) => {
     academicPeriodsApi: {
       list: api.listPeriods,
       create: api.createPeriod,
-      update: vi.fn(), updateStatus: vi.fn(), setActive: vi.fn(), remove: vi.fn(),
+      update: vi.fn(), updateStatus: vi.fn(), setActive: vi.fn(), remove: api.removePeriod,
     },
     measurementUnitsApi: {
       list: api.listUnits,
       create: api.createUnit,
-      update: vi.fn(), setActive: vi.fn(), remove: vi.fn(),
+      update: vi.fn(), setActive: vi.fn(), remove: api.removeUnit,
     },
   };
 });
@@ -43,6 +45,8 @@ describe("Catalogos", () => {
     ]);
     api.createPeriod.mockReset().mockResolvedValue({});
     api.createUnit.mockReset().mockResolvedValue({});
+    api.removePeriod.mockReset().mockResolvedValue(undefined);
+    api.removeUnit.mockReset().mockResolvedValue(undefined);
   });
 
   it("permite al admin consultar periodos y unidades y crear una unidad", async () => {
@@ -88,6 +92,42 @@ describe("Catalogos", () => {
       endDate: "2026-12-15",
       status: "PLANIFICACION",
     }));
+  });
+
+  it("elimina un periodo solo después de confirmar y conserva el cancelar", async () => {
+    const user = userEvent.setup();
+    render(<Catalogos />);
+    await screen.findByText("2026-1");
+
+    await user.click(screen.getByRole("button", { name: "Eliminar" }));
+    const dialog = await screen.findByRole("dialog", { name: "Eliminar periodo" });
+    expect(dialog).toHaveTextContent('Eliminar el periodo "2026-1"?');
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(api.removePeriod).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Eliminar" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+
+    await waitFor(() => expect(api.removePeriod).toHaveBeenCalledWith(1));
+  });
+
+  it("elimina una unidad solo después de confirmar y conserva el cancelar", async () => {
+    const user = userEvent.setup();
+    render(<Catalogos />);
+    await screen.findByText("2026-1");
+    await user.click(screen.getByRole("tab", { name: /Unidades/i }));
+
+    await user.click(screen.getByRole("button", { name: "Eliminar" }));
+    const dialog = await screen.findByRole("dialog", { name: "Eliminar unidad" });
+    expect(dialog).toHaveTextContent('Eliminar la unidad "Porcentaje"?');
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(api.removeUnit).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Eliminar" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+
+    await waitFor(() => expect(api.removeUnit).toHaveBeenCalledWith(1));
   });
 
   it("bloquea la gestión de catálogos para user", async () => {

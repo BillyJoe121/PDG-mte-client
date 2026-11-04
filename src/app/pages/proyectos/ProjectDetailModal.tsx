@@ -1,4 +1,5 @@
-import { DetailModalFrame } from "../../components/DetailModal";
+import { Modal } from "../../components/Modal";
+import { useDiscardGuard } from "../../hooks/useDiscardGuard";
 import { ProjectDetailContent } from "../FichaProyecto";
 
 interface ProjectDetailModalProps {
@@ -7,9 +8,13 @@ interface ProjectDetailModalProps {
 }
 
 export function ProjectDetailModal({ projectId, onClose }: ProjectDetailModalProps) {
+  const guard = useDiscardGuard();
+  const requestClose = () => guard.run(onClose);
+
   return (
-    <DetailModalFrame widthClassName="max-w-6xl" onClose={onClose}>
-      <ProjectDetailContent projectId={projectId} onBack={onClose} />
-    </DetailModalFrame>
+    <Modal label="Detalle de iniciativa" size="xl" onClose={requestClose}>
+      <ProjectDetailContent projectId={projectId} onBack={requestClose} guard={guard} />
+      {guard.dialog}
+    </Modal>
   );
 }

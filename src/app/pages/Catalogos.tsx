@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "../components/ConfirmDialog";
 import { PageTabs, TabButton } from "../components/PageToolbar";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -28,6 +29,7 @@ import {
 
 export function Catalogos() {
   const { usuario } = useAuth();
+  const { confirm, confirmDialog } = useConfirm();
   const [tab, setTab] = useState<CatalogosTab>("periodos");
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
@@ -241,7 +243,12 @@ export function Catalogos() {
   };
 
   const handleDeletePeriod = async (period: AcademicPeriod) => {
-    if (!window.confirm(`Eliminar el periodo "${period.name}"?`)) return;
+    const accepted = await confirm({
+      title: "Eliminar periodo",
+      description: `Eliminar el periodo "${period.name}"?`,
+      confirmLabel: "Eliminar",
+    });
+    if (!accepted) return;
     setSaving(true);
     setError("");
     try {
@@ -260,7 +267,12 @@ export function Catalogos() {
   };
 
   const handleDeleteUnit = async (unit: MeasurementUnit) => {
-    if (!window.confirm(`Eliminar la unidad "${unit.name}"?`)) return;
+    const accepted = await confirm({
+      title: "Eliminar unidad",
+      description: `Eliminar la unidad "${unit.name}"?`,
+      confirmLabel: "Eliminar",
+    });
+    if (!accepted) return;
     setSaving(true);
     setError("");
     try {
@@ -371,6 +383,7 @@ export function Catalogos() {
           />
         )}
       </div>
+      {confirmDialog}
     </div>
   );
 }

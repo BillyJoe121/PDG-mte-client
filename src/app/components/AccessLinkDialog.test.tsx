@@ -39,6 +39,19 @@ describe("AccessLinkDialog", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent("Ana Ruiz define una nueva contraseña");
   });
 
+  it("names the dialog and closes with its button or Escape", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(<AccessLinkDialog link={link} onClose={onClose} />);
+
+    expect(screen.getByRole("dialog", { name: "Enlace de acceso" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cerrar modal" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
   it("copies the link to the clipboard", async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
