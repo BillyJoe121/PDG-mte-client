@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
+import { useViewMode } from "../hooks/useViewMode";
 import type { AcademicPeriod } from "../services/catalogsApi";
 import { invalidateScreenDataCache, loadHierarchyScreen } from "../services/screenDataCache";
 import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
@@ -33,6 +34,7 @@ import {
   subtleViewMotion,
   type View,
 } from "./jerarquia/hierarchyPageModel";
+import { HierarchyMatrix } from "./jerarquia/HierarchyMatrix";
 import { HierarchyToolbar } from "./jerarquia/HierarchyToolbar";
 import { EmptyState, HierarchyDetailHeader, HierarchyRootGallery } from "./jerarquia/HierarchyRootViews";
 import { HierarchyDetailTree } from "./jerarquia/HierarchyDetailTree";
@@ -44,6 +46,7 @@ export function JerarquiaEstrategica() {
   const canCreate = usuario?.rol === "admin";
   const canManageKeyResults = usuario?.rol === "admin" || usuario?.rol === "manager";
   const [view, setView] = useState<View>("arbol");
+  const [viewMode, setViewMode] = useViewMode("mte.viewMode.hierarchy");
   const [period, setPeriod] = useState("");
   const [loading, setLoading] = useState(true);
   const [tree, setTree] = useState<StrategicHierarchyNode[]>([]);
@@ -209,6 +212,8 @@ export function JerarquiaEstrategica() {
         <HierarchyToolbar
           view={view}
           onViewChange={setView}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
           period={period}
           periods={periods}
           onPeriodChange={setPeriod}
@@ -234,8 +239,12 @@ export function JerarquiaEstrategica() {
             <Loader2 size={18} className="mr-2 animate-spin" /> Cargando jerarquia...
           </motion.div>
         ) : (
-          <motion.div key={selectedHierarchyRoot ? "arbol-detail" : `arbol-cards-${view}`} {...viewMotion}>
-            {!selectedHierarchyRoot ? (
+          <motion.div key={selectedHierarchyRoot ? "arbol-detail" : viewMode === "table" ? "arbol-table" : `arbol-cards-${view}`} {...viewMotion}>
+            {!selectedHierarchyRoot && viewMode === "table" ? (
+              tree.length > 0 && (
+                <HierarchyMatrix tree={tree} view={view} search={hierarchySearch} onOpenNode={manageNode} onOpenRoot={openHierarchyRoot} />
+              )
+            ) : !selectedHierarchyRoot ? (
               <div className="space-y-5">
                 <HierarchyRootGallery nodes={filteredHierarchyRoots} onSelect={openHierarchyRoot} />
                 {tree.length > 0 && filteredHierarchyRoots.length === 0 && <EmptyState text="No hay apuestas o metas que coincidan con la busqueda." />}

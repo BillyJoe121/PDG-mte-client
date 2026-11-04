@@ -1,18 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion, type MotionProps } from "motion/react";
-import { AlertTriangle, Archive, KeyRound, Loader2, Plus, RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, Archive, KeyRound, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
+import { useViewMode } from "../hooks/useViewMode";
 import { invalidateScreenDataCache, loadKeyResults } from "../services/screenDataCache";
 import { keyResultsApi, type KeyResult, type KeyResultRequest, type KeyResultStatus } from "../services/strategicApi";
 import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
 import { KeyResultCard } from "./okrs/KeyResultCard";
 import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
+import { KeyResultTable } from "./okrs/KeyResultTable";
 import { KrFormModal } from "./okrs/KrFormModal";
 import { COLORS } from "./okrs/okrsShared";
 import { DETAIL_BUTTON_CLASS } from "../components/DetailModal";
+import { ScreenToolbar, ToolbarButton, ToolbarCreateButton, ToolbarSearch, ToolbarSegmented } from "../components/ScreenToolbar";
+import { ViewModeToggle } from "../components/ViewModeToggle";
 import {
   filterKeyResults,
   hasKeyResultDrilldown,
@@ -20,6 +24,8 @@ import {
   parseKeyResultStatusFilter,
   readKeyResultDrilldown,
 } from "./okrs/keyResultListModel";
+
+const KR_ACCENT = { color: COLORS.orange, background: "#FDF0EB" };
 
 const STATUS_FILTERS: { value: KeyResultStatus | ""; label: string }[] = [
   { value: "", label: "Todos" },
@@ -44,6 +50,7 @@ export function KRs() {
   const [selected, setSelected] = useState<number | null>(() => parseKeyResultId(searchParams.get("keyResultId")));
   const [showArchived, setShowArchived] = useState(false);
   const [restoringId, setRestoringId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useViewMode("mte.viewMode.krs");
 
   useEffect(() => {
     const nextSearch = searchParams.get("q") ?? "";
@@ -152,75 +159,40 @@ export function KRs() {
 
   return (
     <div className="screen-krs flex h-full flex-col overflow-hidden">
-      <div className="flex-shrink-0 bg-white px-6 pt-5 pb-4" style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 basis-full flex-wrap items-center gap-2 lg:flex-1 lg:basis-0">
-            <div className="flex w-full items-stretch gap-0 overflow-hidden sm:w-auto" style={{ border: `1.5px solid ${COLORS.border}`, borderRadius: 8, height: 38 }}>
-              {STATUS_FILTERS.map((item, index) => (
-                <button
-                  key={item.value || "all"}
-                  type="button"
-                  aria-pressed={status === item.value}
-                  onClick={() => {
-                    setStatus(item.value);
-                    setQuery({ status: item.value });
-                  }}
-                  className="flex h-full flex-1 items-center justify-center px-2 sm:flex-none sm:px-3.5"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 750,
-                    backgroundColor: status === item.value ? "#FDF0EB" : "#fff",
-                    color: status === item.value ? COLORS.orange : "#374151",
-                    borderRight: index === STATUS_FILTERS.length - 1 ? "none" : `1.5px solid ${COLORS.border}`,
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex min-h-[38px] min-w-0 w-full flex-1 items-center gap-2 rounded-md px-3 sm:min-w-[180px]" style={{ maxWidth: 360, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-              <Search size={15} color={COLORS.gray} />
-              <input
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setQuery({ q: event.target.value });
-                }}
-                placeholder="Buscar KR, meta, apuesta..."
-                aria-label="Buscar Key Results"
-                style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 10.5, fontWeight: 750 }}
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              aria-pressed={showArchived}
-              onClick={() => setShowArchived((current) => !current)}
-              className="inline-flex min-h-[38px] items-center gap-2 rounded-md px-3"
-              style={{
-                border: `1px solid ${showArchived ? COLORS.orange : "#D9DEE8"}`,
-                backgroundColor: showArchived ? "#FDF0EB" : "#fff",
-                color: showArchived ? COLORS.orange : "#374151",
-                fontSize: 11,
-                fontWeight: 800,
-              }}
-            >
-              <Archive size={13} /> Archivados{showArchived && archivedCount > 0 ? ` (${archivedCount})` : ""}
-            </button>
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => setCreating(true)}
-                className="detail-invert-button detail-invert-button--solid detail-invert-button--orange inline-flex min-h-[38px] items-center gap-1.5 rounded-md px-3"
-                style={{ backgroundColor: COLORS.orange, color: "#fff", fontSize: 11, fontWeight: 850 }}
-              >
-                <Plus size={14} /> Nuevo KR
-              </button>
-            )}
-          </div>
-        </div>
-
+      <ScreenToolbar
+        search={
+          <ToolbarSearch
+            value={search}
+            onChange={(value) => {
+              setSearch(value);
+              setQuery({ q: value });
+            }}
+            placeholder="Buscar KR, meta, apuesta..."
+            ariaLabel="Buscar Key Results"
+          />
+        }
+        actions={
+          <>
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
+            <ToolbarButton aria-pressed={showArchived} active={showArchived && KR_ACCENT} onClick={() => setShowArchived((current) => !current)}>
+              <Archive size={13} aria-hidden="true" /> Archivados{showArchived && archivedCount > 0 ? ` (${archivedCount})` : ""}
+            </ToolbarButton>
+            {canEdit && <ToolbarCreateButton tone="orange" onClick={() => setCreating(true)}>Nuevo KR</ToolbarCreateButton>}
+          </>
+        }
+        filters={
+          <ToolbarSegmented
+            ariaLabel="Filtrar por estado"
+            options={STATUS_FILTERS}
+            value={status}
+            accent={KR_ACCENT}
+            onChange={(value) => {
+              setStatus(value);
+              setQuery({ status: value });
+            }}
+          />
+        }
+      >
         {hasKeyResultDrilldown(drilldown) && (
           <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Filtros activos desde el dashboard" role="group">
             {([
@@ -246,7 +218,7 @@ export function KRs() {
             )}
           </div>
         )}
-      </div>
+      </ScreenToolbar>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
         <AnimatePresence mode="wait" initial={false}>
@@ -267,6 +239,16 @@ export function KRs() {
             <motion.div key="empty" {...viewMotion} className="py-16 text-center">
               <KeyRound size={32} color="#D1D5DB" className="mx-auto mb-3" />
               <p style={{ fontSize: 11, color: "#9CA3AF" }}>No se encontraron Key Results.</p>
+            </motion.div>
+          ) : viewMode === "table" ? (
+            <motion.div key="table" {...viewMotion}>
+              <KeyResultTable
+                items={visibleKrs}
+                canRestore={canEdit}
+                restoringId={restoringId}
+                onOpen={openKr}
+                onRestore={(item) => void restoreKr(item)}
+              />
             </motion.div>
           ) : (
             <motion.div key="cards" {...viewMotion} className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

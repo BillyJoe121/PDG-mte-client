@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion, type MotionProps } from "mot
 import { Loader2, Target } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalFilters } from "../context/FiltersContext";
+import { useViewMode } from "../hooks/useViewMode";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import type { Department, KeyResult } from "../services/strategicApi";
 import type { AcademicPeriod } from "../services/catalogsApi";
@@ -18,6 +19,7 @@ import { CreateProjectModal } from "./proyectos/CreateProjectModal";
 import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
 import { ProjectCardView } from "./proyectos/ProjectCardView";
 import { ProjectFilters } from "./proyectos/ProjectFilters";
+import { ProjectTable } from "./proyectos/ProjectTable";
 import { COLORS, STATUS_OPTIONS, errorMessage } from "./proyectos/proyectosShared";
 
 export function Proyectos() {
@@ -29,6 +31,7 @@ export function Proyectos() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [keyResults, setKeyResults] = useState<KeyResult[]>([]);
+  const [viewMode, setViewMode] = useViewMode("mte.viewMode.projects");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProjectStatus | "todos">(
     STATUS_OPTIONS.some((option) => option.value === filters.estadoProyecto)
@@ -139,11 +142,13 @@ export function Proyectos() {
           setFilter("estadoProyecto", value);
         }}
         onTypeChange={setType}
+        onViewModeChange={setViewMode}
         period={period}
         periods={periods}
         search={search}
         status={status}
         type={type}
+        viewMode={viewMode}
       />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
@@ -162,6 +167,15 @@ export function Proyectos() {
             <motion.div key="empty" {...viewMotion} className="py-16 text-center">
               <Target size={32} color="#D1D5DB" className="mx-auto mb-3" />
               <p style={{ fontSize: "11px", color: "#9CA3AF" }}>No se encontraron iniciativas.</p>
+            </motion.div>
+          ) : viewMode === "table" ? (
+            <motion.div key="table" {...viewMotion}>
+              <ProjectTable
+                projects={visibleProjects}
+                canManage={Boolean(canCreate)}
+                onOpen={(project) => openProject(project.id)}
+                onLink={setLinkProject}
+              />
             </motion.div>
           ) : (
             <motion.div key="cards" {...viewMotion} className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
