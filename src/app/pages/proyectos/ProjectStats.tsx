@@ -32,8 +32,8 @@ export function ProjectStats({ stats }: { stats: ReturnType<typeof buildProjectS
           whileHover={reduceMotion ? undefined : { y: -2, transition: { duration: 0.12, ease: "easeOut" } }}
         >
           <div className="flex h-full items-center justify-between gap-2">
-            <p style={{ fontSize: "20px", fontWeight: 900, color: item.color, lineHeight: 1 }}>{item.value}</p>
-            <p style={{ fontSize: "11px", color: "#374151", fontWeight: 800, lineHeight: 1.15, textAlign: "right" }}>{item.label}</p>
+            <p style={{ fontSize: "17px", fontWeight: 900, color: item.color, lineHeight: 1 }}>{item.value}</p>
+            <p style={{ fontSize: "10.5px", color: "#374151", fontWeight: 800, lineHeight: 1.15, textAlign: "right" }}>{item.label}</p>
           </div>
         </motion.div>
       ))}

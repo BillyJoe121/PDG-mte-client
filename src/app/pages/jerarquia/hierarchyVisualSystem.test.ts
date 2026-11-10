@@ -19,7 +19,7 @@ const tree: StrategicHierarchyNode[] = [
 
 describe("hierarchy visual system", () => {
   it("uses the approved colors for each node type (KR, Iniciativa)", () => {
-    expect(hierarchyNodeTheme.KEY_RESULT.background).toBe("#5454E9");
+    expect(hierarchyNodeTheme.KEY_RESULT.background).toBe("#E9683B");
     expect(hierarchyNodeTheme.PROJECT.background).toBe("#4CB979");
     expect(hierarchyNodeTheme.GOAL.background).toBe("#4CB979");
     expect(hierarchyNodeTheme.STRATEGIC_BET.background).toBe("#4F46E5");

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MeasurementUnit } from "../../services/catalogsApi";
 import type { KeyResult } from "../../services/strategicApi";
-import { KrFormModal } from "./KrFormModal";
+import { KrEditPanel, KrFormModal } from "./KrFormModal";
 
 const mocks = vi.hoisted(() => ({
   loadMeasurementUnits: vi.fn(),
@@ -54,7 +54,7 @@ describe("KrFormModal units", () => {
 
   it("keeps the current inactive unit selected and marked, without offering other inactive units", async () => {
     const user = userEvent.setup();
-    render(<KrFormModal keyResult={keyResult} saving={false} onClose={() => undefined} onSubmit={async () => undefined} />);
+    render(<KrEditPanel keyResult={keyResult} saving={false} onCancel={() => undefined} onDirtyChange={() => undefined} onSubmit={async () => undefined} />);
 
     const trigger = await screen.findByRole("combobox", { name: "Unidad de medida" });
     await waitFor(() => expect(trigger).toHaveTextContent("Cupos (inactiva)"));
@@ -66,7 +66,7 @@ describe("KrFormModal units", () => {
 
   it("does not offer inactive units when creating", async () => {
     const user = userEvent.setup();
-    render(<KrFormModal keyResult={null} saving={false} onClose={() => undefined} onSubmit={async () => undefined} />);
+    render(<KrFormModal saving={false} onClose={() => undefined} onSubmit={async () => undefined} />);
 
     await user.click(await screen.findByRole("combobox", { name: "Unidad de medida" }));
     expect(await screen.findByRole("option", { name: "Porcentaje" })).toBeInTheDocument();

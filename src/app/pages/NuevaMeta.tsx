@@ -76,9 +76,9 @@ export function NuevaMeta() {
     return (
       <div className="p-8 flex flex-col items-center gap-4 text-center">
         <AlertCircle size={48} color={COLORS.orange} />
-        <h2 style={{ fontSize: "20px", fontWeight: 800 }}>Acceso restringido</h2>
+        <h2 style={{ fontSize: "17px", fontWeight: 800 }}>Acceso restringido</h2>
         <p style={{ color: "#717182" }}>Solo direccion o administracion pueden registrar metas institucionales.</p>
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 mt-2" style={{ color: COLORS.blue, fontWeight: 700, fontSize: "14px" }}>
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 mt-2" style={{ color: COLORS.blue, fontWeight: 700, fontSize: "11px" }}>
           <ArrowLeft size={16} /> Volver
         </button>
       </div>
@@ -99,71 +99,71 @@ export function NuevaMeta() {
             <BookOpen size={18} color="#fff" />
           </div>
           <div>
-            <h1 style={{ fontSize: "20px", fontWeight: 900, color: "#000" }}>Nueva Meta Institucional</h1>
-            <p style={{ fontSize: "12px", color: "#717182" }}>Captura un enunciado del plan de desarrollo.</p>
+            <h1 style={{ fontSize: "17px", fontWeight: 900, color: "#000" }}>Nueva Meta Institucional</h1>
+            <p style={{ fontSize: "10.5px", color: "#717182" }}>Captura un enunciado del plan de desarrollo.</p>
           </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl p-8 space-y-6" style={{ border: "1.5px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
         <div>
-          <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Nombre <span style={{ color: COLORS.orange }}>*</span></label>
-          <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Ej: Renovar y modernizar la propuesta curricular" style={{ width: "100%", padding: "10px 14px", fontSize: "14px", border: `1.5px solid ${errors.name ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
-          {errors.name && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.name}</p>}
+          <label style={{ fontSize: "10.5px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Nombre <span style={{ color: COLORS.orange }}>*</span></label>
+          <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Ej: Renovar y modernizar la propuesta curricular" style={{ width: "100%", padding: "10px 14px", fontSize: "11px", border: `1.5px solid ${errors.name ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+          {errors.name && <p style={{ fontSize: "10.5px", color: COLORS.orange, marginTop: 4 }}>{errors.name}</p>}
         </div>
 
         <div>
-          <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Descripcion <span style={{ color: COLORS.orange }}>*</span></label>
-          <textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} placeholder="Describe alcance, contexto y relevancia." style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.description ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", resize: "vertical" }} />
-          {errors.description && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.description}</p>}
+          <label style={{ fontSize: "10.5px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Descripcion <span style={{ color: COLORS.orange }}>*</span></label>
+          <textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} placeholder="Describe alcance, contexto y relevancia." style={{ width: "100%", padding: "10px 14px", fontSize: "11px", border: `1.5px solid ${errors.description ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", resize: "vertical" }} />
+          {errors.description && <p style={{ fontSize: "10.5px", color: COLORS.orange, marginTop: 4 }}>{errors.description}</p>}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_180px] gap-4">
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Indicador de referencia <span style={{ color: COLORS.orange }}>*</span></label>
-            <input value={form.referenceIndicator} onChange={(e) => set("referenceIndicator", e.target.value)} placeholder="Ej: Cursos renovados" style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.referenceIndicator ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
-            {errors.referenceIndicator && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.referenceIndicator}</p>}
+            <label style={{ fontSize: "10.5px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Indicador de referencia <span style={{ color: COLORS.orange }}>*</span></label>
+            <input value={form.referenceIndicator} onChange={(e) => set("referenceIndicator", e.target.value)} placeholder="Ej: Cursos renovados" style={{ width: "100%", padding: "10px 14px", fontSize: "11px", border: `1.5px solid ${errors.referenceIndicator ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+            {errors.referenceIndicator && <p style={{ fontSize: "10.5px", color: COLORS.orange, marginTop: 4 }}>{errors.referenceIndicator}</p>}
           </div>
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Valor <span style={{ color: COLORS.orange }}>*</span></label>
+            <label style={{ fontSize: "10.5px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Valor <span style={{ color: COLORS.orange }}>*</span></label>
             {valueInput.kind === "boolean" ? (
-              <select aria-label="Valor esperado" value={form.expectedValue} onChange={(e) => set("expectedValue", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.expectedValue ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", backgroundColor: "#fff" }}>
+              <select aria-label="Valor esperado" value={form.expectedValue} onChange={(e) => set("expectedValue", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "11px", border: `1.5px solid ${errors.expectedValue ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", backgroundColor: "#fff" }}>
                 <option value="">Selecciona</option>
                 <option value="1">Si</option>
                 <option value="0">No</option>
               </select>
             ) : (
-              <input aria-label="Valor esperado" type="number" min={valueInput.min} max={valueInput.max} step={valueInput.step} value={form.expectedValue} onChange={(e) => set("expectedValue", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.expectedValue ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+              <input aria-label="Valor esperado" type="number" min={valueInput.min} max={valueInput.max} step={valueInput.step} value={form.expectedValue} onChange={(e) => set("expectedValue", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "11px", border: `1.5px solid ${errors.expectedValue ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
             )}
-            {errors.expectedValue && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.expectedValue}</p>}
+            {errors.expectedValue && <p style={{ fontSize: "10.5px", color: COLORS.orange, marginTop: 4 }}>{errors.expectedValue}</p>}
           </div>
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Unidad <span style={{ color: COLORS.orange }}>*</span></label>
-            <select value={form.measurementUnitId} onChange={(e) => set("measurementUnitId", e.target.value)} disabled={loading} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.measurementUnitId ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", backgroundColor: "#fff" }}>
+            <label style={{ fontSize: "10.5px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Unidad <span style={{ color: COLORS.orange }}>*</span></label>
+            <select value={form.measurementUnitId} onChange={(e) => set("measurementUnitId", e.target.value)} disabled={loading} style={{ width: "100%", padding: "10px 14px", fontSize: "11px", border: `1.5px solid ${errors.measurementUnitId ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none", backgroundColor: "#fff" }}>
               <option value="">Selecciona</option>
               {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
             </select>
-            {errors.measurementUnitId && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.measurementUnitId}</p>}
+            {errors.measurementUnitId && <p style={{ fontSize: "10.5px", color: COLORS.orange, marginTop: 4 }}>{errors.measurementUnitId}</p>}
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Fecha inicio</label>
-            <input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none" }} />
+            <label style={{ fontSize: "10.5px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Fecha inicio</label>
+            <input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "11px", border: "1.5px solid #E5E7EB", borderRadius: 8, outline: "none" }} />
           </div>
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Fecha cierre</label>
-            <input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "13px", border: `1.5px solid ${errors.endDate ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
-            {errors.endDate && <p style={{ fontSize: "11px", color: COLORS.orange, marginTop: 4 }}>{errors.endDate}</p>}
+            <label style={{ fontSize: "10.5px", fontWeight: 700, color: "#000", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Fecha cierre</label>
+            <input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} style={{ width: "100%", padding: "10px 14px", fontSize: "11px", border: `1.5px solid ${errors.endDate ? COLORS.orange : "#E5E7EB"}`, borderRadius: 8, outline: "none" }} />
+            {errors.endDate && <p style={{ fontSize: "10.5px", color: COLORS.orange, marginTop: 4 }}>{errors.endDate}</p>}
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: "1px solid #F3F4F6" }}>
-          <button type="button" onClick={() => navigate(-1)} style={{ padding: "10px 20px", fontSize: "13px", fontWeight: 700, color: "#374151", border: "1.5px solid #E5E7EB", borderRadius: 8, backgroundColor: "#fff" }}>
+          <button type="button" onClick={() => navigate(-1)} style={{ padding: "10px 20px", fontSize: "11px", fontWeight: 700, color: "#374151", border: "1.5px solid #E5E7EB", borderRadius: 8, backgroundColor: "#fff" }}>
             Cancelar
           </button>
-          <button type="submit" disabled={saving || loading} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 24px", fontSize: "13px", fontWeight: 700, color: "#fff", backgroundColor: "#B8C500", borderRadius: 8 }}>
+          <button type="submit" disabled={saving || loading} className="flex items-center gap-2 disabled:opacity-60" style={{ padding: "10px 24px", fontSize: "11px", fontWeight: 700, color: "#fff", backgroundColor: "#B8C500", borderRadius: 8 }}>
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             Crear Meta
           </button>

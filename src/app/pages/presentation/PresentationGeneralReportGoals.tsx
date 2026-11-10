@@ -24,7 +24,7 @@ export function GeneralReportGoalsSection({ goals, periodName, onSelectGoal }: P
       config={{
         summaryCardClass: "presentation-goals-summary-card",
         accent: "#4CB979",
-        icon: <Target size={22} aria-hidden="true" />,
+        icon: <Target size={16} aria-hidden="true" />,
         title: "Metas Institucionales del periodo",
         subtitle: "Valor esperado registrado y KRs e iniciativas vinculados a cada meta",
         itemLabel: "Meta",
@@ -38,7 +38,7 @@ export function GeneralReportGoalsSection({ goals, periodName, onSelectGoal }: P
         cardExtra: (goal) => (
           <div className="flex items-center justify-between">
             <span className="text-[#717182]">Valor esperado:</span>
-            <span className="font-black text-[#222245]">{expectedValueText(goal)}</span>
+            <span className="font-black text-[#111827]">{expectedValueText(goal)}</span>
           </div>
         ),
         onExportCsv: () => exportGoalsSummaryCsv(goals, periodName),

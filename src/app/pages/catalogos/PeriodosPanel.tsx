@@ -33,13 +33,13 @@ export function PeriodosPanel({
   onToggleActive,
 }: PeriodosPanelProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5">
+    <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-4">
       <form
         onSubmit={onSubmit}
-        className="bg-white rounded-lg p-5 h-fit"
-        style={{ border: "1.5px solid #E5E7EB" }}
+        className="bg-white rounded-lg p-4 h-fit"
+        style={{ border: "1px solid #E5E7EB" }}
       >
-        <h2 style={{ fontSize: "14px", fontWeight: 900, color: "#000", marginBottom: 14 }}>
+        <h2 style={{ fontSize: "11px", fontWeight: 900, color: "#000", marginBottom: 14 }}>
           {editingPeriodId ? "Editar periodo" : "Nuevo periodo"}
         </h2>
         <div className="space-y-3">
@@ -50,9 +50,9 @@ export function PeriodosPanel({
               aria-label="Nombre del periodo"
               aria-describedby={PERIOD_NAME_HINT_ID}
               placeholder="Nombre, ej: 2026-2"
-              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #000", borderRadius: 8, fontSize: "13px" }}
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "11px" }}
             />
-            <p id={PERIOD_NAME_HINT_ID} style={{ marginTop: 4, fontSize: "11px", color: COLORS.gray }}>
+            <p id={PERIOD_NAME_HINT_ID} style={{ marginTop: 4, fontSize: "10.5px", color: COLORS.gray }}>
               Formato AAAA-1 o AAAA-2.
             </p>
           </div>
@@ -61,19 +61,19 @@ export function PeriodosPanel({
               type="date"
               value={periodForm.startDate}
               onChange={(e) => onFormChange((form) => ({ ...form, startDate: e.target.value }))}
-              style={{ padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px" }}
+              style={{ padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "10.5px" }}
             />
             <input
               type="date"
               value={periodForm.endDate}
               onChange={(e) => onFormChange((form) => ({ ...form, endDate: e.target.value }))}
-              style={{ padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px" }}
+              style={{ padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "10.5px" }}
             />
           </div>
           <select
             value={periodForm.status}
             onChange={(e) => onFormChange((form) => ({ ...form, status: e.target.value as PeriodStatus }))}
-            style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px", backgroundColor: "#fff" }}
+            style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "10.5px", backgroundColor: "#fff" }}
           >
             {Object.entries(periodStatusLabel).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
@@ -81,7 +81,7 @@ export function PeriodosPanel({
           </select>
           <div className="flex justify-end gap-2">
             {editingPeriodId && (
-              <button type="button" onClick={onCancel} className="flex items-center gap-1" style={{ padding: "9px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: "12px", fontWeight: 800 }}>
+              <button type="button" onClick={onCancel} className="flex items-center gap-1" style={{ padding: "9px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: "11px", fontWeight: 800 }}>
                 <X size={13} /> Cancelar
               </button>
             )}
@@ -89,7 +89,7 @@ export function PeriodosPanel({
               type="submit"
               disabled={saving}
               className="flex items-center gap-2 disabled:opacity-50"
-              style={{ padding: "9px 14px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 8, fontSize: "12px", fontWeight: 900 }}
+              style={{ padding: "9px 14px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 8, fontSize: "11px", fontWeight: 900 }}
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : editingPeriodId ? <Save size={14} /> : <Plus size={14} />}
               {editingPeriodId ? "Guardar" : "Crear"}
@@ -98,28 +98,28 @@ export function PeriodosPanel({
         </div>
       </form>
 
-      <div className="bg-white rounded-lg overflow-x-auto" tabIndex={0} aria-label="Tabla de períodos; desplácese horizontalmente para ver todas las columnas" style={{ border: "1.5px solid #E5E7EB" }}>
-        <div className="min-w-[760px]">
-          <div className="grid grid-cols-[1fr_116px_116px_180px_130px] gap-3 px-4 py-3" style={{ backgroundColor: "#F9FAFB", borderBottom: "1px solid #E5E7EB", fontSize: "10px", fontWeight: 900, color: COLORS.gray, textTransform: "uppercase" }}>
+      <div className="bg-white rounded-lg overflow-x-auto" tabIndex={0} aria-label="Tabla de períodos; desplácese horizontalmente para ver todas las columnas" style={{ border: "1px solid #E5E7EB" }}>
+        <div className="min-w-[600px]">
+          <div className="grid grid-cols-[minmax(70px,1fr)_84px_84px_200px_96px] gap-2 px-3 py-3" style={{ backgroundColor: "#000", fontSize: "9px", fontWeight: 700, color: "#fff", letterSpacing: "0.025em", textTransform: "uppercase" }}>
             <span>Nombre</span><span>Inicio</span><span>Fin</span><span>Estado</span><span>Acciones</span>
           </div>
           {periods.length === 0 ? (
-            <div className="px-4 py-8 text-center" style={{ color: COLORS.gray, fontSize: "13px" }}>
+            <div className="px-4 py-8 text-center" style={{ color: COLORS.gray, fontSize: "11px" }}>
               No hay periodos academicos registrados.
             </div>
           ) : periods.map((period) => (
-            <div key={period.id} className="grid grid-cols-[1fr_116px_116px_180px_130px] gap-3 items-center px-4 py-3" style={{ borderBottom: "1px solid #F3F4F6" }}>
-              <p style={{ fontSize: "13px", fontWeight: 800, color: "#000" }}>{period.name}</p>
-              <span style={{ fontSize: "12px", color: "#374151" }}>{period.startDate}</span>
-              <span style={{ fontSize: "12px", color: "#374151" }}>{period.endDate}</span>
-              <div className="flex items-center gap-2">
+            <div key={period.id} className="grid grid-cols-[minmax(70px,1fr)_84px_84px_200px_96px] gap-2 items-center px-3 py-2" style={{ borderBottom: "1px solid #F3F4F6" }}>
+              <p style={{ fontSize: "11px", fontWeight: 800, color: "#000" }}>{period.name}</p>
+              <span style={{ fontSize: "10.5px", color: "#374151" }}>{period.startDate}</span>
+              <span style={{ fontSize: "10.5px", color: "#374151" }}>{period.endDate}</span>
+              <div className="flex items-center justify-between gap-2">
                 <PeriodBadge status={period.status} />
                 <select
                   value={period.status}
                   onChange={(e) => onStatusChange(period, e.target.value as PeriodStatus)}
                   disabled={saving}
                   title="Cambiar estado"
-                  style={{ width: 92, padding: "6px 8px", border: "1px solid #E5E7EB", borderRadius: 7, fontSize: "11px", backgroundColor: "#fff" }}
+                  style={{ width: 104, padding: "5px 6px", border: "1px solid #E5E7EB", borderRadius: 7, fontSize: "10.5px", backgroundColor: "#fff" }}
                 >
                   {Object.entries(periodStatusLabel).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>

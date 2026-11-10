@@ -1,8 +1,21 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, CalendarDays, Download, Eye, Filter, Loader2, RefreshCw, ShieldCheck, Users, X } from "lucide-react";
+import { Activity, Download, Eye, Loader2, ShieldCheck } from "lucide-react";
 import { auditApi, type AuditAction, type AuditCount, type AuditFilters, type AuditLogEntry, type AuditSummary } from "../services/auditApi";
+import { Modal, ModalBody, ModalHeader } from "../components/Modal";
+import { PageTabs, TabButton, TOOLBAR_SELECT_CLASS } from "../components/PageToolbar";
 import { downloadCSV, getDateStamp } from "../utils/exportUtils";
 import { ACTION_OPTIONS, ENTITY_OPTIONS, labelAction, labelEntity } from "./auditoria/auditLabels";
+
+const TOOLBAR_INPUT_CLASS = "h-[38px] rounded-md border border-gray-300 bg-white px-2 text-xs text-[#111827]";
+const TOOLBAR_BUTTON_CLASS = "inline-flex h-[38px] items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 text-sm font-bold";
+const DATE_INPUT_CLASS = "h-full w-[80px] border-0 bg-transparent text-xs text-[#111827] outline-none";
+const AUDIT_LABEL_CLASS = "text-[9px] font-extrabold uppercase tracking-wide text-gray-500";
+const AUDIT_SNAPSHOT_CLASS = "min-h-40 overflow-x-auto whitespace-pre-wrap rounded-md border border-gray-200 bg-gray-50 p-3 text-xs leading-relaxed text-[#111827]";
+
+/** Borders, header and seven rows; longer lists scroll inside the table. */
+const AUDIT_TABLE_HEIGHT = 2 + 38 + 7 * 55;
+
+type AuditTab = "events" | "trends";
 
 type DraftFilters = {
   action: "" | AuditAction;
@@ -54,7 +67,7 @@ function formatDateTime(value: string) {
 function Distribution({ title, items, color }: { title: string; items: AuditCount[]; color: string }) {
   const max = Math.max(...items.map((item) => item.count), 1);
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5">
+    <section className="rounded-lg border border-gray-200 bg-white p-5">
       <h3 className="mb-4 text-sm font-black text-gray-900">{title}</h3>
       {items.length === 0 ? <p className="text-xs text-gray-400">Sin datos para este periodo.</p> : (
         <div className="space-y-4">
@@ -80,7 +93,7 @@ function Distribution({ title, items, color }: { title: string; items: AuditCoun
 function Trend({ summary }: { summary: AuditSummary }) {
   const max = Math.max(...summary.trend.map((point) => point.count), 1);
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5">
+    <section className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div><h2 className="text-sm font-black text-gray-900">Tendencia diaria</h2><p className="mt-1 text-xs text-gray-500">Volumen de cambios registrados en el periodo seleccionado.</p></div>
         <Activity aria-hidden="true" size={20} color="#5454E9" />
@@ -94,7 +107,7 @@ function Trend({ summary }: { summary: AuditSummary }) {
               </div>
             ))}
           </div>
-          <div className="mt-2 flex justify-between text-[10px] font-semibold text-gray-400"><span>{summary.trend[0]?.date}</span><span>{summary.trend.at(-1)?.date}</span></div>
+          <div className="mt-2 flex justify-between text-[9px] font-semibold text-gray-400"><span>{summary.trend[0]?.date}</span><span>{summary.trend.at(-1)?.date}</span></div>
         </div>
       )}
     </section>
@@ -103,6 +116,7 @@ function Trend({ summary }: { summary: AuditSummary }) {
 
 export function Auditoria() {
   const initialDraft = useMemo(defaultDraft, []);
+  const [tab, setTab] = useState<AuditTab>("events");
   const [draft, setDraft] = useState<DraftFilters>(initialDraft);
   const [filters, setFilters] = useState<AuditFilters>(() => toApiFilters(initialDraft));
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
@@ -127,12 +141,6 @@ export function Auditoria() {
   }, [filters]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    if (!selected) return undefined;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setSelected(null); };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selected]);
 
   const applyFilters = (event: FormEvent) => {
     event.preventDefault();
@@ -159,132 +167,106 @@ export function Auditoria() {
     })), `Auditoria_MTE_${getDateStamp()}`);
   };
 
-  const activeDays = summary?.trend.filter((point) => point.count > 0).length ?? 0;
-  const mainAction = summary?.byAction[0]?.key;
-
   return (
-    <main className="space-y-6 p-4 sm:p-6">
-      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#5454E9]"><ShieldCheck size={15} /> Gobierno y control</div>
-          <h1 className="text-2xl font-black text-gray-950">Log de auditoría y tendencias</h1>
-          <p className="mt-2 max-w-2xl text-sm text-gray-500">Consulta quién modificó la estrategia, cuándo lo hizo y cómo cambió cada registro.</p>
-        </div>
-        <button type="button" onClick={exportVisible} disabled={entries.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-black px-4 py-2.5 text-xs font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"><Download size={15} /> Exportar resultados</button>
-      </header>
-
-      <form onSubmit={applyFilters} className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
-        <div className="mb-4 flex items-center gap-2"><Filter size={16} color="#5454E9" /><h2 className="text-sm font-black text-gray-900">Filtros del registro</h2></div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
-          <label className="text-xs font-bold text-gray-700">Acción
-            <select value={draft.action} onChange={(event) => setDraft((current) => ({ ...current, action: event.target.value as "" | AuditAction }))} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-xs font-medium text-gray-900">
-              <option value="">Todas</option>{ACTION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    <div className="flex h-full flex-col overflow-hidden">
+      <form onSubmit={applyFilters} className="flex-shrink-0 bg-white px-6 pt-5 pb-4" style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 basis-full flex-wrap items-center gap-2 lg:flex-1 lg:basis-0">
+            <PageTabs label="Vistas de auditoría">
+              <TabButton active={tab === "events"} onClick={() => setTab("events")} label="Eventos" />
+              <TabButton active={tab === "trends"} onClick={() => setTab("trends")} label="Tendencias" />
+            </PageTabs>
+            <select aria-label="Acción" value={draft.action} onChange={(event) => setDraft((current) => ({ ...current, action: event.target.value as "" | AuditAction }))} className={`${TOOLBAR_SELECT_CLASS} w-[108px]`}>
+              <option value="">Todas: Acción</option>{ACTION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
-          </label>
-          <label className="text-xs font-bold text-gray-700">Tipo de entidad
-            <select value={draft.entityType} onChange={(event) => setDraft((current) => ({ ...current, entityType: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-xs font-medium text-gray-900">
-              <option value="">Todas</option>{ENTITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            <select aria-label="Tipo de entidad" value={draft.entityType} onChange={(event) => setDraft((current) => ({ ...current, entityType: event.target.value }))} className={`${TOOLBAR_SELECT_CLASS} w-[112px]`}>
+              <option value="">Todas: Entidad</option>{ENTITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
-          </label>
-          <label className="text-xs font-bold text-gray-700">ID de entidad
-            <input value={draft.entityId} onChange={(event) => setDraft((current) => ({ ...current, entityId: event.target.value }))} placeholder="Ej. 12" className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-xs font-medium text-gray-900" />
-          </label>
-          <label className="text-xs font-bold text-gray-700">Usuario
-            <input value={draft.actorUsername} onChange={(event) => setDraft((current) => ({ ...current, actorUsername: event.target.value }))} placeholder="Usuario exacto" className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-xs font-medium text-gray-900" />
-          </label>
-          <label className="text-xs font-bold text-gray-700">Desde
-            <input type="date" value={draft.from} onChange={(event) => setDraft((current) => ({ ...current, from: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-900" />
-          </label>
-          <label className="text-xs font-bold text-gray-700">Hasta
-            <input type="date" value={draft.to} onChange={(event) => setDraft((current) => ({ ...current, to: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-900" />
-          </label>
+            <input aria-label="ID de entidad" value={draft.entityId} onChange={(event) => setDraft((current) => ({ ...current, entityId: event.target.value }))} placeholder="ID" title="ID de entidad" className={`${TOOLBAR_INPUT_CLASS} w-[52px]`} />
+            <input aria-label="Usuario" value={draft.actorUsername} onChange={(event) => setDraft((current) => ({ ...current, actorUsername: event.target.value }))} placeholder="Usuario" title="Usuario exacto" className={`${TOOLBAR_INPUT_CLASS} w-[80px]`} />
+            <div role="group" aria-label="Periodo" className="flex h-[38px] flex-shrink-0 items-center gap-1 rounded-md border border-gray-300 bg-white px-1.5 focus-within:border-[#5454E9]">
+              <input aria-label="Desde" type="date" value={draft.from} onChange={(event) => setDraft((current) => ({ ...current, from: event.target.value }))} className={DATE_INPUT_CLASS} />
+              <span aria-hidden="true" className="text-xs text-gray-400">–</span>
+              <input aria-label="Hasta" type="date" value={draft.to} onChange={(event) => setDraft((current) => ({ ...current, to: event.target.value }))} className={DATE_INPUT_CLASS} />
+            </div>
+          </div>
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <button type="submit" aria-label="Aplicar filtros" className="relative inline-flex h-[38px] items-center rounded-md bg-[#5454E9] px-2.5 text-sm font-bold text-white">
+              <span className={loading ? "invisible" : undefined}>Aplicar</span>
+              {loading && <Loader2 aria-hidden="true" className="absolute inset-0 m-auto animate-spin" size={14} />}
+            </button>
+            <button type="button" onClick={clearFilters} title="Volver a los últimos 30 días sin filtros" className={TOOLBAR_BUTTON_CLASS}>Limpiar</button>
+            <button type="button" onClick={exportVisible} disabled={entries.length === 0} className={`${TOOLBAR_BUTTON_CLASS} disabled:cursor-not-allowed disabled:opacity-40`}><Download size={14} /> Exportar</button>
+          </div>
         </div>
-        {filterError && <p className="mt-3 text-xs font-bold text-red-600">{filterError}</p>}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button type="submit" className="rounded-lg bg-[#5454E9] px-4 py-2.5 text-xs font-extrabold text-white">Aplicar filtros</button>
-          <button type="button" onClick={clearFilters} className="rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-extrabold text-gray-700">Restablecer</button>
-        </div>
+        {filterError && <p className="mt-2 text-xs font-bold text-red-600">{filterError}</p>}
+        {loading && summary && <span role="status" className="sr-only">Actualizando resultados</span>}
       </form>
 
-      {error ? (
-        <section role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-          <AlertTriangle className="mx-auto mb-3" size={26} color="#DC2626" />
-          <p className="text-sm font-black text-red-900">{error}</p>
-          <button type="button" onClick={() => void load()} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-700 px-4 py-2 text-xs font-extrabold text-white"><RefreshCw size={14} /> Reintentar</button>
-        </section>
-      ) : loading && !summary ? (
-        <div role="status" className="flex min-h-64 items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-500"><Loader2 className="animate-spin" size={20} /> Cargando auditoría real…</div>
-      ) : summary ? (
-        <>
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              { label: "Eventos encontrados", value: summary.totalEvents, icon: ShieldCheck, color: "#5454E9" },
-              { label: "Usuarios involucrados", value: summary.byActor.length, icon: Users, color: "#4CB979" },
-              { label: "Días con actividad", value: activeDays, icon: CalendarDays, color: "#E9683B" },
-              { label: "Acción más frecuente", value: mainAction ? labelAction(mainAction) : "—", icon: Activity, color: "#111827" },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-gray-200 bg-white p-5">
-                <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: `${stat.color}16` }}><stat.icon size={18} color={stat.color} /></div>
-                <p className="text-2xl font-black text-gray-950">{stat.value}</p><p className="mt-1 text-xs font-semibold text-gray-500">{stat.label}</p>
-              </div>
-            ))}
-          </section>
-          <Trend summary={summary} />
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Distribution title="Acciones" items={summary.byAction} color="#5454E9" />
-            <Distribution title="Entidades" items={summary.byEntityType} color="#4CB979" />
-            <Distribution title="Usuarios" items={summary.byActor} color="#E9683B" />
+      <div className={`flex min-h-0 flex-1 flex-col gap-3 px-6 py-5 ${tab === "events" ? "overflow-hidden" : "overflow-y-auto"}`}>
+        {error ? (
+          <div className="flex flex-shrink-0 items-center justify-between rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={() => void load()} className="font-bold underline">Reintentar</button>
           </div>
-          <section className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-            <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4">
-              <div><h2 className="text-sm font-black text-gray-900">Eventos registrados</h2><p className="mt-1 text-xs text-gray-500">Los resultados corresponden exactamente a los filtros aplicados.</p></div>
-              {loading && <Loader2 aria-label="Actualizando resultados" className="animate-spin text-[#5454E9]" size={18} />}
+        ) : loading && !summary ? (
+          <div role="status" className="flex min-h-64 items-center justify-center rounded-lg border border-gray-200 bg-white">
+            <Loader2 className="animate-spin text-[#5454E9]" size={24} />
+            <span className="ml-3 text-sm font-semibold text-gray-600">Cargando auditoría real…</span>
+          </div>
+        ) : summary && tab === "events" ? (
+          <section className="flex min-h-0 flex-col" aria-label="Eventos de auditoría">
+            <div className="min-h-0 overflow-auto rounded-lg border border-gray-200 bg-white" style={{ height: AUDIT_TABLE_HEIGHT }} tabIndex={0} aria-label="Tabla de eventos de auditoría">
+              <table className="w-full min-w-[820px] border-collapse text-left">
+                <thead className="text-[9px] uppercase tracking-wide text-white"><tr>{["Fecha", "Usuario", "Acción", "Entidad", "Resumen", "Detalle"].map((header) => <th key={header} className="sticky top-0 z-10 whitespace-nowrap bg-black px-4 py-3">{header}</th>)}</tr></thead>
+                <tbody>{entries.map((entry) => (
+                  <tr key={entry.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-600">{formatDateTime(entry.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3"><p className="text-xs font-extrabold text-gray-900">{entry.actorUsername ?? "SISTEMA"}</p><p className="mt-0.5 text-[9px] text-gray-400">{entry.actorRoles || "Sin rol registrado"}</p></td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs font-bold text-[#5454E9]">{labelAction(entry.action)}</td>
+                    <td className="whitespace-nowrap px-4 py-3"><p className="text-xs font-bold text-gray-800">{labelEntity(entry.entityType)}</p><p className="mt-0.5 text-[9px] text-gray-400">ID {entry.entityId}</p></td>
+                    <td className="max-w-xs truncate px-4 py-3 text-xs text-gray-600" title={entry.summary}>{entry.summary}</td>
+                    <td className="px-4 py-3"><button type="button" aria-label={`Ver detalle de ${entry.summary}`} onClick={() => setSelected(entry)} className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1.5 text-sm font-bold text-gray-700 hover:border-[#5454E9] hover:text-[#5454E9]"><Eye size={13} /> Ver</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              {entries.length === 0 && (
+                <div className="px-5 py-14 text-center"><ShieldCheck className="mx-auto mb-3 text-gray-300" size={28} /><p className="text-sm font-black text-gray-700">No hay eventos reales para los filtros aplicados.</p><p className="mt-1 text-xs text-gray-400">Amplía el periodo o limpia los filtros.</p></div>
+              )}
             </div>
-            {entries.length === 0 ? (
-              <div className="px-5 py-14 text-center"><ShieldCheck className="mx-auto mb-3 text-gray-300" size={28} /><p className="text-sm font-black text-gray-700">No hay eventos reales para los filtros aplicados.</p><p className="mt-1 text-xs text-gray-400">Amplía el periodo o restablece los filtros.</p></div>
-            ) : (
-              <div className="overflow-x-auto" tabIndex={0} aria-label="Tabla de auditoría; desplácese horizontalmente para ver todas las columnas">
-                <table className="w-full min-w-[850px] border-collapse">
-                  <thead className="bg-gray-950 text-white"><tr>{["Fecha", "Usuario", "Acción", "Entidad", "Resumen", "Detalle"].map((header) => <th key={header} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wider">{header}</th>)}</tr></thead>
-                  <tbody>{entries.map((entry) => (
-                    <tr key={entry.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-600">{formatDateTime(entry.createdAt)}</td>
-                      <td className="px-4 py-3"><p className="text-xs font-extrabold text-gray-900">{entry.actorUsername ?? "SISTEMA"}</p><p className="mt-0.5 text-[10px] text-gray-400">{entry.actorRoles || "Sin rol registrado"}</p></td>
-                      <td className="px-4 py-3 text-xs font-bold text-[#5454E9]">{labelAction(entry.action)}</td>
-                      <td className="px-4 py-3"><p className="text-xs font-bold text-gray-800">{labelEntity(entry.entityType)}</p><p className="mt-0.5 text-[10px] text-gray-400">ID {entry.entityId}</p></td>
-                      <td className="max-w-xs px-4 py-3 text-xs text-gray-600">{entry.summary}</td>
-                      <td className="px-4 py-3"><button type="button" aria-label={`Ver detalle de ${entry.summary}`} onClick={() => setSelected(entry)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-[11px] font-extrabold text-gray-700 hover:border-[#5454E9] hover:text-[#5454E9]"><Eye size={13} /> Ver</button></td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
-            )}
           </section>
-        </>
-      ) : null}
+        ) : summary ? (
+          <>
+            <Trend summary={summary} />
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <Distribution title="Acciones" items={summary.byAction} color="#5454E9" />
+              <Distribution title="Entidades" items={summary.byEntityType} color="#4CB979" />
+              <Distribution title="Usuarios" items={summary.byActor} color="#E9683B" />
+            </div>
+          </>
+        ) : null}
+      </div>
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={(event) => { if (event.currentTarget === event.target) setSelected(null); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="audit-detail-title" className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <header className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white p-5">
-              <div><p className="text-[10px] font-black uppercase tracking-wider text-[#5454E9]">Evento #{selected.id}</p><h2 id="audit-detail-title" className="mt-1 text-xl font-black text-gray-950">Detalle del evento</h2><p className="mt-1 text-sm text-gray-500">{selected.summary}</p></div>
-              <button type="button" aria-label="Cerrar detalle" onClick={() => setSelected(null)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"><X size={20} /></button>
-            </header>
-            <div className="space-y-5 p-5">
-              <dl className="grid grid-cols-1 gap-4 rounded-xl bg-gray-50 p-4 sm:grid-cols-4">
-                <div><dt className="text-[10px] font-black uppercase text-gray-400">Fecha</dt><dd className="mt-1 text-xs font-bold text-gray-800">{formatDateTime(selected.createdAt)}</dd></div>
-                <div><dt className="text-[10px] font-black uppercase text-gray-400">Usuario</dt><dd className="mt-1 text-xs font-bold text-gray-800">{selected.actorUsername ?? "SISTEMA"}</dd></div>
-                <div><dt className="text-[10px] font-black uppercase text-gray-400">Acción</dt><dd className="mt-1 text-xs font-bold text-gray-800">{labelAction(selected.action)}</dd></div>
-                <div><dt className="text-[10px] font-black uppercase text-gray-400">Entidad</dt><dd className="mt-1 text-xs font-bold text-gray-800">{labelEntity(selected.entityType)} · {selected.entityId}</dd></div>
-              </dl>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div><h3 className="mb-2 text-xs font-black text-gray-700">Estado anterior</h3><pre className="min-h-40 overflow-x-auto whitespace-pre-wrap rounded-xl bg-gray-950 p-4 text-xs leading-relaxed text-gray-100">{formatSnapshot(selected.beforeSnapshot)}</pre></div>
-                <div><h3 className="mb-2 text-xs font-black text-gray-700">Estado posterior</h3><pre className="min-h-40 overflow-x-auto whitespace-pre-wrap rounded-xl bg-gray-950 p-4 text-xs leading-relaxed text-gray-100">{formatSnapshot(selected.afterSnapshot)}</pre></div>
-              </div>
+        <Modal size="lg" onClose={() => setSelected(null)}>
+          <ModalHeader title="Detalle del evento" closeLabel="Cerrar detalle" onClose={() => setSelected(null)}>
+            <span className="text-xs text-gray-500">Evento #{selected.id}</span>
+          </ModalHeader>
+          <ModalBody>
+            <p className="text-sm leading-relaxed text-gray-600" style={{ overflowWrap: "anywhere" }}>{selected.summary}</p>
+            <dl className="grid grid-cols-1 gap-4 rounded-md border border-gray-200 p-4 sm:grid-cols-4">
+              <div><dt className={AUDIT_LABEL_CLASS}>Fecha</dt><dd className="mt-1 text-sm leading-snug text-[#111827]">{formatDateTime(selected.createdAt)}</dd></div>
+              <div><dt className={AUDIT_LABEL_CLASS}>Usuario</dt><dd className="mt-1 text-sm leading-snug text-[#111827]" style={{ overflowWrap: "anywhere" }}>{selected.actorUsername ?? "SISTEMA"}</dd></div>
+              <div><dt className={AUDIT_LABEL_CLASS}>Acción</dt><dd className="mt-1 text-sm leading-snug text-[#111827]">{labelAction(selected.action)}</dd></div>
+              <div><dt className={AUDIT_LABEL_CLASS}>Entidad</dt><dd className="mt-1 text-sm leading-snug text-[#111827]" style={{ overflowWrap: "anywhere" }}>{labelEntity(selected.entityType)} · {selected.entityId}</dd></div>
+            </dl>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div><h3 className={`mb-2 ${AUDIT_LABEL_CLASS}`}>Estado anterior</h3><pre className={AUDIT_SNAPSHOT_CLASS}>{formatSnapshot(selected.beforeSnapshot)}</pre></div>
+              <div><h3 className={`mb-2 ${AUDIT_LABEL_CLASS}`}>Estado posterior</h3><pre className={AUDIT_SNAPSHOT_CLASS}>{formatSnapshot(selected.afterSnapshot)}</pre></div>
             </div>
-          </section>
-        </div>
+          </ModalBody>
+        </Modal>
       )}
-    </main>
+    </div>
   );
 }

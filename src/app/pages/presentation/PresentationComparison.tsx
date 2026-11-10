@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, Download, Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
+import { ToolbarButton, ToolbarSegmented } from "../../components/ScreenToolbar";
+import { PRESENTATION_ACCENT } from "./PresentationHeader";
+import { PresentationPageHeader, PresentationPanel, PRESENTATION_UI } from "./PresentationLayout";
 import type { AcademicPeriod } from "../../services/catalogsApi";
 import { reportsApi, type PeriodComparison } from "../../services/reportsApi";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
@@ -18,6 +21,13 @@ import {
 } from "./PresentationComparisonData";
 
 const COMPARISON_TITLE = "Comparativa de registros";
+
+const COMPARISON_TYPES: readonly { value: ComparisonType; label: string }[] = [
+  { value: "bet-vs-bet", label: "Apuesta vs Apuesta" },
+  { value: "goal-vs-goal", label: "Meta vs Meta" },
+  { value: "bet-vs-goal", label: "Apuesta vs Meta" },
+  { value: "period-vs-period", label: "Periodo vs Periodo" },
+];
 
 interface Props {
   bets: StrategicBet[];
@@ -174,113 +184,59 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
   };
 
   return (
-    <div className="presentation-comparison-print-area mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 space-y-8">
-      <div className="rounded-xl border border-[#DFE3EC] bg-white p-6 shadow-[0_12px_28px_rgba(34,34,69,0.06)]">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-sm bg-[#4CB979] px-2.5 py-0.5 text-xs font-black uppercase tracking-wider text-white">
-                Opción 2: Comparador
-              </span>
-              <span className="text-xs font-bold text-[#717182]">Periodo {periodName}</span>
-            </div>
-            <h1 className="mt-2 text-2xl font-black text-[#222245] sm:text-3xl">{COMPARISON_TITLE}</h1>
-            <p className="mt-1 text-sm font-semibold text-[#717182]">
-              Selecciona dos entidades o dos periodos para ver lado a lado los conteos de KRs e iniciativas registrados.
-            </p>
+    <div className="presentation-comparison-print-area w-full">
+      <PresentationPageHeader
+        eyebrow={`Opción 2: Comparador · Periodo ${periodName}`}
+        title={COMPARISON_TITLE}
+        subtitle="Selecciona dos entidades o dos periodos para ver lado a lado los conteos de KRs e iniciativas registrados."
+        accent={PRESENTATION_UI.green}
+        actions={
+          <div className="flex flex-wrap items-center gap-2 sgp-screen-only">
+            <ToolbarButton
+              onClick={() =>
+                printPresentationView(COMPARISON_TITLE, {
+                  subtitle:
+                    compType === "period-vs-period"
+                      ? `Periodo ${selectedPeriodA} vs ${selectedPeriodB}`
+                      : `${nameA} vs ${nameB} (Periodo ${periodName})`,
+                  printableSelector: ".presentation-comparison-print-area",
+                })
+              }
+              aria-label="Exportar comparativa a PDF"
+              title="Exportar comparativa a PDF"
+            >
+              <Printer size={14} aria-hidden="true" /> <span className="hidden sm:inline">PDF Comparativa</span>
+            </ToolbarButton>
+            <ToolbarButton
+              disabled={!hasComparison}
+              onClick={() =>
+                exportComparisonCsv({
+                  compType,
+                  periodName,
+                  nameA: compType === "period-vs-period" ? selectedPeriodA : nameA,
+                  nameB: compType === "period-vs-period" ? selectedPeriodB : nameB,
+                  rows: tableRows,
+                })
+              }
+              aria-label="Descargar datos de la comparativa en CSV"
+              title="Descargar datos de la comparativa en CSV"
+            >
+              <Download size={14} aria-hidden="true" /> <span className="hidden sm:inline">CSV Comparativa</span>
+            </ToolbarButton>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2.5 sgp-screen-only">
-            {/* Export Buttons */}
-            <div className="inline-flex rounded-lg border border-[#DFE3EC] bg-[#F7F8FC] p-1 gap-1">
-              <button
-                type="button"
-                onClick={() =>
-                  printPresentationView(COMPARISON_TITLE, {
-                    subtitle:
-                      compType === "period-vs-period"
-                        ? `Periodo ${selectedPeriodA} vs ${selectedPeriodB}`
-                        : `${nameA} vs ${nameB} (Periodo ${periodName})`,
-                    printableSelector: ".presentation-comparison-print-area",
-                  })
-                }
-                aria-label="Exportar comparativa a PDF"
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#DFE3EC] bg-white px-3 py-1.5 text-xs font-black text-[#222245] shadow-xs hover:bg-[#F7F8FC] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Printer size={14} className="text-[#5454E9]" aria-hidden="true" />
-                <span>PDF Comparativa</span>
-              </button>
-              <button
-                type="button"
-                disabled={!hasComparison}
-                onClick={() =>
-                  exportComparisonCsv({
-                    compType,
-                    periodName,
-                    nameA: compType === "period-vs-period" ? selectedPeriodA : nameA,
-                    nameB: compType === "period-vs-period" ? selectedPeriodB : nameB,
-                    rows: tableRows,
-                  })
-                }
-                aria-label="Descargar datos de la comparativa en CSV"
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#DFE3EC] bg-white px-3 py-1.5 text-xs font-black text-[#222245] shadow-xs hover:bg-[#F7F8FC] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Download size={14} className="text-[#4CB979]" aria-hidden="true" />
-                <span>CSV Comparativa</span>
-              </button>
-            </div>
-
-            {/* Type Selector Pills */}
-            <div className="inline-flex rounded-lg border border-[#DFE3EC] bg-[#F7F8FC] p-1 text-xs font-black flex-wrap gap-1">
-              <button
-                type="button"
-                onClick={() => setCompType("bet-vs-bet")}
-                className={`rounded-md px-3 py-1.5 transition-all ${
-                  compType === "bet-vs-bet"
-                    ? "bg-[#5454E9] text-white shadow-xs"
-                    : "text-[#717182] hover:text-[#222245]"
-                }`}
-              >
-                Apuesta vs Apuesta
-              </button>
-              <button
-                type="button"
-                onClick={() => setCompType("goal-vs-goal")}
-                className={`rounded-md px-3 py-1.5 transition-all ${
-                  compType === "goal-vs-goal"
-                    ? "bg-[#4CB979] text-white shadow-xs"
-                    : "text-[#717182] hover:text-[#222245]"
-                }`}
-              >
-                Meta vs Meta
-              </button>
-              <button
-                type="button"
-                onClick={() => setCompType("bet-vs-goal")}
-                className={`rounded-md px-3 py-1.5 transition-all ${
-                  compType === "bet-vs-goal"
-                    ? "bg-[#222245] text-white shadow-xs"
-                    : "text-[#717182] hover:text-[#222245]"
-                }`}
-              >
-                Apuesta vs Meta
-              </button>
-              <button
-                type="button"
-                onClick={() => setCompType("period-vs-period")}
-                className={`rounded-md px-3 py-1.5 transition-all inline-flex items-center gap-1 ${
-                  compType === "period-vs-period"
-                    ? "bg-[#5454E9] text-white shadow-xs"
-                    : "text-[#717182] hover:text-[#222245]"
-                }`}
-              >
-                <Calendar size={13} aria-hidden="true" />
-                <span>Periodo vs Periodo</span>
-              </button>
-            </div>
+        }
+      >
+        <div className="mt-3 overflow-x-auto pb-1 sgp-screen-only">
+          <div className="flex w-max min-w-full sm:min-w-0 [&_button]:whitespace-nowrap">
+            <ToolbarSegmented
+              ariaLabel="Tipo de comparación"
+              value={compType}
+              onChange={setCompType}
+              accent={PRESENTATION_ACCENT}
+              options={COMPARISON_TYPES}
+            />
           </div>
         </div>
-
         {/* Controls Bar */}
         <ComparisonControlsBar
           compType={compType}
@@ -301,8 +257,9 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
           setSelectedGoalBId={setSelectedGoalBId}
           handleSwap={handleSwap}
         />
-      </div>
+      </PresentationPageHeader>
 
+      <div className="space-y-5 px-4 py-5 sm:px-6">
       {!hasComparison ? (
         isPeriodMode ? (
           renderPeriodStatus()
@@ -360,23 +317,24 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
             shortNameB={shortNameB}
           />
 
-          <section className="rounded-xl border border-[#DFE3EC] bg-white p-6 sm:p-8 shadow-[0_12px_28px_rgba(34,34,69,0.06)] sgp-print-avoid">
-            <div className="border-b border-[#DFE3EC] pb-4">
-              <h2 className="text-xl font-black text-[#222245]">Tabla comparativa</h2>
-              <p className="text-xs font-semibold text-[#717182]">
-                {isPeriodMode
-                  ? `Valores registrados en el Periodo ${selectedPeriodA} y en el Periodo ${selectedPeriodB}.`
-                  : "Valores registrados para cada una de las dos entidades seleccionadas."}
-              </p>
-            </div>
+          <PresentationPanel
+            className="sgp-print-avoid"
+            title="Tabla comparativa"
+            subtitle={
+              isPeriodMode
+                ? `Valores registrados en el Periodo ${selectedPeriodA} y en el Periodo ${selectedPeriodB}.`
+                : "Valores registrados para cada una de las dos entidades seleccionadas."
+            }
+          >
             <ComparisonTable
               rows={tableRows}
               headerA={isPeriodMode ? `Periodo ${selectedPeriodA}` : shortNameA}
               headerB={isPeriodMode ? `Periodo ${selectedPeriodB}` : shortNameB}
             />
-          </section>
+          </PresentationPanel>
         </>
       )}
+      </div>
     </div>
   );
 }

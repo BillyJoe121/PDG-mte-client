@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Compass, X } from "lucide-react";
 import { useNavigate } from "react-router";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
+import { DETAIL_BUTTON_CLASS, DETAIL_PRIMARY_BUTTON_CLASS } from "./DetailModal";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "./Modal";
 
 export type TutorialStep = {
   title: string;
@@ -94,17 +89,18 @@ export function PlatformTutorial({ onOpenChange, open }: PlatformTutorialProps) 
     onOpenChange(false);
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto border-2 border-black bg-white p-5 sm:max-w-xl">
-        <DialogHeader className="pr-8 text-left">
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#5454E9]">
-            <BookOpen size={16} aria-hidden="true" />
-            Recorrido guiado · paso {stepIndex + 1} de {platformTutorialSteps.length}
-          </div>
-          <DialogTitle className="pt-2 text-xl font-black text-black">{step.title}</DialogTitle>
-          <DialogDescription className="pt-1 text-sm leading-6 text-gray-600">{step.description}</DialogDescription>
-        </DialogHeader>
+    <Modal onClose={() => onOpenChange(false)}>
+      <ModalHeader title={step.title} closeLabel="Cerrar recorrido" onClose={() => onOpenChange(false)}>
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5454E9]">
+          <BookOpen size={14} aria-hidden="true" />
+          Recorrido guiado · paso {stepIndex + 1} de {platformTutorialSteps.length}
+        </span>
+      </ModalHeader>
+      <ModalBody>
+        <p className="text-sm leading-6 text-gray-600">{step.description}</p>
 
         <div className="h-2 overflow-hidden rounded-full bg-gray-200" aria-label={`Progreso: paso ${stepIndex + 1} de ${platformTutorialSteps.length}`} role="progressbar" aria-valuemin={1} aria-valuemax={platformTutorialSteps.length} aria-valuenow={stepIndex + 1}>
           <div className="h-full rounded-full bg-[#5454E9] transition-all" style={{ width: `${((stepIndex + 1) / platformTutorialSteps.length) * 100}%` }} />
@@ -113,34 +109,31 @@ export function PlatformTutorial({ onOpenChange, open }: PlatformTutorialProps) 
         <ul className="space-y-3" aria-label="Aspectos clave del paso">
           {step.highlights.map((highlight) => (
             <li key={highlight} className="flex items-start gap-3 text-sm leading-5 text-gray-800">
-              <CheckCircle2 className="mt-0.5 shrink-0 text-[#4CB979]" size={18} aria-hidden="true" />
+              <CheckCircle2 className="mt-0.5 shrink-0 text-[#5454E9]" size={18} aria-hidden="true" />
               <span>{highlight}</span>
             </li>
           ))}
         </ul>
-
-        <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <button type="button" onClick={() => onOpenChange(false)} className="inline-flex items-center justify-center gap-2 text-sm font-bold text-gray-600 hover:text-black">
-            <X size={15} aria-hidden="true" /> Omitir recorrido
+      </ModalBody>
+      <ModalFooter>
+        <button type="button" onClick={() => onOpenChange(false)} className="mr-auto inline-flex items-center justify-center gap-2 text-sm font-bold text-gray-600 hover:text-[#111827]">
+          <X size={15} aria-hidden="true" /> Omitir recorrido
+        </button>
+        {step.destination && (
+          <button type="button" onClick={visitDestination} className={DETAIL_BUTTON_CLASS}>
+            <Compass size={15} aria-hidden="true" /> {step.destination.label}
           </button>
-          <div className="flex flex-wrap justify-end gap-2">
-            {step.destination && (
-              <button type="button" onClick={visitDestination} className="inline-flex items-center gap-2 rounded-md border border-black px-3 py-2 text-sm font-black text-black hover:bg-gray-100">
-                <Compass size={15} aria-hidden="true" /> {step.destination.label}
-              </button>
-            )}
-            {!isFirstStep && (
-              <button type="button" onClick={() => setStepIndex((current) => current - 1)} className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-black text-gray-700 hover:bg-gray-100">
-                <ArrowLeft size={15} aria-hidden="true" /> Anterior
-              </button>
-            )}
-            <button type="button" onClick={() => isLastStep ? onOpenChange(false) : setStepIndex((current) => current + 1)} className="inline-flex items-center gap-2 rounded-md bg-black px-3 py-2 text-sm font-black text-white hover:bg-gray-800">
-              {isLastStep ? "Finalizar" : "Siguiente"}
-              {!isLastStep && <ArrowRight size={15} aria-hidden="true" />}
-            </button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        )}
+        {!isFirstStep && (
+          <button type="button" onClick={() => setStepIndex((current) => current - 1)} className={DETAIL_BUTTON_CLASS}>
+            <ArrowLeft size={15} aria-hidden="true" /> Anterior
+          </button>
+        )}
+        <button type="button" onClick={() => isLastStep ? onOpenChange(false) : setStepIndex((current) => current + 1)} className={DETAIL_PRIMARY_BUTTON_CLASS}>
+          {isLastStep ? "Finalizar" : "Siguiente"}
+          {!isLastStep && <ArrowRight size={15} aria-hidden="true" />}
+        </button>
+      </ModalFooter>
+    </Modal>
   );
 }

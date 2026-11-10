@@ -1,9 +1,19 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, Edit2, Loader2, Target, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "../components/ui/select";
+import {
+  DETAIL_ACTIONS_CLASS,
+  DETAIL_BUTTON_CLASS,
+  DETAIL_PRIMARY_BUTTON_CLASS,
+  DetailBadge,
+  DetailBody,
+  DetailHeading,
+  DetailTopBar,
+} from "../components/DetailModal";
+import { PageTabs, TabButton } from "../components/PageToolbar";
 import { useAuth } from "../context/AuthContext";
+import type { DiscardGuard } from "../hooks/useDiscardGuard";
 import { hasPermission } from "../security/permissions";
 import type { AcademicPeriod } from "../services/catalogsApi";
 import type { Department, KeyResult } from "../services/strategicApi";
@@ -12,30 +22,32 @@ import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
 import {
   projectKeyResultLinksApi,
   projectsApi,
+  type ContributionType,
   type ImpactChain,
   type ProjectDetailResponse,
   type ProjectKeyResultLinkResponse,
   type ProjectStatus,
 } from "../services/projectsApi";
 import { ConfirmUnlinkModal } from "./fichaProyecto/ConfirmUnlinkModal";
-import { LinkKeyResultModal } from "./fichaProyecto/LinkKeyResultModal";
-import { RegisterProgressModal } from "./fichaProyecto/RegisterProgressModal";
-import { ProjectResponsiblesModal } from "./fichaProyecto/ProjectResponsiblesModal";
-import { EditProjectModal } from "./fichaProyecto/EditProjectModal";
-import { Breadcrumb, ProjectHero } from "./fichaProyecto/ProjectDetailPanels";
-import { HistorySection, KeyResultsSection, ProjectAside, SummarySection } from "./fichaProyecto/ProjectDetailSections";
+import { LinkKeyResultPanel } from "./fichaProyecto/KeyResultLinkForm";
+import { RegisterProgressPanel } from "./fichaProyecto/RegisterProgressPanel";
+import { ProjectResponsiblesPanel } from "./fichaProyecto/ProjectResponsiblesPanel";
+import { EditProjectPanel } from "./fichaProyecto/EditProjectPanel";
+import { ProjectAside, ProjectStatusSelect } from "./fichaProyecto/ProjectDetailPanels";
+import { HistorySection, KeyResultsSection, SummarySection } from "./fichaProyecto/ProjectDetailSections";
 import {
-  COLORS,
   STATUS_LABELS,
   availableStatusTransitions,
   errorMessage,
-  statusColor,
 } from "./fichaProyecto/projectDetailShared";
-import { getProgressColor, secondaryButtonStyle, shortMotionTransition } from "./fichaProyecto/projectDetailUi";
+import { TYPE_LABELS, getProgressColor, shortMotionTransition } from "./fichaProyecto/projectDetailUi";
 
 type ProjectTab = "resumen" | "historial" | "kr";
+type ProjectPanel = "edit" | "progress" | "responsibles" | "link";
 
-export function ProjectDetailContent({ projectId, onBack }: { projectId: number; onBack: () => void }) {
+const CLOSE_LABEL = "Cerrar detalle de iniciativa";
+
+export function ProjectDetailContent({ projectId, onBack, guard }: { projectId: number; onBack: () => void; guard: DiscardGuard }) {
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
   const [detail, setDetail] = useState<ProjectDetailResponse | null>(null);
@@ -47,21 +59,19 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
   const [loading, setLoading] = useState(true);
   const [savingStatus, setSavingStatus] = useState(false);
   const [error, setError] = useState("");
-  const [showProgressModal, setShowProgressModal] = useState(false);
-  const [showLinkModal, setShowLinkModal] = useState(false);
-    const [editLinkData, setEditLinkData] = useState<{
-      linkId: number;
-      keyResultId: string;
+  const [panel, setPanel] = useState<ProjectPanel | null>(null);
+  const [editLinkData, setEditLinkData] = useState<{
+    linkId: number;
+    keyResultId: string;
     weight: number;
-    contributionType: import("../services/projectsApi").ContributionType;
+    contributionType: ContributionType;
   } | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showResponsiblesModal, setShowResponsiblesModal] = useState(false);
   const [unlinkTarget, setUnlinkTarget] = useState<ProjectKeyResultLinkResponse | null>(null);
 
-  const loadDetail = async (options?: { force?: boolean }) => {
+  /** `silent` keeps an open panel mounted while its data reloads. */
+  const loadDetail = async (options?: { force?: boolean; silent?: boolean }) => {
     if (!Number.isFinite(projectId)) return;
-    setLoading(true);
+    if (!options?.silent) setLoading(true);
     setError("");
     try {
       const data = await loadProjectDetailScreen(projectId, { force: options?.force });
@@ -73,8 +83,18 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
     } catch (loadError) {
       setError(errorMessage(loadError));
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
+  };
+
+  const closePanel = () => {
+    setPanel(null);
+    setEditLinkData(null);
+  };
+  const cancelPanel = () => guard.run(closePanel);
+  const reloadAndClosePanel = async () => {
+    await loadDetail({ force: true, silent: true });
+    closePanel();
   };
 
   useEffect(() => {
@@ -96,27 +116,24 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
 
   if (loading) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center bg-[#F8FAFC] p-8">
-        <div className="rounded-md bg-white px-6 py-5 text-center" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.06)" }}>
-          <Loader2 size={22} className="mx-auto mb-3 animate-spin" color={COLORS.green} />
-          <p style={{ fontSize: 13, color: COLORS.gray, fontWeight: 800 }}>Cargando ficha de la iniciativa...</p>
+      <>
+        <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} />
+        <div className="flex min-h-[420px] items-center justify-center text-sm font-bold text-gray-500">
+          <Loader2 size={18} className="mr-2 animate-spin" /> Cargando ficha de la iniciativa...
         </div>
-      </div>
+      </>
     );
   }
 
   if (error || !project || !detail) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center bg-[#F8FAFC] p-8">
-        <div className="max-w-md rounded-md bg-white p-6 text-center" style={{ border: `1px solid ${error ? "#FCA5A5" : COLORS.border}` }}>
-          <Target size={30} color={error ? "#DC2626" : "#D1D5DB"} className="mx-auto mb-3" />
-          <p style={{ fontSize: 15, color: error ? "#991B1B" : COLORS.gray, fontWeight: 850 }}>{error || "Iniciativa no encontrada."}</p>
-          <button onClick={onBack} className="mt-4 inline-flex items-center justify-center gap-2 rounded-md" style={secondaryButtonStyle}>
-            <ArrowLeft size={14} />
-            Volver a iniciativas
-          </button>
+      <>
+        <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} />
+        <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 p-8 text-center">
+          <p className={`text-sm font-bold ${error ? "text-[#B42318]" : "text-gray-500"}`}>{error || "Iniciativa no encontrada."}</p>
+          <button type="button" onClick={onBack} className={DETAIL_BUTTON_CLASS}>Volver a iniciativas</button>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -160,190 +177,138 @@ export function ProjectDetailContent({ projectId, onBack }: { projectId: number;
         scopes: ["projects", "keyResults", "hierarchy", "dashboard", "reports", "presentation", "consistency"],
       });
       toast.success("Vinculo desactivado.");
-      await loadDetail({ force: true });
+      await loadDetail({ force: true, silent: true });
     } catch (removeError) {
       toast.error(errorMessage(removeError));
     }
   };
 
   return (
-    <div className="min-h-full bg-[#F8FAFC]">
-      <div className="mx-auto max-w-7xl px-6 pb-5 pt-4">
-        <Breadcrumb projectName={project.name} onBack={onBack} />
+    <>
+      <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack}>
+        <DetailBadge tone="initiative">Iniciativa PROY-{String(project.id).padStart(2, "0")}</DetailBadge>
+        <DetailBadge>{STATUS_LABELS[project.status]}</DetailBadge>
+        <DetailBadge>{TYPE_LABELS[project.type]}</DetailBadge>
+      </DetailTopBar>
 
-        <ProjectHero
-          progressColor={progressColor}
-          project={project}
-        />
-
-        <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_330px]">
-          <main className="min-w-0 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-white p-2" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-              <div className="flex flex-wrap items-center gap-2">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 transition-colors"
-                    style={{
-                      backgroundColor: activeTab === tab.key ? COLORS.green : "transparent",
-                      color: activeTab === tab.key ? "#fff" : COLORS.gray,
-                      fontSize: 12,
-                      fontWeight: 900,
-                    }}
-                  >
-                    {tab.label}
-                    {tab.count !== null && (
-                      <span className="rounded px-1.5 py-0.5" style={{ backgroundColor: activeTab === tab.key ? "rgba(255,255,255,0.2)" : "#EEF2F7", color: activeTab === tab.key ? "#fff" : COLORS.text, fontSize: 10 }}>
-                        {tab.count}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                {statusTransitions.length > 0 ? (
-                  <Select value="" onValueChange={(value) => handleUpdateStatus(value as ProjectStatus)} disabled={savingStatus}>
-                    <SelectTrigger className="focus-visible:ring-0 w-auto bg-white shadow-sm" style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, height: 32, padding: "0 10px", fontSize: 12, fontWeight: 900, color: COLORS.text, opacity: savingStatus ? 0.65 : 1 }}>
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: statusColor(project.status) }} />
-                        <span>{savingStatus ? "Guardando..." : STATUS_LABELS[project.status]}</span>
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent position="popper" align="start" className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]">
-                      {statusTransitions.map((nextStatus) => (
-                        <SelectItem key={nextStatus} value={nextStatus} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
-                          Cambiar a {STATUS_LABELS[nextStatus]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="flex items-center gap-2 bg-white" style={{ border: `1px solid ${COLORS.border}`, borderRadius: 6, height: 32, padding: "0 10px", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: statusColor(project.status) }} />
-                    <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 900 }}>{STATUS_LABELS[project.status]}</span>
-                  </div>
-                )}
-
-                {canManageProject && (
-                  <div className="flex flex-wrap items-center gap-2" style={{ "--hierarchy-card-accent": COLORS.green } as CSSProperties}>
-                    <button onClick={() => setShowResponsiblesModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
-                      <Users size={13} /> Responsables
-                    </button>
-                    <button onClick={() => setShowEditModal(true)} className="hierarchy-detail-header-manage-btn rounded-md">
-                      <Edit2 size={13} /> Editar iniciativa
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <AnimatePresence mode="wait" initial={false}>
-              {activeTab === "resumen" && (
-                <motion.div key="resumen" {...viewMotion} className="space-y-3">
-                  <SummarySection
-                    chain={chain}
-                    detail={detail}
-                    progressColor={progressColor}
-                    project={project}
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === "historial" && (
-                <motion.div key="historial" {...viewMotion}>
-                  <HistorySection
-                    canRegisterProgress={canRegisterProgress}
-                    history={history}
-                    onRegisterProgress={() => setShowProgressModal(true)}
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === "kr" && (
-                <motion.div key="kr" {...viewMotion}>
-                  <KeyResultsSection
-                    canManageLinks={canManageLinks}
-                    chain={chain}
-                    detail={detail}
-                    onLink={() => {
-                      setEditLinkData(null);
-                      setShowLinkModal(true);
-                    }}
-                      onEditLink={(link) => {
-                        setEditLinkData({
-                          linkId: link.id,
-                          keyResultId: String(link.keyResultId),
-                        weight: link.contributionWeight,
-                        contributionType: link.contributionType,
-                      });
-                      setShowLinkModal(true);
-                    }}
-                    onUnlink={(link) => setUnlinkTarget(link)}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </main>
-
-          <ProjectAside
-            canRegisterProgress={canRegisterProgress}
-            onRegisterProgress={() => setShowProgressModal(true)}
-            project={project}
-          />
-        </div>
-      </div>
-
-      {showProgressModal && (
-        <RegisterProgressModal
-          project={project}
-          onClose={() => setShowProgressModal(false)}
-          onSaved={() => loadDetail({ force: true })}
-        />
-      )}
-      {showEditModal && (
-        <EditProjectModal
+      {panel === "edit" ? (
+        <EditProjectPanel
           departments={departments}
           periods={periods}
           project={project}
-          onClose={() => setShowEditModal(false)}
-          onSaved={async () => {
-            setShowEditModal(false);
-            await loadDetail({ force: true });
-          }}
+          onCancel={cancelPanel}
+          onDirtyChange={guard.setDirty}
+          onSaved={reloadAndClosePanel}
         />
-      )}
-      {showResponsiblesModal && (
-        <ProjectResponsiblesModal
-          projectId={project.id}
-          departmentId={project.departmentId}
-          projectName={project.name}
-          onClose={() => setShowResponsiblesModal(false)}
-        />
-      )}
-      {showLinkModal && (
-        <LinkKeyResultModal
+      ) : panel === "progress" ? (
+        <RegisterProgressPanel project={project} onCancel={cancelPanel} onDirtyChange={guard.setDirty} onSaved={reloadAndClosePanel} />
+      ) : panel === "responsibles" ? (
+        <ProjectResponsiblesPanel projectId={project.id} departmentId={project.departmentId} onBack={cancelPanel} onDirtyChange={guard.setDirty} />
+      ) : panel === "link" ? (
+        <LinkKeyResultPanel
           project={project}
           keyResults={keyResults}
           editingLinkId={editLinkData?.linkId}
           initialKeyResultId={editLinkData?.keyResultId}
           initialWeight={editLinkData?.weight}
           initialContributionType={editLinkData?.contributionType}
-          onClose={() => {
-            setShowLinkModal(false);
-            setEditLinkData(null);
-          }}
-          onSaved={() => loadDetail({ force: true })}
+          onCancel={cancelPanel}
+          onDirtyChange={guard.setDirty}
+          onSaved={reloadAndClosePanel}
         />
+      ) : (
+        <DetailBody>
+          <DetailHeading title={project.name} description={project.description} />
+
+          <div className={DETAIL_ACTIONS_CLASS}>
+            <PageTabs label="Secciones de la iniciativa">
+              {tabs.map((tab) => (
+                <TabButton
+                  key={tab.key}
+                  active={activeTab === tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  label={tab.count === null ? tab.label : `${tab.label} (${tab.count})`}
+                />
+              ))}
+            </PageTabs>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {statusTransitions.length > 0 && (
+                <ProjectStatusSelect saving={savingStatus} transitions={statusTransitions} onChange={(status) => void handleUpdateStatus(status)} />
+              )}
+              {canManageProject && (
+                <>
+                  <button type="button" onClick={() => setPanel("responsibles")} className={DETAIL_BUTTON_CLASS}>Responsables</button>
+                  <button type="button" onClick={() => setPanel("edit")} className={DETAIL_BUTTON_CLASS}>Editar iniciativa</button>
+                </>
+              )}
+              {canRegisterProgress && (
+                <button type="button" onClick={() => setPanel("progress")} className={DETAIL_PRIMARY_BUTTON_CLASS}>Registrar avance</button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 divide-y divide-gray-200 xl:grid-cols-[minmax(0,1fr)_260px] xl:divide-x xl:divide-y-0">
+            <div className="min-w-0">
+              <AnimatePresence mode="wait" initial={false}>
+                {activeTab === "resumen" && (
+                  <motion.div key="resumen" {...viewMotion} className="divide-y divide-gray-200">
+                    <SummarySection
+                      chain={chain}
+                      detail={detail}
+                      progressColor={progressColor}
+                      project={project}
+                    />
+                  </motion.div>
+                )}
+
+                {activeTab === "historial" && (
+                  <motion.div key="historial" {...viewMotion}>
+                    <HistorySection history={history} />
+                  </motion.div>
+                )}
+
+                {activeTab === "kr" && (
+                  <motion.div key="kr" {...viewMotion} className="divide-y divide-gray-200">
+                    <KeyResultsSection
+                      canManageLinks={canManageLinks}
+                      chain={chain}
+                      detail={detail}
+                      onLink={() => {
+                        setEditLinkData(null);
+                        setPanel("link");
+                      }}
+                      onEditLink={(link) => {
+                        setEditLinkData({
+                          linkId: link.id,
+                          keyResultId: String(link.keyResultId),
+                          weight: link.contributionWeight,
+                          contributionType: link.contributionType,
+                        });
+                        setPanel("link");
+                      }}
+                      onUnlink={(link) => setUnlinkTarget(link)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <ProjectAside project={project} />
+          </div>
+        </DetailBody>
       )}
+
       {unlinkTarget && (
         <ConfirmUnlinkModal
           link={unlinkTarget}
-          onClose={() => setUnlinkTarget(null)}
-          onConfirm={() => handleRemoveLink(unlinkTarget.id)}
+          onCancel={() => setUnlinkTarget(null)}
+          onConfirm={async () => {
+            await handleRemoveLink(unlinkTarget.id);
+            setUnlinkTarget(null);
+          }}
         />
       )}
-    </div>
+    </>
   );
 }

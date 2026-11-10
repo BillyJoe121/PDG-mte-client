@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { FormActions, FormError } from "./forms/FormField";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "./Modal";
 import {
-  AuthErrorBox,
   AuthField,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
@@ -17,6 +16,7 @@ interface CambiarContrasenaModalProps {
 }
 
 export function CambiarContrasenaModal({ open, onOpenChange }: CambiarContrasenaModalProps) {
+  const formId = useId();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -68,17 +68,17 @@ export function CambiarContrasenaModal({ open, onOpenChange }: CambiarContrasena
     setError("");
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-white sm:max-w-md" style={{ fontFamily: "Montserrat, sans-serif" }}>
-        <DialogHeader className="text-left">
-          <DialogTitle className="text-lg font-bold text-black">Cambiar contraseña</DialogTitle>
-          <DialogDescription className="text-sm text-[#717182]">
-            Confirma tu contraseña actual y define una nueva.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          {error && <AuthErrorBox message={error} />}
+    <Modal size="sm" onClose={() => handleOpenChange(false)}>
+      <ModalHeader title="Cambiar contraseña" onClose={() => handleOpenChange(false)} />
+      <ModalBody>
+        <p className="text-sm leading-relaxed text-gray-600">
+          Confirma tu contraseña actual y define una nueva.
+        </p>
+        <form id={formId} onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {error && <FormError>{error}</FormError>}
           <AuthField
             id="current-password"
             label="Contraseña actual"
@@ -107,26 +107,16 @@ export function CambiarContrasenaModal({ open, onOpenChange }: CambiarContrasena
             autoComplete="new-password"
             disabled={submitting}
           />
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => handleOpenChange(false)}
-              disabled={submitting}
-              className="rounded-lg border border-gray-300 px-4 py-2.5 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#5454E9] disabled:cursor-wait disabled:bg-gray-500"
-            >
-              {submitting && <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
-              {submitting ? "Guardando…" : "Guardar contraseña"}
-            </button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ModalBody>
+      <ModalFooter>
+        <FormActions
+          saving={submitting}
+          submitLabel={submitting ? "Guardando…" : "Guardar contraseña"}
+          formId={formId}
+          onCancel={() => handleOpenChange(false)}
+        />
+      </ModalFooter>
+    </Modal>
   );
 }

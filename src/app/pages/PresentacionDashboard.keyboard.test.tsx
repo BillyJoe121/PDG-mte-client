@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -123,5 +123,30 @@ describe("PresentacionDashboard keyboard navigation", () => {
 
     await press(periodSelect, "ArrowRight");
     expect(screen.getByText("1 / 3")).toBeInTheDocument();
+  });
+
+  it("closes the detail modal with Escape without leaving the report", async () => {
+    const bet = {
+      id: 1,
+      name: "Transformación Digital",
+      description: "Modernización curricular.",
+      status: "ACTIVA",
+      createdAt: "2026-01-01",
+      executionSummary: { summaryText: "", completedKeyResults: 1, inProgressKeyResults: 1, completedProjects: 1, inProgressProjects: 1, periods: [] },
+    };
+    mocks.loadPresentationScreen.mockResolvedValue({ ...response, bets: [bet] });
+    render(
+      <MemoryRouter initialEntries={["/presentacion"]}>
+        <PresentacionDashboard />
+      </MemoryRouter>
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /explorar informe general/i }));
+    await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i });
+    fireEvent.click(screen.getAllByRole("button", { name: /detalle de/i })[0]);
+
+    fireEvent.keyDown(await screen.findByRole("dialog"), { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: /todas las metas y apuestas en conjunto/i })).toBeInTheDocument();
   });
 });

@@ -35,7 +35,7 @@ test.describe('admin navigation', () => {
     }));
     await page.goto('/usuarios');
 
-    await expect(page.getByRole('heading', { name: /Usuarios, departamentos y responsables/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Gestión de Usuarios/i })).toBeVisible();
     await expect(page.getByLabel(/Tabla de usuarios/).getByText('Sistemas MTE')).toBeVisible();
     await expect(page.getByRole('button', { name: /Nuevo Usuario/i })).toBeVisible();
   });
@@ -73,7 +73,7 @@ test.describe('admin navigation', () => {
     });
 
     await page.goto('/auditoria');
-    await expect(page.getByRole('heading', { name: /Log de auditoría y tendencias/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Auditoría/i })).toBeVisible();
     await page.getByRole('button', { name: /Ver detalle de Objetivo actualizado/i }).click();
     await expect(page.getByRole('dialog', { name: /Detalle del evento/i })).toContainText('Objetivo vigente');
   });

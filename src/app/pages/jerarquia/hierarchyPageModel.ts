@@ -18,7 +18,7 @@ export type View = "arbol" | "apuestas" | "metas";
 
 export const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;
 export const expandMotionTransition = { duration: 0.18, ease: "easeInOut" } as const;
-export const HIERARCHY_DEPTH_INDENT = 48;
+export const HIERARCHY_DEPTH_INDENT = 34;
 export const ROOT_DESCRIPTION_MAX_CHARS = 132;
 export const subtleViewMotion = {
   initial: { opacity: 0, y: 6 },

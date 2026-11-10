@@ -191,8 +191,8 @@ export function NuevoProyecto() {
   if (!canCreate) {
     return (
       <div className="p-8 text-center">
-        <h2 style={{ fontSize: 20, fontWeight: 900 }}>Debes iniciar sesion</h2>
-        <button onClick={() => navigate("/proyectos")} style={{ marginTop: 12, color: COLORS.blue, fontSize: 13, fontWeight: 800 }}>Volver a iniciativas</button>
+        <h2 style={{ fontSize: 17, fontWeight: 900 }}>Debes iniciar sesion</h2>
+        <button onClick={() => navigate("/proyectos")} style={{ marginTop: 12, color: COLORS.blue, fontSize: 11, fontWeight: 800 }}>Volver a iniciativas</button>
       </div>
     );
   }
@@ -209,43 +209,43 @@ export function NuevoProyecto() {
           <FolderKanban size={19} color="#fff" />
         </div>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 950, color: "#000" }}>Nueva iniciativa</h1>
-          <p style={{ fontSize: 12, color: "#717182", marginTop: 3 }}>Crea una iniciativa local y vinculala a uno o varios Key Results.</p>
+          <h1 style={{ fontSize: 17, fontWeight: 950, color: "#000" }}>Nueva iniciativa</h1>
+          <p style={{ fontSize: 10.5, color: "#717182", marginTop: 3 }}>Crea una iniciativa local y vinculala a uno o varios Key Results.</p>
         </div>
       </div>
 
       {loadingCatalogs ? (
         <div className="bg-white rounded-lg p-10 text-center" style={{ border: "1.5px solid #E5E7EB" }}>
           <Loader2 size={22} className="animate-spin mx-auto mb-3" />
-          <p style={{ fontSize: 13, color: "#717182" }}>Cargando catalogos...</p>
+          <p style={{ fontSize: 11, color: "#717182" }}>Cargando catalogos...</p>
         </div>
       ) : (
         <div className="space-y-5">
           <div className="bg-white rounded-lg p-5 space-y-5" style={{ border: "1.5px solid #E5E7EB" }}>
-            <h2 style={{ fontSize: 13, fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Informacion general</h2>
+            <h2 style={{ fontSize: 11, fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Informacion general</h2>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Nombre *</label>
-              <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Iniciativa de analitica curricular" style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.name ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 13 }} />
-              {errors.name && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.name}</p>}
+              <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Nombre *</label>
+              <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Iniciativa de analitica curricular" style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.name ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 11 }} />
+              {errors.name && <p style={{ fontSize: 10.5, color: COLORS.orange, marginTop: 4 }}>{errors.name}</p>}
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Descripcion *</label>
-              <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={4} placeholder="Describe alcance, propósito y entregables principales..." style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.description ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 13, resize: "vertical" }} />
-              {errors.description && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.description}</p>}
+              <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Descripcion *</label>
+              <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={4} placeholder="Describe alcance, propósito y entregables principales..." style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.description ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 11, resize: "vertical" }} />
+              {errors.description && <p style={{ fontSize: 10.5, color: COLORS.orange, marginTop: 4 }}>{errors.description}</p>}
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Tipo de iniciativa</label>
+              <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Tipo de iniciativa</label>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-2">
                 {PROJECT_TYPES.map((type) => {
                   const selected = form.type === type.value;
                   return (
                     <button key={type.value} type="button" onClick={() => setField("type", type.value)} className="text-left p-3 rounded-lg" style={{ border: `2px solid ${selected ? type.color : "#E5E7EB"}`, backgroundColor: selected ? `${type.color}12` : "#fff" }}>
                       <div className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: type.color }} />
-                      <p style={{ fontSize: 12, fontWeight: 900, color: selected ? type.color : "#000" }}>{type.label}</p>
-                      <p style={{ fontSize: 10, color: "#717182", marginTop: 3 }}>{type.desc}</p>
+                      <p style={{ fontSize: 10.5, fontWeight: 900, color: selected ? type.color : "#000" }}>{type.label}</p>
+                      <p style={{ fontSize: 9, color: "#717182", marginTop: 3 }}>{type.desc}</p>
                     </button>
                   );
                 })}
@@ -254,47 +254,47 @@ export function NuevoProyecto() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Departamento *</label>
-                <select value={form.departmentId} onChange={(event) => setField("departmentId", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.departmentId ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Departamento *</label>
+                <select value={form.departmentId} onChange={(event) => setField("departmentId", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.departmentId ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 10.5, backgroundColor: "#fff" }}>
                   {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
                 </select>
-                {errors.departmentId && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.departmentId}</p>}
+                {errors.departmentId && <p style={{ fontSize: 10.5, color: COLORS.orange, marginTop: 4 }}>{errors.departmentId}</p>}
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Estado inicial</label>
-                <select value={form.status} onChange={(event) => setField("status", event.target.value as ProjectStatus)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Estado inicial</label>
+                <select value={form.status} onChange={(event) => setField("status", event.target.value as ProjectStatus)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 10.5, backgroundColor: "#fff" }}>
                   {STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Tutores *</label>
-                <input value={form.tutors} onChange={(event) => setField("tutors", event.target.value)} placeholder="Tutora A, Tutor B" style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.tutors ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 12 }} />
-                {errors.tutors && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.tutors}</p>}
+                <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Tutores *</label>
+                <input value={form.tutors} onChange={(event) => setField("tutors", event.target.value)} placeholder="Tutora A, Tutor B" style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.tutors ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 10.5 }} />
+                {errors.tutors && <p style={{ fontSize: 10.5, color: COLORS.orange, marginTop: 4 }}>{errors.tutors}</p>}
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div>
-                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Periodo inicio *</label>
-                <select value={form.startPeriod} onChange={(event) => setField("startPeriod", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.startPeriod ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Periodo inicio *</label>
+                <select value={form.startPeriod} onChange={(event) => setField("startPeriod", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.startPeriod ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 10.5, backgroundColor: "#fff" }}>
                   {periods.map((period) => <option key={period.id} value={period.name}>{period.name}</option>)}
                 </select>
-                {errors.startPeriod && <p style={{ fontSize: 11, color: COLORS.orange, marginTop: 4 }}>{errors.startPeriod}</p>}
+                {errors.startPeriod && <p style={{ fontSize: 10.5, color: COLORS.orange, marginTop: 4 }}>{errors.startPeriod}</p>}
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Periodo fin</label>
-                <select value={form.endPeriod} onChange={(event) => setField("endPeriod", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Periodo fin</label>
+                <select value={form.endPeriod} onChange={(event) => setField("endPeriod", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 10.5, backgroundColor: "#fff" }}>
                   <option value="">Sin definir</option>
                   {periods.map((period) => <option key={period.id} value={period.name}>{period.name}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Fecha inicio</label>
-                <input type="date" value={form.startDate} onChange={(event) => setField("startDate", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12 }} />
+                <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Fecha inicio</label>
+                <input type="date" value={form.startDate} onChange={(event) => setField("startDate", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 10.5 }} />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 850, textTransform: "uppercase" }}>Fecha fin</label>
-                  <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 12 }} />
+                <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Fecha fin</label>
+                  <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 10.5 }} />
               </div>
             </div>
 
@@ -303,7 +303,7 @@ export function NuevoProyecto() {
               value={form.plannerUrl}
               error={errors.plannerUrl}
               onChange={(value) => setField("plannerUrl", value)}
-              inputStyle={{ padding: "10px 12px", border: `1.5px solid ${errors.plannerUrl ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 12 }}
+              inputStyle={{ padding: "10px 12px", border: `1.5px solid ${errors.plannerUrl ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 10.5 }}
               errorColor={COLORS.orange}
             />
           </div>
@@ -311,43 +311,43 @@ export function NuevoProyecto() {
           <div className="bg-white rounded-lg p-5 space-y-4" style={{ border: "1.5px solid #E5E7EB" }}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 style={{ fontSize: 13, fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Key Results *</h2>
-                <p style={{ fontSize: 12, color: "#717182", marginTop: 8 }}>Selecciona al menos un KR. El primero que elijas queda como KR principal de la iniciativa; puedes vincular mas con su peso y tipo de contribucion.</p>
+                <h2 style={{ fontSize: 11, fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Key Results *</h2>
+                <p style={{ fontSize: 10.5, color: "#717182", marginTop: 8 }}>Selecciona al menos un KR. El primero que elijas queda como KR principal de la iniciativa; puedes vincular mas con su peso y tipo de contribucion.</p>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 900, color: COLORS.blue }}>{krLinks.length} seleccionado(s)</span>
+              <span style={{ fontSize: 10.5, fontWeight: 900, color: COLORS.orange }}>{krLinks.length} seleccionado(s)</span>
             </div>
-            {errors.keyResults && <p style={{ fontSize: 11, color: COLORS.orange }}>{errors.keyResults}</p>}
+            {errors.keyResults && <p style={{ fontSize: 10.5, color: COLORS.orange }}>{errors.keyResults}</p>}
 
             {keyResults.length === 0 ? (
-              <p style={{ fontSize: 13, color: "#717182" }}>No hay Key Results disponibles.</p>
+              <p style={{ fontSize: 11, color: "#717182" }}>No hay Key Results disponibles.</p>
             ) : (
               <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
                 {keyResults.map((kr) => {
                   const link = krLinks.find((item) => item.keyResultId === kr.id);
                   const selected = !!link;
                   return (
-                    <div key={kr.id} className="rounded-lg p-3" style={{ border: `1.5px solid ${selected ? COLORS.blue : "#E5E7EB"}`, backgroundColor: selected ? "#EEF2FF" : "#FAFAFA" }}>
+                    <div key={kr.id} className="rounded-lg p-3" style={{ border: `1.5px solid ${selected ? COLORS.orange : "#E5E7EB"}`, backgroundColor: selected ? "#FDF0EB" : "#FAFAFA" }}>
                       <div className="flex items-start gap-3">
-                        <button type="button" aria-label={`Seleccionar KR ${kr.id}`} aria-pressed={selected} onClick={() => toggleKeyResult(kr.id)} className="w-5 h-5 rounded flex items-center justify-center mt-0.5" style={{ backgroundColor: selected ? COLORS.blue : "#fff", border: `2px solid ${selected ? COLORS.blue : "#D1D5DB"}` }}>
+                        <button type="button" aria-label={`Seleccionar KR ${kr.id}`} aria-pressed={selected} onClick={() => toggleKeyResult(kr.id)} className="w-5 h-5 rounded flex items-center justify-center mt-0.5" style={{ backgroundColor: selected ? COLORS.orange : "#fff", border: `2px solid ${selected ? COLORS.orange : "#D1D5DB"}` }}>
                           {selected && <Check size={12} color="#fff" />}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <p style={{ fontSize: 10, fontWeight: 900, color: COLORS.blue, textTransform: "uppercase" }}>
+                          <p style={{ fontSize: 9, fontWeight: 900, color: COLORS.orange, textTransform: "uppercase" }}>
                             KR {kr.id} - {kr.strategyLabel}{kr.period ? ` - ${kr.period}` : ""}
                           </p>
-                          <p style={{ fontSize: 12, fontWeight: 850, color: "#000", marginTop: 3 }}>{kr.name || kr.description}</p>
-                          <p style={{ fontSize: 11, color: "#717182", marginTop: 2 }}>{kr.metric}</p>
+                          <p style={{ fontSize: 10.5, fontWeight: 850, color: "#000", marginTop: 3 }}>{kr.name || kr.description}</p>
+                          <p style={{ fontSize: 10.5, color: "#717182", marginTop: 2 }}>{kr.metric}</p>
                         </div>
                       </div>
                       {selected && link && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 ml-8">
                           <div>
-                            <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase" }}>Peso</label>
-                            <input type="number" min={0} max={100} value={link.contributionWeight} onChange={(event) => updateLink(kr.id, { contributionWeight: Math.max(0, Math.min(100, Number(event.target.value))) })} style={{ width: "100%", marginTop: 4, padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: 12 }} />
+                            <label style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>Peso</label>
+                            <input type="number" min={0} max={100} value={link.contributionWeight} onChange={(event) => updateLink(kr.id, { contributionWeight: Math.max(0, Math.min(100, Number(event.target.value))) })} style={{ width: "100%", marginTop: 4, padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: 10.5 }} />
                           </div>
                           <div>
-                            <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase" }}>Tipo de contribucion</label>
-                            <select value={link.contributionType} onChange={(event) => updateLink(kr.id, { contributionType: event.target.value as ContributionType })} style={{ width: "100%", marginTop: 4, padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: 12, backgroundColor: "#fff" }}>
+                            <label style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>Tipo de contribucion</label>
+                            <select value={link.contributionType} onChange={(event) => updateLink(kr.id, { contributionType: event.target.value as ContributionType })} style={{ width: "100%", marginTop: 4, padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: 10.5, backgroundColor: "#fff" }}>
                               {CONTRIBUTION_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
                             </select>
                           </div>
@@ -361,8 +361,8 @@ export function NuevoProyecto() {
           </div>
 
           <div className="flex items-center justify-end gap-3 pb-6">
-            <button onClick={() => navigate(-1)} style={{ padding: "10px 18px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontWeight: 850 }}>Cancelar</button>
-            <button onClick={handleSubmit} disabled={saving} className="inline-flex items-center gap-2" style={{ padding: "10px 18px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 6, fontSize: 13, fontWeight: 950, opacity: saving ? 0.65 : 1 }}>
+            <button onClick={() => navigate(-1)} style={{ padding: "10px 18px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 11, fontWeight: 850 }}>Cancelar</button>
+            <button onClick={handleSubmit} disabled={saving} className="inline-flex items-center gap-2" style={{ padding: "10px 18px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 950, opacity: saving ? 0.65 : 1 }}>
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
               Crear iniciativa
             </button>

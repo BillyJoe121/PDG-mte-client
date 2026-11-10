@@ -35,7 +35,7 @@ const variantStyles: Record<NonNullable<PlannerButtonProps["variant"]>, CSSPrope
     color: "#5454E9",
     border: "1px solid #818CF8",
     padding: "3px 8px",
-    fontSize: "10px",
+    fontSize: "9px",
   },
 };
 
@@ -63,7 +63,7 @@ export function PlannerButton({
       className={`group inline-flex items-center gap-1.5 rounded font-extrabold transition-all duration-150 active:scale-95 hover:opacity-90 ${className}`}
       style={{
         padding: size === "sm" ? "5px 10px" : "8px 14px",
-        fontSize: size === "sm" ? "11px" : "12px",
+        fontSize: "11px",
         lineHeight: 1.2,
         cursor: "pointer",
         ...variantStyles[variant],

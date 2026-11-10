@@ -5,14 +5,14 @@ import { LargeMetricPill, SlideProgressRow, strategyText } from "./PresentationC
 function SlideEmptyState({ title, text }: { title: string; text: string }) {
   return (
     <div
-      className="mt-2.5 sm:mt-3 flex items-start gap-2.5 rounded-lg border border-dashed border-[#C9CFDB] bg-[#F7F8FC] p-3 sm:p-4"
+      className="mt-2.5 sm:mt-3 flex items-start gap-2.5 rounded-lg border border-dashed border-[#C9CFDB] bg-[#F8FAFC] p-3 sm:p-4"
       role="status"
     >
       <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white text-[#5454E9]" aria-hidden="true">
         <Info size={15} />
       </div>
       <div>
-        <p className="text-xs sm:text-sm font-black text-[#222245]">{title}</p>
+        <p className="text-xs sm:text-sm font-black text-[#111827]">{title}</p>
         <p className="mt-0.5 text-[11px] font-semibold leading-relaxed text-[#717182]">{text}</p>
       </div>
     </div>
@@ -47,7 +47,7 @@ function SummarySlide({ general }: { general: GeneralReport }) {
         label="KRs cerrados"
         value={general.closedKeyResults ?? 0}
         sub="Solo cuentan los KRs en estado Cerrado"
-        color="#222245"
+        color="#E9683B"
         icon={<Layers size={16} />}
       />
     </div>
@@ -65,12 +65,12 @@ function RankingSlide({ keyResults }: { keyResults: KeyResultRanking[] }) {
   }
 
   return (
-    <div className="mt-2.5 sm:mt-3 rounded-lg border border-[#DFE3EC] bg-white p-2.5 sm:p-3.5 shadow-xs">
-      <div className="flex items-center justify-between border-b border-[#DFE3EC] pb-1.5 mb-1">
-        <h3 className="text-xs font-black uppercase tracking-wider text-[#222245]">Avance registrado</h3>
+    <div className="mt-2.5 sm:mt-3 rounded-lg border border-[#D9DEE8] bg-white p-2.5 sm:p-3.5 shadow-xs">
+      <div className="flex items-center justify-between border-b border-[#D9DEE8] pb-1.5 mb-1">
+        <h3 className="text-xs font-black uppercase tracking-wider text-[#111827]">Avance registrado</h3>
         <span className="text-[10px] font-bold text-[#717182]">{keyResults.length} KRs</span>
       </div>
-      <div className="max-h-[260px] overflow-y-auto app-scroll-default divide-y divide-[#DFE3EC]">
+      <div className="max-h-[260px] overflow-y-auto app-scroll-default divide-y divide-[#D9DEE8]">
         {keyResults.map((kr, idx) => (
           <SlideProgressRow
             key={kr.keyResultId || idx}
@@ -96,21 +96,21 @@ function DepartmentsSlide({ departments }: { departments: DepartmentReport[] }) 
   }
 
   return (
-    <div className="mt-2.5 sm:mt-3 rounded-lg border border-[#DFE3EC] bg-white p-2.5 sm:p-3.5 shadow-xs overflow-hidden">
+    <div className="mt-2.5 sm:mt-3 rounded-lg border border-[#D9DEE8] bg-white p-2.5 sm:p-3.5 shadow-xs overflow-hidden">
       <div className="overflow-x-auto max-h-[220px] sm:max-h-[260px] overflow-y-auto app-scroll-default">
         <table className="w-full text-left text-xs" aria-label="Resumen por departamento">
           <thead className="sticky top-0 bg-white z-10">
-            <tr className="border-b border-[#DFE3EC] text-[9px] font-black uppercase tracking-wider text-[#717182]">
+            <tr className="border-b border-[#D9DEE8] text-[9px] font-black uppercase tracking-wider text-[#717182]">
               <th className="py-1.5 px-2">Departamento</th>
               <th className="py-1.5 px-2 text-center">Iniciativas</th>
               <th className="py-1.5 px-2 text-center">KRs</th>
               <th className="py-1.5 px-2 text-center">KRs cerrados</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#DFE3EC]">
+          <tbody className="divide-y divide-[#D9DEE8]">
             {departments.map((dept, idx) => (
-              <tr key={dept.departmentId || idx} className="hover:bg-[#F7F8FC] transition-colors">
-                <td className="py-1 px-2 font-black text-[#222245] text-xs">{dept.departmentName}</td>
+              <tr key={dept.departmentId || idx} className="hover:bg-[#F8FAFC] transition-colors">
+                <td className="py-1 px-2 font-black text-[#111827] text-xs">{dept.departmentName}</td>
                 <td className="py-1 px-2 text-center font-bold text-[#717182] text-xs">{dept.projects}</td>
                 <td className="py-1 px-2 text-center font-bold text-[#717182] text-xs">{dept.keyResults}</td>
                 <td className="py-1 px-2 text-center font-bold text-[#717182] text-xs">{dept.closedKeyResults}</td>

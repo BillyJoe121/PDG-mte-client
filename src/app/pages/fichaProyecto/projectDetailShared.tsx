@@ -76,8 +76,8 @@ export function InfoItem({ icon, label, value }: { icon: React.ReactNode; label:
         {icon}
       </div>
       <div>
-        <p style={{ fontSize: 10, fontWeight: 900, color: "#9CA3AF", textTransform: "uppercase" }}>{label}</p>
-        <p style={{ fontSize: 13, fontWeight: 850, color: "#000", marginTop: 3 }}>{value}</p>
+        <p style={{ fontSize: 9, fontWeight: 900, color: "#9CA3AF", textTransform: "uppercase" }}>{label}</p>
+        <p style={{ fontSize: 11, fontWeight: 850, color: "#000", marginTop: 3 }}>{value}</p>
       </div>
     </div>
   );
@@ -86,8 +86,8 @@ export function InfoItem({ icon, label, value }: { icon: React.ReactNode; label:
 export function Kpi({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="bg-white rounded-lg p-4" style={{ border: "1.5px solid #E5E7EB" }}>
-      <p style={{ fontSize: 11, fontWeight: 900, color: "#9CA3AF", textTransform: "uppercase" }}>{label}</p>
-      <p style={{ fontSize: 24, fontWeight: 950, color: "#000", marginTop: 5 }}>{value}</p>
+      <p style={{ fontSize: 10.5, fontWeight: 900, color: "#9CA3AF", textTransform: "uppercase" }}>{label}</p>
+      <p style={{ fontSize: 17, fontWeight: 950, color: "#000", marginTop: 5 }}>{value}</p>
     </div>
   );
 }

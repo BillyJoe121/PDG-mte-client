@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { ArchiveRestore, Loader2, X } from "lucide-react";
+import { ArchiveRestore, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { DETAIL_BUTTON_CLASS } from "../../components/DetailModal";
+import { Modal, ModalBody, ModalHeader } from "../../components/Modal";
 import { goalsApi, strategicBetsApi, type Goal, type StrategicBet } from "../../services/strategicApi";
 
 interface ArchivedStrategyModalProps {
@@ -56,29 +58,23 @@ export function ArchivedStrategyModal({ canManageStrategy, onClose, onChanged }:
   const empty = bets.length === 0 && goals.length === 0;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-5 backdrop-blur-sm" onClick={onClose}>
-      <section className="w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-2xl" onClick={(event) => event.stopPropagation()} aria-labelledby="archived-title">
-        <header className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] px-5 py-4">
-          <div>
-            <h2 id="archived-title" className="text-sm font-black text-[#111827]">Elementos archivados</h2>
-            <p className="mt-1 text-[11px] font-medium text-[#717182]">La restauracion conserva relaciones e historial.</p>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Cerrar archivo" className="rounded-md border border-[#E5E7EB] p-2"><X size={15} /></button>
-        </header>
-        <div className="max-h-[65vh] space-y-5 overflow-y-auto p-5">
-          {loading ? (
-            <p className="flex items-center justify-center py-10 text-xs font-bold text-[#717182]"><Loader2 size={16} className="mr-2 animate-spin" /> Cargando archivo...</p>
-          ) : empty ? (
-            <p className="py-10 text-center text-xs font-bold text-[#717182]">No hay elementos archivados.</p>
-          ) : (
-            <>
-              <ArchivedGroup title="Apuestas" items={bets} canRestore={canManageStrategy} kind="bet" restoringKey={restoringKey} onRestore={restore} />
-              <ArchivedGroup title="Metas" items={goals} canRestore={canManageStrategy} kind="goal" restoringKey={restoringKey} onRestore={restore} />
-            </>
-          )}
-        </div>
-      </section>
-    </div>
+    <Modal onClose={onClose}>
+      <ModalHeader title="Elementos archivados" closeLabel="Cerrar archivo" onClose={onClose}>
+        <span className="text-xs text-gray-500">La restauracion conserva relaciones e historial.</span>
+      </ModalHeader>
+      <ModalBody>
+        {loading ? (
+          <p className="flex items-center justify-center py-10 text-sm font-bold text-gray-500"><Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" /> Cargando archivo...</p>
+        ) : empty ? (
+          <p className="py-10 text-center text-sm font-bold text-gray-500">No hay elementos archivados.</p>
+        ) : (
+          <>
+            <ArchivedGroup title="Apuestas" items={bets} canRestore={canManageStrategy} kind="bet" restoringKey={restoringKey} onRestore={restore} />
+            <ArchivedGroup title="Metas" items={goals} canRestore={canManageStrategy} kind="goal" restoringKey={restoringKey} onRestore={restore} />
+          </>
+        )}
+      </ModalBody>
+    </Modal>
   );
 }
 
@@ -100,19 +96,19 @@ function ArchivedGroup({
   if (items.length === 0) return null;
   return (
     <div>
-      <h3 className="mb-2 text-[10px] font-black uppercase tracking-wide text-[#717182]">{title} ({items.length})</h3>
+      <h3 className="mb-2 text-[9px] font-extrabold uppercase tracking-wide text-gray-500">{title} ({items.length})</h3>
       <div className="space-y-2">
         {items.map((item) => {
           const key = `${kind}:${item.id}`;
           return (
-            <div key={key} className="flex items-center justify-between gap-4 rounded-md border border-[#E5E7EB] bg-[#F8FAFC] p-3">
+            <div key={key} className="flex items-center justify-between gap-4 rounded-md border border-gray-200 p-3">
               <div className="min-w-0">
-                <p className="truncate text-xs font-extrabold text-[#111827]">{item.name}</p>
-                <p className="mt-1 line-clamp-1 text-[10px] text-[#717182]">{item.description}</p>
+                <p className="truncate text-sm font-bold text-[#111827]">{item.name}</p>
+                <p className="mt-1 line-clamp-1 text-xs text-gray-500">{item.description}</p>
               </div>
               {canRestore && (
-                <button type="button" disabled={Boolean(restoringKey)} onClick={() => void onRestore(kind, item.id)} className="flex shrink-0 items-center gap-1.5 rounded-md bg-[#047857] px-3 py-2 text-[11px] font-extrabold text-white disabled:opacity-50">
-                  {restoringKey === key ? <Loader2 size={13} className="animate-spin" /> : <ArchiveRestore size={13} />} Restaurar
+                <button type="button" disabled={Boolean(restoringKey)} onClick={() => void onRestore(kind, item.id)} className={DETAIL_BUTTON_CLASS}>
+                  {restoringKey === key ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <ArchiveRestore size={12} aria-hidden="true" />} Restaurar
                 </button>
               )}
             </div>

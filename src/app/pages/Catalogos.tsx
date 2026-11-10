@@ -1,6 +1,8 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CalendarDays, Loader2, RefreshCw, Ruler } from "lucide-react";
+import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "../components/ConfirmDialog";
+import { PageTabs, TabButton } from "../components/PageToolbar";
 import { useAuth } from "../context/AuthContext";
 import {
   ApiError,
@@ -27,6 +29,7 @@ import {
 
 export function Catalogos() {
   const { usuario } = useAuth();
+  const { confirm, confirmDialog } = useConfirm();
   const [tab, setTab] = useState<CatalogosTab>("periodos");
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
@@ -240,7 +243,12 @@ export function Catalogos() {
   };
 
   const handleDeletePeriod = async (period: AcademicPeriod) => {
-    if (!window.confirm(`Eliminar el periodo "${period.name}"?`)) return;
+    const accepted = await confirm({
+      title: "Eliminar periodo",
+      description: `Eliminar el periodo "${period.name}"?`,
+      confirmLabel: "Eliminar",
+    });
+    if (!accepted) return;
     setSaving(true);
     setError("");
     try {
@@ -259,7 +267,12 @@ export function Catalogos() {
   };
 
   const handleDeleteUnit = async (unit: MeasurementUnit) => {
-    if (!window.confirm(`Eliminar la unidad "${unit.name}"?`)) return;
+    const accepted = await confirm({
+      title: "Eliminar unidad",
+      description: `Eliminar la unidad "${unit.name}"?`,
+      confirmLabel: "Eliminar",
+    });
+    if (!accepted) return;
     setSaving(true);
     setError("");
     try {
@@ -281,8 +294,8 @@ export function Catalogos() {
     return (
       <div className="p-8 text-center">
         <AlertTriangle size={42} color={COLORS.orange} className="mx-auto mb-3" />
-        <h1 style={{ fontSize: "20px", fontWeight: 900 }}>Acceso restringido</h1>
-        <p style={{ color: COLORS.gray, fontSize: "13px", marginTop: 4 }}>
+        <h1 style={{ fontSize: "17px", fontWeight: 900 }}>Acceso restringido</h1>
+        <p style={{ color: COLORS.gray, fontSize: "11px", marginTop: 4 }}>
           Solo administracion puede gestionar catalogos.
         </p>
       </div>
@@ -290,99 +303,87 @@ export function Catalogos() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
-        <div>
-          <h1 style={{ fontSize: "24px", fontWeight: 900, color: "#000" }}>Catalogos del sistema</h1>
-          <p style={{ fontSize: "13px", color: COLORS.gray, marginTop: 4 }}>
-            Periodos academicos y unidades de medida conectados al backend de catalogos.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => void loadCatalogs()}
-            disabled={loading || saving}
-            className="flex items-center justify-center rounded-lg transition-opacity disabled:opacity-50"
-            style={{ width: 38, height: 38, border: "1.5px solid #E5E7EB" }}
-            title="Recargar catalogos"
-          >
-            <RefreshCw size={15} />
-          </button>
-          <div className="flex rounded-lg overflow-hidden" style={{ border: "1.5px solid #000" }}>
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="flex-shrink-0 bg-white px-6 pt-5 pb-4" style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <PageTabs label="Secciones de catálogos">
             {[
-              { key: "periodos" as CatalogosTab, label: "Periodos", icon: CalendarDays },
-              { key: "unidades" as CatalogosTab, label: "Unidades", icon: Ruler },
+              { key: "periodos" as CatalogosTab, label: "Periodos" },
+              { key: "unidades" as CatalogosTab, label: "Unidades" },
             ].map((item) => (
-              <button
+              <TabButton
                 key={item.key}
+                active={tab === item.key}
+                label={item.label}
                 onClick={() => {
                   setTab(item.key);
                   setError("");
                 }}
-                className="flex items-center gap-2"
-                style={{
-                  padding: "10px 14px",
-                  backgroundColor: tab === item.key ? "#000" : "#fff",
-                  color: tab === item.key ? COLORS.yellow : "#374151",
-                  fontSize: "12px",
-                  fontWeight: 900,
-                  borderRight: item.key === "periodos" ? "1px solid #000" : "0",
-                }}
-              >
-                <item.icon size={14} /> {item.label}
-              </button>
+              />
             ))}
-          </div>
+          </PageTabs>
+          <button
+            type="button"
+            onClick={() => void loadCatalogs()}
+            disabled={loading || saving}
+            className="inline-flex h-[38px] flex-shrink-0 items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 text-sm font-bold transition-opacity disabled:opacity-50"
+            title="Recargar catalogos"
+          >
+            <RefreshCw size={14} /> Recargar
+          </button>
         </div>
       </div>
 
-      {error && (
-        <div
-          className="mb-4 px-4 py-3 rounded-lg flex items-center gap-2"
-          style={{
-            backgroundColor: "#FEF3F2",
-            border: "1px solid #FCA5A5",
-            color: "#991B1B",
-            fontSize: "12px",
-            fontWeight: 800,
-          }}
-        >
-          <AlertTriangle size={14} /> {error}
-        </div>
-      )}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 py-5">
+        {error && (
+          <div
+            className="flex-shrink-0 px-4 py-3 rounded-lg flex items-center gap-2"
+            style={{
+              backgroundColor: "#FEF3F2",
+              border: "1px solid #FCA5A5",
+              color: "#991B1B",
+              fontSize: "10.5px",
+              fontWeight: 800,
+            }}
+          >
+            <AlertTriangle size={14} /> {error}
+          </div>
+        )}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "13px", fontWeight: 800 }}>
-          <Loader2 size={18} className="mr-2 animate-spin" /> Cargando catalogos...
-        </div>
-      ) : tab === "periodos" ? (
-        <PeriodosPanel
-          editingPeriodId={editingPeriodId}
-          periodForm={periodForm}
-          periods={sortedPeriods}
-          saving={saving}
-          onCancel={resetPeriod}
-          onDelete={(period) => void handleDeletePeriod(period)}
-          onEdit={editPeriod}
-          onFormChange={(updater) => setPeriodForm(updater)}
-          onStatusChange={(period, status) => void updatePeriodStatus(period, status)}
-          onSubmit={handlePeriodSubmit}
-          onToggleActive={(period) => void togglePeriodActive(period)}
-        />
-      ) : (
-        <UnidadesPanel
-          editingUnitId={editingUnitId}
-          saving={saving}
-          unitForm={unitForm}
-          units={sortedUnits}
-          onCancel={resetUnit}
-          onDelete={(unit) => void handleDeleteUnit(unit)}
-          onEdit={editUnit}
-          onFormChange={(updater) => setUnitForm(updater)}
-          onSubmit={handleUnitSubmit}
-          onToggleActive={(unit) => void toggleUnitActive(unit)}
-        />
-      )}
+        {loading ? (
+          <div className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "11px", fontWeight: 800 }}>
+            <Loader2 size={18} className="mr-2 animate-spin" /> Cargando catalogos...
+          </div>
+        ) : tab === "periodos" ? (
+          <PeriodosPanel
+            editingPeriodId={editingPeriodId}
+            periodForm={periodForm}
+            periods={sortedPeriods}
+            saving={saving}
+            onCancel={resetPeriod}
+            onDelete={(period) => void handleDeletePeriod(period)}
+            onEdit={editPeriod}
+            onFormChange={(updater) => setPeriodForm(updater)}
+            onStatusChange={(period, status) => void updatePeriodStatus(period, status)}
+            onSubmit={handlePeriodSubmit}
+            onToggleActive={(period) => void togglePeriodActive(period)}
+          />
+        ) : (
+          <UnidadesPanel
+            editingUnitId={editingUnitId}
+            saving={saving}
+            unitForm={unitForm}
+            units={sortedUnits}
+            onCancel={resetUnit}
+            onDelete={(unit) => void handleDeleteUnit(unit)}
+            onEdit={editUnit}
+            onFormChange={(updater) => setUnitForm(updater)}
+            onSubmit={handleUnitSubmit}
+            onToggleActive={(unit) => void toggleUnitActive(unit)}
+          />
+        )}
+      </div>
+      {confirmDialog}
     </div>
   );
 }

@@ -143,13 +143,13 @@ function CoverageSummaryCard({ item, showProjects }: { item: CoverageItem; showP
   return (
     <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
       <div className="flex items-start justify-between gap-3">
-        <p style={{ fontSize: 12, fontWeight: 900, color: COLORS.text, lineHeight: 1.35 }}>{item.name}</p>
-        <span style={{ fontSize: 13, fontWeight: 900, color: COLORS.purple }}>{item.keyResults}</span>
+        <p style={{ fontSize: 10.5, fontWeight: 900, color: COLORS.text, lineHeight: 1.35 }}>{item.name}</p>
+        <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.purple }}>{item.keyResults}</span>
       </div>
-      <p style={{ fontSize: 10, color: COLORS.gray, marginTop: 6, lineHeight: 1.45 }}>
+      <p style={{ fontSize: 9, color: COLORS.gray, marginTop: 6, lineHeight: 1.45 }}>
         {item.keyResults} KRs{projectText}
       </p>
-      <p style={{ fontSize: 11, color: COLORS.text, fontWeight: 400, marginTop: 8, lineHeight: 1.45 }}>
+      <p style={{ fontSize: 10.5, color: COLORS.text, fontWeight: 400, marginTop: 8, lineHeight: 1.45 }}>
         {statusText}
       </p>
       <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-[#EEF2F7]">
@@ -167,7 +167,7 @@ function CoverageSummaryCard({ item, showProjects }: { item: CoverageItem; showP
 
 export function DashboardEmptyState({ text, compact = false }: { text: string; compact?: boolean }) {
   return (
-    <div className="flex items-center justify-center rounded-md text-center" style={{ minHeight: compact ? 180 : 260, backgroundColor: "#F8FAFC", border: `1px dashed ${COLORS.border}`, color: COLORS.gray, fontSize: 12, fontWeight: 800 }}>
+    <div className="flex items-center justify-center rounded-md text-center" style={{ minHeight: compact ? 180 : 260, backgroundColor: "#F8FAFC", border: `1px dashed ${COLORS.border}`, color: COLORS.gray, fontSize: 10.5, fontWeight: 800 }}>
       {text}
     </div>
   );

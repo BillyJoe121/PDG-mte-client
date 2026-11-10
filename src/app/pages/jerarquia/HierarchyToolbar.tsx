@@ -1,15 +1,23 @@
-import type { CSSProperties } from "react";
-import { motion, useReducedMotion } from "motion/react";
-import { Archive, Plus, RefreshCw, Search } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Archive, RefreshCw } from "lucide-react";
+import { ScreenToolbar, ToolbarButton, ToolbarCreateButton, ToolbarSearch, ToolbarSegmented, ToolbarSelect } from "../../components/ScreenToolbar";
+import { ViewModeToggle } from "../../components/ViewModeToggle";
+import type { ViewMode } from "../../hooks/useViewMode";
 import type { AcademicPeriod } from "../../services/catalogsApi";
-import { getNodeTheme } from "./hierarchyVisualSystem";
-import { modalSelectStyle } from "./strategyModalPrimitives";
-import { COLORS, shortMotionTransition, type View } from "./hierarchyPageModel";
+import { COLORS, type View } from "./hierarchyPageModel";
+
+const VIEW_OPTIONS: { value: View; label: string }[] = [
+  { value: "arbol", label: "Todas" },
+  { value: "apuestas", label: "Apuestas" },
+  { value: "metas", label: "Metas" },
+];
+
+const ACCENT = { color: COLORS.blue, background: "#EEF2FF" };
 
 interface HierarchyToolbarProps {
   view: View;
   onViewChange: (view: View) => void;
+  viewMode: ViewMode;
+  onViewModeChange: (viewMode: ViewMode) => void;
   period: string;
   periods: AcademicPeriod[];
   onPeriodChange: (value: string) => void;
@@ -30,6 +38,8 @@ interface HierarchyToolbarProps {
 export function HierarchyToolbar({
   view,
   onViewChange,
+  viewMode,
+  onViewModeChange,
   period,
   periods,
   onPeriodChange,
@@ -46,160 +56,40 @@ export function HierarchyToolbar({
   totalKrs,
   totalProjects,
 }: HierarchyToolbarProps) {
-  const reduceMotion = useReducedMotion();
-
   return (
-    <motion.div
-      className="flex-shrink-0 px-6 pt-5 pb-4 bg-white"
-      style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}
-      initial={reduceMotion ? false : { opacity: 0, y: -6 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      transition={shortMotionTransition}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="hidden">
-          <h1 style={{ fontSize: "22px", fontWeight: 800, color: COLORS.text }}>Jerarquia Estrategica</h1>
-          <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 4 }}>
-            {betsCount} apuestas · {goalsCount} metas · {totalKrs} KRs · {totalProjects} iniciativas
-          </p>
-        </div>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <div className="flex items-stretch gap-0 overflow-hidden" style={{ border: `1.5px solid ${COLORS.border}`, borderRadius: 8, height: 38 }}>
-            {[
-              { value: "arbol", label: "Todas" },
-              { value: "apuestas", label: "Apuestas" },
-              { value: "metas", label: "Metas" },
-            ].map((item, idx, arr) => (
-              <button
-                key={item.value}
-                onClick={() => onViewChange(item.value as View)}
-                style={{
-                  padding: "0 14px",
-                  fontSize: "12px",
-                  fontWeight: 750,
-                  backgroundColor: view === item.value ? "#EEF2FF" : "#fff",
-                  color: view === item.value ? COLORS.blue : "#374151",
-                  borderRight: idx === arr.length - 1 ? "none" : `1.5px solid ${COLORS.border}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <PeriodFilterSelect period={period} periods={periods} onChange={onPeriodChange} />
-          {showSearch && (
-            <div className="flex min-h-[38px] min-w-0 w-full flex-1 items-center gap-2 rounded-md px-3 sm:min-w-[220px]" style={{ maxWidth: 360, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-              <Search size={15} color={COLORS.gray} />
-              <input
-                value={search}
-                onChange={(event) => onSearchChange(event.target.value)}
-                placeholder="Buscar por palabra clave..."
-                style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
-              />
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+    <ScreenToolbar
+      search={showSearch && <ToolbarSearch value={search} onChange={onSearchChange} placeholder="Buscar por palabra clave..." ariaLabel="Buscar en la jerarquía" />}
+      actions={
+        <>
+          {showSearch && <ViewModeToggle value={viewMode} onChange={onViewModeChange} />}
           {(canCreate || canManageKeyResults) && (
-            <button onClick={onShowArchived} className="flex items-center gap-2 rounded-md border border-[#D9DEE8] bg-white px-3 py-2 text-xs font-extrabold text-[#374151]">
-              <Archive size={13} /> Archivados
-            </button>
+            <ToolbarButton onClick={onShowArchived}>
+              <Archive size={13} aria-hidden="true" /> Archivados
+            </ToolbarButton>
           )}
+          <ToolbarButton onClick={onReload} title="Recargar" aria-label="Recargar" style={{ width: 38, padding: 0, justifyContent: "center" }}>
+            <RefreshCw size={14} aria-hidden="true" />
+          </ToolbarButton>
           {canCreate && (
             <>
-              <button onClick={() => onCreate("goal")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: COLORS.green, color: "#fff", fontSize: "12px", fontWeight: 750 }}>
-                <Plus size={13} /> Nueva Meta
-              </button>
-              <button onClick={() => onCreate("bet")} className="flex items-center gap-2 px-3 py-2 rounded-md hover:opacity-90" style={{ backgroundColor: getNodeTheme("STRATEGIC_BET").background, color: "#fff", fontSize: "12px", fontWeight: 750 }}>
-                <Plus size={13} /> Nueva Apuesta
-              </button>
+              <ToolbarCreateButton tone="green" onClick={() => onCreate("goal")}>Nueva Meta</ToolbarCreateButton>
+              <ToolbarCreateButton tone="blue" onClick={() => onCreate("bet")}>Nueva Apuesta</ToolbarCreateButton>
             </>
           )}
-          <button onClick={onReload} className="flex items-center justify-center rounded-md" style={{ width: 36, height: 36, border: "1px solid #E5E7EB" }} title="Recargar">
-            <RefreshCw size={14} />
-          </button>
-        </div>
-      </div>
-
-      <div className="hidden flex-wrap items-center gap-2">
-        <div className="flex items-stretch gap-0 overflow-hidden" style={{ border: `1.5px solid ${COLORS.border}`, borderRadius: 8, height: 38 }}>
-          {[
-            { value: "arbol", label: "Todas" },
-            { value: "apuestas", label: "Apuestas" },
-            { value: "metas", label: "Metas" },
-          ].map((item, idx, arr) => (
-            <button
-              key={item.value}
-              onClick={() => onViewChange(item.value as View)}
-              style={{
-                padding: "0 16px",
-                fontSize: "12px",
-                fontWeight: 750,
-                backgroundColor: view === item.value ? "#EEF2FF" : "#fff",
-                color: view === item.value ? COLORS.blue : "#374151",
-                borderRight: idx === arr.length - 1 ? "none" : `1.5px solid ${COLORS.border}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <PeriodFilterSelect period={period} periods={periods} onChange={onPeriodChange} />
-        {showSearch && (
-          <div className="flex min-h-[38px] min-w-0 w-full flex-1 items-center gap-2 rounded-md px-3 sm:min-w-[280px]" style={{ maxWidth: 520, border: `1px solid ${COLORS.border}`, backgroundColor: "#fff", boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-            <Search size={15} color={COLORS.gray} />
-            <input
-              value={search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Buscar por palabra clave..."
-              style={{ border: 0, outline: 0, flex: 1, minWidth: 0, backgroundColor: "transparent", color: COLORS.text, fontSize: 12, fontWeight: 750 }}
-            />
-          </div>
-        )}
-      </div>
-      <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 8 }}>
-        {betsCount} apuestas {"\u00B7"} {goalsCount} metas {"\u00B7"} {totalKrs} KRs {"\u00B7"} {totalProjects} iniciativas
-      </p>
-    </motion.div>
-  );
-}
-
-const selectControlStyle: CSSProperties = {
-  ...modalSelectStyle(false),
-  width: 190,
-  padding: "8px 34px 8px 11px",
-  fontSize: "12px",
-  fontWeight: 750,
-};
-
-function PeriodFilterSelect({ period, periods, onChange }: { period: string; periods: AcademicPeriod[]; onChange: (value: string) => void }) {
-  return (
-    <Select value={period || "__all"} onValueChange={(value) => onChange(value === "__all" ? "" : value)}>
-      <SelectTrigger className="focus-visible:ring-0" style={selectControlStyle}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent
-        position="popper"
-        align="start"
-        className="z-[70] max-h-64 rounded-lg border border-[#D8DEE8] bg-white p-1 shadow-[0_18px_44px_rgba(17,24,39,0.18)]"
-      >
-        <SelectItem value="__all" className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
-          Todos los periodos
-        </SelectItem>
-        {periods.map((item) => (
-          <SelectItem key={item.id} value={item.name} className="rounded-md px-3 py-2 text-xs font-bold text-[#111827] focus:bg-[#EEF2FF] focus:text-[#5454E9]">
-            {item.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        </>
+      }
+      filters={
+        <>
+          <ToolbarSegmented ariaLabel="Filtrar por raíz" options={VIEW_OPTIONS} value={view} onChange={onViewChange} accent={ACCENT} />
+          <ToolbarSelect
+            ariaLabel="Filtrar por periodo"
+            value={period || "__all"}
+            onChange={(value) => onPeriodChange(value === "__all" ? "" : value)}
+            options={[{ value: "__all", label: "Todos: Periodo" }, ...periods.map((item) => ({ value: item.name, label: item.name }))]}
+          />
+        </>
+      }
+      summary={<>{betsCount} apuestas {"\u00B7"} {goalsCount} metas {"\u00B7"} {totalKrs} KRs {"\u00B7"} {totalProjects} iniciativas</>}
+    />
   );
 }

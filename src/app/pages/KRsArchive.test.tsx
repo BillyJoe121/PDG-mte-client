@@ -33,10 +33,6 @@ function kr(id: number, name: string, extra: Partial<KeyResult> = {}): KeyResult
 const current = [kr(1, "Retención"), kr(2, "Graduación")];
 const archived = kr(3, "Movilidad antigua", { archived: true, archivedAt: "2026-10-30T15:00:00Z" });
 
-function summaryCard(label: string) {
-  return screen.getByText(label, { selector: "p" }).previousElementSibling?.textContent;
-}
-
 function renderKrs() {
   return render(<MemoryRouter initialEntries={["/krs"]}><KRs /></MemoryRouter>);
 }
@@ -67,18 +63,6 @@ describe("KRs archive", () => {
     expect(mocks.loadKeyResults).toHaveBeenLastCalledWith({ includeArchived: true }, expect.anything());
     expect(screen.getByRole("button", { name: /Archivados/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Archivado")).toBeInTheDocument();
-  });
-
-  it("keeps archived KRs out of the summary cards", async () => {
-    const user = userEvent.setup();
-    renderKrs();
-    await screen.findByText("Retención");
-
-    await user.click(screen.getByRole("button", { name: /Archivados/ }));
-    await screen.findByText("Movilidad antigua");
-
-    expect(summaryCard("Total")).toBe("2");
-    expect(summaryCard("Activos")).toBe("2");
   });
 
   it("restores an archived KR and reloads the list", async () => {

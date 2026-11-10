@@ -1,6 +1,8 @@
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { DETAIL_PRIMARY_BUTTON_CLASS } from "./DetailModal";
+import { FORM_CONTROL_CLASS, FORM_LABEL_CLASS } from "./forms/FormField";
+import { Modal, ModalBody, ModalHeader } from "./Modal";
 import type { AccessLinkResponse } from "../services/peopleApi";
 
 interface AccessLinkDialogProps {
@@ -21,45 +23,39 @@ export function AccessLinkDialog({ link, personName, onClose }: AccessLinkDialog
     }
   };
 
+  if (!link) return null;
+
   return (
-    <Dialog open={link !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="bg-white sm:max-w-lg">
-        <DialogHeader className="text-left">
-          <DialogTitle className="text-lg font-extrabold text-black">Enlace de acceso</DialogTitle>
-          <DialogDescription className="text-sm leading-6 text-gray-600">
-            {link?.accountCreated
-              ? `Se creó la cuenta de ${personName ?? link?.email}. Con este enlace define su contraseña por primera vez.`
-              : `Con este enlace ${personName ?? link?.email} define una nueva contraseña.`}
-          </DialogDescription>
-        </DialogHeader>
-        {link && (
-          <div className="space-y-3">
-            <label htmlFor="access-link-url" className="block text-xs font-semibold text-gray-700">
-              Enlace para {link.email}
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="access-link-url"
-                readOnly
-                value={link.url}
-                onFocus={(event) => event.currentTarget.select()}
-                className="min-w-0 flex-1 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 font-mono text-xs text-gray-800"
-              />
-              <button
-                type="button"
-                onClick={() => void copy()}
-                className="flex items-center gap-1.5 rounded-md bg-[#5454E9] px-3 py-2 text-xs font-bold text-white hover:bg-[#3F3FD1]"
-              >
-                <Copy size={14} aria-hidden="true" />
-                Copiar
-              </button>
-            </div>
-            <p className="text-xs leading-5 text-gray-600">
-              El MTE no envía correos: compártelo solo con esta persona por un canal institucional. Sirve una vez y vence; si caduca, genera otro.
-            </p>
+    <Modal onClose={onClose} size="sm">
+      <ModalHeader title="Enlace de acceso" onClose={onClose} />
+      <ModalBody>
+        <p className="text-sm leading-relaxed text-gray-600">
+          {link.accountCreated
+            ? `Se creó la cuenta de ${personName ?? link.email}. Con este enlace define su contraseña por primera vez.`
+            : `Con este enlace ${personName ?? link.email} define una nueva contraseña.`}
+        </p>
+        <div className="space-y-1">
+          <label htmlFor="access-link-url" className={FORM_LABEL_CLASS}>
+            Enlace para {link.email}
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="access-link-url"
+              readOnly
+              value={link.url}
+              onFocus={(event) => event.currentTarget.select()}
+              className={`${FORM_CONTROL_CLASS} min-w-0 flex-1 font-mono`}
+            />
+            <button type="button" onClick={() => void copy()} className={DETAIL_PRIMARY_BUTTON_CLASS}>
+              <Copy size={14} aria-hidden="true" />
+              Copiar
+            </button>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        </div>
+        <p className="text-xs leading-relaxed text-gray-600">
+          El MTE no envía correos: compártelo solo con esta persona por un canal institucional. Sirve una vez y vence; si caduca, genera otro.
+        </p>
+      </ModalBody>
+    </Modal>
   );
 }

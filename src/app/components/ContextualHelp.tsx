@@ -1,14 +1,8 @@
 import { CircleHelp, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "react-router";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
+import { DETAIL_PRIMARY_BUTTON_CLASS } from "./DetailModal";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "./Modal";
 
 type HelpContent = {
   title: string;
@@ -123,45 +117,44 @@ export function ContextualHelp({ onStartTutorial }: ContextualHelpProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Ayuda sobre ${content.title}`}
-          title={`Ayuda sobre ${content.title}`}
-          className="flex h-9 w-9 items-center justify-center rounded transition-colors hover:bg-gray-100"
-          style={{ border: "1.5px solid #000" }}
-        >
-          <CircleHelp size={17} aria-hidden="true" />
-        </button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto border-2 border-black bg-white p-5 sm:max-w-xl">
-        <DialogHeader className="pr-8 text-left">
-          <DialogTitle className="text-base font-black text-black">Ayuda: {content.title}</DialogTitle>
-          <DialogDescription className="pt-1 text-sm leading-5 text-gray-600">{content.purpose}</DialogDescription>
-        </DialogHeader>
-        <ol className="space-y-3" aria-label="Pasos recomendados">
-          {content.steps.map((step, index) => (
-            <li key={step} className="flex items-start gap-3 text-sm leading-5 text-gray-800">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black text-xs font-black text-white">{index + 1}</span>
-              <span>{step}</span>
-            </li>
-          ))}
-        </ol>
-        <div className="flex items-start gap-2 rounded-md bg-[#FFF7ED] p-3 text-sm leading-5 text-[#9A3412]" role="note">
-          <Lightbulb className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
-          <span><strong>Consejo:</strong> {content.tip}</span>
-        </div>
-        {onStartTutorial && (
-          <button
-            type="button"
-            onClick={() => { setOpen(false); onStartTutorial(); }}
-            className="rounded-md bg-black px-3 py-2 text-sm font-black text-white hover:bg-gray-800"
-          >
-            Iniciar recorrido guiado
-          </button>
-        )}
-      </DialogContent>
-    </Dialog>
+    <>
+      <button
+        type="button"
+        aria-label={`Ayuda sobre ${content.title}`}
+        title={`Ayuda sobre ${content.title}`}
+        onClick={() => setOpen(true)}
+        className="flex h-9 w-9 items-center justify-center rounded transition-colors hover:bg-gray-100"
+        style={{ border: "1.5px solid #000" }}
+      >
+        <CircleHelp size={17} aria-hidden="true" />
+      </button>
+      {open && (
+        <Modal onClose={() => setOpen(false)}>
+          <ModalHeader title={`Ayuda: ${content.title}`} closeLabel="Cerrar ayuda" onClose={() => setOpen(false)} />
+          <ModalBody>
+            <p className="text-sm leading-5 text-gray-600">{content.purpose}</p>
+            <ol className="space-y-3" aria-label="Pasos recomendados">
+              {content.steps.map((step, index) => (
+                <li key={step} className="flex items-start gap-3 text-sm leading-5 text-gray-800">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#5454E9] text-xs font-bold text-white">{index + 1}</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="flex items-start gap-2 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm leading-5 text-gray-700" role="note">
+              <Lightbulb className="mt-0.5 shrink-0 text-[#5454E9]" size={16} aria-hidden="true" />
+              <span><strong>Consejo:</strong> {content.tip}</span>
+            </div>
+          </ModalBody>
+          {onStartTutorial && (
+            <ModalFooter>
+              <button type="button" onClick={() => { setOpen(false); onStartTutorial(); }} className={DETAIL_PRIMARY_BUTTON_CLASS}>
+                Iniciar recorrido guiado
+              </button>
+            </ModalFooter>
+          )}
+        </Modal>
+      )}
+    </>
   );
 }

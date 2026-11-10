@@ -132,13 +132,13 @@ export function Dashboard() {
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
         {error && (
-          <motion.div {...viewMotion} className="mb-5 flex items-center gap-2 rounded-md px-4 py-3" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 12, fontWeight: 800 }}>
+          <motion.div {...viewMotion} className="mb-5 flex items-center gap-2 rounded-md px-4 py-3" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 10.5, fontWeight: 800 }}>
             <AlertTriangle size={15} /> {error}
           </motion.div>
         )}
 
         {loading && !dashboard ? (
-          <motion.div {...viewMotion} className="flex items-center justify-center rounded-md bg-white py-20" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.gray, fontSize: 13, fontWeight: 800 }}>
+          <motion.div {...viewMotion} className="flex items-center justify-center rounded-md bg-white py-20" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.gray, fontSize: 11, fontWeight: 800 }}>
             <Loader2 size={18} className="mr-2 animate-spin" /> Cargando KPIs del portafolio...
           </motion.div>
         ) : dashboard && derived ? (

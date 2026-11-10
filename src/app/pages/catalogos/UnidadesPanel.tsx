@@ -29,13 +29,13 @@ export function UnidadesPanel({
   onToggleActive,
 }: UnidadesPanelProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5">
+    <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-4">
       <form
         onSubmit={onSubmit}
-        className="bg-white rounded-lg p-5 h-fit"
-        style={{ border: "1.5px solid #E5E7EB" }}
+        className="bg-white rounded-lg p-4 h-fit"
+        style={{ border: "1px solid #E5E7EB" }}
       >
-        <h2 style={{ fontSize: "14px", fontWeight: 900, color: "#000", marginBottom: 14 }}>
+        <h2 style={{ fontSize: "11px", fontWeight: 900, color: "#000", marginBottom: 14 }}>
           {editingUnitId ? "Editar unidad" : "Nueva unidad"}
         </h2>
         <div className="space-y-3">
@@ -46,7 +46,7 @@ export function UnidadesPanel({
               value={unitForm.name}
               onChange={(e) => onFormChange((form) => ({ ...form, name: e.target.value }))}
               placeholder="Ej. Estudiantes"
-              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #000", borderRadius: 8, fontSize: "13px" }}
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "11px" }}
             />
           </label>
           <label className="block">
@@ -54,14 +54,14 @@ export function UnidadesPanel({
             <select
               value={unitForm.type}
               onChange={(e) => onFormChange((form) => ({ ...form, type: e.target.value as MeasurementUnitType }))}
-              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px", backgroundColor: "#fff" }}
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "10.5px", backgroundColor: "#fff" }}
             >
               {Object.entries(unitTypeLabel).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
           </label>
-          <p role="status" style={{ padding: "9px 10px", borderRadius: 8, backgroundColor: "#F5F7FF", color: "#3730A3", fontSize: 11, fontWeight: 700, lineHeight: 1.4 }}>
+          <p role="status" style={{ padding: "9px 10px", borderRadius: 8, backgroundColor: "#F5F7FF", color: "#3730A3", fontSize: 10.5, fontWeight: 700, lineHeight: 1.4 }}>
             Regla de captura: {unitTypeRule[unitForm.type]}
             {editingUnitId ? " El tipo no puede cambiarse si la unidad ya esta en uso." : ""}
           </p>
@@ -72,12 +72,12 @@ export function UnidadesPanel({
               onChange={(e) => onFormChange((form) => ({ ...form, description: e.target.value }))}
               placeholder="Contexto de uso opcional"
               rows={3}
-              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "12px", resize: "vertical" }}
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: "10.5px", resize: "vertical" }}
             />
           </label>
           <div className="flex justify-end gap-2">
             {editingUnitId && (
-              <button type="button" onClick={onCancel} className="flex items-center gap-1" style={{ padding: "9px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: "12px", fontWeight: 800 }}>
+              <button type="button" onClick={onCancel} className="flex items-center gap-1" style={{ padding: "9px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: "11px", fontWeight: 800 }}>
                 <X size={13} /> Cancelar
               </button>
             )}
@@ -85,7 +85,7 @@ export function UnidadesPanel({
               type="submit"
               disabled={saving}
               className="flex items-center gap-2 disabled:opacity-50"
-              style={{ padding: "9px 14px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 8, fontSize: "12px", fontWeight: 900 }}
+              style={{ padding: "9px 14px", backgroundColor: COLORS.blue, color: "#fff", borderRadius: 8, fontSize: "11px", fontWeight: 900 }}
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : editingUnitId ? <Save size={14} /> : <Plus size={14} />}
               {editingUnitId ? "Guardar" : "Crear"}
@@ -94,20 +94,20 @@ export function UnidadesPanel({
         </div>
       </form>
 
-      <div className="bg-white rounded-lg overflow-x-auto" tabIndex={0} aria-label="Tabla de unidades de medida; desplácese horizontalmente para ver todas las columnas" style={{ border: "1.5px solid #E5E7EB" }}>
-        <div className="min-w-[780px]">
-          <div className="grid grid-cols-[1fr_120px_1fr_100px_120px] gap-3 px-4 py-3" style={{ backgroundColor: "#F9FAFB", borderBottom: "1px solid #E5E7EB", fontSize: "10px", fontWeight: 900, color: COLORS.gray, textTransform: "uppercase" }}>
+      <div className="bg-white rounded-lg overflow-x-auto" tabIndex={0} aria-label="Tabla de unidades de medida; desplácese horizontalmente para ver todas las columnas" style={{ border: "1px solid #E5E7EB" }}>
+        <div className="min-w-[560px]">
+          <div className="grid grid-cols-[minmax(90px,1fr)_96px_minmax(120px,1.4fr)_80px_96px] gap-2 px-3 py-3" style={{ backgroundColor: "#000", fontSize: "9px", fontWeight: 700, color: "#fff", letterSpacing: "0.025em", textTransform: "uppercase" }}>
             <span>Nombre</span><span>Tipo</span><span>Descripcion</span><span>Estado</span><span>Acciones</span>
           </div>
           {units.length === 0 ? (
-            <div className="px-4 py-8 text-center" style={{ color: COLORS.gray, fontSize: "13px" }}>
+            <div className="px-4 py-8 text-center" style={{ color: COLORS.gray, fontSize: "11px" }}>
               No hay unidades de medida registradas.
             </div>
           ) : units.map((unit) => (
-            <div key={unit.id} className="grid grid-cols-[1fr_120px_1fr_100px_120px] gap-3 items-center px-4 py-3" style={{ borderBottom: "1px solid #F3F4F6" }}>
-              <p style={{ fontSize: "13px", fontWeight: 800, color: "#000" }}>{unit.name}</p>
-              <span style={{ fontSize: "12px", color: "#374151" }} title={unitTypeRule[unit.type]}>{unitTypeLabel[unit.type]}</span>
-              <span style={{ fontSize: "12px", color: COLORS.gray }}>{unit.description ?? "-"}</span>
+            <div key={unit.id} className="grid grid-cols-[minmax(90px,1fr)_96px_minmax(120px,1.4fr)_80px_96px] gap-2 items-center px-3 py-2" style={{ borderBottom: "1px solid #F3F4F6" }}>
+              <p style={{ fontSize: "11px", fontWeight: 800, color: "#000" }}>{unit.name}</p>
+              <span style={{ fontSize: "10.5px", color: "#374151" }} title={unitTypeRule[unit.type]}>{unitTypeLabel[unit.type]}</span>
+              <span style={{ fontSize: "10.5px", color: COLORS.gray }}>{unit.description ?? "-"}</span>
               <UnitBadge active={unit.active} />
               <div className="flex items-center gap-1">
                 <button onClick={() => onEdit(unit)} disabled={saving} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50" title="Editar">
@@ -132,7 +132,7 @@ const labelStyle = {
   display: "block",
   marginBottom: 5,
   color: "#374151",
-  fontSize: 10,
+  fontSize: 9,
   fontWeight: 900,
   textTransform: "uppercase" as const,
 };

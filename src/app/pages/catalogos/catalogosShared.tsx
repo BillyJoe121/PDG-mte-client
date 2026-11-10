@@ -61,7 +61,7 @@ export function PeriodBadge({ status }: { status: PeriodStatus }) {
   return (
     <span
       className="px-2 py-1 rounded"
-      style={{ backgroundColor: style.bg, color: style.color, fontSize: "11px", fontWeight: 800 }}
+      style={{ backgroundColor: style.bg, color: style.color, fontSize: "10.5px", fontWeight: 800 }}
     >
       {periodStatusLabel[status]}
     </span>
@@ -75,7 +75,7 @@ export function UnitBadge({ active }: { active: boolean }) {
       style={{
         backgroundColor: active ? "#ECFDF5" : "#F3F4F6",
         color: active ? "#065F46" : "#6B7280",
-        fontSize: "11px",
+        fontSize: "10.5px",
         fontWeight: 800,
       }}
     >

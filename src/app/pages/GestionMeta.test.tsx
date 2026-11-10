@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -42,6 +42,7 @@ function renderPage() {
     <MemoryRouter initialEntries={["/jerarquia/metas/7/gestionar"]}>
       <Routes>
         <Route path="/jerarquia/metas/:goalId/gestionar" element={<GestionMeta />} />
+        <Route path="/jerarquia" element={<p>Pagina de jerarquia</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -50,7 +51,6 @@ function renderPage() {
 describe("GestionMeta", () => {
   afterEach(() => {
     cleanup();
-    vi.unstubAllGlobals();
   });
   beforeEach(() => {
     api.get.mockReset().mockResolvedValue(goal);
@@ -79,6 +79,16 @@ describe("GestionMeta", () => {
     })));
   });
 
+  it("goes back to the hierarchy when the dialog is cancelled", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Cancelar" }));
+
+    expect(await screen.findByText("Pagina de jerarquia")).toBeInTheDocument();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
   it("offers retry after a load failure", async () => {
     api.get.mockRejectedValueOnce(new Error("Servicio temporalmente no disponible")).mockResolvedValueOnce(goal);
     const user = userEvent.setup();
@@ -91,14 +101,42 @@ describe("GestionMeta", () => {
     expect(api.get).toHaveBeenCalledTimes(2);
   });
 
-  it("archives the goal without deleting it", async () => {
-    vi.stubGlobal("confirm", vi.fn(() => true));
+  it("archives the goal without deleting it after confirming", async () => {
     const user = userEvent.setup();
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: /archivar meta/i }));
+    const dialog = await screen.findByRole("dialog", { name: "Archivar meta" });
+    expect(api.setActive).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: "Archivar" }));
 
     await waitFor(() => expect(api.setActive).toHaveBeenCalledWith(7, false));
     expect(await screen.findByRole("button", { name: /restaurar meta/i })).toBeInTheDocument();
+  });
+
+  it("keeps the goal active when the archive confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: /archivar meta/i }));
+    const dialog = await screen.findByRole("dialog", { name: "Archivar meta" });
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Archivar meta" })).not.toBeInTheDocument());
+    expect(api.setActive).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /archivar meta/i })).toBeInTheDocument();
+  });
+
+  it("restores an archived goal without asking for confirmation", async () => {
+    api.get.mockResolvedValue({ ...goal, status: "INACTIVA" });
+    api.setActive.mockResolvedValue(goal);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: /restaurar meta/i }));
+
+    await waitFor(() => expect(api.setActive).toHaveBeenCalledWith(7, true));
+    expect(screen.queryByRole("dialog", { name: "Archivar meta" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /archivar meta/i })).toBeInTheDocument();
   });
 });

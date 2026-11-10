@@ -12,8 +12,8 @@ const breadcrumbMap: Record<string, string> = {
   "/proyectos": "Iniciativas",
   "/reportes": "Reportes y exportaciones",
   "/consistencia": "Consistencia Estrategica",
-  "/catalogos": "Catalogos",
-  "/auditoria": "Auditoria",
+  "/catalogos": "Catálogos",
+  "/auditoria": "Auditoría",
   "/usuarios": "Gestión de Usuarios",
 };
 
@@ -36,10 +36,10 @@ export function Header() {
     >
       {/* Left: title */}
       <div className="min-w-0">
-        <p style={{ fontSize: "10px", color: "#717182", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <p style={{ fontSize: "9px", color: "#717182", letterSpacing: "0.08em", textTransform: "uppercase" }}>
           MTE · Escuela TDI
         </p>
-        <h1 className="truncate" style={{ fontSize: "16px", fontWeight: 700, color: "#000000", lineHeight: 1.2 }}>
+        <h1 className="truncate" style={{ fontSize: "13px", fontWeight: 700, color: "#000000", lineHeight: 1.2 }}>
           {pageTitle}
         </h1>
       </div>
@@ -56,7 +56,7 @@ export function Header() {
               height: 36,
               backgroundColor: "#5454E9",
               color: "#fff",
-              fontSize: "12px",
+              fontSize: "10.5px",
               fontWeight: 700,
               flexShrink: 0,
             }}

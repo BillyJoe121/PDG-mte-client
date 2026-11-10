@@ -194,11 +194,12 @@
   border: 1px solid var(--hierarchy-card-accent);
   font-size: 11px;
   font-weight: 900;
-  padding: 6px 14px;
+  padding: 4px 10px;
+  min-height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   transition: all 180ms ease;
 }
 
@@ -214,7 +215,7 @@
   background-color: #E9683B;
   color: #fff;
   border: 1px solid #E9683B;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 850;
   padding: 9px 15px;
   border-radius: 6px;
@@ -237,7 +238,7 @@
   background-color: #4CB979;
   color: #fff;
   border: 1px solid #4CB979;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 850;
   padding: 9px 15px;
   border-radius: 6px;
@@ -327,4 +328,9 @@ input[type=number] {
     animation: none;
     opacity: 1;
   }
+}
+
+/* An open dialog turns off pointer events on the body; visible toasts stay usable above it. */
+[data-sonner-toast][data-visible="true"] {
+  pointer-events: auto;
 }

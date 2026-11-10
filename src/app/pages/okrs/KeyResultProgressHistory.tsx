@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { History, Loader2, RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ApiError, keyResultsApi, type KeyResultProgressRecord } from "../../services/strategicApi";
-import { COLORS, formatValueWithUnit } from "./okrsShared";
+import { DETAIL_BUTTON_CLASS, DetailEmpty, DetailSection } from "../../components/DetailModal";
+import { formatValueWithUnit } from "./okrsShared";
 
 interface KeyResultProgressHistoryProps {
   keyResultId: number;
@@ -11,6 +12,7 @@ interface KeyResultProgressHistoryProps {
 }
 
 const LOAD_ERROR = "No se pudo cargar el historial de avance.";
+const HISTORY_COLUMNS = "grid grid-cols-2 gap-x-3 gap-y-1 px-3 py-2.5 sm:grid-cols-[1.2fr_1.2fr_1fr_1fr]";
 
 export function formatRecordedAt(value: string) {
   const date = new Date(value);
@@ -56,46 +58,46 @@ export function KeyResultProgressHistory({ keyResultId, unitName, refreshKey = 0
     value === null || value === undefined ? "—" : `${value}%`;
 
   return (
-    <section aria-labelledby={`kr-progress-history-${keyResultId}`} className="mt-3 rounded-md bg-white p-5" style={{ border: `1px solid ${COLORS.border}` }}>
-      <h3 id={`kr-progress-history-${keyResultId}`} className="flex items-center gap-2" style={{ color: COLORS.blue, fontSize: 12, fontWeight: 900, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-        <History size={14} /> Historial de avance
-      </h3>
-
+    <DetailSection title="Historial de avance">
       {loading && records === null && !error ? (
-        <p role="status" className="mt-3 flex items-center gap-2" style={{ color: COLORS.gray, fontSize: 12, fontWeight: 700 }}>
+        <p role="status" className="flex items-center gap-2 text-xs font-bold text-gray-500">
           <Loader2 size={14} className="animate-spin" /> Cargando historial...
         </p>
       ) : error ? (
-        <div role="alert" className="mt-3 flex flex-wrap items-center gap-3" style={{ color: "#B42318", fontSize: 12, fontWeight: 700 }}>
+        <div role="alert" className="flex flex-wrap items-center gap-3 text-xs font-bold text-[#B42318]">
           <span>{error}</span>
-          <button type="button" onClick={() => setAttempt((value) => value + 1)} disabled={loading} className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 disabled:opacity-60" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.blue, fontSize: 12, fontWeight: 850 }}>
-            <RefreshCw size={12} /> Reintentar
-          </button>
+          <button type="button" onClick={() => setAttempt((value) => value + 1)} disabled={loading} className={DETAIL_BUTTON_CLASS}>Reintentar</button>
         </div>
       ) : records && records.length === 0 ? (
-        <p className="mt-3" style={{ color: COLORS.gray, fontSize: 12, lineHeight: 1.45 }}>Sin registros de avance</p>
+        <DetailEmpty>Sin registros de avance</DetailEmpty>
       ) : (
-        <ol className="mt-3 max-h-72 space-y-2 overflow-y-auto" aria-busy={loading}>
-          {(records ?? []).map((record) => (
-            <li key={record.id} className="rounded-md px-3 py-2" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: COLORS.subtle }}>
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <time dateTime={record.recordedAt} style={{ color: COLORS.text, fontSize: 12, fontWeight: 850 }}>{formatRecordedAt(record.recordedAt)}</time>
-                <span style={{ color: COLORS.gray, fontSize: 11, fontWeight: 700 }}>{recordAuthor(record)}</span>
-              </div>
-              <dl className="mt-1 grid gap-x-6 gap-y-1 sm:grid-cols-2" style={{ color: COLORS.text, fontSize: 12, lineHeight: 1.45 }}>
-                <div className="flex gap-2">
-                  <dt style={{ color: COLORS.gray }}>Valor</dt>
-                  <dd><strong>{valueText(record.previousValue)} → {valueText(record.currentValue)}</strong></dd>
-                </div>
-                <div className="flex gap-2">
-                  <dt style={{ color: COLORS.gray }}>Avance</dt>
-                  <dd><strong>{percentText(record.previousPercentage)} → {percentText(record.progressPercentage)}</strong></dd>
-                </div>
-              </dl>
-            </li>
-          ))}
-        </ol>
+        <div className="max-h-72 overflow-y-auto rounded-lg border border-gray-200">
+          <div aria-hidden="true" className={`${HISTORY_COLUMNS} sticky top-0 z-10 hidden bg-black text-[9px] font-bold uppercase tracking-wide text-white sm:grid`}>
+            <span>Fecha</span>
+            <span>Autor</span>
+            <span>Valor</span>
+            <span>Avance</span>
+          </div>
+          <ol className="divide-y divide-gray-200" aria-busy={loading}>
+            {(records ?? []).map((record) => (
+              <li key={record.id} className={`${HISTORY_COLUMNS} text-xs text-[#111827]`}>
+                <time dateTime={record.recordedAt} className="font-bold">{formatRecordedAt(record.recordedAt)}</time>
+                <span className="min-w-0 truncate text-gray-600" title={recordAuthor(record)}>{recordAuthor(record)}</span>
+                <dl className="contents">
+                  <div className="flex gap-2">
+                    <dt className="text-gray-500 sm:sr-only">Valor</dt>
+                    <dd>{valueText(record.previousValue)} → {valueText(record.currentValue)}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="text-gray-500 sm:sr-only">Avance</dt>
+                    <dd>{percentText(record.previousPercentage)} → {percentText(record.progressPercentage)}</dd>
+                  </div>
+                </dl>
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
-    </section>
+    </DetailSection>
   );
 }

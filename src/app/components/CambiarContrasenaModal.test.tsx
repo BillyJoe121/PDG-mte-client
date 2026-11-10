@@ -43,6 +43,38 @@ describe("CambiarContrasenaModal", () => {
     expect(changePasswordMock).not.toHaveBeenCalled();
   });
 
+  it("stays closed until it is opened", () => {
+    render(<CambiarContrasenaModal open={false} onOpenChange={onOpenChange} />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("closes with Cancelar, its close button or Escape", async () => {
+    const user = userEvent.setup();
+    render(<CambiarContrasenaModal open onOpenChange={onOpenChange} />);
+
+    expect(screen.getByRole("dialog", { name: "Cambiar contraseña" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    await user.click(screen.getByRole("button", { name: "Cerrar modal" }));
+    await user.keyboard("{Escape}");
+
+    expect(onOpenChange).toHaveBeenCalledTimes(3);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("cannot be dismissed while the change is in flight", async () => {
+    const user = userEvent.setup();
+    changePasswordMock.mockReturnValue(new Promise(() => undefined));
+    render(<CambiarContrasenaModal open onOpenChange={onOpenChange} />);
+
+    await fill("clave-actual-1", "una-clave-larga", "una-clave-larga");
+    expect(await screen.findByRole("button", { name: "Guardando…" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
   it("changes the password, confirms it and closes", async () => {
     changePasswordMock.mockResolvedValue(undefined);
     render(<CambiarContrasenaModal open onOpenChange={onOpenChange} />);

@@ -62,7 +62,7 @@ export function AuthField({
           disabled={disabled}
           autoFocus={autoFocus}
           aria-describedby={hintId}
-          className={`w-full rounded-lg border-[1.5px] border-[#E5E7EB] bg-white py-3 text-[13px] outline-none transition-[border-color,box-shadow] duration-150 focus:border-[#5454E9] focus:shadow-[0_0_0_4px_rgba(84,84,233,0.12)] disabled:bg-gray-50 ${
+          className={`w-full rounded-lg border-[1.5px] border-[#E5E7EB] bg-white py-3 text-[11px] outline-none transition-[border-color,box-shadow] duration-150 focus:border-[#5454E9] focus:shadow-[0_0_0_4px_rgba(84,84,233,0.12)] disabled:bg-gray-50 ${
             isPassword ? "pl-3.5 pr-11" : "px-3.5"
           }`}
         />
@@ -80,7 +80,7 @@ export function AuthField({
         )}
       </div>
       {hint && (
-        <p id={hintId} className="mt-1.5 text-[11px] text-[#717182]">
+        <p id={hintId} className="mt-1.5 text-[10.5px] text-[#717182]">
           {hint}
         </p>
       )}
