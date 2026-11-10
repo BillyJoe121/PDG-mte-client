@@ -33,7 +33,7 @@ export function KeyResultTable({ items, canRestore, restoringId, onOpen, onResto
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((item) => {
+          {items.map((item, index) => {
             const archived = Boolean(item.archived);
             const restoring = restoringId === item.id;
             return (
@@ -43,6 +43,7 @@ export function KeyResultTable({ items, canRestore, restoringId, onOpen, onResto
                   <button
                     type="button"
                     onClick={() => onOpen(item)}
+                    data-tour={index === 0 ? "krs-item" : undefined}
                     className="text-left underline-offset-2 hover:underline"
                     style={{ fontWeight: 750, color: COLORS.text, overflowWrap: "anywhere" }}
                   >

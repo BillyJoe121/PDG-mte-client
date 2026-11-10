@@ -110,13 +110,16 @@ interface ToolbarSelectProps {
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   width?: number;
+  /** Anchor for the guided tour. */
+  tourId?: string;
 }
 
-export function ToolbarSelect({ ariaLabel, value, onChange, options, width = 130 }: ToolbarSelectProps) {
+export function ToolbarSelect({ ariaLabel, value, onChange, options, width = 130, tourId }: ToolbarSelectProps) {
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger
         aria-label={ariaLabel}
+        data-tour={tourId}
         className="focus-visible:ring-0"
         style={{
           width,
@@ -174,13 +177,16 @@ interface ToolbarCreateButtonProps {
   tone: keyof typeof CREATE_TONES;
   onClick: () => void;
   children: ReactNode;
+  /** Anchor for the guided tour. */
+  tourId?: string;
 }
 
-export function ToolbarCreateButton({ tone, onClick, children }: ToolbarCreateButtonProps) {
+export function ToolbarCreateButton({ tone, onClick, children, tourId }: ToolbarCreateButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      data-tour={tourId}
       className={`detail-invert-button detail-invert-button--solid detail-invert-button--${tone} inline-flex min-h-[38px] items-center gap-1.5 rounded-md px-3`}
       style={{ backgroundColor: CREATE_TONES[tone], color: "#fff", fontSize: 11, fontWeight: 850 }}
     >

@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UsuarioActual } from "../context/AuthContext";
 import { Sidebar } from "./Sidebar";
+import { useCompactSidebar } from "./sidebarCompact";
 
 const auth = vi.hoisted(() => ({ usuario: null as UsuarioActual | null, logout: vi.fn(), apiLogout: vi.fn() }));
 
@@ -15,6 +16,11 @@ vi.mock("../services/authApi", () => ({
   authApi: { logout: auth.apiLogout, changePassword: vi.fn() },
   authErrorMessage: () => "",
 }));
+
+function CompactRequest({ active }: { active: boolean }) {
+  useCompactSidebar(active);
+  return null;
+}
 
 function renderSidebar() {
   return render(
@@ -67,6 +73,53 @@ describe("Sidebar", () => {
     await user.click(screen.getByRole("button", { name: /Cerrar sesión/i }));
 
     expect(auth.logout).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays compact while a page asks for it and then returns to the person's choice", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <MemoryRouter initialEntries={["/krs"]}>
+        <Sidebar />
+        <CompactRequest active />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("button", { name: "Expandir menú" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Expandir menú" }));
+    expect(screen.getByRole("button", { name: "Colapsar menú" })).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter initialEntries={["/krs"]}>
+        <Sidebar />
+        <CompactRequest active={false} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("button", { name: "Colapsar menú" })).toBeInTheDocument();
+  });
+
+  it("keeps a sidebar the person collapsed collapsed after the compact request ends", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <MemoryRouter initialEntries={["/krs"]}>
+        <Sidebar />
+        <CompactRequest active={false} />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole("button", { name: "Colapsar menú" }));
+
+    rerender(
+      <MemoryRouter initialEntries={["/krs"]}>
+        <Sidebar />
+        <CompactRequest active />
+      </MemoryRouter>,
+    );
+    rerender(
+      <MemoryRouter initialEntries={["/krs"]}>
+        <Sidebar />
+        <CompactRequest active={false} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("button", { name: "Expandir menú" })).toBeInTheDocument();
   });
 
   it("opens the change-password dialog", async () => {

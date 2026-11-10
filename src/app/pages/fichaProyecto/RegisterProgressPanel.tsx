@@ -7,9 +7,8 @@ import { useDirtyReport } from "../../hooks/useDiscardGuard";
 import { projectsApi, type ProjectProgressRequest, type ProjectResponse } from "../../services/projectsApi";
 import { invalidateScreenDataCache } from "../../services/screenDataCache";
 import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
-import { ProgressBar, errorMessage } from "./projectDetailShared";
+import { errorMessage } from "./projectDetailShared";
 
-const ACCENT = "#5454E9";
 
 interface RegisterProgressPanelProps {
   project: ProjectResponse;
@@ -85,10 +84,9 @@ export function RegisterProgressPanel({ project, onCancel, onDirtyChange, onSave
               <input aria-label="Avance global (control deslizante)" type="range" min={0} max={100} step={0.5} value={progressPercent} onChange={(event) => setProgressPercent(Number(event.target.value))} className="min-w-0 flex-1 accent-[#5454E9]" />
               <input aria-label="Avance global (%)" type="number" min={0} max={100} step={0.5} value={progressPercent} onChange={(event) => setProgressPercent(Math.max(0, Math.min(100, Number(event.target.value))))} className={`${FORM_CONTROL_CLASS} !w-20`} />
             </div>
-            <div className="mt-2"><ProgressBar value={progressPercent} color={ACCENT} /></div>
           </div>
-          <FormField label="Comentario *">
-            <textarea value={comment} onChange={(event) => { setComment(event.target.value); setError(""); }} rows={4} placeholder="Describe lo que se avanzó, decisiones o bloqueos..." className={`${FORM_CONTROL_CLASS} resize-y`} />
+          <FormField label="Comentario" required>
+            <textarea aria-label="Comentario" value={comment} onChange={(event) => { setComment(event.target.value); setError(""); }} rows={4} placeholder="Describe lo que se avanzó, decisiones o bloqueos..." className={`${FORM_CONTROL_CLASS} resize-y`} />
           </FormField>
           <div role="group" aria-label="Hitos opcionales">
             <div className="mb-2 flex items-center justify-between gap-3">

@@ -5,7 +5,7 @@ Este documento contiene un catálogo completo y detallado de **TODOS** los endpo
 ---
 
 ## 🛠️ Resumen de Roles y Permisos
-Los endpoints que requieren autenticación esperan un access token emitido por `POST /api/v1/auth/login` (cuentas en Supabase Auth) y controlan el acceso por rol (`@PreAuthorize`). Los roles del MTE son:
+Los endpoints que requieren autenticación esperan un access token emitido por `POST /api/v1/auth/login` (cuentas administradas por la propia API) y controlan el acceso por rol (`@PreAuthorize`). Los roles del MTE son:
 - **`ADMIN`**: administración de la plataforma (usuarios, catálogos, auditoría) además de la gestión estratégica.
 - **`MANAGER`**: gestión estratégica (metas, apuestas, KRs, proyectos y reportes).
 - **`CONTRIBUTOR`**: consulta y registro de avance en sus proyectos.
@@ -39,8 +39,8 @@ Gestiona la información del usuario autenticado actualmente y sus capacidades e
 | Método | Ruta | Descripción | Acceso (PreAuthorize) |
 |:---|:---|:---|:---|
 | **`POST`** | `/api/v1/auth/login` | Inicia sesión con `{email, password}`; responde `{accessToken, tokenType, expiresIn, expiresAt}`. Bloquea la cuenta 15 minutos tras 5 intentos fallidos. | Público |
-| **`POST`** | `/api/v1/auth/set-password` | Define la contraseña con el enlace de acceso: `{tokenHash, type, password}` (10–72 caracteres). Responde 204. | Público |
-| **`POST`** | `/api/v1/auth/logout` | Cierra la sesión en Supabase Auth. Responde 204. | Autenticado |
+| **`POST`** | `/api/v1/auth/set-password` | Define la contraseña con el enlace de acceso: `{tokenHash, type, password}` (de 10 caracteres a 72 bytes). Responde 204. | Público |
+| **`POST`** | `/api/v1/auth/logout` | Cierra la sesión: la API revoca el token, que desde entonces recibe 401. Responde 204. | Autenticado |
 | **`POST`** | `/api/v1/auth/password` | Cambia la contraseña: `{currentPassword, newPassword}`. Responde 204. | Autenticado |
 | **`GET`** | `/api/v1/auth/me` | Obtiene el contexto detallado, roles y capacidades del usuario logueado. | Autenticado |
 | **`POST`** | `/api/v1/directory-users/{id}/access-link` | Genera un enlace de acceso de un solo uso: `{professorId, email, url, accountCreated}`. El MTE no envía correos. | `ADMIN` |

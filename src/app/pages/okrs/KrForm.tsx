@@ -8,6 +8,8 @@ import {
   FormError,
   FormField,
   FormSelect,
+  RequiredFieldsNote,
+  RequiredMark,
 } from "../../components/forms/FormField";
 import { KeyResultValueField } from "../../components/forms/KeyResultValueField";
 import { PlannerUrlField } from "../../components/planner/PlannerUrlField";
@@ -58,24 +60,25 @@ export function KrForm({ units, periods, goals, strategicBets, defaults, initial
 
   return (
     <form id={formId} onSubmit={submit} className="space-y-4">
+      <RequiredFieldsNote />
       {error && <FormError>{error}</FormError>}
-      <FormField label="Nombre">
+      <FormField label="Nombre" required>
         <input aria-label="Nombre" aria-invalid={Boolean(errors.name)} value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} className={FORM_CONTROL_CLASS} />
       </FormField>
-      <FormField label="Descripción">
+      <FormField label="Descripción" required>
         <textarea aria-label="Descripción" aria-invalid={Boolean(errors.description)} value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} rows={3} className={`${FORM_CONTROL_CLASS} resize-y`} />
       </FormField>
-      <FormField label="Métrica">
+      <FormField label="Métrica" required>
         <input aria-label="Métrica" aria-invalid={Boolean(errors.metric)} value={form.metric} onChange={(e) => setForm((prev) => ({ ...prev, metric: e.target.value }))} className={FORM_CONTROL_CLASS} />
       </FormField>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <FormField label="Valor base">
+        <FormField label="Valor base" required>
           <KeyResultValueField label="Valor base" value={form.baseValue} unit={selectedUnit} onChange={(value) => setForm((prev) => ({ ...prev, baseValue: value }))} className={FORM_CONTROL_CLASS} />
         </FormField>
-        <FormField label="Valor meta">
+        <FormField label="Valor meta" required>
           <KeyResultValueField label="Valor meta" value={form.targetValue} unit={selectedUnit} onChange={(value) => setForm((prev) => ({ ...prev, targetValue: value }))} className={FORM_CONTROL_CLASS} />
         </FormField>
-        <FormField label="Unidad de medida">
+        <FormField label="Unidad de medida" required>
           <FormSelect
             label="Unidad de medida"
             value={form.measurementUnitId}
@@ -85,7 +88,7 @@ export function KrForm({ units, periods, goals, strategicBets, defaults, initial
           />
         </FormField>
       </div>
-      <FormField label="Periodo académico">
+      <FormField label="Periodo académico" required>
         <FormSelect
           label="Periodo académico"
           value={form.academicPeriodId}
@@ -104,6 +107,10 @@ export function KrForm({ units, periods, goals, strategicBets, defaults, initial
         errorColor="#B42318"
       />
       <div className="space-y-3">
+        <p className={FORM_LABEL_CLASS}>
+          Vínculos<RequiredMark />
+          <span className="mt-0.5 block text-xs font-normal text-gray-500">Al menos una Meta o una Apuesta.</span>
+        </p>
         <KrLinkChecklist
           id="kr-form-goals"
           legend="Metas"

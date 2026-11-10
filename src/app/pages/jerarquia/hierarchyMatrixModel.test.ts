@@ -11,6 +11,8 @@ function node(
   return { nodeType, id, label, children };
 }
 
+const NO_SEARCH = { indicator: "", initiative: "" };
+
 const sharedKr = () => node("KEY_RESULT", "1", "Aumentar matrícula", [node("PROJECT", "10", "Plan de becas"), node("PROJECT", "11", "Ferias")]);
 const tree = [
   node("STRATEGIC_BET", "1", "Atraer talento", [sharedKr()]),
@@ -49,39 +51,57 @@ describe("hierarchy matrix", () => {
     expect(visibleMatrixColumns(matrix, "arbol").goals).toHaveLength(1);
   });
 
+  it("puts the longest names on the outer edges so they take the top rows", () => {
+    const matrix = buildHierarchyMatrix([
+      node("GOAL", "1", "Corta"),
+      node("GOAL", "2", "Meta con nombre largo"),
+      node("GOAL", "3", "Mediana meta"),
+      node("STRATEGIC_BET", "1", "Apuesta con nombre largo"),
+      node("STRATEGIC_BET", "2", "Breve"),
+    ]);
+    const { goals, bets } = visibleMatrixColumns(matrix, "arbol");
+
+    expect(goals.map((column) => column.label)).toEqual(["Meta con nombre largo", "Mediana meta", "Corta"]);
+    expect(bets.map((column) => column.label)).toEqual(["Breve", "Apuesta con nombre largo"]);
+  });
+
   it("drops rows without a link to the visible columns", () => {
     const matrix = buildHierarchyMatrix(tree);
 
-    expect(filterMatrixRows(matrix.rows, matrix.bets, null, "").map((row) => row.node.id)).toEqual(["1"]);
+    expect(filterMatrixRows(matrix.rows, matrix.bets, null, NO_SEARCH).map((row) => row.node.id)).toEqual(["1"]);
   });
 
   it("filters rows by the chosen column", () => {
     const matrix = buildHierarchyMatrix(tree);
     const columns = [...matrix.goals, ...matrix.bets];
 
-    expect(filterMatrixRows(matrix.rows, columns, "STRATEGIC_BET:1", "").map((row) => row.node.id)).toEqual(["1"]);
-    expect(filterMatrixRows(matrix.rows, columns, "STRATEGIC_BET:2", "")).toEqual([]);
+    expect(filterMatrixRows(matrix.rows, columns, "STRATEGIC_BET:1", NO_SEARCH).map((row) => row.node.id)).toEqual(["1"]);
+    expect(filterMatrixRows(matrix.rows, columns, "STRATEGIC_BET:2", NO_SEARCH)).toEqual([]);
   });
 
-  it("keeps every initiative when the search hits the key result or a linked column", () => {
+  it("filters rows by the key result code or name in the indicator search", () => {
     const matrix = buildHierarchyMatrix(tree);
     const columns = [...matrix.goals, ...matrix.bets];
 
-    expect(filterMatrixRows(matrix.rows, columns, null, "matricula")[0].initiatives).toHaveLength(2);
-    expect(filterMatrixRows(matrix.rows, columns, null, "atraer")[0].initiatives).toHaveLength(2);
+    expect(filterMatrixRows(matrix.rows, columns, null, { indicator: "matricula", initiative: "" }).map((row) => row.node.id)).toEqual(["1"]);
+    expect(filterMatrixRows(matrix.rows, columns, null, { indicator: "kr-02", initiative: "" }).map((row) => row.node.id)).toEqual(["2"]);
+    expect(filterMatrixRows(matrix.rows, columns, null, { indicator: "matricula", initiative: "" })[0].initiatives).toHaveLength(2);
   });
 
-  it("keeps only the matching initiatives when the search hits one of them", () => {
+  it("keeps only the matching initiatives and drops rows without any", () => {
     const matrix = buildHierarchyMatrix(tree);
     const columns = [...matrix.goals, ...matrix.bets];
-    const [row] = filterMatrixRows(matrix.rows, columns, null, "ferias");
+    const rows = filterMatrixRows(matrix.rows, columns, null, { indicator: "", initiative: "ferias" });
 
-    expect(row.initiatives.map((item) => item.label)).toEqual(["Ferias"]);
+    expect(rows.map((row) => row.node.id)).toEqual(["1"]);
+    expect(rows[0].initiatives.map((item) => item.label)).toEqual(["Ferias"]);
+    expect(filterMatrixRows(matrix.rows, columns, null, { indicator: "", initiative: "proy-10" })[0].initiatives.map((item) => item.id)).toEqual(["10"]);
   });
 
-  it("does not match the text of a column hidden by the root filter", () => {
+  it("combines both searches", () => {
     const matrix = buildHierarchyMatrix(tree);
+    const columns = [...matrix.goals, ...matrix.bets];
 
-    expect(filterMatrixRows(matrix.rows, matrix.goals, null, "atraer")).toEqual([]);
+    expect(filterMatrixRows(matrix.rows, columns, null, { indicator: "saber", initiative: "ferias" })).toEqual([]);
   });
 });

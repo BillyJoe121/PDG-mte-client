@@ -58,6 +58,7 @@ export function PresentationHeader(props: PresentationHeaderProps) {
       <div className="flex flex-wrap items-center gap-2 px-3 py-3 sm:px-6" style={{ borderBottom: "1px solid #E5E7EB" }}>
         <nav
           aria-label="Modos de presentación"
+          data-tour="presentacion-modes"
           className="flex w-full max-w-full items-stretch overflow-x-auto lg:w-auto"
           style={{ border: `1.5px solid ${BORDER}`, borderRadius: 8, height: 38 }}
         >
@@ -68,6 +69,7 @@ export function PresentationHeader(props: PresentationHeaderProps) {
                 key={value}
                 type="button"
                 aria-pressed={active}
+                data-tour={`presentacion-mode-${value}`}
                 aria-label={label}
                 title={label}
                 onClick={() => props.onModeChange(value)}
@@ -88,7 +90,7 @@ export function PresentationHeader(props: PresentationHeaderProps) {
           })}
         </nav>
 
-        <div className="flex w-full items-center gap-2 sm:w-auto lg:ml-auto">
+        <div data-tour="presentacion-export" className="flex w-full items-center gap-2 sm:w-auto lg:ml-auto">
           <label className="sr-only" htmlFor="presentation-period">
             Periodo académico
           </label>

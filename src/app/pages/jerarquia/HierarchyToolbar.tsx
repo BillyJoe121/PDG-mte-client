@@ -22,6 +22,8 @@ interface HierarchyToolbarProps {
   periods: AcademicPeriod[];
   onPeriodChange: (value: string) => void;
   showSearch: boolean;
+  /** Table mode: the table brings its own searches, so the filters take the first row. */
+  compact?: boolean;
   search: string;
   onSearchChange: (value: string) => void;
   canCreate: boolean;
@@ -44,6 +46,7 @@ export function HierarchyToolbar({
   periods,
   onPeriodChange,
   showSearch,
+  compact = false,
   search,
   onSearchChange,
   canCreate,
@@ -56,9 +59,25 @@ export function HierarchyToolbar({
   totalKrs,
   totalProjects,
 }: HierarchyToolbarProps) {
+  const filters = (
+    <>
+      <ToolbarSegmented ariaLabel="Filtrar por raíz" options={VIEW_OPTIONS} value={view} onChange={onViewChange} accent={ACCENT} />
+      <ToolbarSelect
+        ariaLabel="Filtrar por periodo"
+        value={period || "__all"}
+        onChange={(value) => onPeriodChange(value === "__all" ? "" : value)}
+        options={[{ value: "__all", label: "Todos: Periodo" }, ...periods.map((item) => ({ value: item.name, label: item.name }))]}
+      />
+    </>
+  );
+
   return (
     <ScreenToolbar
-      search={showSearch && <ToolbarSearch value={search} onChange={onSearchChange} placeholder="Buscar por palabra clave..." ariaLabel="Buscar en la jerarquía" />}
+      search={
+        compact
+          ? filters
+          : showSearch && <ToolbarSearch value={search} onChange={onSearchChange} placeholder="Buscar por palabra clave..." ariaLabel="Buscar en la jerarquía" />
+      }
       actions={
         <>
           {showSearch && <ViewModeToggle value={viewMode} onChange={onViewModeChange} />}
@@ -72,24 +91,14 @@ export function HierarchyToolbar({
           </ToolbarButton>
           {canCreate && (
             <>
-              <ToolbarCreateButton tone="green" onClick={() => onCreate("goal")}>Nueva Meta</ToolbarCreateButton>
+              <ToolbarCreateButton tone="green" tourId="jerarquia-create" onClick={() => onCreate("goal")}>Nueva Meta</ToolbarCreateButton>
               <ToolbarCreateButton tone="blue" onClick={() => onCreate("bet")}>Nueva Apuesta</ToolbarCreateButton>
             </>
           )}
         </>
       }
-      filters={
-        <>
-          <ToolbarSegmented ariaLabel="Filtrar por raíz" options={VIEW_OPTIONS} value={view} onChange={onViewChange} accent={ACCENT} />
-          <ToolbarSelect
-            ariaLabel="Filtrar por periodo"
-            value={period || "__all"}
-            onChange={(value) => onPeriodChange(value === "__all" ? "" : value)}
-            options={[{ value: "__all", label: "Todos: Periodo" }, ...periods.map((item) => ({ value: item.name, label: item.name }))]}
-          />
-        </>
-      }
-      summary={<>{betsCount} apuestas {"\u00B7"} {goalsCount} metas {"\u00B7"} {totalKrs} KRs {"\u00B7"} {totalProjects} iniciativas</>}
+      filters={compact ? undefined : filters}
+      summary={compact ? undefined : <>{betsCount} apuestas {"\u00B7"} {goalsCount} metas {"\u00B7"} {totalKrs} KRs {"\u00B7"} {totalProjects} iniciativas</>}
     />
   );
 }

@@ -1,8 +1,9 @@
-import { CircleHelp, Lightbulb } from "lucide-react";
+import { CircleHelp, Compass, Lightbulb, LifeBuoy } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "react-router";
 import { DETAIL_PRIMARY_BUTTON_CLASS } from "./DetailModal";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "./Modal";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 type HelpContent = {
   title: string;
@@ -116,18 +117,39 @@ export function ContextualHelp({ onStartTutorial }: ContextualHelpProps) {
   const content = getContextualHelp(pathname);
   const [open, setOpen] = useState(false);
 
+  const trigger = (
+    <button
+      type="button"
+      aria-label={`Ayuda sobre ${content.title}`}
+      title={`Ayuda sobre ${content.title}`}
+      data-tour="help"
+      onClick={onStartTutorial ? undefined : () => setOpen(true)}
+      className="flex h-9 w-9 items-center justify-center rounded transition-colors hover:bg-gray-100"
+      style={{ border: "1.5px solid #000" }}
+    >
+      <CircleHelp size={17} aria-hidden="true" />
+    </button>
+  );
+
   return (
     <>
-      <button
-        type="button"
-        aria-label={`Ayuda sobre ${content.title}`}
-        title={`Ayuda sobre ${content.title}`}
-        onClick={() => setOpen(true)}
-        className="flex h-9 w-9 items-center justify-center rounded transition-colors hover:bg-gray-100"
-        style={{ border: "1.5px solid #000" }}
-      >
-        <CircleHelp size={17} aria-hidden="true" />
-      </button>
+      {onStartTutorial ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 border-gray-200 bg-white">
+            <DropdownMenuItem onSelect={onStartTutorial} className="cursor-pointer gap-2 text-sm">
+              <Compass size={15} aria-hidden="true" />
+              Recorrido guiado
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setOpen(true)} className="cursor-pointer gap-2 text-sm">
+              <LifeBuoy size={15} aria-hidden="true" />
+              Ayuda de esta pantalla
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        trigger
+      )}
       {open && (
         <Modal onClose={() => setOpen(false)}>
           <ModalHeader title={`Ayuda: ${content.title}`} closeLabel="Cerrar ayuda" onClose={() => setOpen(false)} />

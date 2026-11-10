@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { getLabelRol } from "../utils/roleLabels";
 import { ContextualHelp } from "./ContextualHelp";
-import { PlatformTutorial } from "./PlatformTutorial";
+import { useStartTutorial } from "./tutorial/tutorialContext";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -20,7 +19,7 @@ const breadcrumbMap: Record<string, string> = {
 export function Header() {
   const { usuario } = useAuth();
   const location = useLocation();
-  const [showTutorial, setShowTutorial] = useState(false);
+  const startTutorial = useStartTutorial();
 
   const pageTitle = breadcrumbMap[location.pathname] || "MTE";
 
@@ -46,7 +45,7 @@ export function Header() {
 
       {/* Right: help + avatar */}
       <div className="flex items-center gap-3">
-        <ContextualHelp onStartTutorial={() => setShowTutorial(true)} />
+        <ContextualHelp onStartTutorial={startTutorial} />
         {/* User avatar */}
         {usuario && (
           <div
@@ -66,7 +65,6 @@ export function Header() {
           </div>
         )}
       </div>
-      <PlatformTutorial open={showTutorial} onOpenChange={setShowTutorial} />
     </header>
   );
 }

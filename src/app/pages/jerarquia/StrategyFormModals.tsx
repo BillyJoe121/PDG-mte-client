@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useId, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { FORM_CONTROL_CLASS, FormActions, FormField, FormSelect } from "../../components/forms/FormField";
+import { FORM_CONTROL_CLASS, FormActions, FormField, FormSelect, RequiredFieldsNote } from "../../components/forms/FormField";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../components/Modal";
 import { measurementUnitsApi, type MeasurementUnit } from "../../services/catalogsApi";
 import { getGoalValueInput, validateGoalForm, type GoalFormErrors, type GoalFormValues } from "../../utils/goalForm";
@@ -25,7 +25,7 @@ function StrategyFormFrame({ title, submitLabel, saving, onClose, onSubmit, chil
     <Modal onClose={onClose}>
       <ModalHeader title={title} onClose={onClose} />
       <ModalBody>
-        <form id={formId} onSubmit={onSubmit} className="space-y-4">{children}</form>
+        <form id={formId} onSubmit={onSubmit} className="space-y-4"><RequiredFieldsNote />{children}</form>
       </ModalBody>
       <ModalFooter>
         <FormActions formId={formId} saving={saving} submitLabel={submitLabel} onCancel={onClose} />
@@ -44,10 +44,10 @@ function NameDescriptionFields({ name, description, errors, placeholders, onChan
 }) {
   return (
     <>
-      <FormField label="Nombre" error={errors.name}>
+      <FormField label="Nombre" required error={errors.name}>
         <input aria-label="Nombre" aria-invalid={Boolean(errors.name)} value={name} onChange={(event) => onChange("name", event.target.value)} placeholder={placeholders?.name} className={FORM_CONTROL_CLASS} />
       </FormField>
-      <FormField label="Descripcion" error={errors.description}>
+      <FormField label="Descripcion" required error={errors.description}>
         <textarea aria-label="Descripcion" aria-invalid={Boolean(errors.description)} value={description} onChange={(event) => onChange("description", event.target.value)} rows={3} placeholder={placeholders?.description} className={`${FORM_CONTROL_CLASS} resize-y`} />
       </FormField>
     </>
@@ -231,13 +231,13 @@ export function GoalFormModal(props: GoalFormModalProps) {
         onChange={set}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_120px_170px]">
-        <FormField label="Indicador" error={errors.referenceIndicator}>
+        <FormField label="Indicador" required error={errors.referenceIndicator}>
           <input aria-label="Indicador" aria-invalid={Boolean(errors.referenceIndicator)} value={form.referenceIndicator} onChange={(event) => set("referenceIndicator", event.target.value)} className={FORM_CONTROL_CLASS} />
         </FormField>
-        <FormField label="Valor" error={errors.expectedValue}>
+        <FormField label="Valor" required error={errors.expectedValue}>
           <GoalValueControl form={form} units={units} invalid={Boolean(errors.expectedValue)} onChange={(value) => set("expectedValue", value)} />
         </FormField>
-        <FormField label="Unidad" error={errors.measurementUnitId}>
+        <FormField label="Unidad" required error={errors.measurementUnitId}>
           <FormSelect
             label="Unidad"
             value={form.measurementUnitId}

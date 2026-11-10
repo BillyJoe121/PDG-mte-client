@@ -32,6 +32,7 @@ export function HierarchyRootGallery({ nodes, onSelect }: { nodes: StrategicHier
             key={getTreeNodeKey(node)}
             type="button"
             onClick={() => onSelect(node)}
+            data-tour={index === 0 ? "jerarquia-card" : undefined}
             className="hierarchy-root-card overflow-hidden rounded-md text-left"
             style={{ "--hierarchy-card-accent": accent } as CSSProperties}
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
@@ -122,6 +123,7 @@ export function HierarchyDetailHeader({ node, onManage, onBack }: { node: Strate
             <button
               type="button"
               onClick={onBack}
+              data-tour="jerarquia-back"
               className="hierarchy-detail-header-back-btn rounded-md self-start"
             >
               <ArrowLeft size={11} style={{ strokeWidth: 3 }} /> Volver
@@ -162,6 +164,7 @@ export function HierarchyDetailHeader({ node, onManage, onBack }: { node: Strate
             <button
               type="button"
               onClick={() => onManage(node)}
+              data-tour="jerarquia-manage"
               className="hierarchy-detail-header-manage-btn rounded-md"
             >
               Gestionar {node.nodeType === "GOAL" ? "meta" : "apuesta"} <ChevronRight size={11} />

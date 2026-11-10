@@ -1,17 +1,19 @@
 import type { ReactNode } from "react";
-import { CheckCircle2, FolderKanban, Play, Target } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import type { CountByStatus, DashboardSummary, KeyResultCountByStatus } from "../../services/dashboardApi";
 import { KEY_RESULT_STATUS_ORDER, keyResultStatusColor, keyResultStatusLabel } from "./keyResultStatusMeta";
 import { DashboardEmptyState as EmptyState } from "./DashboardCoverage";
 import { COLORS, shortMotionTransition } from "./dashboardTheme";
 
+const PROJECT_STATUS_ORDER: CountByStatus["status"][] = ["BORRADOR", "ACTIVO", "FINALIZADO", "SUSPENDIDO", "ARCHIVADO"];
+
 const projectStatusLabel: Record<CountByStatus["status"], string> = {
   BORRADOR: "Borrador",
-  ACTIVO: "Activo",
-  FINALIZADO: "Finalizado",
-  SUSPENDIDO: "Suspendido",
-  ARCHIVADO: "Archivado",
+  ACTIVO: "Activas",
+  FINALIZADO: "Finalizadas",
+  SUSPENDIDO: "Suspendidas",
+  ARCHIVADO: "Archivadas",
 };
 
 const projectStatusColor: Record<CountByStatus["status"], string> = {
@@ -19,177 +21,132 @@ const projectStatusColor: Record<CountByStatus["status"], string> = {
   ACTIVO: COLORS.blue,
   FINALIZADO: COLORS.green,
   SUSPENDIDO: COLORS.orange,
-  ARCHIVADO: COLORS.text,
+  ARCHIVADO: "#374151",
 };
 
 export function sumCounts<T extends { count: number }>(items: T[]) {
   return items.reduce((sum, item) => sum + item.count, 0);
 }
 
+/** Headline counters, taken from the recorded status counts only. */
 export function buildKpis(summary: DashboardSummary, totalProjects: number) {
   return [
-    {
-      label: "Iniciativas activas",
-      value: summary.activeProjects,
-      sub: `${summary.completedProjects} finalizadas de ${totalProjects || 0} totales`,
-      icon: FolderKanban,
-      color: COLORS.green,
-    },
-    {
-      label: "KRs en seguimiento",
-      value: summary.keyResultsInFollowUp,
-      sub: `${summary.draftKeyResults} en borrador, ${summary.activeKeyResults} activos, ${summary.closedKeyResults} cerrados`,
-      icon: Target,
-      color: COLORS.orange,
-    },
-    {
-      label: "KRs activos",
-      value: summary.activeKeyResults,
-      sub: "Admiten registro manual de avance",
-      icon: Play,
-      color: COLORS.orange,
-    },
-    {
-      label: "KRs cerrados",
-      value: summary.closedKeyResults,
-      sub: "Su avance registrado ya no cambia",
-      icon: CheckCircle2,
-      color: COLORS.orange,
-    },
+    { label: "Iniciativas", value: totalProjects },
+    { label: "Iniciativas activas", value: summary.activeProjects },
+    { label: "Iniciativas finalizadas", value: summary.completedProjects },
+    { label: "KRs en seguimiento", value: summary.keyResultsInFollowUp },
+    { label: "KRs activos", value: summary.activeKeyResults },
+    { label: "KRs cerrados", value: summary.closedKeyResults },
   ];
 }
 
-export type DashboardKpi = ReturnType<typeof buildKpis>[number];
-
-export function DashboardKpiGrid({ kpis }: { kpis: DashboardKpi[] }) {
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {kpis.map((kpi, index) => (
-        <MetricCard key={kpi.label} index={index} {...kpi} />
-      ))}
-    </div>
-  );
+export interface MetricCardProps {
+  label: string;
+  value: number | string;
+  sub: string;
+  icon: LucideIcon;
+  color: string;
+  index: number;
 }
 
-export function MetricCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  color,
-  index,
-}: DashboardKpi & { index: number }) {
+/** Solid metric card used by the presentation screens. */
+export function MetricCard({ label, value, sub, icon: Icon, color, index }: MetricCardProps) {
   const reduceMotion = useReducedMotion();
-  const solid = true;
 
   return (
     <motion.div
-      className="rounded-md bg-white p-4"
-      style={{
-        backgroundColor: solid ? color : "#fff",
-        border: `1px solid ${solid ? color : COLORS.border}`,
-        boxShadow: solid ? `0 14px 30px ${color}2E` : "0 1px 2px rgba(17,24,39,0.06)",
-      }}
+      className="rounded-md p-4"
+      style={{ backgroundColor: color, border: `1px solid ${color}`, boxShadow: `0 14px 30px ${color}2E` }}
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ ...shortMotionTransition, delay: Math.min(index * 0.025, 0.1) }}
       whileHover={reduceMotion ? undefined : { y: -2, transition: { duration: 0.12, ease: "easeOut" } }}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: solid ? "rgba(255,255,255,0.16)" : `${color}18`, border: `1px solid ${solid ? "rgba(255,255,255,0.32)" : `${color}26`}` }}>
-          <Icon size={19} color={solid ? "#fff" : color} />
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.32)" }}>
+          <Icon size={19} color="#fff" />
         </div>
-        <span style={{ width: 34, height: 5, borderRadius: 99, backgroundColor: solid ? "rgba(255,255,255,0.72)" : color, opacity: 0.86 }} />
+        <span style={{ width: 34, height: 5, borderRadius: 99, backgroundColor: "rgba(255,255,255,0.72)", opacity: 0.86 }} />
       </div>
-      <p style={{ fontSize: 17, fontWeight: 900, color: solid ? "#fff" : color, lineHeight: 1.05, marginTop: 14 }}>{value}</p>
-      <p style={{ fontSize: 10.5, fontWeight: 850, color: solid ? "#fff" : COLORS.text, marginTop: 5 }}>{label}</p>
-      <p style={{ fontSize: 10.5, color: solid ? "rgba(255,255,255,0.82)" : COLORS.gray, marginTop: 3, lineHeight: 1.35 }}>{sub}</p>
+      <p style={{ fontSize: 17, fontWeight: 900, color: "#fff", lineHeight: 1.05, marginTop: 14 }}>{value}</p>
+      <p style={{ fontSize: 10.5, fontWeight: 850, color: "#fff", marginTop: 5 }}>{label}</p>
+      <p style={{ fontSize: 10.5, color: "rgba(255,255,255,0.82)", marginTop: 3, lineHeight: 1.35 }}>{sub}</p>
     </motion.div>
   );
 }
 
-export function DashboardPanel({ title, subtitle, icon, children }: { title: string; subtitle: string; icon: ReactNode; children: ReactNode }) {
+/** Plain white panel with a small uppercase title, as in the report screens. */
+export function DashboardPanel({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
-      <div className="mb-4 flex items-start gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ backgroundColor: "#EEF2FF", color: COLORS.blue, border: "1px solid #DDE3FF" }}>
-          {icon}
-        </div>
-        <div>
-          <h2 style={{ fontSize: 13, fontWeight: 900, color: COLORS.text, lineHeight: 1.15 }}>{title}</h2>
-          <p style={{ fontSize: 10.5, color: COLORS.gray, marginTop: 3, lineHeight: 1.4 }}>{subtitle}</p>
-        </div>
+    <section className="rounded-lg border border-gray-200 bg-white p-4" aria-label={title}>
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className="text-[9px] font-extrabold uppercase tracking-wide text-gray-500">{title}</h2>
+        {aside && <span className="text-xs text-gray-500">{aside}</span>}
       </div>
       {children}
     </section>
   );
 }
 
-export function ProjectStatusDistribution({ data }: { data: CountByStatus[] }) {
-  const total = sumCounts(data);
-  if (!total) return <EmptyState text="Sin iniciativas para el periodo seleccionado." compact />;
+interface Segment {
+  key: string;
+  label: string;
+  color: string;
+  value: number;
+}
 
+function percent(value: number, total: number) {
+  return total ? Math.round((value / total) * 100) : 0;
+}
+
+/** One stacked bar with a legend that lists each status with its count and share. */
+function StatusBreakdown({ segments, unit }: { segments: Segment[]; unit: string }) {
+  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
   return (
-    <div className="space-y-3">
-      <div className="flex h-3 overflow-hidden rounded-full bg-[#EEF2F7]">
-        {data.filter((item) => item.count > 0).map((item) => (
-          <div
-            key={item.status}
-            title={`${projectStatusLabel[item.status]} ${item.count}`}
-            style={{ width: `${(item.count / total) * 100}%`, backgroundColor: projectStatusColor[item.status] }}
-          />
+    <div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-[22px] font-bold leading-none text-[#111827]">{total}</span>
+        <span className="text-xs text-gray-500">{unit}</span>
+      </div>
+      <div className="mt-3 flex h-2.5 gap-px overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
+        {segments.filter((segment) => segment.value > 0).map((segment) => (
+          <div key={segment.key} title={`${segment.label}: ${segment.value}`} style={{ width: `${(segment.value / total) * 100}%`, backgroundColor: segment.color }} />
         ))}
       </div>
-
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {data.map((item) => (
-          <DistributionRow
-            key={item.status}
-            color={projectStatusColor[item.status]}
-            label={projectStatusLabel[item.status]}
-            total={total}
-            value={item.count}
-          />
+      <ul className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
+        {segments.map((segment) => (
+          <li key={segment.key} className="flex items-center gap-2 text-xs">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: segment.color }} aria-hidden="true" />
+            <span className="min-w-0 flex-1 text-gray-600">{segment.label}</span>
+            <span className="font-bold tabular-nums text-[#111827]">{segment.value}</span>
+            <span className="w-9 text-right tabular-nums text-gray-400">{percent(segment.value, total)}%</span>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
+}
+
+export function ProjectStatusDistribution({ data }: { data: CountByStatus[] }) {
+  if (!sumCounts(data)) return <EmptyState text="Sin iniciativas para el periodo seleccionado." compact />;
+  const countFor = (status: CountByStatus["status"]) => data.find((item) => item.status === status)?.count ?? 0;
+  const segments = PROJECT_STATUS_ORDER.map((status) => ({
+    key: status,
+    label: projectStatusLabel[status],
+    color: projectStatusColor[status],
+    value: countFor(status),
+  }));
+  return <StatusBreakdown segments={segments} unit="iniciativas" />;
 }
 
 export function KeyResultsByStatus({ data }: { data: KeyResultCountByStatus[] }) {
-  const total = sumCounts(data);
-  if (!total) return <EmptyState text="Sin Key Results para el periodo seleccionado." compact />;
+  if (!sumCounts(data)) return <EmptyState text="Sin Key Results para el periodo seleccionado." compact />;
   const countFor = (status: KeyResultCountByStatus["status"]) => data.find((item) => item.status === status)?.count ?? 0;
-
-  return (
-    <div className="space-y-2">
-      {KEY_RESULT_STATUS_ORDER.map((status) => (
-        <DistributionRow
-          key={status}
-          color={keyResultStatusColor[status]}
-          label={keyResultStatusLabel[status]}
-          total={total}
-          value={countFor(status)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function DistributionRow({ color, label, total, value }: { color: string; label: string; total: number; value: number }) {
-  const width = total ? (value / total) * 100 : 0;
-  return (
-    <div className="rounded-md p-3" style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "#F8FAFC" }}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-          <span style={{ fontSize: 10.5, fontWeight: 850, color: COLORS.text }}>{label}</span>
-        </div>
-        <span style={{ fontSize: 10.5, fontWeight: 900, color }}>{value}</span>
-      </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
-        <div style={{ width: `${width}%`, height: "100%", backgroundColor: color }} />
-      </div>
-    </div>
-  );
+  const segments = KEY_RESULT_STATUS_ORDER.map((status) => ({
+    key: status,
+    label: keyResultStatusLabel[status],
+    color: keyResultStatusColor[status],
+    value: countFor(status),
+  }));
+  return <StatusBreakdown segments={segments} unit="KRs" />;
 }

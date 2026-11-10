@@ -1,139 +1,155 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Compass, X } from "lucide-react";
-import { useNavigate } from "react-router";
+import { type KeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
+import { useLocation, useNavigate } from "react-router";
+import { useAuth } from "../context/AuthContext";
 import { DETAIL_BUTTON_CLASS, DETAIL_PRIMARY_BUTTON_CLASS } from "./DetailModal";
-import { Modal, ModalBody, ModalFooter, ModalHeader } from "./Modal";
+import { placeTourCard, type Size } from "./tutorial/tourPlacement";
+import { tourStepsFor } from "./tutorial/tourSteps";
+import { useTourTarget } from "./tutorial/useTourTarget";
 
-export type TutorialStep = {
-  title: string;
-  description: string;
-  highlights: string[];
-  destination?: { label: string; to: string };
-};
-
-export const platformTutorialSteps: TutorialStep[] = [
-  {
-    title: "Bienvenido a MTE",
-    description: "MTE centraliza la trazabilidad entre la estrategia institucional, los resultados clave medibles y las iniciativas que los materializan.",
-    highlights: [
-      "Tu rol determina los módulos y acciones que puedes utilizar.",
-      "La información se conserva con historial para facilitar el seguimiento institucional.",
-    ],
-    destination: { label: "Ver dashboard", to: "/dashboard" },
-  },
-  {
-    title: "Navega por la estrategia",
-    description: "El menú lateral agrupa los módulos principales. Empieza por la jerarquía para entender cómo se conectan las Apuestas y las Metas.",
-    highlights: [
-      "Usa los filtros de período para consultar la vigencia de cada elemento.",
-      "Abre los detalles para revisar relaciones antes de crear o archivar información.",
-    ],
-    destination: { label: "Abrir Jerarquía", to: "/jerarquia" },
-  },
-  {
-    title: "Define resultados medibles",
-    description: "Cada Key Result se vincula directamente a una o varias Metas y Apuestas, y conserva una unidad de medida, un valor meta y su ciclo de vida.",
-    highlights: [
-      "Busca por Meta, Apuesta o período para acotar la consulta.",
-      "Verifica el estado del KR antes de intentar modificarlo.",
-    ],
-    destination: { label: "Abrir KRs", to: "/krs" },
-  },
-  {
-    title: "Conecta iniciativas con resultados",
-    description: "Las iniciativas se gestionan desde su módulo y pueden contribuir a un KR mediante un peso y tipo de contribución explícitos.",
-    highlights: [
-      "La ficha permite actualizar responsables, fechas, períodos y estado.",
-      "El sistema valida los rangos de fechas y evita volver a vincular un KR activo.",
-    ],
-    destination: { label: "Abrir Iniciativas", to: "/proyectos" },
-  },
-  {
-    title: "Revisa y corrige",
-    description: "Consistencia identifica alertas de calidad y Auditoría conserva el historial de operaciones relevantes.",
-    highlights: [
-      "Usa las acciones correctivas para llegar al registro que requiere atención.",
-      "Verifica filtros y período antes de exportar o presentar reportes.",
-    ],
-    destination: { label: "Abrir Consistencia", to: "/consistencia" },
-  },
-  {
-    title: "Recorrido completado",
-    description: "Ya tienes una visión del flujo central: estrategia, Key Results, iniciativas, consistencia y seguimiento.",
-    highlights: [
-      "Puedes abrir esta guía nuevamente desde el botón de ayuda del encabezado.",
-      "La ayuda contextual describe los pasos relevantes para el módulo en el que te encuentres.",
-    ],
-  },
-];
+const CARD_WIDTH = 300;
+const SPOTLIGHT_PAD = 6;
+const Z_INDEX = 1100;
 
 interface PlatformTutorialProps {
-  onOpenChange: (open: boolean) => void;
   open: boolean;
+  /** First visit: the tour cannot be closed before Finalizar. */
+  mandatory?: boolean;
+  /** `finished` is true when the user reached Finalizar. */
+  onClose: (finished: boolean) => void;
 }
 
-export function PlatformTutorial({ onOpenChange, open }: PlatformTutorialProps) {
-  const [stepIndex, setStepIndex] = useState(0);
+/** Guided tour: a small card next to each control it explains, moving through the screens. */
+export function PlatformTutorial({ open, mandatory = false, onClose }: PlatformTutorialProps) {
+  const { usuario } = useAuth();
+  const steps = useMemo(() => tourStepsFor(usuario), [usuario]);
+  const [index, setIndex] = useState(0);
   const navigate = useNavigate();
-  const step = platformTutorialSteps[stepIndex];
-  const isFirstStep = stepIndex === 0;
-  const isLastStep = stepIndex === platformTutorialSteps.length - 1;
+  const { pathname } = useLocation();
+  const step = steps[Math.min(index, steps.length - 1)];
+  const onRoute = !step?.route || pathname === step.route;
+  const { ready, rect } = useTourTarget(step?.target, open && onRoute, step?.clicks);
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardSize, setCardSize] = useState<Size>({ width: CARD_WIDTH, height: 180 });
+  const [viewport, setViewport] = useState<Size>(() => ({ width: window.innerWidth, height: window.innerHeight }));
 
   useEffect(() => {
-    if (open) setStepIndex(0);
+    if (open) setIndex(0);
   }, [open]);
 
-  const visitDestination = () => {
-    if (!step.destination) return;
-    navigate(step.destination.to);
-    onOpenChange(false);
+  useEffect(() => {
+    if (open && step?.route && pathname !== step.route) navigate(step.route);
+  }, [open, step, pathname, navigate]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [open]);
+
+  useLayoutEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const { width, height } = card.getBoundingClientRect();
+    if (width && height && (width !== cardSize.width || height !== cardSize.height)) setCardSize({ width, height });
+  });
+
+  useEffect(() => {
+    if (open && ready) cardRef.current?.focus();
+  }, [open, ready, index]);
+
+  if (!open || !step) return null;
+
+  const isFirst = index === 0;
+  const isLast = index === steps.length - 1;
+  const finish = () => onClose(true);
+  const next = () => (isLast ? finish() : setIndex((value) => value + 1));
+  const previous = () => setIndex((value) => Math.max(0, value - 1));
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      if (!mandatory) onClose(false);
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(cardRef.current?.querySelectorAll<HTMLElement>("button:not([disabled])") ?? []);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === cardRef.current)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   };
 
-  if (!open) return null;
+  const position = placeTourCard(rect, cardSize, viewport, step.placement === "side" || Boolean(step.target?.startsWith("nav-")));
+  const titleId = `tour-step-title-${step.id}`;
+  const bodyId = `tour-step-body-${step.id}`;
+  const showCard = ready && onRoute;
 
-  return (
-    <Modal onClose={() => onOpenChange(false)}>
-      <ModalHeader title={step.title} closeLabel="Cerrar recorrido" onClose={() => onOpenChange(false)}>
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5454E9]">
-          <BookOpen size={14} aria-hidden="true" />
-          Recorrido guiado · paso {stepIndex + 1} de {platformTutorialSteps.length}
-        </span>
-      </ModalHeader>
-      <ModalBody>
-        <p className="text-sm leading-6 text-gray-600">{step.description}</p>
-
-        <div className="h-2 overflow-hidden rounded-full bg-gray-200" aria-label={`Progreso: paso ${stepIndex + 1} de ${platformTutorialSteps.length}`} role="progressbar" aria-valuemin={1} aria-valuemax={platformTutorialSteps.length} aria-valuenow={stepIndex + 1}>
-          <div className="h-full rounded-full bg-[#5454E9] transition-all" style={{ width: `${((stepIndex + 1) / platformTutorialSteps.length) * 100}%` }} />
+  return createPortal(
+    <div onKeyDown={onKeyDown} data-testid="guided-tour">
+      {/* Blocks the page so the tour is followed from the card. */}
+      <div aria-hidden="true" className="fixed inset-0" style={{ zIndex: Z_INDEX, backgroundColor: rect && showCard ? "transparent" : "rgba(17, 24, 39, 0.45)" }} />
+      {rect && showCard && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed rounded-lg"
+          style={{
+            zIndex: Z_INDEX,
+            top: rect.top - SPOTLIGHT_PAD,
+            left: rect.left - SPOTLIGHT_PAD,
+            width: rect.width + SPOTLIGHT_PAD * 2,
+            height: rect.height + SPOTLIGHT_PAD * 2,
+            boxShadow: "0 0 0 3px #E4EB60, 0 0 0 9999px rgba(17, 24, 39, 0.45)",
+          }}
+        />
+      )}
+      {showCard && (
+        <div
+          ref={cardRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={bodyId}
+          tabIndex={-1}
+          className="fixed rounded-lg border border-black bg-white p-4 shadow-xl outline-none"
+          style={{ zIndex: Z_INDEX + 1, top: position.top, left: position.left, width: CARD_WIDTH, maxWidth: `calc(100vw - 24px)` }}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5454E9]">Paso {index + 1} de {steps.length}</p>
+            {!mandatory && (
+              <button type="button" onClick={() => onClose(false)} aria-label="Cerrar recorrido" className="-mr-1 -mt-1 rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-black">
+                <X size={14} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          <h2 id={titleId} className="mt-1 text-sm font-bold text-[#111827]">{step.title}</h2>
+          <p id={bodyId} className="mt-1.5 text-[13px] leading-5 text-gray-600">{step.body}</p>
+          {mandatory && isFirst && <p className="mt-2 text-[11px] text-gray-500">Completa el recorrido para empezar a usar la plataforma.</p>}
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
+            <div className="h-full bg-[#5454E9] transition-all" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <button type="button" onClick={previous} disabled={isFirst} className={DETAIL_BUTTON_CLASS}>
+              <ArrowLeft size={13} aria-hidden="true" />
+              Anterior
+            </button>
+            <button type="button" onClick={next} className={DETAIL_PRIMARY_BUTTON_CLASS}>
+              {isLast ? "Finalizar" : "Siguiente"}
+              {!isLast && <ArrowRight size={13} aria-hidden="true" />}
+            </button>
+          </div>
         </div>
-
-        <ul className="space-y-3" aria-label="Aspectos clave del paso">
-          {step.highlights.map((highlight) => (
-            <li key={highlight} className="flex items-start gap-3 text-sm leading-5 text-gray-800">
-              <CheckCircle2 className="mt-0.5 shrink-0 text-[#5454E9]" size={18} aria-hidden="true" />
-              <span>{highlight}</span>
-            </li>
-          ))}
-        </ul>
-      </ModalBody>
-      <ModalFooter>
-        <button type="button" onClick={() => onOpenChange(false)} className="mr-auto inline-flex items-center justify-center gap-2 text-sm font-bold text-gray-600 hover:text-[#111827]">
-          <X size={15} aria-hidden="true" /> Omitir recorrido
-        </button>
-        {step.destination && (
-          <button type="button" onClick={visitDestination} className={DETAIL_BUTTON_CLASS}>
-            <Compass size={15} aria-hidden="true" /> {step.destination.label}
-          </button>
-        )}
-        {!isFirstStep && (
-          <button type="button" onClick={() => setStepIndex((current) => current - 1)} className={DETAIL_BUTTON_CLASS}>
-            <ArrowLeft size={15} aria-hidden="true" /> Anterior
-          </button>
-        )}
-        <button type="button" onClick={() => isLastStep ? onOpenChange(false) : setStepIndex((current) => current + 1)} className={DETAIL_PRIMARY_BUTTON_CLASS}>
-          {isLastStep ? "Finalizar" : "Siguiente"}
-          {!isLastStep && <ArrowRight size={15} aria-hidden="true" />}
-        </button>
-      </ModalFooter>
-    </Modal>
+      )}
+    </div>,
+    document.body,
   );
 }

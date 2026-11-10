@@ -35,6 +35,7 @@ export function ProjectCardView({ canManage, index = 0, project, onLink, onOpen 
       style={{ "--project-card-accent": COLORS.green } as CSSProperties}
       onClick={onOpen}
       onKeyDown={handleKeyDown}
+      data-tour={index === 0 ? "proyectos-item" : undefined}
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.16, ease: "easeOut", delay: Math.min(index * 0.025, 0.12) }}

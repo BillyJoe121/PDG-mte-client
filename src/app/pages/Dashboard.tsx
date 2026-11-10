@@ -1,42 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  Activity,
-  AlertTriangle,
-  BarChart3,
-  FolderKanban,
-  Layers3,
-  Loader2,
-  Target,
-} from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
-import { useAuth } from "../context/AuthContext";
+import { CounterStrip } from "../components/CounterStrip";
 import { useGlobalFilters } from "../context/FiltersContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import type { AcademicPeriod } from "../services/catalogsApi";
 import type { DashboardData } from "../services/dashboardApi";
 import type { KeyResultStatus } from "../services/strategicApi";
 import { loadDashboardScreen } from "../services/screenDataCache";
-import {
-  DashboardEmptyState as EmptyState,
-  DepartmentPerformance,
-  GoalCoverage,
-  StrategicBetCoverage,
-  type CoverageItem,
-  type CoverageScope,
-} from "./dashboard/DashboardCoverage";
+import { CoverageSection, DashboardEmptyState as EmptyState, type CoverageItem, type CoverageScope } from "./dashboard/DashboardCoverage";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
 import { buildKeyResultsDrilldownUrl } from "./okrs/keyResultListModel";
-import {
-  DashboardKpiGrid,
-  DashboardPanel,
-  KeyResultsByStatus,
-  ProjectStatusDistribution,
-  buildKpis,
-  sumCounts,
-  type DashboardKpi,
-} from "./dashboard/DashboardPanels";
-import { COLORS, viewMotion } from "./dashboard/dashboardTheme";
+import { DashboardPanel, KeyResultsByStatus, ProjectStatusDistribution, buildKpis, sumCounts } from "./dashboard/DashboardPanels";
+import { viewMotion } from "./dashboard/dashboardTheme";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -46,13 +23,8 @@ function getErrorMessage(error: unknown) {
   return "No se pudo cargar el dashboard.";
 }
 
-type DashboardDerived = {
-  kpis: DashboardKpi[];
-};
-
 export function Dashboard() {
   const navigate = useNavigate();
-  const { usuario } = useAuth();
   const { filters, setFilter } = useGlobalFilters();
   const initialPeriod = filters.periodo === "todos" ? "" : filters.periodo;
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
@@ -108,14 +80,10 @@ export function Dashboard() {
     }));
   }, [navigate, selectedPeriod, dashboard?.summary.period]);
 
-  const derived = useMemo<DashboardDerived | null>(() => {
-    if (!dashboard) return null;
-    const totalProjects = sumCounts(dashboard.projectsByStatus);
-
-    return {
-      kpis: buildKpis(dashboard.summary, totalProjects),
-    };
-  }, [dashboard]);
+  const kpis = useMemo(
+    () => (dashboard ? buildKpis(dashboard.summary, sumCounts(dashboard.projectsByStatus)) : null),
+    [dashboard],
+  );
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#F8FAFC]">
@@ -126,78 +94,34 @@ export function Dashboard() {
         onReload={() => void loadDashboard(selectedPeriod || undefined, { force: true })}
         periods={sortedPeriods}
         selectedPeriod={selectedPeriod}
-        summary={dashboard?.summary}
-        userName={usuario?.nombre}
       />
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
         {error && (
-          <motion.div {...viewMotion} className="mb-5 flex items-center gap-2 rounded-md px-4 py-3" style={{ backgroundColor: "#FEF3F2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 10.5, fontWeight: 800 }}>
-            <AlertTriangle size={15} /> {error}
+          <motion.div {...viewMotion} role="alert" className="mb-4 flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-xs font-bold text-red-800">
+            <AlertTriangle size={15} aria-hidden="true" /> {error}
           </motion.div>
         )}
 
         {loading && !dashboard ? (
-          <motion.div {...viewMotion} className="flex items-center justify-center rounded-md bg-white py-20" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.gray, fontSize: 11, fontWeight: 800 }}>
-            <Loader2 size={18} className="mr-2 animate-spin" /> Cargando KPIs del portafolio...
+          <motion.div {...viewMotion} className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-20 text-xs font-bold text-gray-500">
+            <Loader2 size={18} className="mr-2 animate-spin" aria-hidden="true" /> Cargando dashboard...
           </motion.div>
-        ) : dashboard && derived ? (
-          <motion.div {...viewMotion} className="space-y-5">
-            <DashboardKpiGrid kpis={derived.kpis} />
+        ) : dashboard && kpis ? (
+          <motion.main {...viewMotion} className="space-y-4">
+            <CounterStrip items={kpis} />
 
-            <main className="space-y-5">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <DashboardPanel
-                  title="Iniciativas por estado"
-                  subtitle="Lectura operativa del portafolio segun su ciclo de vida."
-                  icon={<FolderKanban size={16} />}
-                >
-                  <ProjectStatusDistribution data={dashboard.projectsByStatus} />
-                </DashboardPanel>
-
-                <DashboardPanel
-                  title="KRs por estado"
-                  subtitle="Cantidad de resultados clave en borrador, activos y cerrados."
-                  icon={<Activity size={16} />}
-                >
-                  <KeyResultsByStatus data={dashboard.keyResultsByStatus} />
-                </DashboardPanel>
-              </div>
-
-              <DashboardPanel
-                title="KRs por departamento"
-                subtitle="KRs de las iniciativas de cada departamento segun su estado."
-                icon={<Layers3 size={16} />}
-              >
-                <DepartmentPerformance
-                  data={dashboard.departments}
-                  onStatusClick={(item, status) => openKeyResultsByStatus("department", item, status)}
-                />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <DashboardPanel title="Iniciativas por estado">
+                <ProjectStatusDistribution data={dashboard.projectsByStatus} />
               </DashboardPanel>
-
-              <DashboardPanel
-                title="KRs por apuesta estrategica"
-                subtitle="KRs e iniciativas alineados a cada apuesta, segun el estado del KR."
-                icon={<BarChart3 size={16} />}
-              >
-                <StrategicBetCoverage
-                  data={dashboard.strategicBets}
-                  onStatusClick={(item, status) => openKeyResultsByStatus("strategicBet", item, status)}
-                />
+              <DashboardPanel title="KRs por estado">
+                <KeyResultsByStatus data={dashboard.keyResultsByStatus} />
               </DashboardPanel>
+            </div>
 
-              <DashboardPanel
-                title="KRs por meta"
-                subtitle="KRs agrupados por meta institucional segun su estado."
-                icon={<Target size={16} />}
-              >
-                <GoalCoverage
-                  data={dashboard.goals}
-                  onStatusClick={(item, status) => openKeyResultsByStatus("goal", item, status)}
-                />
-              </DashboardPanel>
-            </main>
-          </motion.div>
+            <CoverageSection data={dashboard} onStatusClick={openKeyResultsByStatus} />
+          </motion.main>
         ) : (
           <EmptyState text="Sin datos para el periodo seleccionado." />
         )}

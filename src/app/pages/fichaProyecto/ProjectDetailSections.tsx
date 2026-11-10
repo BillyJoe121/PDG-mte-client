@@ -9,6 +9,7 @@ import {
   DetailTable,
 } from "../../components/DetailModal";
 import type { ImpactChain, ProjectDetailResponse, ProjectKeyResultLinkResponse } from "../../services/projectsApi";
+import { PlannerLinkField } from "../../components/planner/PlannerLinkField";
 import { ImpactTable, LinkedKeyResultsTable } from "./ProjectKeyResultTables";
 import { ProgressBar, formatDate } from "./projectDetailShared";
 
@@ -52,6 +53,7 @@ export function SummarySection({
           <DetailField label="KRs vinculados">{detail.kpis.linkedKeyResults}</DetailField>
           <DetailField label="Peso declarado">{detail.kpis.declaredContributionWeight}%</DetailField>
           {latestEntry && <DetailField label="Último comentario">{latestEntry.comment}</DetailField>}
+          <PlannerLinkField plannerUrl={project.plannerUrl} />
         </DetailFields>
       </DetailSection>
 

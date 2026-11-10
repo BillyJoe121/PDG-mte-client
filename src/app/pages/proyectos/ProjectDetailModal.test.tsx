@@ -90,7 +90,7 @@ describe("ProjectDetailModal edit mode", () => {
 
   it.each([
     ["Editar iniciativa", "Nombre"],
-    ["Registrar avance", "Comentario *"],
+    ["Registrar avance", "Comentario"],
     ["Responsables", "Desde"],
   ])("opens %s inside the same dialog", async (button, field) => {
     const { user } = renderDetail();
@@ -166,12 +166,12 @@ describe("ProjectDetailModal edit mode", () => {
   it("asks before discarding changes when cancelling or closing", async () => {
     const { onClose, user } = renderDetail();
     await user.click(await screen.findByRole("button", { name: "Registrar avance" }));
-    await user.type(await screen.findByLabelText("Comentario *"), "Primer avance");
+    await user.type(await screen.findByLabelText("Comentario"), "Primer avance");
 
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
     const warning = await screen.findByRole("dialog", { name: "Descartar cambios" });
     await user.click(within(warning).getByRole("button", { name: "Cancelar" }));
-    expect(screen.getByLabelText("Comentario *")).toHaveValue("Primer avance");
+    expect(screen.getByLabelText("Comentario")).toHaveValue("Primer avance");
 
     await user.click(screen.getByRole("button", { name: "Cerrar detalle de iniciativa" }));
     const closing = await screen.findByRole("dialog", { name: "Descartar cambios" });
