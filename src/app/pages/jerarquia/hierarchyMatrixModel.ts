@@ -47,31 +47,50 @@ export function buildHierarchyMatrix(tree: StrategicHierarchyNode[]): HierarchyM
   return { goals, bets, rows: sortedRows };
 }
 
+const byLabelLength = (a: MatrixColumn, b: MatrixColumn) => a.label.length - b.label.length;
+
+/**
+ * The header stacks the labels with the outermost column on top, so the longest names go to the
+ * outer edges: goals from longest to shortest (left to right) and bets the other way round.
+ */
 export function visibleMatrixColumns({ goals, bets }: HierarchyMatrixData, view: View) {
-  return { goals: view === "apuestas" ? [] : goals, bets: view === "metas" ? [] : bets };
+  return {
+    goals: view === "apuestas" ? [] : [...goals].sort((a, b) => byLabelLength(b, a)),
+    bets: view === "metas" ? [] : [...bets].sort(byLabelLength),
+  };
 }
 
 function matchesText(values: Array<string | null | undefined>, query: string) {
   return normalizeSearchText(values.filter(Boolean).join(" ")).includes(query);
 }
 
+export const keyResultCode = (node: StrategicHierarchyNode) => `KR-${node.id.padStart(2, "0")}`;
+export const initiativeCode = (node: StrategicHierarchyNode) => `PROY-${node.id.padStart(2, "0")}`;
+
+export interface MatrixSearch {
+  /** Text sought in the key result: its code, name or description. */
+  indicator: string;
+  /** Text sought in the initiatives; only the matching ones stay in each row. */
+  initiative: string;
+}
+
 /**
- * Keeps the rows linked to the visible columns (or to the chosen one). A search that hits the key
- * result or a linked goal or bet keeps every initiative; one that hits an initiative keeps only those.
+ * Keeps the rows linked to the visible columns (or to the chosen one), then applies the indicator
+ * search to the key result and the initiative search to its initiatives. A row whose initiatives
+ * all miss the initiative search is dropped.
  */
-export function filterMatrixRows(rows: MatrixRow[], columns: MatrixColumn[], columnKey: string | null, search: string) {
-  const query = normalizeSearchText(search.trim());
-  const columnLabels = new Map(columns.map((column) => [column.key, column.label]));
+export function filterMatrixRows(rows: MatrixRow[], columns: MatrixColumn[], columnKey: string | null, search: MatrixSearch) {
+  const visibleKeys = new Set(columns.map((column) => column.key));
+  const indicatorQuery = normalizeSearchText(search.indicator.trim());
+  const initiativeQuery = normalizeSearchText(search.initiative.trim());
 
   return rows.flatMap((row) => {
-    const links = [...row.columnKeys].filter((key) => columnLabels.has(key));
-    if (links.length === 0 || (columnKey && !row.columnKeys.has(columnKey))) return [];
-    if (!query) return [row];
+    if (![...row.columnKeys].some((key) => visibleKeys.has(key))) return [];
+    if (columnKey && !row.columnKeys.has(columnKey)) return [];
+    if (indicatorQuery && !matchesText([keyResultCode(row.node), row.node.label, row.node.description], indicatorQuery)) return [];
+    if (!initiativeQuery) return [row];
 
-    const rowText = [row.node.label, row.node.description, ...links.map((key) => columnLabels.get(key))];
-    if (matchesText(rowText, query)) return [row];
-
-    const initiatives = row.initiatives.filter((item) => matchesText([item.label, item.description], query));
+    const initiatives = row.initiatives.filter((item) => matchesText([initiativeCode(item), item.label, item.description], initiativeQuery));
     return initiatives.length ? [{ ...row, initiatives }] : [];
   });
 }

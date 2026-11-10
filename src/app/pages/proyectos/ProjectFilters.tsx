@@ -49,7 +49,7 @@ export function ProjectFilters({
       actions={
         <>
           <ViewModeToggle value={viewMode} onChange={onViewModeChange} />
-          {onCreateProject && <ToolbarCreateButton tone="green" onClick={onCreateProject}>Nueva iniciativa</ToolbarCreateButton>}
+          {onCreateProject && <ToolbarCreateButton tone="green" tourId="proyectos-create" onClick={onCreateProject}>Nueva iniciativa</ToolbarCreateButton>}
         </>
       }
       filters={

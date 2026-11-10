@@ -177,7 +177,7 @@ export function KRs() {
             <ToolbarButton aria-pressed={showArchived} active={showArchived && KR_ACCENT} onClick={() => setShowArchived((current) => !current)}>
               <Archive size={13} aria-hidden="true" /> Archivados{showArchived && archivedCount > 0 ? ` (${archivedCount})` : ""}
             </ToolbarButton>
-            {canEdit && <ToolbarCreateButton tone="orange" onClick={() => setCreating(true)}>Nuevo KR</ToolbarCreateButton>}
+            {canEdit && <ToolbarCreateButton tone="orange" tourId="krs-create" onClick={() => setCreating(true)}>Nuevo KR</ToolbarCreateButton>}
           </>
         }
         filters={

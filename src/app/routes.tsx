@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router";
 import { RequirePermission } from "./components/RequirePermission";
 import { RouteLoading } from "./components/RouteLoading";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
+import { TutorialHost } from "./components/tutorial/TutorialHost";
 import type { PermissionAction } from "./security/permissions";
 
 const Layout = lazy(() => import("./components/Layout").then((module) => ({ default: module.Layout })));
@@ -37,33 +38,39 @@ function protectedPage(action: PermissionAction, children: ReactNode) {
 }
 
 export const router = createBrowserRouter([
-  { path: "/login", element: lazyPage(<Login />) },
-  { path: "/establecer-contrasena", element: lazyPage(<EstablecerContrasena />) },
-  { path: "/presentacion", element: protectedPage("presentacion.view", <PresentacionDashboard />) },
   {
-    path: "/",
-    element: lazyPage(<Layout />),
+    // Keeps the guided tour alive across every screen.
+    element: <TutorialHost />,
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: "dashboard", element: protectedPage("dashboard.view", <Dashboard />) },
-      { path: "dashboards", element: <Navigate to="/dashboard" replace /> },
-      { path: "jerarquia", element: protectedPage("jerarquia.view", <JerarquiaEstrategica />) },
-      { path: "jerarquia/apuesta/nueva", element: protectedPage("jerarquia.manage", <NuevaApuesta />) },
-      { path: "jerarquia/meta/nueva", element: protectedPage("jerarquia.manage", <NuevaMeta />) },
-      { path: "jerarquia/apuestas/:betId/gestionar", element: protectedPage("jerarquia.manage", <GestionApuesta />) },
-      { path: "jerarquia/metas/:goalId/gestionar", element: protectedPage("jerarquia.manage", <GestionMeta />) },
-      { path: "catalogos", element: protectedPage("catalogos.manage", <Catalogos />) },
-      { path: "proyectos", element: protectedPage("proyectos.view", <Proyectos />) },
-      { path: "proyectos/nuevo", element: protectedPage("proyectos.create", <NuevoProyecto />) },
-      { path: "krs", element: protectedPage("okrs.view", <KRs />) },
-      // Rutas anteriores de KRs: redirigen a /krs para conservar marcadores antiguos.
-      { path: "okrs/*", element: <Navigate to="/krs" replace /> },
-      { path: "okrs", element: <Navigate to="/krs" replace /> },
-      { path: "reportes", element: protectedPage("reportes.view", <Reportes />) },
-      { path: "consistencia", element: protectedPage("consistencia.view", <Consistencia />) },
-      { path: "usuarios", element: protectedPage("usuarios.manage", <Usuarios />) },
-      { path: "auditoria", element: protectedPage("auditoria.view", <Auditoria />) },
-      { path: "*", element: <Navigate to="/dashboard" replace /> },
+      { path: "/login", element: lazyPage(<Login />) },
+      { path: "/establecer-contrasena", element: lazyPage(<EstablecerContrasena />) },
+      { path: "/presentacion", element: protectedPage("presentacion.view", <PresentacionDashboard />) },
+      {
+        path: "/",
+        element: lazyPage(<Layout />),
+        children: [
+          { index: true, element: <Navigate to="/dashboard" replace /> },
+          { path: "dashboard", element: protectedPage("dashboard.view", <Dashboard />) },
+          { path: "dashboards", element: <Navigate to="/dashboard" replace /> },
+          { path: "jerarquia", element: protectedPage("jerarquia.view", <JerarquiaEstrategica />) },
+          { path: "jerarquia/apuesta/nueva", element: protectedPage("jerarquia.manage", <NuevaApuesta />) },
+          { path: "jerarquia/meta/nueva", element: protectedPage("jerarquia.manage", <NuevaMeta />) },
+          { path: "jerarquia/apuestas/:betId/gestionar", element: protectedPage("jerarquia.manage", <GestionApuesta />) },
+          { path: "jerarquia/metas/:goalId/gestionar", element: protectedPage("jerarquia.manage", <GestionMeta />) },
+          { path: "catalogos", element: protectedPage("catalogos.manage", <Catalogos />) },
+          { path: "proyectos", element: protectedPage("proyectos.view", <Proyectos />) },
+          { path: "proyectos/nuevo", element: protectedPage("proyectos.create", <NuevoProyecto />) },
+          { path: "krs", element: protectedPage("okrs.view", <KRs />) },
+          // Rutas anteriores de KRs: redirigen a /krs para conservar marcadores antiguos.
+          { path: "okrs/*", element: <Navigate to="/krs" replace /> },
+          { path: "okrs", element: <Navigate to="/krs" replace /> },
+          { path: "reportes", element: protectedPage("reportes.view", <Reportes />) },
+          { path: "consistencia", element: protectedPage("consistencia.view", <Consistencia />) },
+          { path: "usuarios", element: protectedPage("usuarios.manage", <Usuarios />) },
+          { path: "auditoria", element: protectedPage("auditoria.view", <Auditoria />) },
+          { path: "*", element: <Navigate to="/dashboard" replace /> },
+        ],
+      },
     ],
   },
 ]);

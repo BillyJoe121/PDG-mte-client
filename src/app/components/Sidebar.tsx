@@ -21,6 +21,7 @@ import { getLabelRol } from "../utils/roleLabels";
 import { authApi } from "../services/authApi";
 import { CambiarContrasenaModal } from "./CambiarContrasenaModal";
 import { hasPermission, type PermissionAction } from "../security/permissions";
+import { useSidebarCompactRequested } from "./sidebarCompact";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, action: "dashboard.view" as PermissionAction },
@@ -49,7 +50,11 @@ const itemColors: Record<string, string> = {
 };
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768);
+  const [preferCollapsed, setPreferCollapsed] = useState(() => window.innerWidth < 768);
+  // A page can ask for a compact sidebar; the person can still open it for a moment.
+  const compactRequested = useSidebarCompactRequested();
+  const [peekOpen, setPeekOpen] = useState(false);
+  const collapsed = compactRequested ? !peekOpen : preferCollapsed;
   const [changingPassword, setChangingPassword] = useState(false);
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
@@ -64,10 +69,19 @@ export function Sidebar() {
   const filteredItems = navItems.filter((item) => !usuario || hasPermission(usuario, item.action));
 
   useEffect(() => {
-    const adaptToViewport = () => setCollapsed(window.innerWidth < 768);
+    const adaptToViewport = () => setPreferCollapsed(window.innerWidth < 768);
     window.addEventListener("resize", adaptToViewport);
     return () => window.removeEventListener("resize", adaptToViewport);
   }, []);
+
+  useEffect(() => {
+    setPeekOpen(false);
+  }, [compactRequested]);
+
+  const toggleCollapsed = () => {
+    if (compactRequested) setPeekOpen((open) => !open);
+    else setPreferCollapsed((value) => !value);
+  };
 
   return (
     <aside
@@ -86,7 +100,7 @@ export function Sidebar() {
       >
         <IcesiLogo variant="white" size="md" />
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleCollapsed}
           aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
           className="absolute right-0 top-1/2 flex h-10 w-5 -translate-y-1/2 items-center justify-center rounded-none hover:opacity-80 transition-opacity"
           style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", flexShrink: 0 }}
@@ -111,6 +125,7 @@ export function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            data-tour={`nav-${item.to}`}
             title={collapsed ? item.label : undefined}
             style={({ isActive }) => ({
               display: "flex",

@@ -21,6 +21,7 @@ export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
           key={option}
           type="button"
           aria-pressed={value === option}
+          data-tour={`view-${option}`}
           onClick={() => onChange(option)}
           className="inline-flex items-center gap-1.5 px-3"
           style={{

@@ -57,7 +57,7 @@ export const authApi = {
     jsonPost<void>("/auth/password", { currentPassword, newPassword }),
 };
 
-/** Momento de vencimiento en milisegundos; Supabase informa `expiresAt` en segundos. */
+/** Momento de vencimiento en milisegundos; la API informa `expiresAt` en segundos. */
 export function sessionExpiry(session: LoginResponse, now = Date.now()) {
   return session.expiresAt > 0 ? session.expiresAt * 1000 : now + session.expiresIn * 1000;
 }

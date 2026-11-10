@@ -10,7 +10,6 @@ vi.mock("../context/AuthContext", () => ({
 }));
 
 vi.mock("./ContextualHelp", () => ({ ContextualHelp: () => null }));
-vi.mock("./PlatformTutorial", () => ({ PlatformTutorial: () => null }));
 
 describe("Header", () => {
   it("does not render hardcoded notifications", () => {

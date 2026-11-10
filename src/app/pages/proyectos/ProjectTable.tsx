@@ -28,13 +28,14 @@ export function ProjectTable({ projects, canManage, onOpen, onLink }: ProjectTab
           </TableRow>
         </TableHeader>
         <TableBody>
-          {projects.map((project) => (
+          {projects.map((project, index) => (
             <TableRow key={project.id}>
               <TableCell style={{ fontWeight: 800, color: COLORS.gray }}>PROY-{String(project.id).padStart(2, "0")}</TableCell>
               <TableCell style={{ minWidth: 240, maxWidth: 400, whiteSpace: "normal" }}>
                 <button
                   type="button"
                   onClick={() => onOpen(project)}
+                  data-tour={index === 0 ? "proyectos-item" : undefined}
                   className="text-left underline-offset-2 hover:underline"
                   style={{ fontWeight: 750, color: COLORS.text, overflowWrap: "anywhere" }}
                 >

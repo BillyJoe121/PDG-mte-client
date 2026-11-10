@@ -36,6 +36,7 @@ export function KeyResultCard({ item, index, canRestore, restoring, onOpen, onRe
         tabIndex={0}
         onClick={onOpen}
         onKeyDown={handleKeyDown}
+        data-tour={index === 0 ? "krs-item" : undefined}
         className="kr-detail-card rounded-md overflow-hidden"
         style={{ cursor: "pointer", minHeight: 337, display: "flex", flexDirection: "column", opacity: archived ? 0.78 : 1 }}
         initial={reduceMotion ? false : { opacity: 0, y: 8 }}

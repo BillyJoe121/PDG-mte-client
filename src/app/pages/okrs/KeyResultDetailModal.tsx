@@ -16,7 +16,7 @@ import { KeyResultProgressHistory } from "./KeyResultProgressHistory";
 import { formatValueWithUnit } from "./okrsShared";
 import { ConfirmDialog, useConfirm } from "../../components/ConfirmDialog";
 import { Modal } from "../../components/Modal";
-import { PlannerButton } from "../../components/planner/PlannerButton";
+import { PlannerLinkField } from "../../components/planner/PlannerLinkField";
 import { useDiscardGuard } from "../../hooks/useDiscardGuard";
 import {
   DETAIL_ACTIONS_CLASS,
@@ -39,7 +39,6 @@ interface KeyResultDetailModalProps {
   renderActions?: (keyResult: KeyResult) => ReactNode;
 }
 
-const PLANNER_BUTTON_STYLE = { padding: "0 10px", border: "1px solid #D1D5DB", borderRadius: 6, boxShadow: "none", fontWeight: 700 };
 
 export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged, renderActions }: KeyResultDetailModalProps) {
   const [keyResult, setKeyResult] = useState<KeyResult | null>(null);
@@ -231,7 +230,6 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
 
               <div className={DETAIL_ACTIONS_CLASS}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <PlannerButton plannerUrl={keyResult.plannerUrl} variant="outline" className={DETAIL_BUTTON_CLASS} style={PLANNER_BUTTON_STYLE} />
                   {renderActions?.(keyResult)}
                 </div>
                 {canEdit && (
@@ -265,6 +263,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                     <DetailField label="Periodo">{keyResult.academicPeriodName ?? "Sin periodo"}</DetailField>
                     <DetailField label="Métrica">{keyResult.metric}</DetailField>
                     <DetailField label="Iniciativas">{links.length}</DetailField>
+                    <PlannerLinkField plannerUrl={keyResult.plannerUrl} />
                   </DetailFields>
                 </DetailSection>
 

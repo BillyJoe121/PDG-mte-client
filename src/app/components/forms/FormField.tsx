@@ -12,16 +12,33 @@ export function FormError({ id, children }: { id?: string; children: ReactNode }
   return <p id={id} role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold leading-snug text-[#B42318]">{children}</p>;
 }
 
+/** Small red asterisk after a label; the legend below explains it. */
+export function RequiredMark() {
+  return <span aria-hidden="true" title="Campo obligatorio" className="ml-0.5 text-[11px] font-bold text-[#B42318]">*</span>;
+}
+
+/** Explains the asterisk once per form. */
+export function RequiredFieldsNote() {
+  return (
+    <p className="text-[11px] text-gray-500">
+      Los campos marcados con <span className="font-bold text-[#B42318]">*</span> son obligatorios.
+    </p>
+  );
+}
+
 interface FormFieldProps {
   label: string;
   error?: string;
   hint?: string;
+  /** Marks the field as mandatory with a small red asterisk. */
+  required?: boolean;
   /** Use a group for several controls: a label can only name the first one. */
   group?: boolean;
   children: ReactNode;
 }
 
-export function FormField({ label, error, hint, group = false, children }: FormFieldProps) {
+export function FormField({ label, error, hint, required = false, group = false, children }: FormFieldProps) {
+  const title = <>{label}{required && <RequiredMark />}</>;
   const content = (
     <>
       {hint && <span className="mt-0.5 block text-xs font-normal text-gray-500">{hint}</span>}
@@ -33,7 +50,7 @@ export function FormField({ label, error, hint, group = false, children }: FormF
   if (group) {
     return (
       <div role="group" aria-label={label}>
-        <span className={FORM_LABEL_CLASS}>{label}</span>
+        <span className={FORM_LABEL_CLASS}>{title}</span>
         {content}
       </div>
     );
@@ -41,7 +58,7 @@ export function FormField({ label, error, hint, group = false, children }: FormF
 
   return (
     <label className={FORM_LABEL_CLASS}>
-      {label}
+      {title}
       {content}
     </label>
   );

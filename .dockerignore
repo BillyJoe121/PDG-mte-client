@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+dist
+coverage
+playwright-report
+test-results
+graphify-out
+tmp
+tests
+*.log
+.env.local
+Dockerfile
+.dockerignore

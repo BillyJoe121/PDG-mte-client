@@ -42,3 +42,22 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # After the checks pass on develop, ask the server to rebuild the site. Without the
+  # COOLIFY_WEBHOOK secret the step is skipped, so forks and pull requests never deploy.
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Trigger deployment
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$COOLIFY_WEBHOOK" ]; then
+            echo "COOLIFY_WEBHOOK is not set; skipping deployment."
+            exit 0
+          fi
+          curl -fsS --max-time 30 -X GET "$COOLIFY_WEBHOOK" -H "Authorization: Bearer $COOLIFY_TOKEN"

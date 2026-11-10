@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { useViewMode } from "../hooks/useViewMode";
+import { useCompactSidebar } from "../components/sidebarCompact";
 import type { AcademicPeriod } from "../services/catalogsApi";
 import { invalidateScreenDataCache, loadHierarchyScreen } from "../services/screenDataCache";
 import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
@@ -105,6 +106,9 @@ export function JerarquiaEstrategica() {
     [hierarchySearch, tree, view],
   );
   const isHierarchyDetail = Boolean(selectedHierarchyRoot);
+  const showsTable = !selectedHierarchyRoot && viewMode === "table";
+  // The table needs the width, so the sidebar stays compact while it is shown.
+  useCompactSidebar(showsTable);
   const viewMotion = reduceMotion ? noMotionProps : subtleViewMotion;
 
   useEffect(() => {
@@ -218,6 +222,7 @@ export function JerarquiaEstrategica() {
           periods={periods}
           onPeriodChange={setPeriod}
           showSearch={!selectedHierarchyRoot}
+          compact={showsTable}
           search={hierarchySearch}
           onSearchChange={setHierarchySearch}
           canCreate={canCreate}
@@ -232,17 +237,17 @@ export function JerarquiaEstrategica() {
         />
       )}
 
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      <div className={showsTable ? "flex min-h-0 flex-1 flex-col overflow-hidden px-6 pt-3 pb-4" : "flex-1 overflow-y-auto px-6 py-5"}>
         <AnimatePresence mode="wait" initial={false}>
         {loading ? (
           <motion.div key="loading" {...viewMotion} className="flex items-center justify-center py-16" style={{ color: COLORS.gray, fontSize: "11px", fontWeight: 800 }}>
             <Loader2 size={18} className="mr-2 animate-spin" /> Cargando jerarquia...
           </motion.div>
         ) : (
-          <motion.div key={selectedHierarchyRoot ? "arbol-detail" : viewMode === "table" ? "arbol-table" : `arbol-cards-${view}`} {...viewMotion}>
-            {!selectedHierarchyRoot && viewMode === "table" ? (
+          <motion.div key={selectedHierarchyRoot ? "arbol-detail" : viewMode === "table" ? "arbol-table" : `arbol-cards-${view}`} {...viewMotion} className={showsTable ? "flex min-h-0 flex-1 flex-col" : undefined}>
+            {showsTable ? (
               tree.length > 0 && (
-                <HierarchyMatrix tree={tree} view={view} search={hierarchySearch} onOpenNode={manageNode} onOpenRoot={openHierarchyRoot} />
+                <HierarchyMatrix tree={tree} view={view} onOpenNode={manageNode} onOpenRoot={openHierarchyRoot} />
               )
             ) : !selectedHierarchyRoot ? (
               <div className="space-y-5">

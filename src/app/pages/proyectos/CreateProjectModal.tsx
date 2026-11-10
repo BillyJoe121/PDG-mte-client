@@ -5,7 +5,7 @@ import type { AcademicPeriod } from "../../services/catalogsApi";
 import type { Department, KeyResult } from "../../services/strategicApi";
 import { toKeyResultOptions } from "../../utils/keyResultOptions";
 import { normalizePlannerUrl, validatePlannerUrl } from "../../services/plannerService";
-import { FORM_CONTROL_CLASS, FORM_LABEL_CLASS, FormActions, FormField, FormSelect } from "../../components/forms/FormField";
+import { FORM_CONTROL_CLASS, FORM_LABEL_CLASS, FormActions, FormField, FormSelect, RequiredFieldsNote } from "../../components/forms/FormField";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../components/Modal";
 import { PlannerUrlField } from "../../components/planner/PlannerUrlField";
 import {
@@ -136,13 +136,14 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
       <ModalHeader title="Nueva Iniciativa" onClose={onClose} />
       <ModalBody>
         <form id={formId} onSubmit={submit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2"><RequiredFieldsNote /></div>
           <div className="md:col-span-2">
-            <FormField label="Nombre" error={errors.name}>
+            <FormField label="Nombre" required error={errors.name}>
               <input value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Iniciativa de analitica curricular" aria-invalid={Boolean(errors.name)} className={FORM_CONTROL_CLASS} />
             </FormField>
           </div>
           <div className="md:col-span-2">
-            <FormField label="Descripción" error={errors.description}>
+            <FormField label="Descripción" required error={errors.description}>
               <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={3} placeholder="Describe alcance, propósito y entregables principales." aria-invalid={Boolean(errors.description)} className={`${FORM_CONTROL_CLASS} resize-y`} />
             </FormField>
           </div>
@@ -154,7 +155,7 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
               onChange={(value) => setField("type", value as ProjectType)}
             />
           </FormField>
-          <FormField label="Departamento" error={errors.departmentId}>
+          <FormField label="Departamento" required error={errors.departmentId}>
             <FormSelect
               label="Departamento"
               value={form.departmentId}
@@ -171,10 +172,10 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
               onChange={(value) => setField("status", value as ProjectStatus)}
             />
           </FormField>
-          <FormField label="Tutores" error={errors.tutors}>
+          <FormField label="Tutores" required error={errors.tutors}>
             <input value={form.tutors} onChange={(event) => setField("tutors", event.target.value)} placeholder="Tutora A, Tutor B" aria-invalid={Boolean(errors.tutors)} className={FORM_CONTROL_CLASS} />
           </FormField>
-          <FormField label="Periodo inicio" error={errors.startPeriod}>
+          <FormField label="Periodo inicio" required error={errors.startPeriod}>
             <FormSelect label="Periodo inicio" value={form.startPeriod} invalid={Boolean(errors.startPeriod)} options={periodOptions} onChange={(value) => setField("startPeriod", value)} />
           </FormField>
           <FormField label="Periodo fin">
@@ -203,7 +204,7 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
             />
           </div>
           <div className="md:col-span-2">
-            <FormField label="Key Results *" group hint={`${krLinks.length} seleccionado(s)`} error={errors.keyResults}>
+            <FormField label="Key Results" required group hint={`${krLinks.length} seleccionado(s)`} error={errors.keyResults}>
               {keyResults.length === 0 ? (
                 <p className="text-xs text-gray-500">No hay Key Results disponibles.</p>
               ) : (
