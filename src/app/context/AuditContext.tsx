@@ -6,7 +6,7 @@ export type AuditModule =
   | "Dashboard"
   | "Jerarquia"
   | "Catalogos"
-  | "OKRs"
+  | "KRs"
   | "Proyectos"
   | "Reportes"
   | "Usuarios"
@@ -44,10 +44,10 @@ const seedEntries: AuditEntry[] = [
     fecha: "2026-04-14T09:15:00.000Z",
     usuario: "Roberto Silva",
     rol: "manager",
-    modulo: "OKRs",
+    modulo: "KRs",
     accion: "Creacion",
-    entidad: "OKR10 - Semillero TDI Labs",
-    entidadId: "OKR10",
+    entidad: "KR10 - Semillero TDI Labs",
+    entidadId: "KR10",
     detalle: "Se creo un KR vinculado a Metas y Apuestas para el periodo 2025-I.",
     resultado: "info",
   },

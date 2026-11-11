@@ -25,12 +25,14 @@ interface ScreenToolbarProps {
   summary?: ReactNode;
   /** Extra rows below the bar, such as the active filter chips. */
   children?: ReactNode;
+  /** Anchor for the guided tour. */
+  tourId?: string;
 }
 
 /** Keeps search, actions and filters in the same place on every list screen. */
-export function ScreenToolbar({ search, actions, filters, summary, children }: ScreenToolbarProps) {
+export function ScreenToolbar({ search, actions, filters, summary, children, tourId }: ScreenToolbarProps) {
   return (
-    <div className="flex-shrink-0 bg-white px-6 pt-5 pb-4" style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}>
+    <div data-tour={tourId} className="flex-shrink-0 bg-white px-6 pt-5 pb-4" style={{ borderBottom: "1px solid #E5E7EB", zIndex: 10 }}>
       <div className="flex flex-wrap items-center gap-2">
         {search}
         <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div>

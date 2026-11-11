@@ -21,7 +21,8 @@ describe("tourStepsFor", () => {
       "jerarquia", "jerarquia-cards", "jerarquia-manage", "jerarquia-tree", "jerarquia-tree-manage",
       "jerarquia-view-toggle", "jerarquia-table", "jerarquia-filter", "jerarquia-search",
       "jerarquia-kr", "kr-data", "kr-planner", "jerarquia-initiative", "project-actions", "project-planner",
-      "krs", "krs-manage", "krs-planner", "proyectos", "proyectos-manage", "proyectos-planner",
+      "krs", "krs-toolbar", "krs-table", "krs-manage", "krs-planner",
+      "proyectos", "proyectos-toolbar", "proyectos-table", "proyectos-manage", "proyectos-planner",
       "presentacion", "presentacion-modes", "presentacion-general", "presentacion-compare", "presentacion-slides", "presentacion-export",
       "help",
     ]);

@@ -1,6 +1,6 @@
 import { buildExportFilename, downloadCSV, printPDF } from "../../utils/exportUtils";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
-import type { PresentationSlide } from "../../services/reportsApi";
+import type { ConsolidatedReport, PresentationSlide } from "../../services/reportsApi";
 import type { ComparisonType } from "./PresentationTypes";
 
 export interface ComparisonCsvRow {
@@ -114,6 +114,43 @@ export function exportSlideDeckCsv(slides: PresentationSlide[], periodName: stri
 
   const filename = buildExportFilename("presentacion_diapositivas", periodName);
   downloadCSV(rows, filename);
+}
+
+type DepartmentRow = ConsolidatedReport["departments"][number];
+type RankingRow = ConsolidatedReport["keyResultRanking"][number];
+
+function slideContent<T>(slides: PresentationSlide[], type: string, key: string): T[] {
+  const value = (slides.find((slide) => slide.type === type)?.content as Record<string, unknown> | undefined)?.[key];
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+/** Every department and every KR of the consolidated slides; the ranking keeps the recorded-progress order. */
+export function buildConsolidatedCsvRows(slides: PresentationSlide[]) {
+  const departments = slideContent<DepartmentRow>(slides, "CONSOLIDATED_DEPTS_SUMMARY", "departments");
+  const ranking = slideContent<RankingRow>(slides, "CONSOLIDATED_RANKING", "keyResults");
+  return [
+    ...departments.map((department) => ({
+      seccion: "Departamentos",
+      nombre: department.departmentName,
+      iniciativas: department.projects,
+      key_results: department.keyResults,
+      krs_cerrados: department.closedKeyResults,
+    })),
+    ...ranking.map((keyResult, index) => ({
+      seccion: "KRs por avance registrado",
+      posicion: index + 1,
+      nombre: keyResult.keyResultName,
+      metas: (keyResult.goalNames ?? []).join("; "),
+      apuestas: (keyResult.strategicBetNames ?? []).join("; "),
+      periodo: keyResult.period,
+      iniciativas_vinculadas: keyResult.linkedProjects,
+      avance_registrado: keyResult.progressPercentage,
+    })),
+  ];
+}
+
+export function exportConsolidatedCsv(slides: PresentationSlide[], periodName: string) {
+  downloadCSV(buildConsolidatedCsvRows(slides), buildExportFilename("presentacion_departamentos_krs", periodName));
 }
 
 export function exportDetailModalCsv(

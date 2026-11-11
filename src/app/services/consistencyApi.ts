@@ -3,7 +3,7 @@ import { qs } from "./reportsApi";
 import { getSessionAccessToken } from "./authToken";
 
 export type ConsistencySeverity = "ALTA" | "MEDIA" | "BAJA";
-export type ConsistencyModule = "OKRS" | "INDICADORES" | "PROYECTOS";
+export type ConsistencyModule = "INDICADORES" | "PROYECTOS";
 
 export interface ConsistencySummary {
   total: number;

@@ -66,14 +66,14 @@ describe("PresentacionDashboard keyboard navigation", () => {
     expect(modeButton).toHaveFocus();
 
     await press(modeButton, "ArrowRight");
-    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+    expect(await screen.findByText("2 / 3")).toBeInTheDocument();
 
     await press(modeButton, "ArrowRight");
     expect(await screen.findByRole("heading", { name: "Cierre" })).toBeInTheDocument();
-    expect(screen.getByText("3 / 3")).toBeInTheDocument();
+    expect(await screen.findByText("3 / 3")).toBeInTheDocument();
 
     await press(modeButton, "ArrowLeft");
-    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+    expect(await screen.findByText("2 / 3")).toBeInTheDocument();
     expect(modeButton).toHaveFocus();
   });
 
@@ -140,7 +140,6 @@ describe("PresentacionDashboard keyboard navigation", () => {
         <PresentacionDashboard />
       </MemoryRouter>
     );
-    fireEvent.click(await screen.findByRole("button", { name: /abrir informe/i }));
     await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i });
     fireEvent.click(screen.getAllByRole("button", { name: /detalle de/i })[0]);
 

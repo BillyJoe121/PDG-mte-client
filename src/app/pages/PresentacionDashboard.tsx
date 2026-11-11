@@ -8,10 +8,9 @@ import { PresentationComparison } from "./presentation/PresentationComparison";
 import { PresentationDetailModal } from "./presentation/PresentationDetailModal";
 import { PresentationGeneralReport } from "./presentation/PresentationGeneralReport";
 import { PresentationHeader } from "./presentation/PresentationHeader";
-import { PresentationHub } from "./presentation/PresentationHub";
 import { PresentationSlideDeck } from "./presentation/PresentationSlideDeck";
 import type { PresentationMode } from "./presentation/PresentationTypes";
-import { attachBetKeyResults, buildConsolidatedSlides } from "./presentation/PresentationConsolidatedBuilder";
+import { attachBetKeyResults, buildConsolidatedSlides, insertGoalSlides } from "./presentation/PresentationConsolidatedBuilder";
 import { buildExportItems, type ComparisonExportSnapshot } from "./presentation/presentationExportItems";
 import { isButtonActivation, isTextEntry, normalizeKeyboardKey, resolveSlideShortcut } from "./presentation/presentationKeyboard";
 import { useAutoHideControls } from "./presentation/useAutoHideControls";
@@ -26,7 +25,7 @@ export function PresentacionDashboard() {
   const initialMode = (searchParams.get("modo") || searchParams.get("view")) as PresentationMode;
 
   const [activeMode, setActiveMode] = useState<PresentationMode>(
-    initialMode === "slides" || initialMode === "general" || initialMode === "compare" ? initialMode : "hub"
+    initialMode === "slides" || initialMode === "compare" ? initialMode : "general"
   );
 
   const requestId = useRef(0);
@@ -85,7 +84,7 @@ export function PresentacionDashboard() {
   const effectiveBets = useMemo(() => data?.bets ?? [], [data?.bets]);
   const effectiveGoals = useMemo(() => data?.goals ?? [], [data?.goals]);
 
-  // Combined slides: COVER -> consolidated report slides -> slides returned by the API
+  // Combined slides: COVER -> consolidated report slides -> bet slides from the API -> goal slides
   const slides = useMemo(() => {
     const baseSlides = data?.presentation.slides ?? [];
     if (!data) return baseSlides;
@@ -93,8 +92,9 @@ export function PresentacionDashboard() {
     const consolidatedSlides = buildConsolidatedSlides(data.consolidatedReport, periodValue);
 
     const coverSlide = baseSlides.find((s) => s.type === "COVER");
-    const otherSlides = attachBetKeyResults(
-      baseSlides.filter((s) => s.type !== "COVER"),
+    const otherSlides = insertGoalSlides(
+      attachBetKeyResults(baseSlides.filter((s) => s.type !== "COVER"), data.consolidatedReport),
+      data.goals ?? [],
       data.consolidatedReport,
     );
 
@@ -153,8 +153,8 @@ export function PresentacionDashboard() {
           setSelectedEntity(null);
           return;
         }
-        if (activeMode !== "hub") {
-          setActiveMode("hub");
+        if (activeMode !== "general") {
+          setActiveMode("general");
           return;
         }
         if (!document.fullscreenElement) navigate("/dashboard");
@@ -265,16 +265,6 @@ export function PresentacionDashboard() {
           presenting ? "type-scale-exempt overflow-hidden print:overflow-visible" : ""
         }`}
       >
-        {activeMode === "hub" && (
-          <PresentationHub
-            periodName={periodValue}
-            bets={effectiveBets}
-            goals={effectiveGoals}
-            general={data?.consolidatedReport?.general}
-            onSelectOption={(option) => setActiveMode(option)}
-          />
-        )}
-
         {activeMode === "general" && (
           <PresentationGeneralReport
             bets={effectiveBets}
@@ -308,7 +298,7 @@ export function PresentacionDashboard() {
             controlsVisible={controlsVisible}
             overviewOpen={overviewOpen}
             onToggleOverview={() => setOverviewOpen((open) => !open)}
-            onExit={() => setActiveMode("hub")}
+            onExit={() => setActiveMode("general")}
           />
         )}
       </div>

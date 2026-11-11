@@ -90,98 +90,53 @@
   border-color: rgba(255, 255, 255, 0.34) !important;
 }
 
+/*
+ * Our scrollbar everywhere: thin, rounded thumb on a transparent track, in the accent of the current
+ * screen (brand blue by default). Modals and other overlays render outside the screen's container,
+ * so the screen's accent is also lifted to the root and they inherit it.
+ */
+:root {
+  --app-scroll-color: #5454E9;
+}
+
+:root:has(.app-scroll-orange),
+.app-scroll-orange {
+  --app-scroll-color: #E9683B;
+}
+
+:root:has(.app-scroll-green),
+.app-scroll-green {
+  --app-scroll-color: #4CB979;
+}
+
+:root:has(.app-scroll-black),
+.app-scroll-black {
+  --app-scroll-color: #111827;
+}
+
+:root:has(.app-scroll-purple),
 .app-scroll-purple,
-.app-scroll-purple * {
-  scrollbar-color: #5454E9 transparent;
+.app-scroll-default {
+  --app-scroll-color: #5454E9;
+}
+
+* {
+  scrollbar-color: var(--app-scroll-color) transparent;
   scrollbar-width: thin;
 }
 
-.app-scroll-orange,
-.app-scroll-orange * {
-  scrollbar-color: #E9683B transparent;
-  scrollbar-width: thin;
-}
-
-.app-scroll-green,
-.app-scroll-green * {
-  scrollbar-color: #4CB979 transparent;
-  scrollbar-width: thin;
-}
-
-.app-scroll-black,
-.app-scroll-black * {
-  scrollbar-color: #111827 transparent;
-  scrollbar-width: thin;
-}
-
-.app-scroll-default,
-.app-scroll-default * {
-  scrollbar-color: #717182 transparent;
-  scrollbar-width: thin;
-}
-
-.app-scroll-purple::-webkit-scrollbar,
-.app-scroll-purple *::-webkit-scrollbar,
-.app-scroll-orange::-webkit-scrollbar,
-.app-scroll-orange *::-webkit-scrollbar,
-.app-scroll-green::-webkit-scrollbar,
-.app-scroll-green *::-webkit-scrollbar,
-.app-scroll-black::-webkit-scrollbar,
-.app-scroll-black *::-webkit-scrollbar,
-.app-scroll-default::-webkit-scrollbar,
-.app-scroll-default *::-webkit-scrollbar {
+*::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
-.app-scroll-purple::-webkit-scrollbar-track,
-.app-scroll-purple *::-webkit-scrollbar-track,
-.app-scroll-orange::-webkit-scrollbar-track,
-.app-scroll-orange *::-webkit-scrollbar-track,
-.app-scroll-green::-webkit-scrollbar-track,
-.app-scroll-green *::-webkit-scrollbar-track,
-.app-scroll-black::-webkit-scrollbar-track,
-.app-scroll-black *::-webkit-scrollbar-track,
-.app-scroll-default::-webkit-scrollbar-track,
-.app-scroll-default *::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-.app-scroll-purple::-webkit-scrollbar-thumb,
-.app-scroll-purple *::-webkit-scrollbar-thumb {
-  background-color: #5454E9;
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background-clip: content-box;
-}
-
-.app-scroll-orange::-webkit-scrollbar-thumb,
-.app-scroll-orange *::-webkit-scrollbar-thumb {
-  background-color: #E9683B;
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background-clip: content-box;
-}
-
-.app-scroll-green::-webkit-scrollbar-thumb,
-.app-scroll-green *::-webkit-scrollbar-thumb {
-  background-color: #4CB979;
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background-clip: content-box;
-}
-
-.app-scroll-black::-webkit-scrollbar-thumb,
-.app-scroll-black *::-webkit-scrollbar-thumb {
-  background-color: #111827;
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background-clip: content-box;
-}
-
-.app-scroll-default::-webkit-scrollbar-thumb,
-.app-scroll-default *::-webkit-scrollbar-thumb {
-  background-color: #717182;
+*::-webkit-scrollbar-thumb {
+  background-color: var(--app-scroll-color);
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: content-box;

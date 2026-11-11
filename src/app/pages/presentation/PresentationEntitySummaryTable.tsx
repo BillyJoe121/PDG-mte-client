@@ -51,7 +51,7 @@ interface Props<T extends ReportEntity> {
   cardExtra?: (item: T) => ReactNode;
 }
 
-const HEAD_STYLE = { fontSize: 10.5, fontWeight: 900, color: PRESENTATION_UI.muted, textTransform: "uppercase", letterSpacing: "0.04em" } as const;
+const HEAD_STYLE = { fontSize: 10.5, fontWeight: 700, color: PRESENTATION_UI.muted, textTransform: "uppercase", letterSpacing: "0.04em" } as const;
 
 const KR_SEGMENTS = [
   { key: "completedKrs", label: "KRs completados", color: PRESENTATION_UI.green },
@@ -95,7 +95,7 @@ export function EntitySummaryTable<T extends ReportEntity>(props: Props<T>) {
             type="button"
             onClick={() => setSort(null)}
             className="inline-flex min-h-[24px] items-center gap-1 rounded-md bg-white px-2 hover:bg-[#F8FAFC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9]"
-            style={{ border: "1px solid #000", fontSize: 11, fontWeight: 850, color: PRESENTATION_UI.text }}
+            style={{ border: "1px solid #000", fontSize: 11, fontWeight: 600, color: PRESENTATION_UI.text }}
           >
             <RotateCcw size={12} aria-hidden="true" /> Orden de registro
           </button>
@@ -138,28 +138,28 @@ export function EntitySummaryTable<T extends ReportEntity>(props: Props<T>) {
                   className="sgp-print-avoid cursor-pointer transition-colors hover:bg-[#F8FAFC]"
                   style={{ borderBottom: `1px solid ${PRESENTATION_UI.divider}` }}
                 >
-                  <td className="px-3 py-1.5" style={{ minWidth: 240, maxWidth: 420 }}>
-                    <p style={{ fontWeight: 850, color: PRESENTATION_UI.text, overflowWrap: "anywhere", lineHeight: 1.3 }}>{item.name}</p>
-                    <p className="line-clamp-1" style={{ fontSize: 11, fontWeight: 600, color: PRESENTATION_UI.muted, marginTop: 1 }}>{props.cardDetail(item)}</p>
-                    {props.cardExtra && <div style={{ fontSize: 11, marginTop: 1 }}>{props.cardExtra(item)}</div>}
+                  <td className="px-3 py-3" style={{ minWidth: 240, maxWidth: 420 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: PRESENTATION_UI.text, overflowWrap: "anywhere", lineHeight: 1.4 }}>{item.name}</p>
+                    <p className="line-clamp-1" style={{ fontSize: 11.5, fontWeight: 400, color: PRESENTATION_UI.muted, marginTop: 4, lineHeight: 1.45 }}>{props.cardDetail(item)}</p>
+                    {props.cardExtra && <div style={{ fontSize: 11.5, fontWeight: 400, marginTop: 2, lineHeight: 1.45 }}>{props.cardExtra(item)}</div>}
                   </td>
-                  <td className="px-3 py-1.5"><PresentationStatusBadge status={item.status} /></td>
+                  <td className="px-3 py-3"><PresentationStatusBadge status={item.status} /></td>
                   {(["completedKrs", "inProgressKrs", "totalProjects"] as const).map((key) => (
                     <td
                       key={key}
-                      className="px-3 py-1.5 text-right tabular-nums"
-                      style={{ fontSize: 13.5, fontWeight: 900, color: itemCounts[key] > 0 ? PRESENTATION_UI.text : PRESENTATION_UI.subtle }}
+                      className="px-3 py-3 text-right tabular-nums"
+                      style={{ fontSize: 13.5, fontWeight: 600, color: itemCounts[key] > 0 ? PRESENTATION_UI.text : PRESENTATION_UI.subtle }}
                     >
                       {formatScreenCount(itemCounts[key])}
                     </td>
                   ))}
-                  <td className="px-3 py-1.5">
+                  <td className="px-3 py-3">
                     <StackedBar
                       total={maxKrs}
                       segments={KR_SEGMENTS.map(({ key, label, color }) => ({ label, color, value: itemCounts[key] }))}
                     />
                   </td>
-                  <td className="sgp-screen-only px-3 py-1.5">
+                  <td className="sgp-screen-only px-3 py-3">
                     <button
                       type="button"
                       onClick={(event) => {
@@ -168,7 +168,7 @@ export function EntitySummaryTable<T extends ReportEntity>(props: Props<T>) {
                       }}
                       aria-label={`Detalle de ${item.name}`}
                       className="inline-flex min-h-[26px] items-center gap-0.5 rounded-md bg-white px-2 transition-colors hover:bg-[#111827] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9] focus-visible:ring-offset-1"
-                      style={{ border: "1px solid #000", fontSize: 11, fontWeight: 850 }}
+                      style={{ border: "1px solid #000", fontSize: 11, fontWeight: 600 }}
                     >
                       Detalle <ChevronRight size={12} aria-hidden="true" />
                     </button>

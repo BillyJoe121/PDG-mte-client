@@ -282,7 +282,7 @@ export function ProjectDetailContent({ projectId, onBack, guard, onOpenInHierarc
             </div>
           </div>
 
-          <div className="grid grid-cols-1 divide-y divide-gray-200 xl:grid-cols-[minmax(0,1fr)_260px] xl:divide-x xl:divide-y-0">
+          <div className="grid grid-cols-1 divide-y divide-gray-200 xl:grid-cols-[minmax(0,1fr)_320px] xl:divide-x xl:divide-y-0">
             <div className="min-w-0">
               <AnimatePresence mode="wait" initial={false}>
                 {activeTab === "resumen" && (

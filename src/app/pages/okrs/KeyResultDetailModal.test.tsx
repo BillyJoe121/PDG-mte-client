@@ -278,10 +278,10 @@ describe("KeyResultDetailModal progress history", () => {
     expect(mocks.records).toHaveBeenCalledWith(5);
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent("luis@icesi.edu.co");
-    expect(items[0]).toHaveTextContent("72 Porcentaje → 75 Porcentaje");
+    expect(items[0]).toHaveTextContent("72% → 75%");
     expect(items[0]).toHaveTextContent("10% → 25%");
     expect(items[1]).toHaveTextContent("Ana Gómez");
-    expect(items[1]).toHaveTextContent("— → 72 Porcentaje");
+    expect(items[1]).toHaveTextContent("— → 72%");
   });
 
   it("shows the empty state and keeps the history visible to read-only users", async () => {

@@ -11,6 +11,7 @@ import { keyResultsApi, type KeyResult, type KeyResultRequest } from "../../serv
 import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicLifecycle";
 import { KrEditPanel } from "./KrFormModal";
+import { LinkInitiativesPanel } from "./LinkInitiativesPanel";
 import { KeyResultProgressForm } from "./KeyResultProgressForm";
 import { KeyResultProgressHistory } from "./KeyResultProgressHistory";
 import { formatValueWithUnit } from "./okrsShared";
@@ -18,12 +19,16 @@ import { ConfirmDialog, useConfirm } from "../../components/ConfirmDialog";
 import { Modal } from "../../components/Modal";
 import { PlannerLinkField } from "../../components/planner/PlannerLinkField";
 import { useDiscardGuard } from "../../hooks/useDiscardGuard";
+import { useAuth } from "../../context/AuthContext";
+import { hasPermission } from "../../security/permissions";
 import { StrategyJumpButtons } from "../jerarquia/StrategyJumpButtons";
 import type { HierarchyTableFocus } from "../jerarquia/hierarchyTableLink";
 import { LinkedNames } from "../../components/LinkedNames";
 import {
   DETAIL_ACTIONS_CLASS,
   DETAIL_BUTTON_CLASS,
+  DETAIL_GRAY_BUTTON_CLASS,
+  DETAIL_GREEN_BUTTON_CLASS,
   DetailBadge,
   DetailBody,
   DetailField,
@@ -53,11 +58,14 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
   const [saving, setSaving] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [editingKr, setEditingKr] = useState(false);
+  const [linkingInitiatives, setLinkingInitiatives] = useState(false);
   const [archiveConfirm, setArchiveConfirm] = useState(false);
   const [archiveError, setArchiveError] = useState("");
   const [historyVersion, setHistoryVersion] = useState(0);
   const [restoring, setRestoring] = useState(false);
   const guard = useDiscardGuard();
+  const { usuario } = useAuth();
+  const canLinkInitiatives = hasPermission(usuario, "proyectos.link");
   const { confirm, confirmDialog } = useConfirm();
   const requestClose = () => guard.run(onClose);
 
@@ -112,6 +120,13 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleInitiativesLinked = async () => {
+    signalKeyResultChange("project-key-result-link");
+    setLinkingInitiatives(false);
+    await load(true);
+    await onChanged?.();
   };
 
   const handleProgressRecorded = async () => {
@@ -216,6 +231,14 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
 
       {editingKr && keyResult ? (
         <KrEditPanel keyResult={keyResult} units={units} saving={saving} onCancel={() => guard.run(() => setEditingKr(false))} onDirtyChange={guard.setDirty} onSubmit={updateKr} />
+      ) : linkingInitiatives && keyResult ? (
+        <LinkInitiativesPanel
+          keyResultId={keyResult.id}
+          linkedProjectIds={links.flatMap((link) => (link.projectId == null ? [] : [link.projectId]))}
+          onCancel={() => guard.run(() => setLinkingInitiatives(false))}
+          onDirtyChange={guard.setDirty}
+          onSaved={handleInitiativesLinked}
+        />
       ) : (
         <DetailBody>
           {loading ? (
@@ -243,6 +266,11 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                     />
                   )}
                   {renderActions?.(keyResult)}
+                  {canLinkInitiatives && keyResultMutable && (
+                    <button type="button" onClick={() => setLinkingInitiatives(true)} data-tour="kr-link-initiatives" className={links.length ? DETAIL_GREEN_BUTTON_CLASS : DETAIL_GRAY_BUTTON_CLASS}>
+                      Vincular iniciativas
+                    </button>
+                  )}
                 </div>
                 {canEdit && (
                   <div className="flex flex-wrap items-center gap-2">

@@ -169,24 +169,31 @@ function KeyResultSelect({ value, onChange, placeholder, options, search, onSear
       <SelectTrigger aria-label="Key Result" className={FORM_CONTROL_CLASS}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent position="popper" align="start" className={FORM_SELECT_CONTENT_CLASS}>
-        {/* The select would treat these keys as type-ahead and steal focus from the search box. */}
-        <div className="sticky top-0 z-10 bg-white p-1" onKeyDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
-          <div className="flex min-h-[38px] items-center gap-2 rounded-md border border-gray-300 px-2.5 focus-within:border-[#5454E9]">
-            <Search size={14} className="flex-shrink-0 text-gray-500" aria-hidden="true" />
-            <input
-              aria-label="Buscar Key Result"
-              value={search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Buscar por KR, meta, apuesta o periodo"
-              className="w-full min-w-0 bg-transparent text-sm text-[#111827] outline-none placeholder:text-gray-400"
-            />
+      <SelectContent
+        position="popper"
+        align="start"
+        // As wide as the field, never wider; the search box stays above the list instead of floating over it.
+        className={`${FORM_SELECT_CONTENT_CLASS} max-h-80 w-[var(--radix-select-trigger-width)] overflow-hidden shadow-lg`}
+        header={
+          // The select would treat these keys as type-ahead and steal focus from the search box.
+          <div className="border-b border-gray-200 bg-white p-1 pb-2" onKeyDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+            <div className="flex min-h-[38px] items-center gap-2 rounded-md border border-gray-300 px-2.5 focus-within:border-[#5454E9]">
+              <Search size={14} className="flex-shrink-0 text-gray-500" aria-hidden="true" />
+              <input
+                aria-label="Buscar Key Result"
+                value={search}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder="Buscar por KR, meta, apuesta o periodo"
+                className="w-full min-w-0 bg-transparent text-sm text-[#111827] outline-none placeholder:text-gray-400"
+              />
+            </div>
           </div>
-        </div>
+        }
+      >
         {options.length === 0 ? (
           <SelectItem value="__empty" disabled className={FORM_SELECT_ITEM_CLASS}>Sin resultados</SelectItem>
         ) : options.map((option) => (
-          <SelectItem key={option.value} value={option.value} className={FORM_SELECT_ITEM_CLASS}>{option.label}</SelectItem>
+          <SelectItem key={option.value} value={option.value} className={`${FORM_SELECT_ITEM_CLASS} whitespace-normal pr-8 leading-snug`}>{option.label}</SelectItem>
         ))}
       </SelectContent>
     </Select>

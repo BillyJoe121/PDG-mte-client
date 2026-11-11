@@ -1,10 +1,8 @@
 import { CheckCircle2, FileText, Layers, Target } from "lucide-react";
 import type { DepartmentReport, GeneralReport, KeyResultRanking, PresentationSlide } from "../../services/reportsApi";
 import { PRESENTATION_UI } from "./PresentationLayout";
-import { formatCount, PanelHeading, ProgressBarRow, SlideEmptyState, StatTile, strategyText } from "./PresentationConsolidatedSlideParts";
-
-/** Rows that fit on the stage; the rest stay in the Informe view. */
-export const RANKING_VISIBLE_ROWS = 7;
+import { formatCount, ProgressBarRow, SlideEmptyState, StatTile, strategyText } from "./PresentationConsolidatedSlideParts";
+import { ScrollPanel } from "./PresentationSlidePager";
 
 function SummarySlide({ general }: { general: GeneralReport }) {
   return (
@@ -20,7 +18,6 @@ function SummarySlide({ general }: { general: GeneralReport }) {
       <StatTile
         label="Iniciativas completadas"
         value={general.completedProjects ?? 0}
-        note="Registradas como completadas"
         color={PRESENTATION_UI.green}
         icon={<CheckCircle2 size={28} />}
         size="lg"
@@ -36,7 +33,6 @@ function SummarySlide({ general }: { general: GeneralReport }) {
       <StatTile
         label="KRs cerrados"
         value={general.closedKeyResults ?? 0}
-        note="Solo cuentan los KRs en estado Cerrado"
         color={PRESENTATION_UI.green}
         icon={<Layers size={28} />}
         size="lg"
@@ -54,13 +50,14 @@ function RankingSlide({ keyResults }: { keyResults: KeyResultRanking[] }) {
       />
     );
   }
-  const visible = keyResults.slice(0, RANKING_VISIBLE_ROWS);
-  const hidden = keyResults.length - visible.length;
+  return <RankingList keyResults={keyResults} />;
+}
+
+function RankingList({ keyResults }: { keyResults: KeyResultRanking[] }) {
   return (
-    <div>
-      <PanelHeading title="Avance registrado" aside={`${formatCount(keyResults.length)} KRs`} />
-      <ol className="flex flex-col gap-6">
-        {visible.map((kr, index) => (
+    <ScrollPanel heading={null} label="Ranking de KRs">
+      <ol className="flex flex-col gap-5">
+        {keyResults.map((kr, index) => (
           <ProgressBarRow
             key={kr.keyResultId || index}
             rank={index + 1}
@@ -70,12 +67,7 @@ function RankingSlide({ keyResults }: { keyResults: KeyResultRanking[] }) {
           />
         ))}
       </ol>
-      {hidden > 0 && (
-        <p style={{ fontSize: 22, fontWeight: 700, color: PRESENTATION_UI.muted, marginTop: 24 }}>
-          {`Y ${formatCount(hidden)} KRs más con avance registrado: consulta la lista completa en Informe.`}
-        </p>
-      )}
-    </div>
+    </ScrollPanel>
   );
 }
 
@@ -84,9 +76,6 @@ const DEPARTMENT_COLUMNS = [
   { key: "keyResults", label: "KRs", color: PRESENTATION_UI.orange },
   { key: "closedKeyResults", label: "KRs cerrados", color: PRESENTATION_UI.green },
 ] as const;
-
-/** Rows that fit on the stage. */
-export const DEPARTMENT_VISIBLE_ROWS = 8;
 
 function DepartmentsSlide({ departments }: { departments: DepartmentReport[] }) {
   if (!departments.length) {
@@ -97,18 +86,20 @@ function DepartmentsSlide({ departments }: { departments: DepartmentReport[] }) 
       />
     );
   }
-  const visible = departments.slice(0, DEPARTMENT_VISIBLE_ROWS);
-  const hidden = departments.length - visible.length;
+  return <DepartmentsTable departments={departments} />;
+}
+
+function DepartmentsTable({ departments }: { departments: DepartmentReport[] }) {
   // Each bar is relative to the largest recorded value of its column.
   const max = Object.fromEntries(
     DEPARTMENT_COLUMNS.map((column) => [column.key, Math.max(1, ...departments.map((dept) => Number(dept[column.key]) || 0))])
   ) as Record<(typeof DEPARTMENT_COLUMNS)[number]["key"], number>;
 
   return (
-    <div>
+    <ScrollPanel heading={null} label="Departamentos del corte">
       <table className="w-full table-fixed text-left" aria-label="Resumen por departamento">
         <thead>
-          <tr style={{ fontSize: 22, fontWeight: 900, color: PRESENTATION_UI.muted, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: `2px solid ${PRESENTATION_UI.border}` }}>
+          <tr style={{ fontSize: 20, fontWeight: 600, color: PRESENTATION_UI.muted, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: `2px solid ${PRESENTATION_UI.border}` }}>
             <th className="w-[34%]" style={{ padding: "0 16px 14px 0" }}>Departamento</th>
             {DEPARTMENT_COLUMNS.map((column) => (
               <th key={column.key} style={{ padding: "0 16px 14px" }}>
@@ -121,20 +112,20 @@ function DepartmentsSlide({ departments }: { departments: DepartmentReport[] }) 
           </tr>
         </thead>
         <tbody>
-          {visible.map((dept, index) => (
+          {departments.map((dept, index) => (
             <tr key={dept.departmentId || index} style={{ borderBottom: `2px solid ${PRESENTATION_UI.divider}` }}>
-              <td className="truncate" style={{ padding: "16px 16px 16px 0", fontSize: 28, fontWeight: 850, color: PRESENTATION_UI.text }}>
-                {dept.departmentName}
+              <td style={{ padding: "14px 16px 14px 0", fontSize: 24, fontWeight: 600, lineHeight: 1.25, color: PRESENTATION_UI.text }}>
+                <span className="line-clamp-2" title={dept.departmentName}>{dept.departmentName}</span>
               </td>
               {DEPARTMENT_COLUMNS.map((column) => {
                 const value = Number(dept[column.key]) || 0;
                 return (
-                  <td key={column.key} style={{ padding: "16px" }}>
+                  <td key={column.key} style={{ padding: "14px 16px" }}>
                     <div className="flex items-center gap-4">
-                      <span className="w-16 shrink-0 text-right" style={{ fontSize: 30, fontWeight: 900, color: PRESENTATION_UI.text }}>
+                      <span className="w-16 shrink-0 text-right" style={{ fontSize: 26, fontWeight: 700, color: PRESENTATION_UI.text }}>
                         {formatCount(value)}
                       </span>
-                      <span className="h-4 flex-1 overflow-hidden rounded-full bg-[#E9ECF2]" aria-hidden="true">
+                      <span className="h-3 flex-1 overflow-hidden rounded-full bg-[#E9ECF2]" aria-hidden="true">
                         <span className="block h-full rounded-full" style={{ width: `${(value / max[column.key]) * 100}%`, backgroundColor: column.color }} />
                       </span>
                     </div>
@@ -145,12 +136,7 @@ function DepartmentsSlide({ departments }: { departments: DepartmentReport[] }) 
           ))}
         </tbody>
       </table>
-      {hidden > 0 && (
-        <p style={{ fontSize: 22, fontWeight: 700, color: PRESENTATION_UI.muted, marginTop: 20 }}>
-          {`Y ${formatCount(hidden)} departamentos más: consulta el detalle en Informe.`}
-        </p>
-      )}
-    </div>
+    </ScrollPanel>
   );
 }
 

@@ -30,7 +30,7 @@ export function FilterPanel({
   return (
     <div className="sticky top-0 z-30 border-b border-gray-200 bg-white px-6 pb-4 pt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 grow basis-[280px] flex-wrap items-center gap-2">
+        <div data-tour="consistencia-filters" className="flex min-w-0 grow basis-[280px] flex-wrap items-center gap-2">
           <select value={severity} onChange={(event) => onSeverityChange(event.target.value)} className={`${TOOLBAR_SELECT_CLASS} w-[134px]`} aria-label="Filtrar por severidad">
             <option value="todas">Todos: Severidad</option>
             <option value="ALTA">Alta</option>
@@ -48,7 +48,7 @@ export function FilterPanel({
           </label>
           <button type="button" onClick={onReset} className={DETAIL_BUTTON_CLASS}>Limpiar</button>
         </div>
-        <button type="button" onClick={onExport} disabled={exporting || loading} className={DETAIL_BUTTON_CLASS}>
+        <button type="button" onClick={onExport} data-tour="consistencia-export" disabled={exporting || loading} className={DETAIL_BUTTON_CLASS}>
           {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
           Exportar
         </button>

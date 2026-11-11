@@ -8,7 +8,7 @@ const ISSUE_COLUMNS = ["Severidad", "Módulo", "Elemento", "Hallazgo", "Acción"
 export function IssueTable({ issues, onOpen }: { issues: ConsistencyFinding[]; onOpen: (issue: ConsistencyFinding) => void }) {
   return (
     <DetailTable label="Hallazgos de consistencia" columns={ISSUE_COLUMNS} minWidth={820}>
-      {issues.map((issue) => {
+      {issues.map((issue, index) => {
         const meta = severityMeta[issue.severity];
         return (
           <tr key={issue.id}>
@@ -23,6 +23,7 @@ export function IssueTable({ issues, onOpen }: { issues: ConsistencyFinding[]; o
               <button
                 type="button"
                 onClick={() => onOpen(issue)}
+                data-tour={index === 0 ? "consistencia-open" : undefined}
                 title={issue.recommendedAction}
                 className="inline-flex h-7 items-center whitespace-nowrap rounded-md border border-gray-300 bg-white px-2 text-xs font-bold text-[#111827] hover:bg-gray-50"
               >

@@ -3,7 +3,9 @@ import type { Goal, StrategicBet } from "../../services/strategicApi";
 import type { ExportMenuItem } from "./PresentationExportMenu";
 import type { PresentationMode } from "./PresentationTypes";
 import {
+  buildConsolidatedCsvRows,
   exportBetsSummaryCsv,
+  exportConsolidatedCsv,
   exportComparisonCsv,
   exportGeneralReportCsv,
   exportGoalsSummaryCsv,
@@ -27,7 +29,7 @@ interface ExportContext {
   comparison: ComparisonExportSnapshot | null;
 }
 
-/** Entries of the Exportar menu for the view on screen: its PDF and the CSV of its own data. */
+/** Entries of the Exportar menu for the view on screen (Informe, Comparar or Presentar): its PDF and the CSV of its own data. */
 export function buildExportItems(context: ExportContext): ExportMenuItem[] {
   const { mode, periodName, bets, goals, slides, currentIndex, comparison } = context;
   const subtitle = `Periodo ${periodName} - Modulo de Trazabilidad Estratégica`;
@@ -87,42 +89,31 @@ export function buildExportItems(context: ExportContext): ExportMenuItem[] {
     ];
   }
 
-  if (mode === "slides") {
-    return [
-      {
-        id: "pdf",
-        kind: "pdf",
-        label: "PDF de la diapositiva actual",
-        disabled: slides.length === 0,
-        onSelect: () =>
-          printPresentationView(slides[currentIndex]?.title || "Presentación Institucional", {
-            subtitle: `Periodo ${periodName} - Diapositiva ${currentIndex + 1} de ${slides.length}`,
-            printableSelector: ".presentation-slide-print-area",
-          }),
-      },
-      {
-        id: "csv",
-        kind: "csv",
-        label: "CSV de las diapositivas",
-        disabled: slides.length === 0,
-        onSelect: () => exportSlideDeckCsv(slides, periodName),
-      },
-    ];
-  }
-
   return [
     {
       id: "pdf",
       kind: "pdf",
-      label: "PDF del resumen",
+      label: "PDF de la diapositiva actual",
+      disabled: slides.length === 0,
       onSelect: () =>
-        printPresentationView("Modo Presentación Estratégica", { subtitle, printableSelector: ".presentation-print-container" }),
+        printPresentationView(slides[currentIndex]?.title || "Presentación Institucional", {
+          subtitle: `Periodo ${periodName} - Diapositiva ${currentIndex + 1} de ${slides.length}`,
+          printableSelector: ".presentation-slide-print-area",
+        }),
     },
     {
       id: "csv",
       kind: "csv",
-      label: "CSV de apuestas y metas",
-      onSelect: () => exportGeneralReportCsv(bets, goals, periodName),
+      label: "CSV de las diapositivas",
+      disabled: slides.length === 0,
+      onSelect: () => exportSlideDeckCsv(slides, periodName),
+    },
+    {
+      id: "csv-consolidated",
+      kind: "csv",
+      label: "CSV de departamentos y avance de KRs",
+      disabled: buildConsolidatedCsvRows(slides).length === 0,
+      onSelect: () => exportConsolidatedCsv(slides, periodName),
     },
   ];
 }

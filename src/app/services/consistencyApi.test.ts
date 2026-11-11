@@ -26,10 +26,10 @@ describe("consistency API", () => {
   it("checks consistency with stable optional filters", async () => {
     fetchMock.mockResolvedValue(response({ summary: { total: 0 }, findings: [] }));
 
-    await consistencyApi.check({ severity: "ALTA", module: "OKRS", staleDays: 30 });
+    await consistencyApi.check({ severity: "ALTA", module: "INDICADORES", staleDays: 30 });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringMatching(/\/consistency\/check\?(?=.*severity=ALTA)(?=.*module=OKRS)(?=.*staleDays=30)/),
+      expect.stringMatching(/\/consistency\/check\?(?=.*severity=ALTA)(?=.*module=INDICADORES)(?=.*staleDays=30)/),
       expect.any(Object),
     );
   });

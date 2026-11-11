@@ -6,7 +6,7 @@ import { PRESENTATION_UI } from "./PresentationLayout";
 
 export const LABEL_STYLE = {
   fontSize: 10.5,
-  fontWeight: 900,
+  fontWeight: 700,
   color: PRESENTATION_UI.muted,
   textTransform: "uppercase",
   letterSpacing: "0.05em",
@@ -57,10 +57,10 @@ export function ScreenSectionHeading({ title, aside, id, level = "h2" }: { title
   const Heading = level;
   return (
     <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 pb-1.5" style={{ borderBottom: `1px solid ${PRESENTATION_UI.border}` }}>
-      <Heading id={id} style={{ fontSize: 11, fontWeight: 900, color: PRESENTATION_UI.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      <Heading id={id} style={{ fontSize: 11, fontWeight: 700, color: PRESENTATION_UI.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
         {title}
       </Heading>
-      {aside && <span style={{ fontSize: 11, fontWeight: 750, color: PRESENTATION_UI.muted }}>{aside}</span>}
+      {aside && <span style={{ fontSize: 11, fontWeight: 600, color: PRESENTATION_UI.muted }}>{aside}</span>}
     </div>
   );
 }
@@ -98,7 +98,7 @@ export function BarLegend({ items }: { items: { label: string; color: string }[]
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1" aria-hidden="true">
       {items.map((item) => (
-        <li key={item.label} className="flex items-center gap-1.5" style={{ fontSize: 10.5, fontWeight: 800, color: PRESENTATION_UI.muted }}>
+        <li key={item.label} className="flex items-center gap-1.5" style={{ fontSize: 10.5, fontWeight: 600, color: PRESENTATION_UI.muted }}>
           <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: item.color }} />
           {item.label}
         </li>

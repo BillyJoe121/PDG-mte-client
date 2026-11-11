@@ -8,7 +8,7 @@ const SIZES = {
   sm: "max-w-md",
   md: "max-w-2xl",
   lg: "max-w-5xl",
-  xl: "max-w-6xl",
+  xl: "max-w-7xl",
 } as const;
 
 const shortMotionTransition = { duration: 0.16, ease: "easeOut" } as const;

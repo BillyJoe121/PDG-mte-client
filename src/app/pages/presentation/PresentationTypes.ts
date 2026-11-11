@@ -1,5 +1,5 @@
 
-export type PresentationMode = "hub" | "general" | "compare" | "slides";
+export type PresentationMode = "general" | "compare" | "slides";
 export type ComparisonType = "bet-vs-bet" | "goal-vs-goal" | "bet-vs-goal" | "period-vs-period";
 
 export interface SelectedEntityDetail {

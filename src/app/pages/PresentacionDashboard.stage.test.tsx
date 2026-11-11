@@ -80,10 +80,10 @@ describe("PresentacionDashboard presenter stage", () => {
   it("jumps to the first and last slide with Home and End", async () => {
     await renderPresenter();
     await press("End");
-    expect(screen.getByText("3 / 3")).toBeInTheDocument();
+    expect(await screen.findByText("3 / 3")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Cierre" })).toBeInTheDocument();
     await press("Home");
-    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+    expect(await screen.findByText("1 / 3")).toBeInTheDocument();
   });
 
   it("opens the thumbnails with G, jumps to a slide and returns focus", async () => {
@@ -104,7 +104,7 @@ describe("PresentacionDashboard presenter stage", () => {
       fireEvent.click(within(overview).getByRole("button", { name: /ir a la diapositiva 3: cierre/i }));
     });
     expect(screen.queryByRole("dialog", { name: "Vista de miniaturas" })).not.toBeInTheDocument();
-    expect(screen.getByText("3 / 3")).toBeInTheDocument();
+    expect(await screen.findByText("3 / 3")).toBeInTheDocument();
   });
 
   it("opens the thumbnails from the controls and marks the toggle as pressed", async () => {
@@ -124,7 +124,7 @@ describe("PresentacionDashboard presenter stage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("closes layers one at a time with Escape: thumbnails, then Presentar, then the page", async () => {
+  it("closes layers one at a time with Escape: thumbnails, then Presentar back to Informe, then the page", async () => {
     await renderPresenter();
     await press("g");
     expect(screen.getByRole("dialog", { name: "Vista de miniaturas" })).toBeInTheDocument();
@@ -135,7 +135,7 @@ describe("PresentacionDashboard presenter stage", () => {
 
     await press("Escape");
     expect(screen.queryByRole("toolbar", { name: "Controles de la presentación" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Iniciar presentación" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Informe" })).toHaveAttribute("aria-pressed", "true");
 
     await press("Escape");
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
@@ -151,12 +151,12 @@ describe("PresentacionDashboard presenter stage", () => {
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
   });
 
-  it("leaves Presentar from the exit control", async () => {
+  it("goes back to Informe from the exit control", async () => {
     await renderPresenter();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Salir de la presentación" }));
     });
-    expect(screen.getByRole("button", { name: "Iniciar presentación" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Informe" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("hides the controls after a pause and keeps them reachable by keyboard", async () => {
@@ -166,7 +166,7 @@ describe("PresentacionDashboard presenter stage", () => {
     const toolbar = screen.getByRole("toolbar", { name: "Controles de la presentación" });
     expect(toolbar).toHaveClass("opacity-100");
 
-    act(() => void vi.advanceTimersByTime(2500));
+    act(() => void vi.advanceTimersByTime(1500));
     expect(toolbar).toHaveClass("opacity-0");
     const next = within(toolbar).getByRole("button", { name: "Siguiente diapositiva" });
     expect(next).not.toHaveAttribute("tabindex", "-1");

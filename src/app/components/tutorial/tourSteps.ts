@@ -1,6 +1,6 @@
 import type { UsuarioActual } from "../../context/AuthContext";
 import { hasPermission, type PermissionAction } from "../../security/permissions";
-import { jerarquiaSteps } from "./tourStepsJerarquia";
+import { CLOSE_DETAILS, jerarquiaSteps } from "./tourStepsJerarquia";
 import { recordSteps } from "./tourStepsRecords";
 
 export interface TourStep {
@@ -50,7 +50,34 @@ export const tourSteps: TourStep[] = [
     target: "nav-/consistencia",
     permission: "consistencia.view",
     title: "Consistencia",
-    body: "Revisa las alertas de datos incompletos o inconsistentes y corrígelas desde su acción.",
+    body: "Revisa la planeación y lista lo que no cuadra: iniciativas activas sin KR o sin avances recientes y KRs sin iniciativas activas. Cada hallazgo indica su severidad y qué hacer para corregirlo.",
+  },
+  {
+    id: "consistencia-filters",
+    route: "/consistencia",
+    clicks: CLOSE_DETAILS,
+    target: "consistencia-filters",
+    permission: "consistencia.view",
+    title: "Filtra los hallazgos",
+    body: "Muestra solo una severidad o un módulo, o busca un hallazgo por nombre o código. Limpiar vuelve a mostrarlos todos.",
+  },
+  {
+    id: "consistencia-open",
+    route: "/consistencia",
+    clicks: CLOSE_DETAILS,
+    target: "consistencia-open",
+    permission: "consistencia.view",
+    title: "Corrige sin salir de aquí",
+    body: "Abrir KR o Abrir iniciativa muestra su detalle encima de esta pantalla, con la misma gestión que viste en Jerarquía. Al cerrarlo, la lista se revisa de nuevo y desaparece lo que ya corregiste.",
+  },
+  {
+    id: "consistencia-export",
+    route: "/consistencia",
+    clicks: CLOSE_DETAILS,
+    target: "consistencia-export",
+    permission: "consistencia.view",
+    title: "Exporta los hallazgos",
+    body: "Descarga en CSV los hallazgos con la severidad y el módulo que tengas filtrados, para repartirlos o hacerles seguimiento.",
   },
   {
     id: "presentacion",
@@ -63,11 +90,11 @@ export const tourSteps: TourStep[] = [
   {
     id: "presentacion-modes",
     route: "/presentacion",
-    clicks: ["presentacion-mode-hub"],
+    clicks: ["presentacion-mode-general"],
     target: "presentacion-modes",
     permission: "presentacion.view",
     title: "Elige cómo presentar",
-    body: "Resumen muestra las Apuestas, Metas y KRs del periodo. Desde esta barra cambias entre Informe, Comparar y Presentar.",
+    body: "La presentación abre en Informe. Desde esta barra cambias entre Informe, Comparar y Presentar.",
   },
   {
     id: "presentacion-general",
@@ -94,7 +121,7 @@ export const tourSteps: TourStep[] = [
     target: "presentacion-mode-slides",
     permission: "presentacion.view",
     title: "Presentar",
-    body: "Proyecta las diapositivas en formato de pantalla grande: avanza con las flechas o la barra espaciadora, pulsa G para ver las miniaturas y F para pantalla completa.",
+    body: "Proyecta una diapositiva por Apuesta y por Meta con sus KRs; si son muchos, pásalos con las flechas de la tarjeta. Avanza con las flechas o la barra espaciadora, pulsa G para ver las miniaturas y F para pantalla completa.",
   },
   {
     id: "presentacion-export",
@@ -102,7 +129,7 @@ export const tourSteps: TourStep[] = [
     target: "presentacion-export",
     permission: "presentacion.view",
     title: "Periodo y exportación",
-    body: "Cambia el periodo que se presenta y abre Exportar para llevar la vista activa a PDF o sus datos a CSV.",
+    body: "Cambia el periodo que se presenta y abre Exportar para llevar la vista activa a PDF o sus datos a CSV. En Presentar también descargas todos los departamentos y el avance de cada KR.",
   },
   {
     id: "help",

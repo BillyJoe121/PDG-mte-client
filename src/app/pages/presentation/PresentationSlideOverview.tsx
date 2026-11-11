@@ -2,6 +2,7 @@ import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "rea
 import { X } from "lucide-react";
 import type { PresentationSlide } from "../../services/reportsApi";
 import { PresentationSlideView } from "./PresentationSlideView";
+import { SlideInteractiveContext } from "./PresentationSlidePager";
 import { STAGE_HEIGHT, STAGE_WIDTH } from "./presentationStage";
 
 const THUMB_WIDTH = 288;
@@ -106,7 +107,9 @@ export function PresentationSlideOverview({ slides, currentIndex, periodName, on
                   }}
                 >
                   <div className="absolute left-0 top-0" style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT, transform: `scale(${THUMB_SCALE})`, transformOrigin: "top left" }}>
-                    <PresentationSlideView slide={slide} periodName={periodName} />
+                    <SlideInteractiveContext.Provider value={false}>
+                      <PresentationSlideView slide={slide} periodName={periodName} />
+                    </SlideInteractiveContext.Provider>
                   </div>
                 </div>
                 <span aria-hidden="true" className="mt-2 flex gap-2" style={{ fontSize: 13, fontWeight: 750, color: current ? "#fff" : "#D1D5DB" }}>

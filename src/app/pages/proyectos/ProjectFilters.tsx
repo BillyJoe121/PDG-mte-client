@@ -45,6 +45,7 @@ export function ProjectFilters({
 }: ProjectFiltersProps) {
   return (
     <ScreenToolbar
+      tourId="proyectos-toolbar"
       search={<ToolbarSearch value={search} onChange={onSearchChange} placeholder="Buscar iniciativa..." ariaLabel="Buscar iniciativas" />}
       actions={
         <>

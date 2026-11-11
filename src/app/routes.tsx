@@ -13,7 +13,6 @@ const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ def
 const JerarquiaEstrategica = lazy(() => import("./pages/JerarquiaEstrategica").then((module) => ({ default: module.JerarquiaEstrategica })));
 const Proyectos = lazy(() => import("./pages/Proyectos").then((module) => ({ default: module.Proyectos })));
 const KRs = lazy(() => import("./pages/KRs").then((module) => ({ default: module.KRs })));
-const Reportes = lazy(() => import("./pages/Reportes").then((module) => ({ default: module.Reportes })));
 const Consistencia = lazy(() => import("./pages/Consistencia").then((module) => ({ default: module.Consistencia })));
 const Usuarios = lazy(() => import("./pages/Usuarios").then((module) => ({ default: module.Usuarios })));
 const Auditoria = lazy(() => import("./pages/Auditoria").then((module) => ({ default: module.Auditoria })));
@@ -64,7 +63,7 @@ export const router = createBrowserRouter([
           // Rutas anteriores de KRs: redirigen a /krs para conservar marcadores antiguos.
           { path: "okrs/*", element: <Navigate to="/krs" replace /> },
           { path: "okrs", element: <Navigate to="/krs" replace /> },
-          { path: "reportes", element: protectedPage("reportes.view", <Reportes />) },
+          { path: "reportes", element: <Navigate to="/presentacion" replace /> },
           { path: "consistencia", element: protectedPage("consistencia.view", <Consistencia />) },
           { path: "usuarios", element: protectedPage("usuarios.manage", <Usuarios />) },
           { path: "auditoria", element: protectedPage("auditoria.view", <Auditoria />) },

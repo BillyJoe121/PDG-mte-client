@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart2, GitCompare, LayoutDashboard, Presentation } from "lucide-react";
+import { ArrowLeft, BarChart2, GitCompare, Presentation } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ToolbarButton, type ToolbarAccent } from "../../components/ScreenToolbar";
 import { PresentationExportMenu, type ExportMenuItem } from "./PresentationExportMenu";
@@ -8,7 +8,6 @@ const BORDER = "#D9DEE8";
 export const PRESENTATION_ACCENT: ToolbarAccent = { color: "#5454E9", background: "#EEF2FF" };
 
 const MODES: { value: PresentationMode; label: string; Icon: LucideIcon }[] = [
-  { value: "hub", label: "Resumen", Icon: LayoutDashboard },
   { value: "general", label: "Informe", Icon: BarChart2 },
   { value: "compare", label: "Comparar", Icon: GitCompare },
   { value: "slides", label: "Presentar", Icon: Presentation },
@@ -29,9 +28,16 @@ interface PresentationHeaderProps {
   getExportItems: () => ExportMenuItem[];
 }
 
-/** Single bar of the presentation: back, the four views, the period and the export menu. */
+/** Control sizes; the bar that floats over the slides is about 30% smaller. */
+const SIZES = {
+  regular: { control: 32, font: 12, icon: 13, back: 15, padding: "px-3 py-1.5 sm:px-5" },
+  compact: { control: 22, font: 10, icon: 10, back: 11, padding: "px-2 py-1 sm:px-3" },
+} as const;
+
+/** Single bar of the presentation: back, the three views, the period and the export menu. */
 export function PresentationHeader(props: PresentationHeaderProps) {
   const { activeMode, immersive = false, concealed = false } = props;
+  const size = immersive ? SIZES.compact : SIZES.regular;
   const placement = immersive
     ? `absolute inset-x-0 top-0 z-40 transition-opacity duration-200 motion-reduce:transition-none ${
         concealed ? "pointer-events-none opacity-0" : "opacity-100"
@@ -45,21 +51,21 @@ export function PresentationHeader(props: PresentationHeaderProps) {
       className={`${placement} shrink-0 bg-white sgp-screen-only`}
       style={{ borderBottom: "1px solid #000" }}
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-1.5 sm:px-5">
+      <div className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 ${size.padding}`}>
         <ToolbarButton
           onClick={props.onBack}
           aria-label="Volver al dashboard"
           title="Volver al dashboard"
-          style={{ width: 32, minHeight: 32, justifyContent: "center", padding: 0, border: "1px solid #000" }}
+          style={{ width: size.control, minHeight: size.control, justifyContent: "center", padding: 0, border: "1px solid #000" }}
         >
-          <ArrowLeft size={15} aria-hidden="true" />
+          <ArrowLeft size={size.back} aria-hidden="true" />
         </ToolbarButton>
 
         <nav
           aria-label="Modos de presentación"
           data-tour="presentacion-modes"
           className="order-last flex w-full items-stretch overflow-hidden sm:order-none sm:w-auto"
-          style={{ border: `1.5px solid ${BORDER}`, borderRadius: 7, height: 32 }}
+          style={{ border: `1.5px solid ${BORDER}`, borderRadius: 7, height: size.control }}
         >
           {MODES.map(({ value, label, Icon }, index) => {
             const active = activeMode === value;
@@ -72,14 +78,14 @@ export function PresentationHeader(props: PresentationHeaderProps) {
                 onClick={() => props.onModeChange(value)}
                 className="flex h-full min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap px-2 transition-colors hover:text-[#5454E9] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#5454E9] sm:flex-none sm:px-3"
                 style={{
-                  fontSize: 12,
-                  fontWeight: active ? 850 : 750,
+                  fontSize: size.font,
+                  fontWeight: active ? 700 : 600,
                   backgroundColor: active ? PRESENTATION_ACCENT.background : "#fff",
                   color: active ? PRESENTATION_ACCENT.color : "#374151",
                   borderRight: index === MODES.length - 1 ? "none" : `1.5px solid ${BORDER}`,
                 }}
               >
-                <Icon size={13} aria-hidden="true" className="hidden shrink-0 sm:block" />
+                <Icon size={size.icon} aria-hidden="true" className="hidden shrink-0 sm:block" />
                 {label}
               </button>
             );
@@ -97,10 +103,10 @@ export function PresentationHeader(props: PresentationHeaderProps) {
             onChange={(event) => props.onPeriodChange(event.target.value)}
             className="min-w-0 cursor-pointer rounded-md px-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9]"
             style={{
-              minHeight: 32,
+              minHeight: size.control,
               border: `1px solid ${BORDER}`,
-              fontSize: 12,
-              fontWeight: 750,
+              fontSize: size.font,
+              fontWeight: 600,
               backgroundColor: "#F8FAFC",
               color: "#111827",
             }}
@@ -111,7 +117,7 @@ export function PresentationHeader(props: PresentationHeaderProps) {
               </option>
             ))}
           </select>
-          <PresentationExportMenu getItems={props.getExportItems} />
+          <PresentationExportMenu getItems={props.getExportItems} compact={immersive} />
         </div>
       </div>
     </header>

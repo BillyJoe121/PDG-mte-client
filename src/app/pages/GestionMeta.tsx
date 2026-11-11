@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { measurementUnitsApi, type MeasurementUnit } from "../services/catalogsApi";
 import { goalsApi, type Goal } from "../services/strategicApi";
 import { getGoalValueInput, validateGoalForm, type GoalFormErrors, type GoalFormValues } from "../utils/goalForm";
+import { formatMeasure } from "../utils/measureFormat";
 import { useConfirm } from "../components/ConfirmDialog";
 
 const COLORS = {
@@ -144,7 +145,7 @@ export function GestionMeta() {
         </button>
       </div>
 
-      <section className="objective-detail-hero mb-4 overflow-hidden rounded-md bg-white">
+      <section className="strategy-detail-hero mb-4 overflow-hidden rounded-md bg-white">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1fr)]">
           <div className="flex min-h-[136px] flex-col justify-center gap-2 p-4" style={{ backgroundColor: COLORS.green }}>
             <div className="flex items-center gap-3">
@@ -162,7 +163,7 @@ export function GestionMeta() {
           </div>
           <div className="grid content-center gap-2 p-4 sm:grid-cols-2" style={{ backgroundColor: COLORS.subtle, borderLeft: `1px solid ${COLORS.border}` }}>
             <HeroInfo label="Indicador" value={goal.referenceIndicator ?? "Sin indicador"} />
-            <HeroInfo label="Valor esperado" value={`${goal.expectedValue} ${goal.measurementUnitName}`} />
+            <HeroInfo label="Valor esperado" value={formatMeasure(goal.expectedValue, goal.measurementUnitName) || "Sin registro"} />
             <HeroInfo label="Inicio" value={goal.startDate ?? "Sin fecha"} />
             <HeroInfo label="Cierre" value={goal.endDate ?? "Sin fecha"} />
           </div>

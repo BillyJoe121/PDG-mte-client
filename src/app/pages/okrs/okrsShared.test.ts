@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { formatValueWithUnit } from "./okrsShared";
 
 describe("formatValueWithUnit", () => {
-  it("joins the value and the unit name", () => {
-    expect(formatValueWithUnit(90, "Porcentaje")).toBe("90 Porcentaje");
+  it("writes the value with its unit in natural Spanish", () => {
+    expect(formatValueWithUnit(90, "Porcentaje")).toBe("90%");
+    expect(formatValueWithUnit(24, "Numero")).toBe("24");
   });
 
   it("shows the value alone when the unit is missing and never prints undefined", () => {

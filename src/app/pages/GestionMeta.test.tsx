@@ -66,7 +66,7 @@ describe("GestionMeta", () => {
     renderPage();
 
     expect(await screen.findByText("Tasa de permanencia")).toBeInTheDocument();
-    expect(screen.getByText("90 Porcentaje")).toBeInTheDocument();
+    expect(screen.getByText("90%")).toBeInTheDocument();
     const value = screen.getByLabelText("Valor esperado");
     await user.clear(value);
     await user.type(value, "95");
