@@ -1,16 +1,45 @@
-import { ChevronRight, Download, Printer, Table2 } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
-import { ToolbarButton } from "../../components/ScreenToolbar";
+import { useState, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, RotateCcw } from "lucide-react";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
-import { PresentationPanel, PresentationStatusBadge, PRESENTATION_UI } from "./PresentationLayout";
-import { printPresentationView } from "./presentationExportUtils";
+import { PresentationStatusBadge, PRESENTATION_UI } from "./PresentationLayout";
 import { entityCounts } from "./presentationEntityCounts";
+import { BarLegend, formatScreenCount, StackedBar } from "./PresentationScreenParts";
 
 type ReportEntity = StrategicBet | Goal;
 
+export type EntitySortKey = "name" | "status" | "completedKrs" | "inProgressKrs" | "totalProjects";
+export interface EntitySort {
+  key: EntitySortKey;
+  direction: "asc" | "desc";
+}
+
+const NUMERIC_KEYS: EntitySortKey[] = ["completedKrs", "inProgressKrs", "totalProjects"];
+
+function sortValue(item: ReportEntity, key: EntitySortKey): string | number {
+  if (key === "name") return item.name;
+  if (key === "status") return item.status === "ACTIVA" ? 0 : 1;
+  return entityCounts(item)[key];
+}
+
+/** Sorted copy of the items; without a sort they keep the order returned by the API. Ties keep that order too. */
+export function sortEntities<T extends ReportEntity>(items: T[], sort: EntitySort | null): T[] {
+  if (!sort) return items;
+  const factor = sort.direction === "asc" ? 1 : -1;
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const valueA = sortValue(a.item, sort.key);
+      const valueB = sortValue(b.item, sort.key);
+      const result = typeof valueA === "number" && typeof valueB === "number"
+        ? valueA - valueB
+        : String(valueA).localeCompare(String(valueB), "es", { sensitivity: "base" });
+      return result * factor || a.index - b.index;
+    })
+    .map(({ item }) => item);
+}
+
 interface Props<T extends ReportEntity> {
   items: T[];
-  periodName: string;
   onSelect: (item: T) => void;
   summaryCardClass: string;
   accent: string;
@@ -19,92 +48,137 @@ interface Props<T extends ReportEntity> {
   itemLabel: string;
   pluralLabel: string;
   cardDetail: (item: T) => string;
-  onExportCsv: () => void;
+  cardExtra?: (item: T) => ReactNode;
 }
 
-const HEAD_STYLE = { fontSize: 10.5, fontWeight: 800, color: "#374151", whiteSpace: "normal" } as const;
+const HEAD_STYLE = { fontSize: 10.5, fontWeight: 900, color: PRESENTATION_UI.muted, textTransform: "uppercase", letterSpacing: "0.04em" } as const;
 
-/** Summary table of the recorded counts, styled like the Key Results table. */
+const KR_SEGMENTS = [
+  { key: "completedKrs", label: "KRs completados", color: PRESENTATION_UI.green },
+  { key: "inProgressKrs", label: "KRs en progreso", color: PRESENTATION_UI.orange },
+] as const;
+
+/**
+ * Summary table of the recorded counts, with a thin bar of completed and in-progress KRs per row.
+ * Each column can be sorted and each row opens the detail.
+ */
 export function EntitySummaryTable<T extends ReportEntity>(props: Props<T>) {
-  const { items, periodName, onSelect, accent, pluralLabel } = props;
+  const { items, onSelect } = props;
+  const [sort, setSort] = useState<EntitySort | null>(null);
+  const rows = sortEntities(items, sort);
+  const maxKrs = Math.max(1, ...items.map((item) => {
+    const counts = entityCounts(item);
+    return counts.completedKrs + counts.inProgressKrs;
+  }));
+
+  const toggleSort = (key: EntitySortKey) => {
+    setSort((current) => {
+      if (current?.key === key) return { key, direction: current.direction === "asc" ? "desc" : "asc" };
+      return { key, direction: NUMERIC_KEYS.includes(key) ? "desc" : "asc" };
+    });
+  };
+
+  const columns: { key: EntitySortKey; label: string; numeric?: boolean }[] = [
+    { key: "name", label: props.tableColumnLabel },
+    { key: "status", label: "Estado" },
+    { key: "completedKrs", label: "KRs completados", numeric: true },
+    { key: "inProgressKrs", label: "KRs en progreso", numeric: true },
+    { key: "totalProjects", label: "Iniciativas", numeric: true },
+  ];
+
   return (
-    <PresentationPanel
-      className={`${props.summaryCardClass} sgp-print-avoid`}
-      headingLevel="h3"
-      title={props.tableTitle}
-      subtitle={`Conteos registrados de cada ${props.itemLabel.toLowerCase()}, en el orden en que fueron creadas · ${items.length} ${pluralLabel}`}
-      icon={<Table2 size={16} aria-hidden="true" />}
-      accent={accent}
-      actions={
-        <div className="flex items-center gap-2 sgp-screen-only">
-          <ToolbarButton
-            onClick={() =>
-              printPresentationView(props.tableTitle, {
-                subtitle: `Periodo ${periodName} - Modulo de Trazabilidad Estratégica`,
-                printableSelector: `.${props.summaryCardClass}`,
-              })
-            }
-            aria-label={`Exportar resumen de ${pluralLabel.toLowerCase()} a PDF`}
-            title="Exportar tabla a PDF"
-            style={{ width: 38, justifyContent: "center", padding: 0 }}
+    <section className={`${props.summaryCardClass} sgp-print-avoid`}>
+      <div className="sgp-screen-only mb-2 flex min-h-[24px] flex-wrap items-center justify-between gap-2">
+        <BarLegend items={KR_SEGMENTS.map(({ label, color }) => ({ label, color }))} />
+        {sort && (
+          <button
+            type="button"
+            onClick={() => setSort(null)}
+            className="inline-flex min-h-[24px] items-center gap-1 rounded-md bg-white px-2 hover:bg-[#F8FAFC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9]"
+            style={{ border: "1px solid #000", fontSize: 11, fontWeight: 850, color: PRESENTATION_UI.text }}
           >
-            <Printer size={15} aria-hidden="true" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={props.onExportCsv}
-            aria-label={`Descargar resumen de ${pluralLabel.toLowerCase()} en CSV`}
-            title="Descargar tabla en CSV"
-            style={{ width: 38, justifyContent: "center", padding: 0 }}
-          >
-            <Download size={15} aria-hidden="true" />
-          </ToolbarButton>
-        </div>
-      }
-    >
-      <div className="overflow-hidden rounded-lg bg-white" style={{ border: `1px solid ${PRESENTATION_UI.border}` }}>
-        <Table aria-label={props.tableTitle} style={{ minWidth: 640, fontSize: 12 }}>
-          <TableHeader>
-            <TableRow style={{ backgroundColor: "#F8F9FB" }}>
-              <TableHead scope="col" style={HEAD_STYLE}>{props.tableColumnLabel}</TableHead>
-              <TableHead scope="col" style={HEAD_STYLE}>Estado</TableHead>
-              <TableHead scope="col" style={HEAD_STYLE}>KRs completados</TableHead>
-              <TableHead scope="col" style={HEAD_STYLE}>KRs en progreso</TableHead>
-              <TableHead scope="col" style={HEAD_STYLE}>Iniciativas</TableHead>
-              <TableHead scope="col" className="sgp-screen-only" style={HEAD_STYLE}>Acción</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => {
-              const itemCounts = entityCounts(item);
-              return (
-                <TableRow key={item.id} className="sgp-print-avoid">
-                  <TableCell style={{ minWidth: 260, maxWidth: 420, whiteSpace: "normal" }}>
-                    <p style={{ fontWeight: 750, color: PRESENTATION_UI.text, overflowWrap: "anywhere" }}>{item.name}</p>
-                    <p className="line-clamp-1" style={{ fontSize: 10.5, color: PRESENTATION_UI.muted }}>{props.cardDetail(item)}</p>
-                  </TableCell>
-                  <TableCell>
-                    <PresentationStatusBadge status={item.status} />
-                  </TableCell>
-                  <TableCell style={{ fontWeight: 800 }}>{itemCounts.completedKrs}</TableCell>
-                  <TableCell style={{ fontWeight: 800 }}>{itemCounts.inProgressKrs}</TableCell>
-                  <TableCell style={{ fontWeight: 800 }}>{itemCounts.totalProjects}</TableCell>
-                  <TableCell className="sgp-screen-only">
+            <RotateCcw size={12} aria-hidden="true" /> Orden de registro
+          </button>
+        )}
+      </div>
+      <div className="overflow-x-auto rounded-lg bg-white" style={{ border: `1px solid ${PRESENTATION_UI.border}` }}>
+        <table aria-label={props.tableTitle} className="w-full text-left" style={{ minWidth: 640, fontSize: 12.5 }}>
+          <thead style={{ backgroundColor: PRESENTATION_UI.surface, borderBottom: `1px solid ${PRESENTATION_UI.border}` }}>
+            <tr>
+              {columns.map((column) => {
+                const active = sort?.key === column.key;
+                const ariaSort = active ? (sort.direction === "asc" ? "ascending" : "descending") : "none";
+                const Icon = active ? (sort.direction === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+                return (
+                  <th key={column.key} scope="col" aria-sort={ariaSort} className={`px-3 py-2 ${column.numeric ? "text-right" : ""}`}>
                     <button
                       type="button"
-                      onClick={() => onSelect(item)}
-                      aria-label={`Detalle de ${item.name}`}
-                      className="inline-flex min-h-[32px] items-center gap-1 rounded-md bg-white px-2.5 transition-colors hover:bg-[#F8FAFC] hover:text-[#5454E9] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9]"
-                      style={{ border: `1px solid ${PRESENTATION_UI.border}`, fontSize: 11, fontWeight: 800, color: "#374151" }}
+                      onClick={() => toggleSort(column.key)}
+                      aria-label={`Ordenar por ${column.label}`}
+                      className="inline-flex items-center gap-1.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9]"
+                      style={{ ...HEAD_STYLE, color: active ? PRESENTATION_UI.text : HEAD_STYLE.color }}
                     >
-                      Detalle <ChevronRight size={13} aria-hidden="true" />
+                      {column.label}
+                      <Icon size={11} className="sgp-screen-only" aria-hidden="true" />
                     </button>
-                  </TableCell>
-                </TableRow>
+                  </th>
+                );
+              })}
+              <th scope="col" className="px-3 py-2" style={HEAD_STYLE}>Distribución</th>
+              <th scope="col" className="sgp-screen-only px-3 py-2" style={HEAD_STYLE}>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((item) => {
+              const itemCounts = entityCounts(item);
+              return (
+                <tr
+                  key={item.id}
+                  onClick={() => onSelect(item)}
+                  className="sgp-print-avoid cursor-pointer transition-colors hover:bg-[#F8FAFC]"
+                  style={{ borderBottom: `1px solid ${PRESENTATION_UI.divider}` }}
+                >
+                  <td className="px-3 py-1.5" style={{ minWidth: 240, maxWidth: 420 }}>
+                    <p style={{ fontWeight: 850, color: PRESENTATION_UI.text, overflowWrap: "anywhere", lineHeight: 1.3 }}>{item.name}</p>
+                    <p className="line-clamp-1" style={{ fontSize: 11, fontWeight: 600, color: PRESENTATION_UI.muted, marginTop: 1 }}>{props.cardDetail(item)}</p>
+                    {props.cardExtra && <div style={{ fontSize: 11, marginTop: 1 }}>{props.cardExtra(item)}</div>}
+                  </td>
+                  <td className="px-3 py-1.5"><PresentationStatusBadge status={item.status} /></td>
+                  {(["completedKrs", "inProgressKrs", "totalProjects"] as const).map((key) => (
+                    <td
+                      key={key}
+                      className="px-3 py-1.5 text-right tabular-nums"
+                      style={{ fontSize: 13.5, fontWeight: 900, color: itemCounts[key] > 0 ? PRESENTATION_UI.text : PRESENTATION_UI.subtle }}
+                    >
+                      {formatScreenCount(itemCounts[key])}
+                    </td>
+                  ))}
+                  <td className="px-3 py-1.5">
+                    <StackedBar
+                      total={maxKrs}
+                      segments={KR_SEGMENTS.map(({ key, label, color }) => ({ label, color, value: itemCounts[key] }))}
+                    />
+                  </td>
+                  <td className="sgp-screen-only px-3 py-1.5">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelect(item);
+                      }}
+                      aria-label={`Detalle de ${item.name}`}
+                      className="inline-flex min-h-[26px] items-center gap-0.5 rounded-md bg-white px-2 transition-colors hover:bg-[#111827] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9] focus-visible:ring-offset-1"
+                      style={{ border: "1px solid #000", fontSize: 11, fontWeight: 850 }}
+                    >
+                      Detalle <ChevronRight size={12} aria-hidden="true" />
+                    </button>
+                  </td>
+                </tr>
               );
             })}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
-    </PresentationPanel>
+    </section>
   );
 }

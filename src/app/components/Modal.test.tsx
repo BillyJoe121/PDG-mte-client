@@ -177,4 +177,27 @@ describe("useDirtyReport", () => {
     act(() => unmount());
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
+
+  it("lets the guided tour reach the page behind while it is on screen", async () => {
+    const layer = document.createElement("div");
+    layer.setAttribute("data-guided-tour", "");
+    document.body.appendChild(layer);
+    const onClose = vi.fn();
+    try {
+      render(
+        <Modal onClose={onClose}>
+          <ModalHeader title="Detalle del KR" onClose={onClose} />
+          <ModalBody><input aria-label="Nombre" /></ModalBody>
+        </Modal>,
+      );
+
+      const dialog = await screen.findByRole("dialog", { name: "Detalle del KR" });
+      expect(dialog).not.toHaveAttribute("aria-modal", "true");
+      expect(dialog).not.toContainElement(document.activeElement as HTMLElement);
+      fireEvent.keyDown(dialog, { key: "Escape" });
+      expect(onClose).not.toHaveBeenCalled();
+    } finally {
+      layer.remove();
+    }
+  });
 });

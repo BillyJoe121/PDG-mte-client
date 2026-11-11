@@ -1,0 +1,46 @@
+/* Presentar: short entrance of each slide. */
+@keyframes presentation-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.presentation-slide-enter {
+  animation: presentation-slide-in 280ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presentation-slide-enter {
+    animation: none;
+  }
+}
+
+/* Printing the current slide: the 1920×1080 stage is shrunk to the width of a landscape page. */
+@media print {
+  .presentation-deck,
+  .presentation-stage-frame {
+    position: static !important;
+    overflow: visible !important;
+    background: #fff !important;
+    cursor: auto !important;
+  }
+
+  .presentation-print-container .presentation-stage.presentation-slide-print-area {
+    width: 1920px !important;
+    height: 1080px !important;
+    min-height: 1080px !important;
+    top: 12mm !important;
+    transform: scale(0.36) !important;
+    transform-origin: top left !important;
+    box-shadow: none !important;
+  }
+
+  .presentation-slide-enter {
+    animation: none !important;
+  }
+}

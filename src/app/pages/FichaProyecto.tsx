@@ -34,7 +34,9 @@ import { RegisterProgressPanel } from "./fichaProyecto/RegisterProgressPanel";
 import { ProjectResponsiblesPanel } from "./fichaProyecto/ProjectResponsiblesPanel";
 import { EditProjectPanel } from "./fichaProyecto/EditProjectPanel";
 import { ProjectAside, ProjectStatusSelect } from "./fichaProyecto/ProjectDetailPanels";
-import { HistorySection, KeyResultsSection, SummarySection } from "./fichaProyecto/ProjectDetailSections";
+import { HistorySection, KeyResultsSection, SummarySection, linkKeyResultButtonClass } from "./fichaProyecto/ProjectDetailSections";
+import { StrategyJumpButtons } from "./jerarquia/StrategyJumpButtons";
+import type { HierarchyTableFocus } from "./jerarquia/hierarchyTableLink";
 import {
   STATUS_LABELS,
   availableStatusTransitions,
@@ -47,7 +49,15 @@ type ProjectPanel = "edit" | "progress" | "responsibles" | "link";
 
 const CLOSE_LABEL = "Cerrar detalle de iniciativa";
 
-export function ProjectDetailContent({ projectId, onBack, guard }: { projectId: number; onBack: () => void; guard: DiscardGuard }) {
+interface ProjectDetailContentProps {
+  projectId: number;
+  onBack: () => void;
+  guard: DiscardGuard;
+  /** Shows "Ver en Meta" and "Ver en Apuesta", which open the hierarchy table searching this initiative. */
+  onOpenInHierarchy?: (focus: HierarchyTableFocus) => void;
+}
+
+export function ProjectDetailContent({ projectId, onBack, guard, onOpenInHierarchy }: ProjectDetailContentProps) {
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
   const [detail, setDetail] = useState<ProjectDetailResponse | null>(null);
@@ -107,6 +117,19 @@ export function ProjectDetailContent({ projectId, onBack, guard }: { projectId: 
     () => [...(detail?.history ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [detail],
   );
+  const linkedKeyResults = useMemo(() => {
+    const byId = new Map(keyResults.map((item) => [item.id, item]));
+    return (detail?.linkedKeyResults ?? [])
+      .filter((link) => link.active)
+      .map((link) => ({ link, keyResult: byId.get(link.keyResultId) }));
+  }, [detail, keyResults]);
+  const keyResultNames = linkedKeyResults.map(({ link, keyResult }) => keyResult?.name || link.keyResultDescription || `KR-${link.keyResultId}`);
+  const linkedGoal = linkedKeyResults.find(({ keyResult }) => keyResult?.goals?.length)?.keyResult?.goals[0];
+  const linkedBet = linkedKeyResults.find(({ keyResult }) => keyResult?.strategicBets?.length)?.keyResult?.strategicBets[0];
+  const openLinkPanel = () => {
+    setEditLinkData(null);
+    setPanel("link");
+  };
   const viewMotion = reduceMotion ? { initial: false } : {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
@@ -117,7 +140,7 @@ export function ProjectDetailContent({ projectId, onBack, guard }: { projectId: 
   if (loading) {
     return (
       <>
-        <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} />
+        <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} tourId="project-close" />
         <div className="flex min-h-[420px] items-center justify-center text-sm font-bold text-gray-500">
           <Loader2 size={18} className="mr-2 animate-spin" /> Cargando ficha de la iniciativa...
         </div>
@@ -128,7 +151,7 @@ export function ProjectDetailContent({ projectId, onBack, guard }: { projectId: 
   if (error || !project || !detail) {
     return (
       <>
-        <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} />
+        <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} tourId="project-close" />
         <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 p-8 text-center">
           <p className={`text-sm font-bold ${error ? "text-[#B42318]" : "text-gray-500"}`}>{error || "Iniciativa no encontrada."}</p>
           <button type="button" onClick={onBack} className={DETAIL_BUTTON_CLASS}>Volver a iniciativas</button>
@@ -185,7 +208,7 @@ export function ProjectDetailContent({ projectId, onBack, guard }: { projectId: 
 
   return (
     <>
-      <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack}>
+      <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} tourId="project-close">
         <DetailBadge tone="initiative">Iniciativa PROY-{String(project.id).padStart(2, "0")}</DetailBadge>
         <DetailBadge>{STATUS_LABELS[project.status]}</DetailBadge>
         <DetailBadge>{TYPE_LABELS[project.type]}</DetailBadge>
@@ -220,30 +243,41 @@ export function ProjectDetailContent({ projectId, onBack, guard }: { projectId: 
         <DetailBody>
           <DetailHeading title={project.name} description={project.description} />
 
-          <div className={DETAIL_ACTIONS_CLASS}>
+          <div className={DETAIL_ACTIONS_CLASS} data-tour="project-actions">
             <PageTabs label="Secciones de la iniciativa">
               {tabs.map((tab) => (
                 <TabButton
                   key={tab.key}
                   active={activeTab === tab.key}
                   onClick={() => setActiveTab(tab.key)}
+                  tourId={`project-tab-${tab.key}`}
                   label={tab.count === null ? tab.label : `${tab.label} (${tab.count})`}
                 />
               ))}
             </PageTabs>
 
             <div className="flex flex-wrap items-center gap-2">
+              {onOpenInHierarchy && (
+                <StrategyJumpButtons
+                  goal={linkedGoal}
+                  bet={linkedBet}
+                  onOpen={(rootType, root) => onOpenInHierarchy({ rootType, rootId: root.id, field: "initiative", text: project.name })}
+                />
+              )}
+              {canManageLinks && (
+                <button type="button" onClick={openLinkPanel} data-tour="project-link-kr" className={linkKeyResultButtonClass(linkedKeyResults.length)}>Vincular KR</button>
+              )}
               {statusTransitions.length > 0 && (
                 <ProjectStatusSelect saving={savingStatus} transitions={statusTransitions} onChange={(status) => void handleUpdateStatus(status)} />
               )}
               {canManageProject && (
                 <>
                   <button type="button" onClick={() => setPanel("responsibles")} className={DETAIL_BUTTON_CLASS}>Responsables</button>
-                  <button type="button" onClick={() => setPanel("edit")} className={DETAIL_BUTTON_CLASS}>Editar iniciativa</button>
+                  <button type="button" onClick={() => setPanel("edit")} data-tour="project-edit" className={DETAIL_BUTTON_CLASS}>Editar iniciativa</button>
                 </>
               )}
               {canRegisterProgress && (
-                <button type="button" onClick={() => setPanel("progress")} className={DETAIL_PRIMARY_BUTTON_CLASS}>Registrar avance</button>
+                <button type="button" onClick={() => setPanel("progress")} data-tour="project-progress-open" className={DETAIL_PRIMARY_BUTTON_CLASS}>Registrar avance</button>
               )}
             </div>
           </div>
@@ -256,6 +290,7 @@ export function ProjectDetailContent({ projectId, onBack, guard }: { projectId: 
                     <SummarySection
                       chain={chain}
                       detail={detail}
+                      keyResultNames={keyResultNames}
                       progressColor={progressColor}
                       project={project}
                     />
@@ -274,10 +309,7 @@ export function ProjectDetailContent({ projectId, onBack, guard }: { projectId: 
                       canManageLinks={canManageLinks}
                       chain={chain}
                       detail={detail}
-                      onLink={() => {
-                        setEditLinkData(null);
-                        setPanel("link");
-                      }}
+                      onLink={openLinkPanel}
                       onEditLink={(link) => {
                         setEditLinkData({
                           linkId: link.id,

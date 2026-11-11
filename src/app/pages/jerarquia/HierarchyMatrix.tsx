@@ -4,6 +4,7 @@ import type { StrategicHierarchyNode } from "../../services/strategicApi";
 import { EmptyState } from "./HierarchyRootViews";
 import { buildHierarchyMatrix, filterMatrixRows, initiativeCode, keyResultCode, visibleMatrixColumns, type MatrixColumn, type MatrixRow, type MatrixSearch } from "./hierarchyMatrixModel";
 import { COLORS, type View } from "./hierarchyPageModel";
+import type { HierarchyMatrixFocus } from "./hierarchyTableLink";
 import { BET_COLOR, CELL_BORDER, GOAL_COLOR, MatrixHead } from "./HierarchyMatrixHeader";
 
 function LinkCell({ row, column, rowSpan, color }: { row: MatrixRow; column: MatrixColumn; rowSpan: number; color: string }) {
@@ -41,11 +42,13 @@ interface HierarchyMatrixProps {
   view: View;
   onOpenNode: (node: StrategicHierarchyNode) => void;
   onOpenRoot: (node: StrategicHierarchyNode) => void;
+  /** Starting column filter and searches, e.g. when arriving from a key result or initiative detail. */
+  initialFocus?: HierarchyMatrixFocus | null;
 }
 
-export function HierarchyMatrix({ tree, view, onOpenNode, onOpenRoot }: HierarchyMatrixProps) {
-  const [columnKey, setColumnKey] = useState<string | null>(null);
-  const [search, setSearch] = useState<MatrixSearch>({ indicator: "", initiative: "" });
+export function HierarchyMatrix({ tree, view, onOpenNode, onOpenRoot, initialFocus }: HierarchyMatrixProps) {
+  const [columnKey, setColumnKey] = useState<string | null>(initialFocus?.columnKey ?? null);
+  const [search, setSearch] = useState<MatrixSearch>(initialFocus?.search ?? { indicator: "", initiative: "" });
   const matrix = useMemo(() => buildHierarchyMatrix(tree), [tree]);
   const { goals, bets } = visibleMatrixColumns(matrix, view);
   const columns = [...goals, ...bets];

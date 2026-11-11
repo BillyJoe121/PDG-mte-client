@@ -1,21 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { Download, Printer } from "lucide-react";
-import { ToolbarButton, ToolbarSegmented } from "../../components/ScreenToolbar";
+import { useEffect, useMemo, useState, type MutableRefObject } from "react";
+import { ToolbarSegmented } from "../../components/ScreenToolbar";
 import { PRESENTATION_ACCENT } from "./PresentationHeader";
-import { PresentationPageHeader, PresentationPanel, PRESENTATION_UI } from "./PresentationLayout";
+import { PresentationPageHeader, PresentationPanel } from "./PresentationLayout";
 import type { AcademicPeriod } from "../../services/catalogsApi";
 import { reportsApi, type PeriodComparison } from "../../services/reportsApi";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
 import { getErrorMessage } from "../reportes/reportUtils";
 import type { ComparisonType } from "./PresentationTypes";
-import { exportComparisonCsv, printPresentationView } from "./presentationExportUtils";
+import type { ComparisonExportSnapshot } from "./presentationExportItems";
 import { ComparisonStatusMessage, ComparisonTable, PeriodStatsCard } from "./PresentationComparisonParts";
 import { ComparisonControlsBar } from "./PresentationComparisonControls";
-import { ComparisonChartSection, EntityComparisonCard } from "./PresentationComparisonVisualParts";
+import { EntityComparisonCard } from "./PresentationComparisonVisualParts";
 import {
-  buildEntityChartData,
   buildEntityComparisonRows,
-  buildPeriodChartData,
   buildPeriodComparisonRows,
   toPeriodComparisonStats,
 } from "./PresentationComparisonData";
@@ -36,6 +33,8 @@ interface Props {
   periods?: AcademicPeriod[];
   onSelectBet: (bet: StrategicBet) => void;
   onSelectGoal: (goal: Goal) => void;
+  /** Kept up to date with the comparison on screen, for the export menu of the page. */
+  exportRef?: MutableRefObject<ComparisonExportSnapshot | null>;
 }
 
 /** Explains which records are missing for the selected entity comparison, or null when both sides exist. */
@@ -57,7 +56,7 @@ function missingEntitiesMessage(compType: ComparisonType, bets: StrategicBet[], 
   return null;
 }
 
-export function PresentationComparison({ bets, goals, periodName, periods, onSelectBet, onSelectGoal }: Props) {
+export function PresentationComparison({ bets, goals, periodName, periods, onSelectBet, onSelectGoal, exportRef }: Props) {
   const [compType, setCompType] = useState<ComparisonType>("bet-vs-bet");
   const availablePeriods = useMemo(() => periods ?? [], [periods]);
 
@@ -149,6 +148,30 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
   let tableRows = buildEntityComparisonRows(entityA, entityB);
   if (isPeriodMode) tableRows = periodStats ? buildPeriodComparisonRows(periodStats.a, periodStats.b) : [];
 
+  useEffect(() => {
+    if (!exportRef) return;
+    exportRef.current = {
+      pdfSubtitle: isPeriodMode
+        ? `Periodo ${selectedPeriodA} vs ${selectedPeriodB}`
+        : `${nameA} vs ${nameB} (Periodo ${periodName})`,
+      csv: hasComparison
+        ? {
+            compType,
+            periodName,
+            nameA: isPeriodMode ? selectedPeriodA : nameA,
+            nameB: isPeriodMode ? selectedPeriodB : nameB,
+            rows: tableRows,
+          }
+        : null,
+    };
+  });
+  useEffect(
+    () => () => {
+      if (exportRef) exportRef.current = null;
+    },
+    [exportRef],
+  );
+
   const renderPeriodStatus = () => {
     if (!availablePeriods.length) {
       return (
@@ -186,47 +209,10 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
   return (
     <div className="presentation-comparison-print-area w-full">
       <PresentationPageHeader
-        eyebrow={`Opción 2: Comparador · Periodo ${periodName}`}
         title={COMPARISON_TITLE}
-        subtitle="Selecciona dos entidades o dos periodos para ver lado a lado los conteos de KRs e iniciativas registrados."
-        accent={PRESENTATION_UI.green}
-        actions={
-          <div className="flex flex-wrap items-center gap-2 sgp-screen-only">
-            <ToolbarButton
-              onClick={() =>
-                printPresentationView(COMPARISON_TITLE, {
-                  subtitle:
-                    compType === "period-vs-period"
-                      ? `Periodo ${selectedPeriodA} vs ${selectedPeriodB}`
-                      : `${nameA} vs ${nameB} (Periodo ${periodName})`,
-                  printableSelector: ".presentation-comparison-print-area",
-                })
-              }
-              aria-label="Exportar comparativa a PDF"
-              title="Exportar comparativa a PDF"
-            >
-              <Printer size={14} aria-hidden="true" /> <span className="hidden sm:inline">PDF Comparativa</span>
-            </ToolbarButton>
-            <ToolbarButton
-              disabled={!hasComparison}
-              onClick={() =>
-                exportComparisonCsv({
-                  compType,
-                  periodName,
-                  nameA: compType === "period-vs-period" ? selectedPeriodA : nameA,
-                  nameB: compType === "period-vs-period" ? selectedPeriodB : nameB,
-                  rows: tableRows,
-                })
-              }
-              aria-label="Descargar datos de la comparativa en CSV"
-              title="Descargar datos de la comparativa en CSV"
-            >
-              <Download size={14} aria-hidden="true" /> <span className="hidden sm:inline">CSV Comparativa</span>
-            </ToolbarButton>
-          </div>
-        }
+        subtitle={isPeriodMode ? "KRs e iniciativas registrados en dos periodos, lado a lado." : `Periodo ${periodName} · KRs e iniciativas registrados, lado a lado.`}
       >
-        <div className="mt-3 overflow-x-auto pb-1 sgp-screen-only">
+        <div className="mt-2 overflow-x-auto pb-0.5 sgp-screen-only">
           <div className="flex w-max min-w-full sm:min-w-0 [&_button]:whitespace-nowrap">
             <ToolbarSegmented
               ariaLabel="Tipo de comparación"
@@ -259,7 +245,7 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
         />
       </PresentationPageHeader>
 
-      <div className="space-y-5 px-4 py-5 sm:px-6">
+      <div className="space-y-3 px-4 py-4 sm:px-5">
       {!hasComparison ? (
         isPeriodMode ? (
           renderPeriodStatus()
@@ -269,22 +255,20 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
       ) : (
         <>
           {isPeriodMode && periodStats ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 sgp-print-avoid">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 sgp-print-avoid">
               <PeriodStatsCard
                 variant="base"
                 periodName={periodStats.a.periodName}
                 period={availablePeriods.find((p) => p.name === periodStats.a.periodName)}
-                stats={periodStats.a}
               />
               <PeriodStatsCard
                 variant="compare"
                 periodName={periodStats.b.periodName}
                 period={availablePeriods.find((p) => p.name === periodStats.b.periodName)}
-                stats={periodStats.b}
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 sgp-print-avoid">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 sgp-print-avoid">
               <EntityComparisonCard
                 variant="A"
                 entity={entityA}
@@ -304,26 +288,13 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
             </div>
           )}
 
-          <ComparisonChartSection
-            compType={compType}
-            chartData={
-              isPeriodMode && periodStats
-                ? buildPeriodChartData(periodStats.a, periodStats.b)
-                : buildEntityChartData(entityA.data?.executionSummary, entityB.data?.executionSummary)
-            }
-            selectedPeriodA={selectedPeriodA}
-            selectedPeriodB={selectedPeriodB}
-            shortNameA={shortNameA}
-            shortNameB={shortNameB}
-          />
-
           <PresentationPanel
             className="sgp-print-avoid"
             title="Tabla comparativa"
             subtitle={
               isPeriodMode
                 ? `Valores registrados en el Periodo ${selectedPeriodA} y en el Periodo ${selectedPeriodB}.`
-                : "Valores registrados para cada una de las dos entidades seleccionadas."
+                : "Valores registrados para las dos entidades seleccionadas."
             }
           >
             <ComparisonTable

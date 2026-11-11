@@ -1,6 +1,5 @@
 import { Target } from "lucide-react";
 import type { Goal } from "../../services/strategicApi";
-import { exportGoalsSummaryCsv } from "./presentationExportUtils";
 import { EntityReportSection } from "./PresentationEntityReportSection";
 
 interface Props {
@@ -24,24 +23,21 @@ export function GeneralReportGoalsSection({ goals, periodName, onSelectGoal }: P
       config={{
         summaryCardClass: "presentation-goals-summary-card",
         accent: "#4CB979",
-        icon: <Target size={16} aria-hidden="true" />,
+        icon: <Target size={14} aria-hidden="true" />,
         title: "Metas Institucionales del periodo",
-        subtitle: "Valor esperado registrado y KRs e iniciativas vinculados a cada meta",
         itemLabel: "Meta",
         tableTitle: "Resumen de Metas Institucionales",
         tableColumnLabel: "Meta institucional",
-        pluralLabel: "Metas",
+        pluralLabel: "metas",
         emptyTitle: "No hay metas institucionales registradas en este periodo",
         emptyText: "Registra las metas en Gestión de Metas para verlas en este informe.",
         cardDetail: (goal) =>
           goal.referenceIndicator ? `Indicador: ${goal.referenceIndicator}` : goal.description || "Sin descripción registrada.",
         cardExtra: (goal) => (
-          <div className="flex items-center justify-between">
-            <span className="text-[#717182]">Valor esperado:</span>
-            <span className="font-black text-[#111827]">{expectedValueText(goal)}</span>
-          </div>
+          <p className="text-[#717182]">
+            Valor esperado: <span className="font-black text-[#111827]">{expectedValueText(goal)}</span>
+          </p>
         ),
-        onExportCsv: () => exportGoalsSummaryCsv(goals, periodName),
       }}
     />
   );

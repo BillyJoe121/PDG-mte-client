@@ -213,25 +213,27 @@ export function Reportes() {
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <PageTabs label="Secciones del reporte">
               {REPORT_TABS.map((item) => (
-                <TabButton key={item.key} active={tab === item.key} onClick={() => setTab(item.key)} label={item.label} />
+                <TabButton key={item.key} active={tab === item.key} onClick={() => setTab(item.key)} label={item.label} tourId={`reportes-tab-${item.key}`} />
               ))}
             </PageTabs>
-            <ReportSelect
-              label="Filtrar por periodo"
-              value={period}
-              onChange={handlePeriodChange}
-              allLabel="Periodo activo"
-              options={periodOptions}
-            />
-            <ReportSelect
-              label="Filtrar por departamento"
-              value={departmentId}
-              onChange={setDepartmentId}
-              allLabel="Todos: Departamento"
-              options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
-              widthClassName="w-[170px]"
-            />
-            <button type="button" onClick={clearFilters} className={DETAIL_BUTTON_CLASS}>Limpiar</button>
+            <div data-tour="reportes-filters" className="flex flex-wrap items-center gap-2">
+              <ReportSelect
+                label="Filtrar por periodo"
+                value={period}
+                onChange={handlePeriodChange}
+                allLabel="Periodo activo"
+                options={periodOptions}
+              />
+              <ReportSelect
+                label="Filtrar por departamento"
+                value={departmentId}
+                onChange={setDepartmentId}
+                allLabel="Todos: Departamento"
+                options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
+                widthClassName="w-[170px]"
+              />
+              <button type="button" onClick={clearFilters} className={DETAIL_BUTTON_CLASS}>Limpiar</button>
+            </div>
           </div>
 
           <div className="flex flex-shrink-0 items-center gap-2">
@@ -245,8 +247,8 @@ export function Reportes() {
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
             </button>
-            <ExportButton format="pdf" active={exporting === "pdf"} disabled={!!exporting} onClick={() => void exportWithFilters("pdf")} />
-            <ExportButton format="csv" active={exporting === "csv"} disabled={!!exporting} onClick={() => void exportWithFilters("csv")} />
+            <ExportButton format="pdf" tourId="reportes-export-pdf" active={exporting === "pdf"} disabled={!!exporting} onClick={() => void exportWithFilters("pdf")} />
+            <ExportButton format="csv" tourId="reportes-export-csv" active={exporting === "csv"} disabled={!!exporting} onClick={() => void exportWithFilters("csv")} />
           </div>
         </div>
       </div>
@@ -295,7 +297,7 @@ export function Reportes() {
             {(tab === "comparison" || isPrintingPdf) && (
               <div className={`space-y-4 ${isPrintingPdf ? "mt-8" : ""}`}>
                 {isPrintingPdf && <PrintHeading newPage>Comparativa de periodos</PrintHeading>}
-                <div className="sgp-screen-only flex flex-wrap items-end gap-2">
+                <div data-tour="reportes-compare" className="sgp-screen-only flex flex-wrap items-end gap-2">
                   <PeriodField label="Periodo base" value={basePeriod} onChange={setBasePeriod} options={periodOptions} />
                   <PeriodField label="Periodo comparado" value={comparePeriod} onChange={setComparePeriod} options={periodOptions} />
                   <button type="button" onClick={() => void loadComparison({ force: true })} disabled={comparisonLoading || !basePeriod || !comparePeriod} className={DETAIL_PRIMARY_BUTTON_CLASS}>

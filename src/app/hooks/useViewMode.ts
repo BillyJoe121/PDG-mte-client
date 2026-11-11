@@ -4,13 +4,13 @@ export type ViewMode = "cards" | "table";
 
 function readViewMode(storageKey: string): ViewMode {
   try {
-    return localStorage.getItem(storageKey) === "table" ? "table" : "cards";
+    return localStorage.getItem(storageKey) === "cards" ? "cards" : "table";
   } catch {
-    return "cards";
+    return "table";
   }
 }
 
-/** Remembers in this browser how a screen is displayed; cards is the default. */
+/** Remembers in this browser how a screen is displayed; table is the default. */
 export function useViewMode(storageKey: string) {
   const [viewMode, setViewModeState] = useState<ViewMode>(() => readViewMode(storageKey));
 

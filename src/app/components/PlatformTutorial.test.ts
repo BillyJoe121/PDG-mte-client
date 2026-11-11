@@ -18,8 +18,10 @@ describe("tourStepsFor", () => {
     const ids = tourStepsFor(user("visitor")).map((step) => step.id);
     expect(ids).toEqual([
       "welcome", "dashboard",
-      "jerarquia", "jerarquia-cards", "jerarquia-manage", "jerarquia-table", "jerarquia-filter", "jerarquia-search", "jerarquia-kr", "jerarquia-initiative",
-      "krs", "krs-manage", "proyectos", "proyectos-manage",
+      "jerarquia", "jerarquia-cards", "jerarquia-manage", "jerarquia-tree", "jerarquia-tree-manage",
+      "jerarquia-view-toggle", "jerarquia-table", "jerarquia-filter", "jerarquia-search",
+      "jerarquia-kr", "kr-data", "kr-planner", "jerarquia-initiative", "project-actions", "project-planner",
+      "krs", "krs-manage", "krs-planner", "proyectos", "proyectos-manage", "proyectos-planner",
       "presentacion", "presentacion-modes", "presentacion-general", "presentacion-compare", "presentacion-slides", "presentacion-export",
       "help",
     ]);

@@ -1,7 +1,8 @@
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { motion, useReducedMotion } from "motion/react";
 import { DetailTopBar } from "./DetailModal";
+import { isGuidedTourOpen } from "./tutorial/guidedTour";
 
 const SIZES = {
   sm: "max-w-md",
@@ -20,49 +21,59 @@ interface ModalProps {
   children: ReactNode;
 }
 
-/** The only modal frame in the client: dialog role, trapped focus, Escape and a portal to the body. */
+/**
+ * The only modal frame in the client: dialog role, trapped focus, Escape and a portal to the body.
+ * While the guided tour is open the dialog is not modal, so the tour card keeps focus, its
+ * buttons and Escape; the tour closes the dialog itself before moving on.
+ */
 export function Modal({ label, size = "md", onClose, children }: ModalProps) {
   const reduceMotion = useReducedMotion();
   // No Dialog.Trigger here, so the library has no control to send focus back to.
   const openerRef = useRef(document.activeElement);
+  const [guided] = useState(() => isGuidedTourOpen());
+
+  const overlay = (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center px-3 py-7 sm:px-5"
+      style={{ backgroundColor: "rgba(17,24,39,0.50)", backdropFilter: "blur(5px)" }}
+      // Nested portals bubble through React, so only a press on the overlay itself closes.
+      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={reduceMotion ? undefined : { opacity: 1 }}
+      exit={reduceMotion ? undefined : { opacity: 0 }}
+      transition={shortMotionTransition}
+    >
+      <DialogPrimitive.Content
+        asChild
+        aria-describedby={undefined}
+        // Toasts sit outside the dialog; pressing one must not dismiss it.
+        onInteractOutside={(event) => event.preventDefault()}
+        onOpenAutoFocus={(event) => { if (guided) event.preventDefault(); }}
+        onEscapeKeyDown={(event) => { if (guided) event.preventDefault(); }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (!guided && openerRef.current instanceof HTMLElement) openerRef.current.focus();
+        }}
+      >
+        <motion.div
+          className={`flex max-h-[86vh] w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white outline-none ${SIZES[size]}`}
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.985, y: 8 }}
+          animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, scale: 0.985, y: 6 }}
+          transition={shortMotionTransition}
+        >
+          {label && <DialogPrimitive.Title className="sr-only">{label}</DialogPrimitive.Title>}
+          {children}
+        </motion.div>
+      </DialogPrimitive.Content>
+    </motion.div>
+  );
 
   return (
-    <DialogPrimitive.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <DialogPrimitive.Root open modal={!guided} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay asChild>
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center px-3 py-7 sm:px-5"
-            style={{ backgroundColor: "rgba(17,24,39,0.50)", backdropFilter: "blur(5px)" }}
-            // Nested portals bubble through React, so only a press on the overlay itself closes.
-            onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={reduceMotion ? undefined : { opacity: 1 }}
-            exit={reduceMotion ? undefined : { opacity: 0 }}
-            transition={shortMotionTransition}
-          >
-            <DialogPrimitive.Content
-              asChild
-              aria-describedby={undefined}
-              // Toasts sit outside the dialog; pressing one must not dismiss it.
-              onInteractOutside={(event) => event.preventDefault()}
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                if (openerRef.current instanceof HTMLElement) openerRef.current.focus();
-              }}
-            >
-              <motion.div
-                className={`flex max-h-[86vh] w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white outline-none ${SIZES[size]}`}
-                initial={reduceMotion ? false : { opacity: 0, scale: 0.985, y: 8 }}
-                animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}
-                exit={reduceMotion ? undefined : { opacity: 0, scale: 0.985, y: 6 }}
-                transition={shortMotionTransition}
-              >
-                {label && <DialogPrimitive.Title className="sr-only">{label}</DialogPrimitive.Title>}
-                {children}
-              </motion.div>
-            </DialogPrimitive.Content>
-          </motion.div>
-        </DialogPrimitive.Overlay>
+        {/* The library renders no overlay for a non-modal dialog, so the backdrop goes in directly. */}
+        {guided ? overlay : <DialogPrimitive.Overlay asChild>{overlay}</DialogPrimitive.Overlay>}
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );

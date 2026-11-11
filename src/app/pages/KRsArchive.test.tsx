@@ -62,7 +62,7 @@ describe("KRs archive", () => {
     expect(await screen.findByText("Movilidad antigua")).toBeInTheDocument();
     expect(mocks.loadKeyResults).toHaveBeenLastCalledWith({ includeArchived: true }, expect.anything());
     expect(screen.getByRole("button", { name: /Archivados/ })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("Archivado")).toBeInTheDocument();
+    expect(screen.getByText(/· Archivado$/)).toBeInTheDocument();
   });
 
   it("restores an archived KR and reloads the list", async () => {
@@ -77,7 +77,7 @@ describe("KRs archive", () => {
 
     await waitFor(() => expect(mocks.setActive).toHaveBeenCalledWith(3, true));
     await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith("Key Result restaurado"));
-    await waitFor(() => expect(screen.queryByText("Archivado")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/· Archivado$/)).not.toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /^Restaurar/ })).not.toBeInTheDocument();
   });
 
@@ -90,7 +90,7 @@ describe("KRs archive", () => {
     await user.click(screen.getByRole("button", { name: /Archivados/ }));
 
     expect(await screen.findByText("Movilidad antigua")).toBeInTheDocument();
-    expect(screen.getByText("Archivado")).toBeInTheDocument();
+    expect(screen.getByText(/· Archivado$/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Restaurar/ })).not.toBeInTheDocument();
   });
 });

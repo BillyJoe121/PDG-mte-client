@@ -9,8 +9,18 @@ describe("PlannerLinkField", () => {
     expect(screen.getByText("Sin enlace de Planner")).toBeInTheDocument();
   });
 
-  it("offers the Planner button when the link is valid", () => {
+  it("shows a valid link as a clickable address that opens in a new tab", () => {
     render(<dl><PlannerLinkField plannerUrl="https://tasks.office.com/plan/1" /></dl>);
-    expect(screen.getByRole("button", { name: "Ir a Planner" })).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /Abrir el plan en Microsoft Planner/ });
+    expect(link).toHaveAttribute("href", "https://tasks.office.com/plan/1");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link).toHaveTextContent("https://tasks.office.com/plan/1");
+  });
+
+  it("does not link an invalid saved address", () => {
+    render(<dl><PlannerLinkField plannerUrl="https://example.com/no-planner" /></dl>);
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByText("El enlace guardado no es un enlace válido de Planner.")).toBeInTheDocument();
   });
 });

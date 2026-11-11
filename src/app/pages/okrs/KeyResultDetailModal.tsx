@@ -18,6 +18,9 @@ import { ConfirmDialog, useConfirm } from "../../components/ConfirmDialog";
 import { Modal } from "../../components/Modal";
 import { PlannerLinkField } from "../../components/planner/PlannerLinkField";
 import { useDiscardGuard } from "../../hooks/useDiscardGuard";
+import { StrategyJumpButtons } from "../jerarquia/StrategyJumpButtons";
+import type { HierarchyTableFocus } from "../jerarquia/hierarchyTableLink";
+import { LinkedNames } from "../../components/LinkedNames";
 import {
   DETAIL_ACTIONS_CLASS,
   DETAIL_BUTTON_CLASS,
@@ -37,10 +40,12 @@ interface KeyResultDetailModalProps {
   onClose: () => void;
   onChanged?: () => Promise<void>;
   renderActions?: (keyResult: KeyResult) => ReactNode;
+  /** Shows "Ver en Meta" and "Ver en Apuesta", which open the hierarchy table searching this KR. */
+  onOpenInHierarchy?: (focus: HierarchyTableFocus) => void;
 }
 
 
-export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged, renderActions }: KeyResultDetailModalProps) {
+export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged, renderActions, onOpenInHierarchy }: KeyResultDetailModalProps) {
   const [keyResult, setKeyResult] = useState<KeyResult | null>(null);
   const [links, setLinks] = useState<ProjectKeyResultLinkResponse[]>([]);
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
@@ -200,7 +205,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
 
   return (
     <Modal label="Detalle de KR" size="lg" onClose={requestClose}>
-      <DetailTopBar closeLabel="Cerrar detalle de KR" onClose={requestClose}>
+      <DetailTopBar closeLabel="Cerrar detalle de KR" onClose={requestClose} tourId="kr-close">
         {keyResult && (
           <>
             <DetailBadge tone="keyResult">Key Result #{keyResult.id}</DetailBadge>
@@ -228,8 +233,15 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                 )}
               </DetailHeading>
 
-              <div className={DETAIL_ACTIONS_CLASS}>
+              <div className={DETAIL_ACTIONS_CLASS} data-tour="kr-actions">
                 <div className="flex flex-wrap items-center gap-2">
+                  {onOpenInHierarchy && (
+                    <StrategyJumpButtons
+                      goal={keyResult.goals?.[0]}
+                      bet={keyResult.strategicBets?.[0]}
+                      onOpen={(rootType, root) => onOpenInHierarchy({ rootType, rootId: root.id, field: "indicator", text: keyResult.name })}
+                    />
+                  )}
                   {renderActions?.(keyResult)}
                 </div>
                 {canEdit && (
@@ -242,7 +254,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
                     )}
                     {keyResultMutable && (
                       <>
-                        <button type="button" onClick={() => setEditingKr(true)} className={DETAIL_BUTTON_CLASS}>Editar KR</button>
+                        <button type="button" onClick={() => setEditingKr(true)} data-tour="kr-edit" className={DETAIL_BUTTON_CLASS}>Editar KR</button>
                         <button type="button" onClick={requestArchive} disabled={saving || transitioning} className={DETAIL_BUTTON_CLASS}>Archivar</button>
                       </>
                     )}
@@ -256,18 +268,18 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
               </div>
 
               <div className="grid grid-cols-1 divide-y divide-gray-200 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-                <DetailSection title="Datos del KR">
+                <DetailSection title="Datos del KR" tourId="kr-data">
                   <DetailFields>
                     <DetailField label="Metas">{goalNames}</DetailField>
                     <DetailField label="Apuestas">{strategicBetNames}</DetailField>
                     <DetailField label="Periodo">{keyResult.academicPeriodName ?? "Sin periodo"}</DetailField>
                     <DetailField label="Métrica">{keyResult.metric}</DetailField>
-                    <DetailField label="Iniciativas">{links.length}</DetailField>
-                    <PlannerLinkField plannerUrl={keyResult.plannerUrl} />
+                    <DetailField label="Iniciativas"><LinkedNames count={links.length} names={links.map((link) => link.projectName ?? `Iniciativa ${link.projectId ?? ""}`.trim())} /></DetailField>
+                    <PlannerLinkField plannerUrl={keyResult.plannerUrl} tourId="kr-planner" />
                   </DetailFields>
                 </DetailSection>
 
-                <DetailSection title="Avance registrado">
+                <DetailSection title="Avance registrado" tourId="kr-progress">
                   <DetailFields>
                     <DetailField label="Valor meta">{formatValueWithUnit(keyResult.targetValue, keyResult.measurementUnitName)}</DetailField>
                     <DetailField label="Valor actual">{formatValueWithUnit(keyResult.currentValue, keyResult.measurementUnitName)}</DetailField>

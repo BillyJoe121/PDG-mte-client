@@ -1,5 +1,6 @@
 import {
-  DETAIL_BUTTON_CLASS,
+  DETAIL_GRAY_BUTTON_CLASS,
+  DETAIL_GREEN_BUTTON_CLASS,
   DETAIL_TABLE_CELL_CLASS,
   DetailEmpty,
   DetailField,
@@ -9,20 +10,28 @@ import {
   DetailTable,
 } from "../../components/DetailModal";
 import type { ImpactChain, ProjectDetailResponse, ProjectKeyResultLinkResponse } from "../../services/projectsApi";
-import { PlannerLinkField } from "../../components/planner/PlannerLinkField";
+import { LinkedNames } from "../../components/LinkedNames";
 import { ImpactTable, LinkedKeyResultsTable } from "./ProjectKeyResultTables";
 import { ProgressBar, formatDate } from "./projectDetailShared";
 
 const NO_CHAIN_TEXT = "No hay vínculos activos en la cadena de contribución.";
 
+/** Green once the initiative has a linked KR, gray while it has none. */
+export function linkKeyResultButtonClass(linkedCount: number) {
+  return linkedCount > 0 ? DETAIL_GREEN_BUTTON_CLASS : DETAIL_GRAY_BUTTON_CLASS;
+}
+
 export function SummarySection({
   chain,
   detail,
+  keyResultNames,
   progressColor,
   project,
 }: {
   chain?: ImpactChain | null;
   detail: ProjectDetailResponse;
+  /** Names of the active linked KRs, in link order. */
+  keyResultNames: string[];
   progressColor: string;
   project: ProjectDetailResponse["project"];
 }) {
@@ -50,10 +59,9 @@ export function SummarySection({
         </div>
         <DetailFields>
           <DetailField label="Registros de avance">{detail.kpis.progressEntries}</DetailField>
-          <DetailField label="KRs vinculados">{detail.kpis.linkedKeyResults}</DetailField>
+          <DetailField label="KRs vinculados"><LinkedNames count={detail.kpis.linkedKeyResults} names={keyResultNames} /></DetailField>
           <DetailField label="Peso declarado">{detail.kpis.declaredContributionWeight}%</DetailField>
           {latestEntry && <DetailField label="Último comentario">{latestEntry.comment}</DetailField>}
-          <PlannerLinkField plannerUrl={project.plannerUrl} />
         </DetailFields>
       </DetailSection>
 
@@ -108,7 +116,7 @@ export function KeyResultsSection({
     <>
       <DetailSection
         title="Key Results vinculados"
-        action={canManageLinks ? <button type="button" onClick={onLink} className={DETAIL_BUTTON_CLASS}>Vincular KR</button> : undefined}
+        action={canManageLinks ? <button type="button" onClick={onLink} className={linkKeyResultButtonClass(detail.linkedKeyResults.filter((link) => link.active).length)}>Vincular KR</button> : undefined}
       >
         {detail.linkedKeyResults.length === 0 ? (
           <DetailEmpty>Esta iniciativa aún no tiene Key Results vinculados.</DetailEmpty>
