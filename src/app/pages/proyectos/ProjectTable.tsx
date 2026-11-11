@@ -16,7 +16,7 @@ interface ProjectTableProps {
 
 export function ProjectTable({ projects, canManage, onOpen, onLink }: ProjectTableProps) {
   return (
-    <div className="overflow-hidden rounded-lg bg-white" style={{ border: `1px solid ${COLORS.border}` }}>
+    <div data-tour="proyectos-table" className="overflow-hidden rounded-lg bg-white" style={{ border: `1px solid ${COLORS.border}` }}>
       <Table aria-label="Iniciativas" style={{ minWidth: 1040, fontSize: 12 }}>
         <TableHeader>
           <TableRow style={{ backgroundColor: "#F8F9FB" }}>

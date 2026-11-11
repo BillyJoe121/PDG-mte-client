@@ -13,10 +13,12 @@ export interface ExportMenuItem {
 interface Props {
   /** Read when the menu opens, so the entries always describe the view on screen. */
   getItems: () => ExportMenuItem[];
+  /** Smaller trigger for the bar that floats over the slides. */
+  compact?: boolean;
 }
 
 /** Single export entry point of the presentation: PDF of the active view and CSV of its data. */
-export function PresentationExportMenu({ getItems }: Props) {
+export function PresentationExportMenu({ getItems, compact = false }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const items = open ? getItems() : [];
@@ -70,11 +72,11 @@ export function PresentationExportMenu({ getItems }: Props) {
         aria-label="Exportar"
         title="Exportar la vista activa"
         onClick={() => setOpen((value) => !value)}
-        style={{ fontSize: 12, minHeight: 32, border: "1px solid #000" }}
+        style={{ fontSize: compact ? 10 : 12, minHeight: compact ? 22 : 32, gap: compact ? 5 : 8, padding: compact ? "0 8px" : undefined, border: "1px solid #000" }}
       >
-        <Share size={14} aria-hidden="true" />
+        <Share size={compact ? 10 : 14} aria-hidden="true" />
         <span>Exportar</span>
-        <ChevronDown size={14} aria-hidden="true" />
+        <ChevronDown size={compact ? 10 : 14} aria-hidden="true" />
       </ToolbarButton>
 
       {open && (

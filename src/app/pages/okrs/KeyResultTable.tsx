@@ -21,7 +21,7 @@ interface KeyResultTableProps {
 
 export function KeyResultTable({ items, canRestore, restoringId, onOpen, onRestore }: KeyResultTableProps) {
   return (
-    <div className="overflow-hidden rounded-lg bg-white" style={{ border: `1px solid ${COLORS.border}` }}>
+    <div data-tour="krs-table" className="overflow-hidden rounded-lg bg-white" style={{ border: `1px solid ${COLORS.border}` }}>
       <Table aria-label="Key Results" style={{ minWidth: 1040, fontSize: 12 }}>
         <TableHeader>
           <TableRow style={{ backgroundColor: "#F8F9FB" }}>

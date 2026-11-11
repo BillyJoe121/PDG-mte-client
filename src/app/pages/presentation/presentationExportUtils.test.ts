@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as exportUtils from "../../utils/exportUtils";
 import {
+  buildConsolidatedCsvRows,
   exportBetsSummaryCsv,
+  exportConsolidatedCsv,
   exportComparisonCsv,
   exportDetailModalCsv,
   exportGeneralReportCsv,
@@ -168,6 +170,45 @@ describe("presentationExportUtils", () => {
     expect(filename).toContain("presentacion_diapositivas");
     expect(rows).toHaveLength(2);
     expect(rows[0].titulo).toBe("Portada");
+  });
+
+  it("exports every department and every ranked KR of the consolidated slides", () => {
+    const slides: PresentationSlide[] = [
+      { order: 1, type: "COVER", title: "Portada", subtitle: "2026-1", content: {} },
+      {
+        order: 3,
+        type: "CONSOLIDATED_RANKING",
+        title: "KRs por Avance Registrado",
+        subtitle: "",
+        content: {
+          keyResults: [
+            { keyResultId: 9, keyResultName: "KR alto", goalNames: ["Meta 1"], strategicBetNames: ["Apuesta 1", "Apuesta 2"], period: "2026-1", progressPercentage: "90", linkedProjects: 3 },
+            { keyResultId: 4, keyResultName: "KR bajo", goalNames: [], strategicBetNames: [], period: "2026-1", progressPercentage: "10", linkedProjects: 0 },
+          ],
+        },
+      },
+      {
+        order: 4,
+        type: "CONSOLIDATED_DEPTS_SUMMARY",
+        title: "Resumen por Departamento",
+        subtitle: "",
+        content: { departments: [{ departmentId: 1, departmentName: "Ingeniería", projects: 5, keyResults: 7, closedKeyResults: 2 }] },
+      },
+    ];
+
+    exportConsolidatedCsv(slides, "2026-1");
+
+    expect(downloadCsvSpy).toHaveBeenCalledOnce();
+    const [rows, filename] = downloadCsvSpy.mock.calls[0];
+    expect(filename).toContain("presentacion_departamentos_krs");
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({ seccion: "Departamentos", nombre: "Ingeniería", iniciativas: 5, key_results: 7, krs_cerrados: 2 });
+    expect(rows[1]).toMatchObject({ seccion: "KRs por avance registrado", posicion: 1, nombre: "KR alto", apuestas: "Apuesta 1; Apuesta 2", avance_registrado: "90" });
+    expect(rows[2]).toMatchObject({ posicion: 2, nombre: "KR bajo", metas: "" });
+  });
+
+  it("builds no consolidated rows when the deck has no consolidated slides", () => {
+    expect(buildConsolidatedCsvRows([{ order: 1, type: "COVER", title: "Portada", subtitle: "", content: {} }])).toEqual([]);
   });
 
   it("exports detail modal technical sheet to CSV for bet and goal", () => {

@@ -76,14 +76,14 @@ describe("KeyResultProgressHistory", () => {
 
     const newest = within(items[0]);
     expect(newest.getByText("Luis Pérez")).toBeInTheDocument();
-    expect(newest.getByText("75 Puntos → 82 Puntos")).toBeInTheDocument();
+    expect(newest.getByText("75 puntos → 82 puntos")).toBeInTheDocument();
     expect(newest.getByText("25% → 60%")).toBeInTheDocument();
     expect(items[0].querySelector("time")).toHaveAttribute("datetime", "2026-11-02T18:00:00Z");
     expect(items[0].querySelector("time")).toHaveTextContent(/2026/);
 
     const first = within(items[1]);
     expect(first.getByText("ana@icesi.edu.co")).toBeInTheDocument();
-    expect(first.getByText("— → 75 Puntos")).toBeInTheDocument();
+    expect(first.getByText("— → 75 puntos")).toBeInTheDocument();
     expect(first.getByText("— → 25%")).toBeInTheDocument();
   });
 

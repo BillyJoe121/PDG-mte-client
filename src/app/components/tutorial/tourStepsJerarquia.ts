@@ -155,7 +155,7 @@ export const jerarquiaSteps: TourStep[] = [
     target: "kr-actions",
     permission: "okrs.manage",
     title: "Acciones del KR",
-    body: "Desde aquí se edita el KR, se cambia su estado o se archiva. Abrimos Editar KR para ver el formulario; no se guardará nada.",
+    body: "Desde aquí se edita el KR, se cambia su estado, se archiva o se vinculan iniciativas. Abrimos Editar KR para ver el formulario; no se guardará nada.",
   },
   {
     id: "kr-form-data",

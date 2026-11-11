@@ -171,23 +171,19 @@ describe("PresentacionDashboard", () => {
     expect(screen.getByRole("status", { name: /cargando presentaci[oó]n/i })).toBeInTheDocument();
   });
 
-  it("renders the presentation hub offering the 2 analysis options by default", async () => {
+  it("opens Informe by default and offers only Informe, Comparar and Presentar", async () => {
     mocks.loadPresentationScreen.mockResolvedValue(response);
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: /modo presentaci[oó]n estrat[eé]gica msp/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /abrir informe/i })).toBeInTheDocument();
-    expect(screen.getByText("Ver todas las metas y apuestas juntas")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /abrir comparar/i })).toBeInTheDocument();
-    expect(screen.getByText("Comparar entidades estratégicas")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i })).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Modos de presentación" });
+    expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual(["Informe", "Comparar", "Presentar"]);
+    expect(within(nav).getByRole("button", { name: "Informe" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("navigates to Option 1 (Informe General), shows recorded summaries without rankings and opens the detail modal", async () => {
     mocks.loadPresentationScreen.mockResolvedValue(response);
     renderPage();
-
-    const generalBtn = await screen.findByRole("button", { name: /abrir informe/i });
-    fireEvent.click(generalBtn);
 
     expect(await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /apuestas estrat[eé]gicas del periodo/i })).toBeInTheDocument();
@@ -204,7 +200,7 @@ describe("PresentacionDashboard", () => {
     expect(screen.queryByText(/ranking/i)).not.toBeInTheDocument();
     expect(screen.queryByText("🥇")).not.toBeInTheDocument();
     expect(screen.queryByText(/cumplimiento/i)).not.toBeInTheDocument();
-    expect(screen.getAllByText("85 Porcentaje").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("85%").length).toBeGreaterThan(0);
 
     const detailBtns = screen.getAllByRole("button", { name: /detalle de/i });
     expect(detailBtns.length).toBe(4);
@@ -221,8 +217,6 @@ describe("PresentacionDashboard", () => {
     mocks.loadPresentationScreen.mockResolvedValue({ ...response, bets: [], goals: [] });
     renderPage();
 
-    fireEvent.click(await screen.findByRole("button", { name: /abrir informe/i }));
-
     expect(await screen.findByText("No hay apuestas ni metas registradas para este periodo")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
@@ -231,8 +225,8 @@ describe("PresentacionDashboard", () => {
     mocks.loadPresentationScreen.mockResolvedValue(response);
     renderPage();
 
-    const compareBtn = await screen.findByRole("button", { name: /abrir comparar/i });
-    fireEvent.click(compareBtn);
+    await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i });
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Modos de presentación" })).getByRole("button", { name: "Comparar" }));
 
     expect(await screen.findByRole("heading", { name: "Comparativa de registros" })).toBeInTheDocument();
 
@@ -249,6 +243,14 @@ describe("PresentacionDashboard", () => {
     expect(screen.getAllByText(/apuesta a/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/meta b/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/cumplimiento/i)).not.toBeInTheDocument();
+    // The selection cards carry the detail; the compared entities are not repeated below them.
+    expect(screen.queryByText(/ver modal de detalle/i)).not.toBeInTheDocument();
+    const comparedDetails = screen.getAllByRole("button", { name: /^ver detalle de/i });
+    expect(comparedDetails).toHaveLength(2);
+    fireEvent.click(comparedDetails[0]);
+    const comparedDialog = await screen.findByRole("dialog");
+    expect(within(comparedDialog).getByRole("heading", { name: /transformaci[oó]n digital e inteligencia artificial/i })).toBeInTheDocument();
+    fireEvent.click(within(comparedDialog).getByRole("button", { name: /cerrar ventana modal/i }));
 
     await act(async () => {
       fireEvent.click(periodVsPeriodBtn);
@@ -256,8 +258,9 @@ describe("PresentacionDashboard", () => {
 
     expect(screen.getByText(/periodo base \(a\)/i)).toBeInTheDocument();
     expect(screen.getByText(/periodo de comparaci[oó]n \(b\)/i)).toBeInTheDocument();
-    expect(await screen.findByText(/periodo acad[eé]mico 2026-1/i)).toBeInTheDocument();
-    expect(screen.getByText(/periodo acad[eé]mico 2025-2/i)).toBeInTheDocument();
+    expect(await screen.findByText("2026-01-01 a 2026-06-30 · Estado: ACTIVO")).toBeInTheDocument();
+    expect(screen.getByText("2025-07-01 a 2025-12-31 · Estado: CERRADO")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^ver detalle de/i })).not.toBeInTheDocument();
     expect(mocks.periodComparison).toHaveBeenCalledWith({ basePeriod: "2026-1", comparePeriod: "2025-2" });
     expect(screen.getByText("Valores registrados en el Periodo 2026-1 y en el Periodo 2025-2.")).toBeInTheDocument();
     expect(screen.queryByText(/cobertura|variaci[oó]n/i)).not.toBeInTheDocument();
@@ -275,13 +278,13 @@ describe("PresentacionDashboard", () => {
     renderPage(["/presentacion?modo=slides"]);
 
     expect(await screen.findByRole("heading", { name: "Seguimiento estratégico" })).toBeInTheDocument();
-    expect(screen.getByText("1 / 4")).toBeInTheDocument();
+    expect(screen.getByText("1 / 6")).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.keyDown(window, { key: "ArrowRight" });
     });
     expect(await screen.findByRole("heading", { name: "Reporte consolidado no disponible" })).toBeInTheDocument();
-    expect(screen.getByText("2 / 4")).toBeInTheDocument();
+    expect(screen.getByText("2 / 6")).toBeInTheDocument();
     expect(screen.getByText("No hay reporte consolidado para el periodo 2026-1")).toBeInTheDocument();
     expect(screen.queryByLabelText(/resumen por departamento/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/avance registrado/i)).not.toBeInTheDocument();
@@ -290,13 +293,22 @@ describe("PresentacionDashboard", () => {
       fireEvent.keyDown(window, { key: "ArrowRight" });
     });
     expect(await screen.findByRole("heading", { name: "Transformación educativa" })).toBeInTheDocument();
-    expect(screen.getByText("3 / 4")).toBeInTheDocument();
+    expect(screen.getByText("3 / 6")).toBeInTheDocument();
 
+    // Every goal gets its own slide after the bets, before the closing slide.
     await act(async () => {
       fireEvent.keyDown(window, { key: "ArrowRight" });
     });
+    expect(await screen.findByRole("heading", { name: "Graduación Oportuna y Éxito Estudiantil" })).toBeInTheDocument();
+    expect(screen.getByText("Meta institucional")).toBeInTheDocument();
+    expect(screen.getByText("Valor esperado")).toBeInTheDocument();
+    expect(screen.getByText("4 / 6")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "End" });
+    });
     expect(await screen.findByRole("heading", { name: "Cierre" })).toBeInTheDocument();
-    expect(screen.getByText("4 / 4")).toBeInTheDocument();
+    expect(screen.getByText("6 / 6")).toBeInTheDocument();
   });
 
   it("presents the consolidated slides with recorded counts and KRs ordered by recorded progress", async () => {
@@ -325,7 +337,7 @@ describe("PresentacionDashboard", () => {
     renderPage(["/presentacion?modo=slides"]);
 
     expect(await screen.findByRole("heading", { name: "Seguimiento estratégico" })).toBeInTheDocument();
-    expect(screen.getByText("1 / 6")).toBeInTheDocument();
+    expect(screen.getByText("1 / 8")).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.keyDown(window, { key: "ArrowRight" });
@@ -339,7 +351,6 @@ describe("PresentacionDashboard", () => {
       fireEvent.keyDown(window, { key: "ArrowRight" });
     });
     expect(await screen.findByRole("heading", { name: "KRs por Avance Registrado" })).toBeInTheDocument();
-    expect(screen.getByText("Avance registrado")).toBeInTheDocument();
     const krNames = screen.getAllByText(/KR con (mayor|menor) avance/).map((el) => el.textContent);
     expect(krNames).toEqual(["KR con mayor avance", "KR con menor avance"]);
     expect(screen.getByText("80%")).toBeInTheDocument();
@@ -363,7 +374,7 @@ describe("PresentacionDashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: /reintentar/i }));
 
     await waitFor(() => expect(mocks.loadPresentationScreen).toHaveBeenCalledTimes(2));
-    expect(await screen.findByRole("heading", { name: /modo presentaci[oó]n estrat[eé]gica msp/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i })).toBeInTheDocument();
   });
 
   it("requests browser fullscreen when the control is available", async () => {
@@ -372,10 +383,10 @@ describe("PresentacionDashboard", () => {
     Object.defineProperty(document.documentElement, "requestFullscreen", { configurable: true, value: requestFullscreen });
     renderPage();
 
-    await screen.findByRole("heading", { name: /modo presentaci[oó]n estrat[eé]gica msp/i });
+    await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i });
     // Fullscreen belongs to Presentar, not to the other views.
     expect(screen.queryByRole("button", { name: /pantalla completa/i })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /iniciar presentaci[oó]n/i }));
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Modos de presentación" })).getByRole("button", { name: "Presentar" }));
     fireEvent.click(await screen.findByRole("button", { name: /pantalla completa/i }));
 
     expect(requestFullscreen).toHaveBeenCalledOnce();
@@ -387,7 +398,7 @@ describe("PresentacionDashboard", () => {
     mocks.printPDF.mockClear();
 
     renderPage();
-    await screen.findByRole("heading", { name: /modo presentaci[oó]n estrat[eé]gica msp/i });
+    await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i });
     const nav = screen.getByRole("navigation", { name: "Modos de presentación" });
 
     const chooseExport = (name: string) => {
@@ -396,18 +407,7 @@ describe("PresentacionDashboard", () => {
       expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     };
 
-    // Resumen
-    chooseExport("PDF del resumen");
-    expect(mocks.printPDF).toHaveBeenLastCalledWith(
-      "Modo Presentación Estratégica",
-      expect.objectContaining({ printableSelector: ".presentation-print-container" })
-    );
-    chooseExport("CSV de apuestas y metas");
-    expect(mocks.downloadCSV).toHaveBeenCalledTimes(1);
-
-    // Informe: one menu, no export buttons inside the view
-    fireEvent.click(within(nav).getByRole("button", { name: "Informe" }));
-    expect(await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i })).toBeInTheDocument();
+    // Informe opens first: one menu, no export buttons inside the view
     expect(screen.queryByRole("button", { name: /exportar informe general a pdf/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /resumen de apuestas (a pdf|en csv)/i })).not.toBeInTheDocument();
 
@@ -419,8 +419,8 @@ describe("PresentacionDashboard", () => {
     chooseExport("CSV del informe");
     chooseExport("CSV de apuestas");
     chooseExport("CSV de metas");
-    expect(mocks.downloadCSV).toHaveBeenCalledTimes(4);
-    expect(mocks.downloadCSV.mock.calls[2][0]).toHaveLength(2);
+    expect(mocks.downloadCSV).toHaveBeenCalledTimes(3);
+    expect(mocks.downloadCSV.mock.calls[1][0]).toHaveLength(2);
 
     // Detail sheet keeps its own exports
     fireEvent.click(screen.getByRole("button", { name: "Detalle de Transformación Digital e Inteligencia Artificial" }));
@@ -431,7 +431,7 @@ describe("PresentacionDashboard", () => {
       expect.objectContaining({ printableSelector: ".presentation-detail-modal-content" })
     );
     fireEvent.click(screen.getByRole("button", { name: "Descargar ficha técnica en CSV" }));
-    expect(mocks.downloadCSV).toHaveBeenCalledTimes(5);
+    expect(mocks.downloadCSV).toHaveBeenCalledTimes(4);
     fireEvent.click(screen.getByRole("button", { name: "Cerrar ventana modal" }));
 
     // Comparar: the CSV carries the comparison on screen, not the general report
@@ -448,8 +448,8 @@ describe("PresentacionDashboard", () => {
       })
     );
     chooseExport("CSV de la comparativa");
-    expect(mocks.downloadCSV).toHaveBeenCalledTimes(6);
-    expect(mocks.downloadCSV.mock.calls[5][1]).toMatch(/compar/i);
+    expect(mocks.downloadCSV).toHaveBeenCalledTimes(5);
+    expect(mocks.downloadCSV.mock.calls[4][1]).toMatch(/compar/i);
 
     // Presentar
     fireEvent.click(within(nav).getByRole("button", { name: "Presentar" }));
@@ -461,7 +461,7 @@ describe("PresentacionDashboard", () => {
       expect.objectContaining({ printableSelector: ".presentation-slide-print-area" })
     );
     chooseExport("CSV de las diapositivas");
-    expect(mocks.downloadCSV).toHaveBeenCalledTimes(7);
+    expect(mocks.downloadCSV).toHaveBeenCalledTimes(6);
   });
 
   it("disables the comparison CSV while there is nothing to compare and closes the menu with Escape", async () => {

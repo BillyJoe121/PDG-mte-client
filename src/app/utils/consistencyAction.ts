@@ -21,3 +21,15 @@ export function resolveConsistencyActionTarget(actionUrl: string) {
   }
   return null;
 }
+
+export type ConsistencyDetail = { kind: "kr" | "project"; id: number };
+
+/** Which record a finding opens, so the screen can show its detail without leaving Consistencia. */
+export function resolveConsistencyDetail(actionUrl: string): ConsistencyDetail | null {
+  const target = resolveConsistencyActionTarget(actionUrl);
+  if (!target) return null;
+  const url = new URL(target, "http://mte.local");
+  const keyResultId = url.searchParams.get("keyResultId");
+  if (keyResultId) return { kind: "kr", id: Number(keyResultId) };
+  return { kind: "project", id: Number(url.searchParams.get("projectId")) };
+}

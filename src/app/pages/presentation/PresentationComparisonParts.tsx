@@ -1,47 +1,12 @@
-import { Calendar } from "lucide-react";
-import type { AcademicPeriod } from "../../services/catalogsApi";
 import type { ComparisonCsvRow } from "./presentationExportUtils";
 import { PRESENTATION_UI } from "./PresentationLayout";
 import { buildComparisonBars, comparisonDifference } from "./PresentationComparisonData";
 import { BAR_TRACK, formatScreenCount, LABEL_STYLE, ScreenEmptyState } from "./PresentationScreenParts";
 
-/** Side A is always blue and side B always green, in the pickers, the cards, the bars and the table. */
+/** Side A is always blue and side B always green in the bars and the table of the comparison. */
 export const SIDE_COLORS = { A: PRESENTATION_UI.blue, B: PRESENTATION_UI.green } as const;
 /** Darker green for text on white, so side B labels keep enough contrast. */
 export const SIDE_TEXT = { A: PRESENTATION_UI.blue, B: "#2F855A" } as const;
-
-const PERIOD_CARD_VARIANTS = {
-  base: { side: "A", label: "Periodo A (Base)" },
-  compare: { side: "B", label: "Periodo B (Comparado)" },
-} as const;
-
-/** Header card of one period: which side it is, its dates and its recorded status. The figures live in the table. */
-export function PeriodStatsCard({
-  variant,
-  periodName,
-  period,
-}: {
-  variant: keyof typeof PERIOD_CARD_VARIANTS;
-  periodName: string;
-  period?: AcademicPeriod;
-}) {
-  const { side, label } = PERIOD_CARD_VARIANTS[variant];
-  return (
-    <article
-      className="flex min-w-0 flex-col rounded-lg bg-white px-3 py-2"
-      style={{ border: `1px solid ${PRESENTATION_UI.border}`, borderTop: `3px solid ${SIDE_COLORS[side]}` }}
-    >
-      <span className="inline-flex items-center gap-1.5" style={{ ...LABEL_STYLE, color: SIDE_TEXT[side] }}>
-        <Calendar size={12} aria-hidden="true" /> {label}
-      </span>
-      <h3 style={{ fontSize: 14, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.25, marginTop: 3 }}>Periodo Académico {periodName}</h3>
-      <p style={{ fontSize: 11.5, fontWeight: 600, color: PRESENTATION_UI.muted, marginTop: 1 }}>
-        {period?.startDate ?? "Sin fecha"} a {period?.endDate ?? "Sin fecha"} · Estado:{" "}
-        <strong style={{ color: PRESENTATION_UI.text }}>{period?.status ?? "Sin estado"}</strong>
-      </p>
-    </article>
-  );
-}
 
 const DIFFERENCE_COLORS = { up: "#2F855A", down: "#B8461F", same: PRESENTATION_UI.muted } as const;
 

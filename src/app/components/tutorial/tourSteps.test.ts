@@ -29,7 +29,10 @@ describe("tourSteps", () => {
 
   it("keeps the card detail open across its steps", () => {
     const kept = tourSteps.filter((step) => step.keepShownTarget).map((step) => step.id);
-    expect(kept).toEqual(["jerarquia-manage", "jerarquia-tree", "jerarquia-tree-manage", "jerarquia-tree-create"]);
+    expect(kept).toEqual([
+      "jerarquia-manage", "jerarquia-tree", "jerarquia-tree-manage", "jerarquia-tree-create",
+      "krs-manage", "krs-planner", "proyectos-manage", "proyectos-planner",
+    ]);
   });
 
   it("closes the initiative progress form before the edit form and the following screens", () => {
@@ -43,10 +46,30 @@ describe("tourSteps", () => {
     expect(tourSteps.find((step) => step.id === "jerarquia-create")?.target).toBe("jerarquia-create");
   });
 
-  it("explains each report tab and both exports", () => {
-    expect(ids(tourSteps)).toEqual(expect.arrayContaining([
-      "reportes-filters", "reportes-general", "reportes-departments", "reportes-ranking", "reportes-compare", "reportes-export-pdf", "reportes-export-csv",
-    ]));
+  it("shows why the KR and initiative screens help before opening a record there", () => {
+    const order = ids(tourSteps);
+    expect(order.slice(order.indexOf("krs"), order.indexOf("krs-create"))).toEqual(["krs", "krs-toolbar", "krs-table", "krs-manage", "krs-planner"]);
+    expect(order.slice(order.indexOf("proyectos"), order.indexOf("proyectos-create"))).toEqual([
+      "proyectos", "proyectos-toolbar", "proyectos-table", "proyectos-manage", "proyectos-planner",
+    ]);
+    const step = (id: string) => tourSteps.find((item) => item.id === id);
+    expect(step("krs-table")?.clicks).toContain("view-table");
+    expect(step("krs-manage")?.target).toBe("kr-actions");
+    expect(step("proyectos-manage")?.target).toBe("project-actions");
+    expect(step("krs-manage")?.body).toMatch(/misma gestión que viste en Jerarquía/);
+    expect(step("proyectos-manage")?.body).toMatch(/misma gestión que viste en Jerarquía/);
+  });
+
+  it("explains Consistencia, its filters, the open button and the export", () => {
+    const order = ids(tourSteps);
+    expect(order.slice(order.indexOf("consistencia"), order.indexOf("consistencia") + 4)).toEqual([
+      "consistencia", "consistencia-filters", "consistencia-open", "consistencia-export",
+    ]);
+    expect(tourSteps.find((step) => step.id === "consistencia-open")?.target).toBe("consistencia-open");
+  });
+
+  it("no longer visits the removed reports screen", () => {
+    expect(tourSteps.some((step) => step.route === "/reportes" || step.id.startsWith("reportes"))).toBe(false);
   });
 
   it("only shows editing steps to roles that can edit", () => {

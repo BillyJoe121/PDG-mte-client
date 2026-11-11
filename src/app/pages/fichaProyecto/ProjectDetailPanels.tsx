@@ -39,7 +39,7 @@ export function ProjectAside({ project }: { project: ProjectDetailResponse["proj
           <DetailField stacked label="Departamento">{project.departmentName ?? String(project.departmentId ?? "Sin departamento")}</DetailField>
           <DetailField stacked label="Periodo">{`${project.startPeriod}${project.endPeriod ? ` - ${project.endPeriod}` : ""}`}</DetailField>
           <DetailField stacked label="Fechas">{`${formatDate(project.startDate)} - ${formatDate(project.endDate)}`}</DetailField>
-          <PlannerLinkField plannerUrl={project.plannerUrl} tourId="project-planner" />
+          <PlannerLinkField stacked plannerUrl={project.plannerUrl} tourId="project-planner" />
           <DetailField stacked label="Tutores">{project.tutors.length ? project.tutors.join(", ") : "Sin tutores"}</DetailField>
           <DetailField stacked label="Creado">{formatDate(project.createdAt)}</DetailField>
           <DetailField stacked label="Actualizado">{formatDate(project.updatedAt)}</DetailField>

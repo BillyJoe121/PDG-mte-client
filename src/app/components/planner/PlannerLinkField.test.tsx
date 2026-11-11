@@ -16,6 +16,9 @@ describe("PlannerLinkField", () => {
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     expect(link).toHaveTextContent("https://tasks.office.com/plan/1");
+    // A long address is cut to two lines on screen; the full one stays in the tooltip.
+    expect(link).toHaveAttribute("title", "https://tasks.office.com/plan/1");
+    expect(screen.getByText("https://tasks.office.com/plan/1")).toHaveClass("line-clamp-2");
   });
 
   it("does not link an invalid saved address", () => {

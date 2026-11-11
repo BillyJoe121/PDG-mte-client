@@ -27,7 +27,7 @@ export function FilterPresetsBar({
         modulo,
         accion: "Preset de filtros",
         entidad: cleanName,
-        detalle: `Preset guardado con periodo ${filters.periodo}, departamento ${filters.departamento}, estado ${filters.estadoProyecto} y OKR ${filters.okrId}.`,
+        detalle: `Preset guardado con periodo ${filters.periodo}, departamento ${filters.departamento} y estado ${filters.estadoProyecto}.`,
         resultado: "info",
       });
       setPresetName("");

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Award, Calendar, Download, ExternalLink, Flag, Printer, Target, X } from "lucide-react";
@@ -7,6 +8,7 @@ import { PresentationStatusBadge } from "./PresentationLayout";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
 import { PRESENTATION_COLORS } from "./PresentationTypes";
 import { exportDetailModalCsv, printPresentationView } from "./presentationExportUtils";
+import { formatMeasure } from "../../utils/measureFormat";
 
 interface Props {
   entity: { type: "bet"; data: StrategicBet } | { type: "goal"; data: Goal } | null;
@@ -74,9 +76,9 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
                 </span>
               </div>
               <div>
-                <span className="block text-[12.5px] font-bold uppercase text-[#717182]">Meta Esperada / Unidad</span>
+                <span className="block text-[12.5px] font-bold uppercase text-[#717182]">Valor esperado</span>
                 <span className="mt-1 block text-[13px] font-black text-[#111827]">
-                  {goal.expectedValue} {goal.measurementUnitName || "unidades"}
+                  {formatMeasure(goal.expectedValue, goal.measurementUnitName) || "Sin registro"}
                 </span>
               </div>
             </div>
@@ -93,49 +95,28 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
             </div>
           </div>
 
-          {/* KPI Cards Grid */}
+          {/* Recorded KRs and initiatives: one compact line each */}
           <div className="sgp-print-avoid">
-            <h3 className="mb-3 text-[12.5px] font-extrabold uppercase tracking-wider text-[#717182]">
+            <h3 className="mb-2 text-[12.5px] font-extrabold uppercase tracking-wider text-[#717182]">
               KRs e iniciativas registrados
             </h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-4 text-center">
-                <div className="flex items-center justify-center gap-1 text-[12.5px] font-extrabold text-[#717182]">
-                  <Target size={14} className="text-[#E9683B]" aria-hidden="true" />
-                  <span>Resultados Clave (KRs)</span>
-                </div>
-                <div className="mt-2 text-2xl font-black text-[#E9683B]">
-                  {summary?.completedKeyResults ?? 0}
-                  <span className="text-[13px] font-semibold text-[#717182]">
-                    {" "}/ {((summary?.completedKeyResults ?? 0) + (summary?.inProgressKeyResults ?? 0))}
-                  </span>
-                </div>
-                <span className="mt-1 block text-[13px] font-bold text-[#5454E9]">
-                  {summary?.completedKeyResults ?? 0} completados
-                </span>
-                <span className="block text-[13px] font-semibold text-[#717182]">
-                  {summary?.inProgressKeyResults ?? 0} en progreso
-                </span>
-              </div>
-
-              <div className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-4 text-center">
-                <div className="flex items-center justify-center gap-1 text-[12.5px] font-extrabold text-[#717182]">
-                  <Award size={14} className="text-[#E9683B]" aria-hidden="true" />
-                  <span>Iniciativas</span>
-                </div>
-                <div className="mt-2 text-2xl font-black text-[#111827]">
-                  {summary?.completedProjects ?? 0}
-                  <span className="text-[13px] font-semibold text-[#717182]">
-                    {" "}/ {((summary?.completedProjects ?? 0) + (summary?.inProgressProjects ?? 0))}
-                  </span>
-                </div>
-                <span className="mt-1 block text-[13px] font-bold text-[#E9683B]">
-                  {summary?.completedProjects ?? 0} finalizadas
-                </span>
-                <span className="block text-[13px] font-semibold text-[#717182]">
-                  {summary?.inProgressProjects ?? 0} activas
-                </span>
-              </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <RecordedCount
+                icon={<Target size={15} className="text-[#E9683B]" aria-hidden="true" />}
+                label="Resultados Clave (KRs)"
+                done={summary?.completedKeyResults ?? 0}
+                open={summary?.inProgressKeyResults ?? 0}
+                doneLabel="completados"
+                openLabel="en progreso"
+              />
+              <RecordedCount
+                icon={<Award size={15} className="text-[#E9683B]" aria-hidden="true" />}
+                label="Iniciativas"
+                done={summary?.completedProjects ?? 0}
+                open={summary?.inProgressProjects ?? 0}
+                doneLabel="finalizadas"
+                openLabel="activas"
+              />
             </div>
           </div>
 
@@ -212,5 +193,31 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** Compact row of recorded counts: icon and name, done over total, and the breakdown in one line. */
+function RecordedCount({ icon, label, done, open, doneLabel, openLabel }: {
+  icon: ReactNode;
+  label: string;
+  done: number;
+  open: number;
+  doneLabel: string;
+  openLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-md border border-[#D9DEE8] bg-[#F8FAFC] px-3 py-2">
+      {icon}
+      <div className="min-w-0 flex-1">
+        <p className="text-[12.5px] font-semibold text-[#111827]">{label}</p>
+        <p className="text-[12px] text-[#717182]">
+          {done} {doneLabel} · {open} {openLabel}
+        </p>
+      </div>
+      <p className="shrink-0 text-[18px] font-bold tabular-nums text-[#111827]">
+        {done}
+        <span className="text-[12.5px] font-medium text-[#717182]"> / {done + open}</span>
+      </p>
+    </div>
   );
 }

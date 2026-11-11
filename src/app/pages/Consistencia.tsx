@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { CounterStrip } from "../components/CounterStrip";
+import { useAuth } from "../context/AuthContext";
 import {
   consistencyApi,
   type ConsistencyModule,
@@ -9,7 +10,10 @@ import {
   type ConsistencySeverity,
 } from "../services/consistencyApi";
 import { loadConsistencyCheck } from "../services/screenDataCache";
-import { resolveConsistencyActionTarget } from "../utils/consistencyAction";
+import { resolveConsistencyDetail, type ConsistencyDetail } from "../utils/consistencyAction";
+import { hierarchyTableUrl } from "./jerarquia/hierarchyTableLink";
+import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
+import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
 import {
   DEFAULT_STALE_DAYS,
   buildModuleStats,
@@ -30,6 +34,8 @@ function getErrorMessage(error: unknown) {
 export function Consistencia() {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
+  const { usuario } = useAuth();
+  const canEditKeyResult = usuario?.rol === "admin" || usuario?.rol === "manager";
   const [search, setSearch] = useState("");
   const [severity, setSeverity] = useState<ConsistencySeverity | "todas">("todas");
   const [moduleFilter, setModuleFilter] = useState<ConsistencyModule | "todos">("todos");
@@ -37,6 +43,7 @@ export function Consistencia() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
+  const [detail, setDetail] = useState<ConsistencyDetail | null>(null);
 
   const apiFilters = useMemo(() => ({
     staleDays: DEFAULT_STALE_DAYS,
@@ -86,13 +93,19 @@ export function Consistencia() {
     transition: shortMotionTransition,
   };
 
-  const goToIssue = (targetPath: string) => {
-    const target = resolveConsistencyActionTarget(targetPath);
+  const openIssue = (actionUrl: string) => {
+    const target = resolveConsistencyDetail(actionUrl);
     if (!target) {
       setError("No se pudo abrir la accion correctiva porque su destino no es valido.");
       return;
     }
-    navigate(target);
+    setDetail(target);
+  };
+
+  /** The finding may be fixed now, so the list is checked again. */
+  const closeDetail = () => {
+    setDetail(null);
+    void loadConsistency({ force: true });
   };
 
   const exportCsv = async () => {
@@ -164,11 +177,29 @@ export function Consistencia() {
             </motion.div>
           ) : (
             <motion.div key="issues" {...viewMotion}>
-              <IssueTable issues={filtered} onOpen={(issue) => goToIssue(issue.actionUrl)} />
+              <IssueTable issues={filtered} onOpen={(issue) => openIssue(issue.actionUrl)} />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {detail?.kind === "kr" && (
+          <KeyResultDetailModal
+            keyResultId={detail.id}
+            canEdit={canEditKeyResult}
+            onClose={closeDetail}
+            onOpenInHierarchy={(focus) => navigate(hierarchyTableUrl(focus))}
+          />
+        )}
+        {detail?.kind === "project" && (
+          <ProjectDetailModal
+            projectId={detail.id}
+            onClose={closeDetail}
+            onOpenInHierarchy={(focus) => navigate(hierarchyTableUrl(focus))}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

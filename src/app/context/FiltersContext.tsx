@@ -5,7 +5,6 @@ export interface GlobalFilters {
   departamento: string;
   estadoProyecto: string;
   avanceProyecto: string;
-  okrId: string;
 }
 
 export interface FilterPreset {
@@ -30,7 +29,6 @@ const DEFAULT_FILTERS: GlobalFilters = {
   departamento: "todos",
   estadoProyecto: "todos",
   avanceProyecto: "todos",
-  okrId: "todos",
 };
 
 const STORAGE_KEY = "mte-global-filters";

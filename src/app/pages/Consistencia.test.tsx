@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -12,6 +12,22 @@ vi.mock("../services/screenDataCache", () => ({
 
 vi.mock("react-router", () => ({
   useNavigate: () => mocks.navigate,
+}));
+
+vi.mock("../context/AuthContext", () => ({
+  useAuth: () => ({ usuario: { rol: "admin" } }),
+}));
+
+vi.mock("./proyectos/ProjectDetailModal", () => ({
+  ProjectDetailModal: ({ projectId, onClose }: { projectId: number; onClose: () => void }) => (
+    <div role="dialog" aria-label={`Iniciativa ${projectId}`}>
+      <button type="button" onClick={onClose}>Cerrar</button>
+    </div>
+  ),
+}));
+
+vi.mock("./okrs/KeyResultDetailModal", () => ({
+  KeyResultDetailModal: ({ keyResultId }: { keyResultId: number }) => <div role="dialog" aria-label={`KR ${keyResultId}`} />,
 }));
 
 import { Consistencia } from "./Consistencia";
@@ -73,16 +89,36 @@ describe("Consistencia", () => {
     expect(screen.getByText("Iniciativa sin avances")).toBeInTheDocument();
   });
 
-  it("opens the record of a finding and rejects destinations outside the app", async () => {
+  it("opens the record of a finding without leaving the screen and checks again on close", async () => {
     mocks.loadConsistencyCheck.mockResolvedValue({ summary, findings: [finding, staleFinding] });
     render(<Consistencia />);
-    const [own, external] = await screen.findAllByRole("button", { name: "Abrir iniciativa" });
+    const [own] = await screen.findAllByRole("button", { name: "Abrir iniciativa" });
 
     fireEvent.click(own);
-    expect(mocks.navigate).toHaveBeenCalledWith("/proyectos?projectId=7");
+    expect(screen.getByRole("dialog", { name: "Iniciativa 7" })).toBeInTheDocument();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(mocks.loadConsistencyCheck).toHaveBeenLastCalledWith(expect.anything(), { force: true });
+  });
+
+  it("opens the KR of a finding in place", async () => {
+    const krFinding = { ...finding, id: "KR-15", actionLabel: "Abrir KR", actionUrl: "/krs?keyResultId=15" };
+    mocks.loadConsistencyCheck.mockResolvedValue({ summary, findings: [krFinding] });
+    render(<Consistencia />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Abrir KR" }));
+    expect(screen.getByRole("dialog", { name: "KR 15" })).toBeInTheDocument();
+  });
+
+  it("rejects destinations outside the app", async () => {
+    mocks.loadConsistencyCheck.mockResolvedValue({ summary, findings: [finding, staleFinding] });
+    render(<Consistencia />);
+    const [, external] = await screen.findAllByRole("button", { name: "Abrir iniciativa" });
 
     fireEvent.click(external);
-    expect(mocks.navigate).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent(/destino no es valido/i);
   });
 

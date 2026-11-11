@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveConsistencyActionTarget } from "./consistencyAction";
+import { resolveConsistencyActionTarget, resolveConsistencyDetail } from "./consistencyAction";
 
 describe("resolveConsistencyActionTarget", () => {
   it("keeps current application routes for corrective actions", () => {
@@ -15,5 +15,18 @@ describe("resolveConsistencyActionTarget", () => {
     expect(resolveConsistencyActionTarget("https://untrusted.example/redirect")).toBeNull();
     expect(resolveConsistencyActionTarget("/krs?keyResultId=abc")).toBeNull();
     expect(resolveConsistencyActionTarget("/krs")).toBeNull();
+  });
+});
+
+describe("resolveConsistencyDetail", () => {
+  it("names the KR or initiative a finding opens", () => {
+    expect(resolveConsistencyDetail("/krs?keyResultId=15")).toEqual({ kind: "kr", id: 15 });
+    expect(resolveConsistencyDetail("/proyectos?projectId=22")).toEqual({ kind: "project", id: 22 });
+    expect(resolveConsistencyDetail("/projects/7")).toEqual({ kind: "project", id: 7 });
+  });
+
+  it("opens nothing for an invalid destination", () => {
+    expect(resolveConsistencyDetail("https://untrusted.example/redirect")).toBeNull();
+    expect(resolveConsistencyDetail("/proyectos?projectId=0")).toBeNull();
   });
 });

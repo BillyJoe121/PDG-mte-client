@@ -151,13 +151,13 @@
   border-color: color-mix(in srgb, var(--project-card-accent) 32%, white);
 }
 
-.objective-detail-hero {
+.strategy-detail-hero {
   border: 1px solid #D9DEE8;
   box-shadow: 0 18px 42px rgba(17, 24, 39, 0.08);
   position: relative;
 }
 
-.objective-detail-hero::before {
+.strategy-detail-hero::before {
   content: "";
   position: absolute;
   inset: 0 0 auto;

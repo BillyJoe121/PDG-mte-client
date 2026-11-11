@@ -57,9 +57,9 @@ describe('AuditContext', () => {
     const getAudit = renderAuditHook(WithAuth);
 
     act(() => getAudit().logAudit({
-      modulo: 'OKRs',
+      modulo: 'KRs',
       accion: 'Creacion',
-      entidad: 'OKR nuevo',
+      entidad: 'KR nuevo',
       detalle: 'Creacion de prueba',
       resultado: 'ok',
     }));
@@ -68,10 +68,10 @@ describe('AuditContext', () => {
       fecha: '2026-04-14T12:00:00.000Z',
       usuario: 'Hugo Arboleda',
       rol: 'manager',
-      modulo: 'OKRs',
+      modulo: 'KRs',
       resultado: 'ok',
     });
-    expect(JSON.parse(sessionStorage.getItem('sgp-audit-log') ?? '[]')[0]).toMatchObject({ entidad: 'OKR nuevo' });
+    expect(JSON.parse(sessionStorage.getItem('sgp-audit-log') ?? '[]')[0]).toMatchObject({ entidad: 'KR nuevo' });
   });
 
   it('logs entries as system when there is no authenticated user or override', () => {

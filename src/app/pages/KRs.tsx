@@ -160,6 +160,7 @@ export function KRs() {
   return (
     <div className="screen-krs flex h-full flex-col overflow-hidden">
       <ScreenToolbar
+        tourId="krs-toolbar"
         search={
           <ToolbarSearch
             value={search}

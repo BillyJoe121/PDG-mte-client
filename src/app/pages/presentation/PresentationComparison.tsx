@@ -5,12 +5,11 @@ import { PresentationPageHeader, PresentationPanel } from "./PresentationLayout"
 import type { AcademicPeriod } from "../../services/catalogsApi";
 import { reportsApi, type PeriodComparison } from "../../services/reportsApi";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
-import { getErrorMessage } from "../reportes/reportUtils";
+import { getErrorMessage } from "./recordedProgress";
 import type { ComparisonType } from "./PresentationTypes";
 import type { ComparisonExportSnapshot } from "./presentationExportItems";
-import { ComparisonStatusMessage, ComparisonTable, PeriodStatsCard } from "./PresentationComparisonParts";
+import { ComparisonStatusMessage, ComparisonTable } from "./PresentationComparisonParts";
 import { ComparisonControlsBar } from "./PresentationComparisonControls";
-import { EntityComparisonCard } from "./PresentationComparisonVisualParts";
 import {
   buildEntityComparisonRows,
   buildPeriodComparisonRows,
@@ -144,6 +143,11 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
   const nameB = entityB.data?.name ?? "Entidad B";
   const shortNameA = nameA.length > 20 ? `${nameA.slice(0, 19)}…` : nameA;
   const shortNameB = nameB.length > 20 ? `${nameB.slice(0, 19)}…` : nameB;
+  const detailOf = (entity: typeof entityA | typeof entityB, name: string) => {
+    const data = entity.data;
+    if (isPeriodMode || !data) return undefined;
+    return { name, open: () => (entity.type === "bet" ? onSelectBet(data as StrategicBet) : onSelectGoal(data as Goal)) };
+  };
 
   let tableRows = buildEntityComparisonRows(entityA, entityB);
   if (isPeriodMode) tableRows = periodStats ? buildPeriodComparisonRows(periodStats.a, periodStats.b) : [];
@@ -242,6 +246,8 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
           setSelectedGoalAId={setSelectedGoalAId}
           setSelectedGoalBId={setSelectedGoalBId}
           handleSwap={handleSwap}
+          detailA={detailOf(entityA, nameA)}
+          detailB={detailOf(entityB, nameB)}
         />
       </PresentationPageHeader>
 
@@ -254,40 +260,6 @@ export function PresentationComparison({ bets, goals, periodName, periods, onSel
         )
       ) : (
         <>
-          {isPeriodMode && periodStats ? (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 sgp-print-avoid">
-              <PeriodStatsCard
-                variant="base"
-                periodName={periodStats.a.periodName}
-                period={availablePeriods.find((p) => p.name === periodStats.a.periodName)}
-              />
-              <PeriodStatsCard
-                variant="compare"
-                periodName={periodStats.b.periodName}
-                period={availablePeriods.find((p) => p.name === periodStats.b.periodName)}
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 sgp-print-avoid">
-              <EntityComparisonCard
-                variant="A"
-                entity={entityA}
-                name={nameA}
-                shortName={shortNameA}
-                onSelectBet={onSelectBet}
-                onSelectGoal={onSelectGoal}
-              />
-              <EntityComparisonCard
-                variant="B"
-                entity={entityB}
-                name={nameB}
-                shortName={shortNameB}
-                onSelectBet={onSelectBet}
-                onSelectGoal={onSelectGoal}
-              />
-            </div>
-          )}
-
           <PresentationPanel
             className="sgp-print-avoid"
             title="Tabla comparativa"

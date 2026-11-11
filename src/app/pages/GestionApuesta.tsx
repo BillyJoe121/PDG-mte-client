@@ -130,7 +130,7 @@ export function GestionApuesta() {
         </button>
       </div>
 
-      <section className="objective-detail-hero mb-4 overflow-hidden rounded-md bg-white">
+      <section className="strategy-detail-hero mb-4 overflow-hidden rounded-md bg-white">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1fr)]">
           <div className="flex min-h-[136px] flex-col justify-center gap-2 p-4" style={{ backgroundColor: COLORS.blue }}>
             <div className="flex items-center gap-3">

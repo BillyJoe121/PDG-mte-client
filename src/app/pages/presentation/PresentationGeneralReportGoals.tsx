@@ -1,5 +1,6 @@
 import { Target } from "lucide-react";
 import type { Goal } from "../../services/strategicApi";
+import { formatMeasure } from "../../utils/measureFormat";
 import { EntityReportSection } from "./PresentationEntityReportSection";
 
 interface Props {
@@ -9,8 +10,7 @@ interface Props {
 }
 
 function expectedValueText(goal: Goal) {
-  if (goal.expectedValue === null || goal.expectedValue === undefined) return "Sin registro";
-  return `${goal.expectedValue} ${goal.measurementUnitName || ""}`.trim();
+  return formatMeasure(goal.expectedValue, goal.measurementUnitName) || "Sin registro";
 }
 
 /** General report section with the counts recorded for every institutional goal of the period. */
@@ -35,7 +35,7 @@ export function GeneralReportGoalsSection({ goals, periodName, onSelectGoal }: P
           goal.referenceIndicator ? `Indicador: ${goal.referenceIndicator}` : goal.description || "Sin descripción registrada.",
         cardExtra: (goal) => (
           <p className="text-[#717182]">
-            Valor esperado: <span className="font-black text-[#111827]">{expectedValueText(goal)}</span>
+            Valor esperado: <span className="font-semibold text-[#111827]">{expectedValueText(goal)}</span>
           </p>
         ),
       }}

@@ -1,3 +1,5 @@
+import { formatMeasure } from "../../utils/measureFormat";
+
 export const COLORS = {
   blue: "#5454E9",
   purple: "#5454E9",
@@ -9,7 +11,7 @@ export const COLORS = {
   subtle: "#F7F8FB",
 };
 
-/** "90 Porcentaje"; shows the value alone when the unit name is missing. */
+/** "90%", "24", "120 estudiantes"; the value alone when the unit is missing, empty without a value. */
 export function formatValueWithUnit(value: number | null | undefined, unitName: string | null | undefined) {
-  return [value, unitName].filter((part) => part !== null && part !== undefined && part !== "").join(" ");
+  return formatMeasure(value, unitName);
 }

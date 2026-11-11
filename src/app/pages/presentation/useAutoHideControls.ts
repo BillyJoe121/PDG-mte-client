@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isGuidedTourOpen } from "../../components/tutorial/guidedTour";
 
-export const CONTROLS_HIDE_DELAY_MS = 2500;
+export const CONTROLS_HIDE_DELAY_MS = 1000;
 
 /** Marks every floating control of the stage: header, bottom bar and their menus. */
 export const CONTROLS_SELECTOR = "[data-presentation-controls]";

@@ -35,8 +35,8 @@ export function PresentationPageHeader({ eyebrow, title, subtitle, accent = PRES
               {eyebrow}
             </p>
           )}
-          <h1 style={{ fontSize: 19, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.2, marginTop: eyebrow ? 2 : 0 }}>{title}</h1>
-          {subtitle && <p style={{ fontSize: 12, fontWeight: 600, color: PRESENTATION_UI.muted, marginTop: 2, lineHeight: 1.4, maxWidth: 820 }}>{subtitle}</p>}
+          <h1 style={{ fontSize: 19, fontWeight: 700, color: PRESENTATION_UI.text, lineHeight: 1.2, marginTop: eyebrow ? 2 : 0 }}>{title}</h1>
+          {subtitle && <p style={{ fontSize: 12, fontWeight: 400, color: PRESENTATION_UI.muted, marginTop: 4, lineHeight: 1.4, maxWidth: 820 }}>{subtitle}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
@@ -55,7 +55,7 @@ export function PresentationStatusBadge({ status }: { status?: string | null }) 
   return (
     <span
       className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-px"
-      style={{ fontSize: 11, fontWeight: 850, color: active ? "#2F855A" : PRESENTATION_UI.muted, backgroundColor: active ? "#ECF8F1" : "#F3F4F6" }}
+      style={{ fontSize: 11, fontWeight: 600, color: active ? "#2F855A" : PRESENTATION_UI.muted, backgroundColor: active ? "#ECF8F1" : "#F3F4F6" }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
       {label}
@@ -90,10 +90,10 @@ export function PresentationPanel({ title, subtitle, icon, accent = PRESENTATION
             </div>
           )}
           <div className="min-w-0">
-            <Heading style={{ fontSize: 12, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.2, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            <Heading style={{ fontSize: 12, fontWeight: 700, color: PRESENTATION_UI.text, lineHeight: 1.2, textTransform: "uppercase", letterSpacing: "0.04em" }}>
               {title}
             </Heading>
-            {subtitle && <p style={{ fontSize: 11.5, fontWeight: 600, color: PRESENTATION_UI.muted, marginTop: 1, lineHeight: 1.4 }}>{subtitle}</p>}
+            {subtitle && <p style={{ fontSize: 11.5, fontWeight: 400, color: PRESENTATION_UI.muted, marginTop: 3, lineHeight: 1.4 }}>{subtitle}</p>}
           </div>
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
