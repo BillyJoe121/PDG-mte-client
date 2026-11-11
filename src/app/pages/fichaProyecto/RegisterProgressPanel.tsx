@@ -70,10 +70,10 @@ export function RegisterProgressPanel({ project, onCancel, onDirtyChange, onSave
   return (
     <>
       <FormTopBar title="Registrar avance">
-        <FormActions saving={saving} submitLabel="Guardar avance" onCancel={onCancel} onSubmit={() => void save()} />
+        <FormActions saving={saving} submitLabel="Guardar avance" onCancel={onCancel} onSubmit={() => void save()} cancelTourId="project-progress-cancel" />
       </FormTopBar>
       <DetailBody>
-        <div className="space-y-4 p-5">
+        <div className="space-y-4 p-5" data-tour="project-progress-form">
           {error && <FormError>{error}</FormError>}
           <div role="group" aria-label="Avance global">
             <div className="flex items-center justify-between">

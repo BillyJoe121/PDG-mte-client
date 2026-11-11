@@ -11,12 +11,13 @@ export function PageTabs({ label, children }: { label: string; children: ReactNo
   );
 }
 
-export function TabButton({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+export function TabButton({ active, onClick, label, tourId }: { active: boolean; onClick: () => void; label: string; tourId?: string }) {
   return (
     <button
       type="button"
       role="tab"
       aria-selected={active}
+      data-tour={tourId}
       onClick={onClick}
       className={`inline-flex h-7 flex-shrink-0 items-center whitespace-nowrap rounded-md px-2.5 text-sm font-bold ${active ? "bg-black text-white" : "text-gray-600"}`}
     >

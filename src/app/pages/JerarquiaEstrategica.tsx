@@ -36,12 +36,13 @@ import {
   type View,
 } from "./jerarquia/hierarchyPageModel";
 import { HierarchyMatrix } from "./jerarquia/HierarchyMatrix";
+import { HIERARCHY_TABLE_PARAMS, hierarchyTableUrl, readHierarchyTableFocus, type HierarchyMatrixFocus, type HierarchyTableFocus } from "./jerarquia/hierarchyTableLink";
 import { HierarchyToolbar } from "./jerarquia/HierarchyToolbar";
 import { EmptyState, HierarchyDetailHeader, HierarchyRootGallery } from "./jerarquia/HierarchyRootViews";
 import { HierarchyDetailTree } from "./jerarquia/HierarchyDetailTree";
 
 export function JerarquiaEstrategica() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
   const canCreate = usuario?.rol === "admin";
@@ -65,6 +66,28 @@ export function JerarquiaEstrategica() {
   const [viewingKeyResultId, setViewingKeyResultId] = useState<number | null>(null);
   const [viewingProjectId, setViewingProjectId] = useState<number | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  // Each arrival from a detail remounts the table so it starts from the requested column and searches.
+  const [matrixFocus, setMatrixFocus] = useState<{ key: number; focus: HierarchyMatrixFocus } | null>(null);
+
+  useEffect(() => {
+    const focus = readHierarchyTableFocus(searchParams);
+    if (!focus) return;
+    setMatrixFocus((prev) => ({ key: (prev?.key ?? 0) + 1, focus }));
+    setViewMode("table");
+    setView("arbol");
+    setSelectedHierarchyRootKey(null);
+    setViewingKeyResultId(null);
+    setViewingProjectId(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      HIERARCHY_TABLE_PARAMS.forEach((name) => next.delete(name));
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams, setViewMode]);
+
+  const openInHierarchyTable = useCallback((focus: HierarchyTableFocus) => {
+    setSearchParams(new URL(hierarchyTableUrl(focus), "http://local").searchParams);
+  }, [setSearchParams]);
 
   const load = useCallback(async (options?: { force?: boolean; resetSelection?: boolean; silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
@@ -247,7 +270,7 @@ export function JerarquiaEstrategica() {
           <motion.div key={selectedHierarchyRoot ? "arbol-detail" : viewMode === "table" ? "arbol-table" : `arbol-cards-${view}`} {...viewMotion} className={showsTable ? "flex min-h-0 flex-1 flex-col" : undefined}>
             {showsTable ? (
               tree.length > 0 && (
-                <HierarchyMatrix tree={tree} view={view} onOpenNode={manageNode} onOpenRoot={openHierarchyRoot} />
+                <HierarchyMatrix key={matrixFocus?.key ?? 0} tree={tree} view={view} onOpenNode={manageNode} onOpenRoot={openHierarchyRoot} initialFocus={matrixFocus?.focus} />
               )
             ) : !selectedHierarchyRoot ? (
               <div className="space-y-5">
@@ -332,6 +355,7 @@ export function JerarquiaEstrategica() {
             keyResultId={viewingKeyResultId}
             canEdit={canManageKeyResults}
             onClose={() => setViewingKeyResultId(null)}
+            onOpenInHierarchy={openInHierarchyTable}
             onChanged={async () => {
               await load({ force: true, resetSelection: false, silent: true });
             }}
@@ -340,6 +364,7 @@ export function JerarquiaEstrategica() {
         {viewingProjectId && (
           <ProjectDetailModal
             projectId={viewingProjectId}
+            onOpenInHierarchy={openInHierarchyTable}
             onClose={async () => {
               setViewingProjectId(null);
               await load({ force: true, resetSelection: false, silent: true });

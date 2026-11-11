@@ -14,7 +14,7 @@ import { KeyResultDetailModal } from "./okrs/KeyResultDetailModal";
 import { KeyResultTable } from "./okrs/KeyResultTable";
 import { KrFormModal } from "./okrs/KrFormModal";
 import { COLORS } from "./okrs/okrsShared";
-import { DETAIL_BUTTON_CLASS } from "../components/DetailModal";
+import { hierarchyTableUrl } from "./jerarquia/hierarchyTableLink";
 import { ScreenToolbar, ToolbarButton, ToolbarCreateButton, ToolbarSearch, ToolbarSegmented } from "../components/ScreenToolbar";
 import { ViewModeToggle } from "../components/ViewModeToggle";
 import {
@@ -277,20 +277,7 @@ export function KRs() {
             onChanged={async () => {
               await load({ force: true, silent: true });
             }}
-            renderActions={(keyResult) => (
-              <>
-                {keyResult.goals?.[0] && (
-                  <button type="button" onClick={() => navigate(`/jerarquia?rootType=GOAL&rootId=${keyResult.goals[0].id}&keyResultId=${keyResult.id}`)} className={DETAIL_BUTTON_CLASS}>
-                    Ver en Meta
-                  </button>
-                )}
-                {keyResult.strategicBets?.[0] && (
-                  <button type="button" onClick={() => navigate(`/jerarquia?rootType=STRATEGIC_BET&rootId=${keyResult.strategicBets[0].id}&keyResultId=${keyResult.id}`)} className={DETAIL_BUTTON_CLASS}>
-                    Ver en Apuesta
-                  </button>
-                )}
-              </>
-            )}
+            onOpenInHierarchy={(focus) => navigate(hierarchyTableUrl(focus))}
           />
         )}
       </AnimatePresence>

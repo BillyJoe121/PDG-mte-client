@@ -29,7 +29,7 @@ export function PlatformTutorial({ open, mandatory = false, onClose }: PlatformT
   const { pathname } = useLocation();
   const step = steps[Math.min(index, steps.length - 1)];
   const onRoute = !step?.route || pathname === step.route;
-  const { ready, rect } = useTourTarget(step?.target, open && onRoute, step?.clicks);
+  const { ready, rect } = useTourTarget(step?.target, open && onRoute, step?.clicks, step?.keepShownTarget);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardSize, setCardSize] = useState<Size>({ width: CARD_WIDTH, height: 180 });
@@ -95,7 +95,7 @@ export function PlatformTutorial({ open, mandatory = false, onClose }: PlatformT
   const showCard = ready && onRoute;
 
   return createPortal(
-    <div onKeyDown={onKeyDown} data-testid="guided-tour">
+    <div onKeyDown={onKeyDown} data-testid="guided-tour" data-guided-tour="">
       {/* Blocks the page so the tour is followed from the card. */}
       <div aria-hidden="true" className="fixed inset-0" style={{ zIndex: Z_INDEX, backgroundColor: rect && showCard ? "transparent" : "rgba(17, 24, 39, 0.45)" }} />
       {rect && showCard && (

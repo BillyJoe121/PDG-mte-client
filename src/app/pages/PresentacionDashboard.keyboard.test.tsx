@@ -61,7 +61,7 @@ describe("PresentacionDashboard keyboard navigation", () => {
 
   it("changes slides with the arrow keys while a button has focus", async () => {
     await renderSlides();
-    const modeButton = within(screen.getByRole("navigation", { name: "Modos de presentación" })).getByRole("button", { name: "Diapositivas" });
+    const modeButton = within(screen.getByRole("navigation", { name: "Modos de presentación" })).getByRole("button", { name: "Presentar" });
     modeButton.focus();
     expect(modeButton).toHaveFocus();
 
@@ -79,7 +79,7 @@ describe("PresentacionDashboard keyboard navigation", () => {
 
   it("leaves Space to the focused button instead of changing slides", async () => {
     await renderSlides();
-    const modeButton = within(screen.getByRole("navigation", { name: "Modos de presentación" })).getByRole("button", { name: "Diapositivas" });
+    const modeButton = within(screen.getByRole("navigation", { name: "Modos de presentación" })).getByRole("button", { name: "Presentar" });
     modeButton.focus();
 
     await press(modeButton, " ");
@@ -140,7 +140,7 @@ describe("PresentacionDashboard keyboard navigation", () => {
         <PresentacionDashboard />
       </MemoryRouter>
     );
-    fireEvent.click(await screen.findByRole("button", { name: /explorar informe general/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /abrir informe/i }));
     await screen.findByRole("heading", { name: /todas las metas y apuestas en conjunto/i });
     fireEvent.click(screen.getAllByRole("button", { name: /detalle de/i })[0]);
 

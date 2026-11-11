@@ -27,6 +27,7 @@ export function KrLinkChecklist({
   const legendId = `${id}-legend`;
   return (
     <fieldset
+      data-tour={id}
       aria-labelledby={legendId}
       aria-describedby={describedBy}
       aria-invalid={invalid || undefined}

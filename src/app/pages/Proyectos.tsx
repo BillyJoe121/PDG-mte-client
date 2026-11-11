@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion, type MotionProps } from "motion/react";
 import { Loader2, Target } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -17,6 +17,7 @@ import { loadProjectsScreen } from "../services/screenDataCache";
 import { KeyResultLinkModal } from "./proyectos/KeyResultLinkModal";
 import { CreateProjectModal } from "./proyectos/CreateProjectModal";
 import { ProjectDetailModal } from "./proyectos/ProjectDetailModal";
+import { hierarchyTableUrl } from "./jerarquia/hierarchyTableLink";
 import { ProjectCardView } from "./proyectos/ProjectCardView";
 import { ProjectFilters } from "./proyectos/ProjectFilters";
 import { ProjectTable } from "./proyectos/ProjectTable";
@@ -24,6 +25,7 @@ import { COLORS, STATUS_OPTIONS, errorMessage } from "./proyectos/proyectosShare
 
 export function Proyectos() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
   const { filters, setFilter, clearFilters } = useGlobalFilters();
@@ -212,6 +214,7 @@ export function Proyectos() {
           <ProjectDetailModal
             projectId={selectedProjectId}
             onClose={closeProject}
+            onOpenInHierarchy={(focus) => navigate(hierarchyTableUrl(focus))}
           />
         )}
         {linkProject && (

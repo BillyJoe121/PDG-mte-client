@@ -34,6 +34,7 @@ vi.mock("../../services/projectsApi", async (importOriginal) => {
 });
 
 import { ProjectDetailModal } from "./ProjectDetailModal";
+import type { HierarchyTableFocus } from "../jerarquia/hierarchyTableLink";
 
 const project: ProjectResponse = {
   id: 7,
@@ -66,8 +67,8 @@ const detail: ProjectDetailResponse = {
   contributionChain: { projectId: 7, projectName: project.name, globalProgress: 40, status: "ACTIVO", impacts: [] },
 };
 
-function renderDetail(onClose = vi.fn()) {
-  render(<ProjectDetailModal projectId={7} onClose={onClose} />);
+function renderDetail(onClose = vi.fn(), onOpenInHierarchy?: (focus: HierarchyTableFocus) => void) {
+  render(<ProjectDetailModal projectId={7} onClose={onClose} onOpenInHierarchy={onOpenInHierarchy} />);
   return { onClose, user: userEvent.setup() };
 }
 
@@ -101,9 +102,8 @@ describe("ProjectDetailModal edit mode", () => {
     expect(screen.getByText(/Iniciativa PROY-07/)).toBeInTheDocument();
   });
 
-  it("opens the key result link form inside the same dialog", async () => {
+  it("opens the key result link form from the actions bar inside the same dialog", async () => {
     const { user } = renderDetail();
-    await user.click(await screen.findByRole("tab", { name: /Key Results/ }));
     await user.click(await screen.findByRole("button", { name: "Vincular KR" }));
 
     expect(await screen.findByLabelText("Peso de contribución")).toBeInTheDocument();
@@ -178,5 +178,61 @@ describe("ProjectDetailModal edit mode", () => {
     expect(onClose).not.toHaveBeenCalled();
     await user.click(within(closing).getByRole("button", { name: "Descartar" }));
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe("ProjectDetailModal links", () => {
+  const linkedKr = {
+    id: 11,
+    name: "Elevar permanencia",
+    goals: [{ id: 3, name: "Graduación oportuna" }],
+    strategicBets: [],
+  };
+  const linkedDetail: ProjectDetailResponse = {
+    ...detail,
+    project: { ...project, plannerUrl: "https://tasks.office.com/plan/7" },
+    kpis: { ...detail.kpis, linkedKeyResults: 1 },
+    linkedKeyResults: [
+      { id: 1, projectId: 7, keyResultId: 11, keyResultDescription: "Permanencia", contributionWeight: 40, active: true },
+      { id: 2, projectId: 7, keyResultId: 12, keyResultDescription: "Inactivo", contributionWeight: 10, active: false },
+    ] as ProjectDetailResponse["linkedKeyResults"],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.load.mockResolvedValue({ detail: linkedDetail, contributionChain: detail.contributionChain, keyResults: [linkedKr], departments: [], periods: [] });
+    mocks.listTeachers.mockResolvedValue([]);
+  });
+
+  it("paints Vincular KR green with a linked KR and lists the KR names", async () => {
+    const { user } = renderDetail();
+
+    expect(await screen.findByRole("button", { name: "Vincular KR" })).toHaveClass("bg-[#4CB979]");
+    await user.click(screen.getByRole("tab", { name: /Resumen/ }));
+    expect(screen.getByRole("listitem")).toHaveTextContent("Elevar permanencia");
+  });
+
+  it("paints Vincular KR gray without links", async () => {
+    mocks.load.mockResolvedValue({ detail, contributionChain: detail.contributionChain, keyResults: [], departments: [], periods: [] });
+    renderDetail();
+
+    expect(await screen.findByRole("button", { name: "Vincular KR" })).toHaveClass("bg-[#E5E7EB]");
+  });
+
+  it("shows the Planner link as a clickable link outside the tabs", async () => {
+    renderDetail();
+
+    const link = await screen.findByRole("link", { name: /Abrir el plan en Microsoft Planner/ });
+    expect(link).toHaveAttribute("href", "https://tasks.office.com/plan/7");
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("opens the hierarchy table from the linked goal and disables the missing bet", async () => {
+    const onOpenInHierarchy = vi.fn();
+    const { user } = renderDetail(vi.fn(), onOpenInHierarchy);
+
+    await user.click(await screen.findByRole("button", { name: "Ver en Meta" }));
+    expect(onOpenInHierarchy).toHaveBeenCalledWith({ rootType: "GOAL", rootId: 3, field: "initiative", text: "Laboratorio abierto" });
+    expect(screen.getByRole("button", { name: /Ver en Apuesta/ })).toBeDisabled();
   });
 });

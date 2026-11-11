@@ -25,25 +25,42 @@ function totalProjects(summary?: ExecutionSummary) {
   return (summary?.completedProjects ?? 0) + (summary?.inProgressProjects ?? 0);
 }
 
-/** Chart data for the grouped entity comparison: recorded counts only. */
-export function buildEntityChartData(summaryA?: ExecutionSummary, summaryB?: ExecutionSummary) {
-  return [
-    { metric: "KRs Completados", entityA: summaryA?.completedKeyResults ?? 0, entityB: summaryB?.completedKeyResults ?? 0 },
-    { metric: "KRs en Progreso", entityA: summaryA?.inProgressKeyResults ?? 0, entityB: summaryB?.inProgressKeyResults ?? 0 },
-    { metric: "Iniciativas Totales", entityA: totalProjects(summaryA), entityB: totalProjects(summaryB) },
-  ];
+/** One metric of the visual comparison: the recorded value on each side. */
+export interface ComparisonBarRow {
+  metric: string;
+  a: number;
+  b: number;
 }
 
-/** Chart data for the grouped period comparison: recorded counts only. */
-export function buildPeriodChartData(periodAStats: PeriodComparisonStats, periodBStats: PeriodComparisonStats) {
-  return buildPeriodComparisonRows(periodAStats, periodBStats).map((row) => ({
-    metric: row.metric,
-    periodA: Number(row.valA),
-    periodB: Number(row.valB),
-  }));
+/** Bars of the comparison: the numeric rows of the table, in the same order. Text rows such as Estado are left out. */
+export function buildComparisonBars(rows: ComparisonCsvRow[]): ComparisonBarRow[] {
+  return rows
+    .filter((row) => typeof row.valA === "number" && typeof row.valB === "number")
+    .map((row) => ({ metric: row.metric, a: Number(row.valA), b: Number(row.valB) }));
 }
 
-/** Rows for the period table and CSV: both recorded values, no difference. */
+export interface ComparisonDifference {
+  /** B − A, or null when the row is not numeric. */
+  value: number | null;
+  /** Visible text: ▲ +N, ▼ −N, = 0 or —. */
+  text: string;
+  /** Spoken description for screen readers. */
+  label: string;
+}
+
+/** Difference B − A between two recorded values. Only computed when both values are numbers. */
+export function comparisonDifference(row: ComparisonCsvRow): ComparisonDifference {
+  if (typeof row.valA !== "number" || typeof row.valB !== "number") {
+    return { value: null, text: "—", label: "Sin diferencia numérica" };
+  }
+  const value = row.valB - row.valA;
+  const amount = new Intl.NumberFormat("es-CO").format(Math.abs(value));
+  if (value > 0) return { value, text: `▲ +${amount}`, label: `B tiene ${amount} más que A` };
+  if (value < 0) return { value, text: `▼ −${amount}`, label: `B tiene ${amount} menos que A` };
+  return { value, text: "= 0", label: "A y B tienen el mismo valor" };
+}
+
+/** Rows for the period table and CSV: both recorded values. */
 export function buildPeriodComparisonRows(
   statsA: PeriodComparisonStats,
   statsB: PeriodComparisonStats,
@@ -58,7 +75,7 @@ export function buildPeriodComparisonRows(
   ];
 }
 
-/** Rows for the entity table and CSV: recorded status and counts, no difference. */
+/** Rows for the entity table and CSV: recorded status and counts. */
 export function buildEntityComparisonRows(entityA: ComparisonEntity, entityB: ComparisonEntity): ComparisonCsvRow[] {
   const summaryA = entityA.data?.executionSummary;
   const summaryB = entityB.data?.executionSummary;

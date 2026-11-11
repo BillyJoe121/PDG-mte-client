@@ -70,3 +70,26 @@ export function buildConsolidatedSlides(
     },
   ];
 }
+
+function normalizeName(name: string) {
+  return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
+/**
+ * Adds to each STRATEGIC_BET slide the KRs of the ranking linked to that bet by name,
+ * already ordered by recorded progress. A bet without matches gets an empty list.
+ */
+export function attachBetKeyResults(
+  slides: PresentationSlide[],
+  rawReport: ConsolidatedReport | null | undefined,
+): PresentationSlide[] {
+  const ranking = sortByRecordedProgress(Array.isArray(rawReport?.keyResultRanking) ? rawReport.keyResultRanking : []);
+  return slides.map((slide) => {
+    if (slide.type !== "STRATEGIC_BET") return slide;
+    const betName = normalizeName(slide.title ?? "");
+    const linkedKeyResults = betName
+      ? ranking.filter((kr) => (kr.strategicBetNames ?? []).some((name) => normalizeName(name ?? "") === betName))
+      : [];
+    return { ...slide, content: { ...slide.content, linkedKeyResults } };
+  });
+}

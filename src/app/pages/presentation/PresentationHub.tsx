@@ -1,98 +1,126 @@
 import type { ReactNode } from "react";
-import { ArrowRight, BarChart2, CheckCircle2, ChevronRight, Flag, GitCompare, Layers, Presentation, Target } from "lucide-react";
-import { MetricCard } from "../dashboard/DashboardPanels";
-import { ToolbarButton } from "../../components/ScreenToolbar";
+import { ArrowRight, BarChart2, FileText, Flag, GitCompare, Layers, Presentation, Target } from "lucide-react";
+import type { GeneralReport } from "../../services/reportsApi";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
-import { PresentationPageHeader, PresentationPanel, PRESENTATION_UI } from "./PresentationLayout";
+import { PresentationPageHeader, PRESENTATION_UI } from "./PresentationLayout";
+import { formatScreenCount, ScreenStatTile } from "./PresentationScreenParts";
 
 interface Props {
   periodName: string;
   bets: StrategicBet[];
   goals: Goal[];
+  /** Consolidated totals of the period, when the API returned them. */
+  general?: GeneralReport | null;
   onSelectOption: (option: "general" | "compare" | "slides") => void;
 }
 
-export function PresentationHub({ periodName, bets, goals, onSelectOption }: Props) {
-  // Aggregate KPIs
-  const totalBets = bets.length;
-  const activeBets = bets.filter((b) => b.status === "ACTIVA").length;
-  const totalGoals = goals.length;
-  const activeGoals = goals.filter((g) => g.status === "ACTIVA").length;
+interface Kpi {
+  label: string;
+  value: number;
+  note: string;
+  color: string;
+  icon: ReactNode;
+}
 
-  // Un KR puede aportar a varias apuestas; el total refleja vinculos apuesta-KR.
-  const totalKeyResults = bets.reduce(
+/**
+ * Executive figures of the period. The KR figure comes from the consolidated report, where each
+ * KR counts once. Without it, the sum over the bets is labelled as bet–KR links, because a KR
+ * linked to several bets appears once per bet.
+ */
+export function buildHubKpis(bets: StrategicBet[], goals: Goal[], general?: GeneralReport | null): Kpi[] {
+  const activeBets = bets.filter((b) => b.status === "ACTIVA").length;
+  const activeGoals = goals.filter((g) => g.status === "ACTIVA").length;
+  const kpis: Kpi[] = [
+    { label: "Apuestas estratégicas", value: bets.length, note: `${formatScreenCount(activeBets)} activas`, color: PRESENTATION_UI.blue, icon: <Layers size={14} /> },
+    { label: "Metas institucionales", value: goals.length, note: `${formatScreenCount(activeGoals)} activas`, color: PRESENTATION_UI.green, icon: <Flag size={14} /> },
+  ];
+
+  if (general) {
+    kpis.push(
+      {
+        label: "KRs del periodo",
+        value: general.totalKeyResults ?? 0,
+        note: `${formatScreenCount(general.activeKeyResults ?? 0)} activos · ${formatScreenCount(general.closedKeyResults ?? 0)} cerrados`,
+        color: PRESENTATION_UI.orange,
+        icon: <Target size={14} />,
+      },
+      {
+        label: "Iniciativas del periodo",
+        value: general.totalProjects ?? 0,
+        note: `${formatScreenCount(general.activeProjects ?? 0)} activas · ${formatScreenCount(general.completedProjects ?? 0)} completadas`,
+        color: PRESENTATION_UI.blue,
+        icon: <FileText size={14} />,
+      },
+    );
+    return kpis;
+  }
+
+  const links = bets.reduce(
     (acc, b) => acc + (b.executionSummary?.completedKeyResults ?? 0) + (b.executionSummary?.inProgressKeyResults ?? 0),
-    0
+    0,
   );
-  const completedKeyResults = bets.reduce(
-    (acc, b) => acc + (b.executionSummary?.completedKeyResults ?? 0),
-    0
-  );
+  kpis.push({
+    label: "Vínculos apuesta–KR",
+    value: links,
+    note: "Un KR vinculado a varias apuestas cuenta una vez en cada una",
+    color: PRESENTATION_UI.orange,
+    icon: <Target size={14} />,
+  });
+  return kpis;
+}
+
+export function PresentationHub({ periodName, bets, goals, general, onSelectOption }: Props) {
+  const kpis = buildHubKpis(bets, goals, general);
 
   return (
     <div className="w-full">
-      <PresentationPageHeader
-        eyebrow={`Seguimiento ejecutivo · Periodo ${periodName || "vigente"}`}
-        title="Modo Presentación Estratégica MSP"
-        subtitle="Selecciona una modalidad para revisar el portafolio: todas las apuestas y metas con los conteos de KRs e iniciativas registrados, o dos entidades lado a lado."
-      />
+      <PresentationPageHeader title="Modo Presentación Estratégica MSP" subtitle={`Periodo ${periodName || "vigente"}`} />
 
-      <div className="space-y-4 px-4 py-5 sm:px-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {[
-            { label: "Apuestas estratégicas", value: totalBets, sub: `${activeBets} activas`, icon: Layers, color: PRESENTATION_UI.blue },
-            { label: "Metas institucionales", value: totalGoals, sub: `${activeGoals} activas`, icon: Flag, color: PRESENTATION_UI.green },
-            { label: "KRs vinculados a apuestas", value: totalKeyResults, sub: `${completedKeyResults} cumplidos`, icon: Target, color: PRESENTATION_UI.orange },
-          ].map((kpi, index) => (
-            <MetricCard key={kpi.label} index={index} {...kpi} />
-          ))}
-        </div>
+      <div className="space-y-4 px-4 py-4 sm:px-5">
+        <section aria-labelledby="hub-summary-heading">
+          <h2 id="hub-summary-heading" className="sr-only">Resumen del periodo</h2>
+          <div className={`grid grid-cols-2 gap-3 ${kpis.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+            {kpis.map((kpi) => (
+              <ScreenStatTile key={kpi.label} label={kpi.label} value={kpi.value} note={kpi.note} color={kpi.color} icon={kpi.icon} />
+            ))}
+          </div>
+        </section>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <HubOption
-            tag="Opción 1"
-            note="Vista consolidada"
-            title="Ver todas las metas y apuestas juntas"
-            description="Informe general con los conteos de KRs e iniciativas registrados para todas las apuestas estratégicas y metas institucionales."
-            icon={<BarChart2 size={16} aria-hidden="true" />}
-            tone="blue"
-            points={[
-              "Comparativas globales de todas las apuestas contra todas las apuestas.",
-              "Comparativas globales de todas las metas contra todas las metas.",
-              "Haz clic en cualquier barra o elemento para abrir el modal con el detalle completo.",
-            ]}
-            action="Explorar Informe General"
-            onSelect={() => onSelectOption("general")}
-          />
-          <HubOption
-            tag="Opción 2"
-            note="Análisis focalizado"
-            title="Comparar entidades estratégicas"
-            description="Contrasta dos entidades o dos periodos con los valores registrados de cada uno."
-            icon={<GitCompare size={16} aria-hidden="true" />}
-            tone="green"
-            points={[
-              <><strong>Apuesta vs Apuesta:</strong> Compara KRs e iniciativas entre dos apuestas.</>,
-              <><strong>Meta vs Meta:</strong> Contrasta valores esperados, KRs e iniciativas de dos metas.</>,
-              <><strong>Apuesta vs Meta:</strong> Revisa lado a lado los registros de una apuesta y una meta.</>,
-            ]}
-            action="Abrir Modo Comparar"
-            onSelect={() => onSelectOption("compare")}
-          />
-        </div>
-
-        <PresentationPanel
-          title="¿Deseas proyectar diapositivas ejecutivas?"
-          subtitle="Reproductor de diapositivas con navegación por teclado (flechas y espacio) y pantalla completa."
-          icon={<Presentation size={16} aria-hidden="true" />}
-          accent={PRESENTATION_UI.text}
-          headingLevel="h3"
-          actions={
-            <ToolbarButton onClick={() => onSelectOption("slides")}>
-              Iniciar Diapositivas <ChevronRight size={14} aria-hidden="true" />
-            </ToolbarButton>
-          }
-        />
+        <section aria-labelledby="hub-views-heading">
+          <h2 id="hub-views-heading" className="sr-only">Vistas disponibles</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <HubOption
+              tag="Informe"
+              title="Ver todas las metas y apuestas juntas"
+              description="KRs e iniciativas registrados por apuesta y por meta, en una tabla ordenable."
+              icon={<BarChart2 size={14} aria-hidden="true" />}
+              color={PRESENTATION_UI.blue}
+              buttonText="#fff"
+              action="Abrir Informe"
+              onSelect={() => onSelectOption("general")}
+            />
+            <HubOption
+              tag="Comparar"
+              title="Comparar entidades estratégicas"
+              description="Dos apuestas, dos metas, una apuesta y una meta o dos periodos, lado a lado."
+              icon={<GitCompare size={14} aria-hidden="true" />}
+              color={PRESENTATION_UI.green}
+              buttonText={PRESENTATION_UI.text}
+              action="Abrir Comparar"
+              onSelect={() => onSelectOption("compare")}
+            />
+            <HubOption
+              tag="Presentar"
+              title="Presentar en pantalla grande"
+              description="Diapositivas 16:9 para proyector, con teclado, miniaturas y pantalla completa."
+              icon={<Presentation size={14} aria-hidden="true" />}
+              color={PRESENTATION_UI.text}
+              buttonText="#fff"
+              action="Iniciar presentación"
+              onSelect={() => onSelectOption("slides")}
+            />
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -100,51 +128,34 @@ export function PresentationHub({ periodName, bets, goals, onSelectOption }: Pro
 
 interface HubOptionProps {
   tag: string;
-  note: string;
   title: string;
   description: string;
   icon: ReactNode;
-  tone: "blue" | "green";
-  points: ReactNode[];
+  color: string;
+  buttonText: string;
   action: string;
   onSelect: () => void;
 }
 
-function HubOption({ tag, note, title, description, icon, tone, points, action, onSelect }: HubOptionProps) {
-  const color = PRESENTATION_UI[tone];
+function HubOption({ tag, title, description, icon, color, buttonText, action, onSelect }: HubOptionProps) {
   return (
-    <article className="flex flex-col rounded-md bg-white p-4" style={{ border: `1px solid ${PRESENTATION_UI.border}`, boxShadow: PRESENTATION_UI.shadow }}>
-      <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${color}14`, color, border: `1px solid ${color}26` }}>
+    <article className="flex flex-col rounded-lg bg-white px-3 py-3" style={{ border: `1px solid ${PRESENTATION_UI.border}`, borderTop: `3px solid ${color}` }}>
+      <div className="flex items-center gap-2">
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md" style={{ backgroundColor: `${color}1A`, color }}>
           {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span style={{ fontSize: 9, fontWeight: 900, color, textTransform: "uppercase" }}>{tag}</span>
-            <span style={{ fontSize: 10.5, color: PRESENTATION_UI.muted }}>{note}</span>
-          </div>
-          <h3 style={{ fontSize: 13, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.2, marginTop: 3 }}>{title}</h3>
-          <p style={{ fontSize: 10.5, color: PRESENTATION_UI.muted, marginTop: 4, lineHeight: 1.45 }}>{description}</p>
-        </div>
+        </span>
+        <span style={{ fontSize: 10.5, fontWeight: 900, color: PRESENTATION_UI.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{tag}</span>
       </div>
-
-      <ul className="mt-4 flex-1 space-y-2 rounded-md p-3" style={{ border: `1px solid ${PRESENTATION_UI.border}`, backgroundColor: PRESENTATION_UI.surface }}>
-        {points.map((point, index) => (
-          <li key={index} className="flex items-start gap-2" style={{ fontSize: 10.5, color: PRESENTATION_UI.text, lineHeight: 1.45 }}>
-            <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color }} aria-hidden="true" />
-            <span>{point}</span>
-          </li>
-        ))}
-      </ul>
-
+      <h3 style={{ fontSize: 14, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.25, marginTop: 6 }}>{title}</h3>
+      <p className="flex-1" style={{ fontSize: 12, fontWeight: 600, color: PRESENTATION_UI.muted, marginTop: 2, lineHeight: 1.4 }}>{description}</p>
       <button
         type="button"
         onClick={onSelect}
-        className={`detail-invert-button detail-invert-button--solid detail-invert-button--${tone} mt-4 inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-md border px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#5454E9]`}
-        style={{ backgroundColor: color, color: "#fff", fontSize: 11, fontWeight: 850 }}
+        className="mt-3 inline-flex min-h-[32px] items-center justify-center gap-1.5 self-start rounded-md px-3 transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#111827]"
+        style={{ backgroundColor: color, color: buttonText, fontSize: 12, fontWeight: 850, border: "1px solid #000" }}
       >
         {action}
-        <ArrowRight size={14} aria-hidden="true" />
+        <ArrowRight size={13} aria-hidden="true" />
       </button>
     </article>
   );

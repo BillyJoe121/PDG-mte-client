@@ -1,106 +1,111 @@
 import { Calendar } from "lucide-react";
 import type { AcademicPeriod } from "../../services/catalogsApi";
 import type { ComparisonCsvRow } from "./presentationExportUtils";
-import type { PeriodComparisonStats } from "./PresentationTypes";
+import { PRESENTATION_UI } from "./PresentationLayout";
+import { buildComparisonBars, comparisonDifference } from "./PresentationComparisonData";
+import { BAR_TRACK, formatScreenCount, LABEL_STYLE, ScreenEmptyState } from "./PresentationScreenParts";
+
+/** Side A is always blue and side B always green, in the pickers, the cards, the bars and the table. */
+export const SIDE_COLORS = { A: PRESENTATION_UI.blue, B: PRESENTATION_UI.green } as const;
+/** Darker green for text on white, so side B labels keep enough contrast. */
+export const SIDE_TEXT = { A: PRESENTATION_UI.blue, B: "#2F855A" } as const;
 
 const PERIOD_CARD_VARIANTS = {
-  base: {
-    border: "border-[#D9DEE8] border-t-[3px] border-t-[#5454E9]",
-    text: "text-[#5454E9]",
-    badge: "bg-indigo-100 text-indigo-800",
-    label: "Periodo A (Base)",
-  },
-  compare: {
-    border: "border-[#D9DEE8] border-t-[3px] border-t-[#4CB979]",
-    text: "text-[#2F855A]",
-    badge: "bg-emerald-100 text-emerald-800",
-    label: "Periodo B (Comparado)",
-  },
+  base: { side: "A", label: "Periodo A (Base)" },
+  compare: { side: "B", label: "Periodo B (Comparado)" },
 } as const;
 
+/** Header card of one period: which side it is, its dates and its recorded status. The figures live in the table. */
 export function PeriodStatsCard({
   variant,
   periodName,
   period,
-  stats,
 }: {
   variant: keyof typeof PERIOD_CARD_VARIANTS;
   periodName: string;
   period?: AcademicPeriod;
-  stats: PeriodComparisonStats;
 }) {
-  const style = PERIOD_CARD_VARIANTS[variant];
+  const { side, label } = PERIOD_CARD_VARIANTS[variant];
   return (
-    <div className={`relative overflow-hidden rounded-md border ${style.border} bg-white p-4 shadow-[0_1px_2px_rgba(17,24,39,0.05)]`}>
-      <div className="flex items-center justify-between">
-        <span className={`inline-flex items-center gap-1.5 ${style.text} text-[9px] font-black uppercase tracking-[0.04em]`}>
-          <Calendar size={12} /> {style.label}
-        </span>
-        <span className={`rounded-sm ${style.badge} px-2 py-0.5 text-xs font-bold`}>Periodo {periodName}</span>
-      </div>
-
-      <h3 className="mt-2 text-[13px] font-black text-[#111827]">Periodo Académico {periodName}</h3>
-      <p className="mt-1 text-xs font-medium text-[#717182]">
+    <article
+      className="flex min-w-0 flex-col rounded-lg bg-white px-3 py-2"
+      style={{ border: `1px solid ${PRESENTATION_UI.border}`, borderTop: `3px solid ${SIDE_COLORS[side]}` }}
+    >
+      <span className="inline-flex items-center gap-1.5" style={{ ...LABEL_STYLE, color: SIDE_TEXT[side] }}>
+        <Calendar size={12} aria-hidden="true" /> {label}
+      </span>
+      <h3 style={{ fontSize: 14, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.25, marginTop: 3 }}>Periodo Académico {periodName}</h3>
+      <p style={{ fontSize: 11.5, fontWeight: 600, color: PRESENTATION_UI.muted, marginTop: 1 }}>
         {period?.startDate ?? "Sin fecha"} a {period?.endDate ?? "Sin fecha"} · Estado:{" "}
-        <strong className="text-[#111827]">{period?.status ?? "Sin estado"}</strong>
+        <strong style={{ color: PRESENTATION_UI.text }}>{period?.status ?? "Sin estado"}</strong>
       </p>
-
-      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-2">
-          <p className="text-[#717182] font-semibold text-[11px]">KRs Totales</p>
-          <p className="text-[15px] font-black text-[#E9683B]">{stats.totalKeyResults}</p>
-          <p className="text-[10px] font-bold text-[#E9683B]">
-            {stats.activeKeyResults} activos · {stats.closedKeyResults} cerrados
-          </p>
-        </div>
-        <div className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-2">
-          <p className="text-[#717182] font-semibold text-[11px]">Iniciativas Totales</p>
-          <p className="text-[15px] font-black text-[#111827]">{stats.totalProjects}</p>
-          <p className="text-[10px] font-bold text-emerald-700">
-            {stats.activeProjects} activas · {stats.completedProjects} completadas
-          </p>
-        </div>
-      </div>
-    </div>
+    </article>
   );
 }
 
-/** Side-by-side table of recorded values. It shows both values and never a difference between them. */
+const DIFFERENCE_COLORS = { up: "#2F855A", down: "#B8461F", same: PRESENTATION_UI.muted } as const;
+
+/**
+ * Side-by-side table of recorded values, with the difference B − A for numeric rows.
+ * Rows without a numeric value on both sides, such as Estado, show "—".
+ */
 export function ComparisonTable({ rows, headerA, headerB }: { rows: ComparisonCsvRow[]; headerA: string; headerB: string }) {
+  const headStyle = LABEL_STYLE;
+  const bars = new Map(buildComparisonBars(rows).map((bar) => [bar.metric, bar]));
+  const max = Math.max(1, ...[...bars.values()].flatMap((bar) => [bar.a, bar.b]));
+  const formatValue = (value: number | string) => (typeof value === "number" ? formatScreenCount(value) : value);
   return (
-    <div className="overflow-x-auto rounded-lg border border-[#D9DEE8]">
-      <table className="w-full text-left text-[12px]" aria-label="Tabla comparativa">
-        <thead className="border-b border-[#D9DEE8] bg-[#F8F9FB] text-[10.5px] font-extrabold text-[#374151]">
+    <div className="overflow-x-auto rounded-lg bg-white" style={{ border: `1px solid ${PRESENTATION_UI.border}` }}>
+      <table className="w-full text-left" style={{ minWidth: 560, fontSize: 12.5 }} aria-label="Tabla comparativa">
+        <thead style={{ backgroundColor: PRESENTATION_UI.surface, borderBottom: `1px solid ${PRESENTATION_UI.border}` }}>
           <tr>
-            <th className="px-3 py-2.5">Métrica</th>
-            <th className="px-3 py-2.5 text-center text-[#5454E9]">{headerA}</th>
-            <th className="px-3 py-2.5 text-center text-[#4CB979]">{headerB}</th>
+            <th scope="col" className="px-3 py-2" style={headStyle}>Métrica</th>
+            <th scope="col" className="px-3 py-2 text-right" style={{ ...headStyle, color: SIDE_TEXT.A }}>{headerA}</th>
+            <th scope="col" className="px-3 py-2 text-right" style={{ ...headStyle, color: SIDE_TEXT.B }}>{headerB}</th>
+            <th scope="col" className="px-3 py-2 text-right" style={headStyle}>Diferencia (B − A)</th>
+            <th scope="col" className="px-3 py-2" style={headStyle}>Distribución</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#D9DEE8] font-semibold text-[#111827]">
-          {rows.map((row) => (
-            <tr key={row.metric} className="hover:bg-[#F8FAFC]">
-              <td className="px-3 py-2.5 font-bold">{row.metric}</td>
-              <td className="px-3 py-2.5 text-center font-bold">{row.valA}</td>
-              <td className="px-3 py-2.5 text-center font-bold">{row.valB}</td>
-            </tr>
-          ))}
+        <tbody>
+          {rows.map((row) => {
+            const difference = comparisonDifference(row);
+            const tone = difference.value === null || difference.value === 0 ? "same" : difference.value > 0 ? "up" : "down";
+            return (
+              <tr key={row.metric} style={{ borderBottom: `1px solid ${PRESENTATION_UI.divider}` }}>
+                <th scope="row" className="px-3 py-1.5" style={{ fontWeight: 850, color: PRESENTATION_UI.text }}>{row.metric}</th>
+                <td className="px-3 py-1.5 text-right tabular-nums" style={{ fontSize: 13.5, fontWeight: 900, color: PRESENTATION_UI.text }}>{formatValue(row.valA)}</td>
+                <td className="px-3 py-1.5 text-right tabular-nums" style={{ fontSize: 13.5, fontWeight: 900, color: PRESENTATION_UI.text }}>{formatValue(row.valB)}</td>
+                <td className="px-3 py-1.5 text-right tabular-nums" style={{ fontSize: 12.5, fontWeight: 900, color: DIFFERENCE_COLORS[tone] }}>
+                  <span aria-hidden="true">{difference.text}</span>
+                  <span className="sr-only">{difference.label}</span>
+                </td>
+                <td className="px-3 py-1.5">
+                  <SideBars bar={bars.get(row.metric)} max={max} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
+/** Two thin bars, A blue over B green, relative to the largest value of the table. Purely visual. */
+function SideBars({ bar, max }: { bar?: { a: number; b: number }; max: number }) {
+  if (!bar) return null;
+  return (
+    <span className="flex w-[120px] flex-col gap-0.5" aria-hidden="true">
+      {(["a", "b"] as const).map((key) => (
+        <span key={key} className="block h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: BAR_TRACK }}>
+          <span className="block h-full rounded-full" style={{ width: `${Math.min(100, (bar[key] / max) * 100)}%`, backgroundColor: key === "a" ? SIDE_COLORS.A : SIDE_COLORS.B }} />
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /** Loading, error or empty message shown instead of the comparison. */
 export function ComparisonStatusMessage({ title, text, tone = "info" }: { title: string; text: string; tone?: "info" | "error" }) {
-  const isError = tone === "error";
-  return (
-    <div
-      role={isError ? "alert" : "status"}
-      className={`rounded-md border border-dashed p-5 text-center ${isError ? "border-red-300 bg-red-50" : "border-[#C9CFDB] bg-[#F8FAFC]"}`}
-    >
-      <p className={`text-sm font-black ${isError ? "text-red-800" : "text-[#111827]"}`}>{title}</p>
-      <p className="mt-1 text-xs font-semibold text-[#717182]">{text}</p>
-    </div>
-  );
+  return <ScreenEmptyState title={title} text={text} tone={tone} />;
 }

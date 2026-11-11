@@ -1,54 +1,45 @@
-import { CheckCircle2, FileText, Info, Layers, Target } from "lucide-react";
+import { CheckCircle2, FileText, Layers, Target } from "lucide-react";
 import type { DepartmentReport, GeneralReport, KeyResultRanking, PresentationSlide } from "../../services/reportsApi";
-import { LargeMetricPill, SlideProgressRow, strategyText } from "./PresentationConsolidatedSlideParts";
+import { PRESENTATION_UI } from "./PresentationLayout";
+import { formatCount, PanelHeading, ProgressBarRow, SlideEmptyState, StatTile, strategyText } from "./PresentationConsolidatedSlideParts";
 
-function SlideEmptyState({ title, text }: { title: string; text: string }) {
-  return (
-    <div
-      className="mt-2.5 sm:mt-3 flex items-start gap-2.5 rounded-lg border border-dashed border-[#C9CFDB] bg-[#F8FAFC] p-3 sm:p-4"
-      role="status"
-    >
-      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white text-[#5454E9]" aria-hidden="true">
-        <Info size={15} />
-      </div>
-      <div>
-        <p className="text-xs sm:text-sm font-black text-[#111827]">{title}</p>
-        <p className="mt-0.5 text-[11px] font-semibold leading-relaxed text-[#717182]">{text}</p>
-      </div>
-    </div>
-  );
-}
+/** Rows that fit on the stage; the rest stay in the Informe view. */
+export const RANKING_VISIBLE_ROWS = 7;
 
 function SummarySlide({ general }: { general: GeneralReport }) {
   return (
-    <div className="mt-2.5 sm:mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-      <LargeMetricPill
+    <div className="grid h-full grid-cols-4 gap-8">
+      <StatTile
         label="Iniciativas del corte"
         value={general.totalProjects ?? 0}
-        sub={`${general.activeProjects ?? 0} activas`}
-        color="#5454E9"
-        icon={<FileText size={16} />}
+        note={`${formatCount(general.activeProjects ?? 0)} activas`}
+        color={PRESENTATION_UI.blue}
+        icon={<FileText size={28} />}
+        size="lg"
       />
-      <LargeMetricPill
+      <StatTile
         label="Iniciativas completadas"
         value={general.completedProjects ?? 0}
-        sub="Registradas como completadas"
-        color="#4CB979"
-        icon={<CheckCircle2 size={16} />}
+        note="Registradas como completadas"
+        color={PRESENTATION_UI.green}
+        icon={<CheckCircle2 size={28} />}
+        size="lg"
       />
-      <LargeMetricPill
+      <StatTile
         label="KRs incluidos"
         value={general.totalKeyResults ?? 0}
-        sub={`${general.activeKeyResults ?? 0} activos`}
-        color="#E9683B"
-        icon={<Target size={16} />}
+        note={`${formatCount(general.activeKeyResults ?? 0)} activos`}
+        color={PRESENTATION_UI.orange}
+        icon={<Target size={28} />}
+        size="lg"
       />
-      <LargeMetricPill
+      <StatTile
         label="KRs cerrados"
         value={general.closedKeyResults ?? 0}
-        sub="Solo cuentan los KRs en estado Cerrado"
-        color="#E9683B"
-        icon={<Layers size={16} />}
+        note="Solo cuentan los KRs en estado Cerrado"
+        color={PRESENTATION_UI.green}
+        icon={<Layers size={28} />}
+        size="lg"
       />
     </div>
   );
@@ -63,27 +54,39 @@ function RankingSlide({ keyResults }: { keyResults: KeyResultRanking[] }) {
       />
     );
   }
-
+  const visible = keyResults.slice(0, RANKING_VISIBLE_ROWS);
+  const hidden = keyResults.length - visible.length;
   return (
-    <div className="mt-2.5 sm:mt-3 rounded-lg border border-[#D9DEE8] bg-white p-2.5 sm:p-3.5 shadow-xs">
-      <div className="flex items-center justify-between border-b border-[#D9DEE8] pb-1.5 mb-1">
-        <h3 className="text-xs font-black uppercase tracking-wider text-[#111827]">Avance registrado</h3>
-        <span className="text-[10px] font-bold text-[#717182]">{keyResults.length} KRs</span>
-      </div>
-      <div className="max-h-[260px] overflow-y-auto app-scroll-default divide-y divide-[#D9DEE8]">
-        {keyResults.map((kr, idx) => (
-          <SlideProgressRow
-            key={kr.keyResultId || idx}
-            badge={`${idx + 1}`}
+    <div>
+      <PanelHeading title="Avance registrado" aside={`${formatCount(keyResults.length)} KRs`} />
+      <ol className="flex flex-col gap-6">
+        {visible.map((kr, index) => (
+          <ProgressBarRow
+            key={kr.keyResultId || index}
+            rank={index + 1}
             label={kr.keyResultName}
+            detail={`${strategyText(kr)} · ${formatCount(kr.linkedProjects ?? 0)} iniciativas`}
             value={kr.progressPercentage}
-            detail={`${strategyText(kr)} · ${kr.linkedProjects} iniciativas`}
           />
         ))}
-      </div>
+      </ol>
+      {hidden > 0 && (
+        <p style={{ fontSize: 22, fontWeight: 700, color: PRESENTATION_UI.muted, marginTop: 24 }}>
+          {`Y ${formatCount(hidden)} KRs más con avance registrado: consulta la lista completa en Informe.`}
+        </p>
+      )}
     </div>
   );
 }
+
+const DEPARTMENT_COLUMNS = [
+  { key: "projects", label: "Iniciativas", color: PRESENTATION_UI.blue },
+  { key: "keyResults", label: "KRs", color: PRESENTATION_UI.orange },
+  { key: "closedKeyResults", label: "KRs cerrados", color: PRESENTATION_UI.green },
+] as const;
+
+/** Rows that fit on the stage. */
+export const DEPARTMENT_VISIBLE_ROWS = 8;
 
 function DepartmentsSlide({ departments }: { departments: DepartmentReport[] }) {
   if (!departments.length) {
@@ -94,40 +97,68 @@ function DepartmentsSlide({ departments }: { departments: DepartmentReport[] }) 
       />
     );
   }
+  const visible = departments.slice(0, DEPARTMENT_VISIBLE_ROWS);
+  const hidden = departments.length - visible.length;
+  // Each bar is relative to the largest recorded value of its column.
+  const max = Object.fromEntries(
+    DEPARTMENT_COLUMNS.map((column) => [column.key, Math.max(1, ...departments.map((dept) => Number(dept[column.key]) || 0))])
+  ) as Record<(typeof DEPARTMENT_COLUMNS)[number]["key"], number>;
 
   return (
-    <div className="mt-2.5 sm:mt-3 rounded-lg border border-[#D9DEE8] bg-white p-2.5 sm:p-3.5 shadow-xs overflow-hidden">
-      <div className="overflow-x-auto max-h-[220px] sm:max-h-[260px] overflow-y-auto app-scroll-default">
-        <table className="w-full text-left text-xs" aria-label="Resumen por departamento">
-          <thead className="sticky top-0 bg-white z-10">
-            <tr className="border-b border-[#D9DEE8] text-[9px] font-black uppercase tracking-wider text-[#717182]">
-              <th className="py-1.5 px-2">Departamento</th>
-              <th className="py-1.5 px-2 text-center">Iniciativas</th>
-              <th className="py-1.5 px-2 text-center">KRs</th>
-              <th className="py-1.5 px-2 text-center">KRs cerrados</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#D9DEE8]">
-            {departments.map((dept, idx) => (
-              <tr key={dept.departmentId || idx} className="hover:bg-[#F8FAFC] transition-colors">
-                <td className="py-1 px-2 font-black text-[#111827] text-xs">{dept.departmentName}</td>
-                <td className="py-1 px-2 text-center font-bold text-[#717182] text-xs">{dept.projects}</td>
-                <td className="py-1 px-2 text-center font-bold text-[#717182] text-xs">{dept.keyResults}</td>
-                <td className="py-1 px-2 text-center font-bold text-[#717182] text-xs">{dept.closedKeyResults}</td>
-              </tr>
+    <div>
+      <table className="w-full table-fixed text-left" aria-label="Resumen por departamento">
+        <thead>
+          <tr style={{ fontSize: 22, fontWeight: 900, color: PRESENTATION_UI.muted, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: `2px solid ${PRESENTATION_UI.border}` }}>
+            <th className="w-[34%]" style={{ padding: "0 16px 14px 0" }}>Departamento</th>
+            {DEPARTMENT_COLUMNS.map((column) => (
+              <th key={column.key} style={{ padding: "0 16px 14px" }}>
+                <span className="inline-flex items-center gap-3">
+                  <span className="rounded-sm" style={{ width: 16, height: 16, backgroundColor: column.color }} aria-hidden="true" />
+                  {column.label}
+                </span>
+              </th>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((dept, index) => (
+            <tr key={dept.departmentId || index} style={{ borderBottom: `2px solid ${PRESENTATION_UI.divider}` }}>
+              <td className="truncate" style={{ padding: "16px 16px 16px 0", fontSize: 28, fontWeight: 850, color: PRESENTATION_UI.text }}>
+                {dept.departmentName}
+              </td>
+              {DEPARTMENT_COLUMNS.map((column) => {
+                const value = Number(dept[column.key]) || 0;
+                return (
+                  <td key={column.key} style={{ padding: "16px" }}>
+                    <div className="flex items-center gap-4">
+                      <span className="w-16 shrink-0 text-right" style={{ fontSize: 30, fontWeight: 900, color: PRESENTATION_UI.text }}>
+                        {formatCount(value)}
+                      </span>
+                      <span className="h-4 flex-1 overflow-hidden rounded-full bg-[#E9ECF2]" aria-hidden="true">
+                        <span className="block h-full rounded-full" style={{ width: `${(value / max[column.key]) * 100}%`, backgroundColor: column.color }} />
+                      </span>
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {hidden > 0 && (
+        <p style={{ fontSize: 22, fontWeight: 700, color: PRESENTATION_UI.muted, marginTop: 20 }}>
+          {`Y ${formatCount(hidden)} departamentos más: consulta el detalle en Informe.`}
+        </p>
+      )}
     </div>
   );
 }
 
 export function PresentationConsolidatedSlideContent({ slide }: { slide: PresentationSlide }) {
-  const content = (slide.content ?? {}) as Record<string, any>;
+  const content = (slide.content ?? {}) as Record<string, unknown>;
 
   if (slide.type === "CONSOLIDATED_EMPTY") {
-    const period = content.periodName ? `el periodo ${content.periodName}` : "el periodo seleccionado";
+    const period = content.periodName ? `el periodo ${String(content.periodName)}` : "el periodo seleccionado";
     return (
       <SlideEmptyState
         title={`No hay reporte consolidado para ${period}`}
@@ -135,18 +166,10 @@ export function PresentationConsolidatedSlideContent({ slide }: { slide: Present
       />
     );
   }
-
-  if (slide.type === "CONSOLIDATED_SUMMARY") {
-    return <SummarySlide general={(content.general ?? {}) as GeneralReport} />;
-  }
-
-  if (slide.type === "CONSOLIDATED_RANKING") {
-    return <RankingSlide keyResults={(content.keyResults ?? []) as KeyResultRanking[]} />;
-  }
-
+  if (slide.type === "CONSOLIDATED_SUMMARY") return <SummarySlide general={(content.general ?? {}) as GeneralReport} />;
+  if (slide.type === "CONSOLIDATED_RANKING") return <RankingSlide keyResults={(content.keyResults ?? []) as KeyResultRanking[]} />;
   if (slide.type === "CONSOLIDATED_DEPTS_SUMMARY") {
     return <DepartmentsSlide departments={(content.departments ?? []) as DepartmentReport[]} />;
   }
-
   return null;
 }

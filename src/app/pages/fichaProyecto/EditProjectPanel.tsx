@@ -112,53 +112,57 @@ export function EditProjectPanel({
       </FormTopBar>
       <DetailBody>
         <form id={formId} onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <FormField label="Nombre">
-              <input value={form.name} onChange={(event) => updateField("name", event.target.value)} className={FORM_CONTROL_CLASS} />
+          <div data-tour="project-form-data" className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <FormField label="Nombre">
+                <input value={form.name} onChange={(event) => updateField("name", event.target.value)} className={FORM_CONTROL_CLASS} />
+              </FormField>
+            </div>
+            <div className="md:col-span-2">
+              <FormField label="Descripción">
+                <textarea value={form.description} onChange={(event) => updateField("description", event.target.value)} rows={4} className={`${FORM_CONTROL_CLASS} resize-y`} />
+              </FormField>
+            </div>
+            <FormField label="Tipo">
+              <FormSelect label="Tipo" value={form.type} options={PROJECT_TYPE_OPTIONS} onChange={(value) => updateField("type", value as ProjectType)} />
+            </FormField>
+            <FormField label="Departamento">
+              <FormSelect
+                label="Departamento"
+                value={form.departmentId}
+                options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
+                onChange={(value) => updateField("departmentId", value)}
+              />
             </FormField>
           </div>
-          <div className="md:col-span-2">
-            <FormField label="Descripción">
-              <textarea value={form.description} onChange={(event) => updateField("description", event.target.value)} rows={4} className={`${FORM_CONTROL_CLASS} resize-y`} />
+          <div data-tour="project-form-dates" className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
+            <FormField label="Periodo inicial">
+              <FormSelect label="Periodo inicial" value={form.startPeriod} options={periodOptions} onChange={(value) => updateField("startPeriod", value)} />
+            </FormField>
+            <FormField label="Periodo final">
+              <FormSelect
+                label="Periodo final"
+                value={form.endPeriod || "none"}
+                options={[{ value: "none", label: "Sin periodo final" }, ...periodOptions]}
+                onChange={(value) => updateField("endPeriod", value === "none" ? "" : value)}
+              />
+            </FormField>
+            <FormField label="Fecha inicio">
+              <input type="date" value={form.startDate} onChange={(event) => updateField("startDate", event.target.value)} className={FORM_CONTROL_CLASS} />
+            </FormField>
+            <FormField label="Fecha fin">
+              <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => updateField("endDate", event.target.value)} className={FORM_CONTROL_CLASS} />
+            </FormField>
+            <FormField label="Fecha fin real">
+              <input type="date" min={form.startDate || undefined} value={form.actualEndDate} onChange={(event) => updateField("actualEndDate", event.target.value)} className={FORM_CONTROL_CLASS} />
             </FormField>
           </div>
-          <FormField label="Tipo">
-            <FormSelect label="Tipo" value={form.type} options={PROJECT_TYPE_OPTIONS} onChange={(value) => updateField("type", value as ProjectType)} />
-          </FormField>
-          <FormField label="Departamento">
-            <FormSelect
-              label="Departamento"
-              value={form.departmentId}
-              options={departments.map((department) => ({ value: String(department.id), label: department.name }))}
-              onChange={(value) => updateField("departmentId", value)}
-            />
-          </FormField>
-          <FormField label="Periodo inicial">
-            <FormSelect label="Periodo inicial" value={form.startPeriod} options={periodOptions} onChange={(value) => updateField("startPeriod", value)} />
-          </FormField>
-          <FormField label="Periodo final">
-            <FormSelect
-              label="Periodo final"
-              value={form.endPeriod || "none"}
-              options={[{ value: "none", label: "Sin periodo final" }, ...periodOptions]}
-              onChange={(value) => updateField("endPeriod", value === "none" ? "" : value)}
-            />
-          </FormField>
-          <FormField label="Fecha inicio">
-            <input type="date" value={form.startDate} onChange={(event) => updateField("startDate", event.target.value)} className={FORM_CONTROL_CLASS} />
-          </FormField>
-          <FormField label="Fecha fin">
-            <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => updateField("endDate", event.target.value)} className={FORM_CONTROL_CLASS} />
-          </FormField>
-          <FormField label="Fecha fin real">
-            <input type="date" min={form.startDate || undefined} value={form.actualEndDate} onChange={(event) => updateField("actualEndDate", event.target.value)} className={FORM_CONTROL_CLASS} />
-          </FormField>
           <div className="md:col-span-2">
             <FormField label="Tutores" hint="Separados por coma">
               <input value={form.tutors} onChange={(event) => updateField("tutors", event.target.value)} className={FORM_CONTROL_CLASS} />
             </FormField>
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2" data-tour="project-form-planner">
             <PlannerUrlField
               id="edit-project-planner-url"
               value={form.plannerUrl}

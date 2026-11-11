@@ -32,7 +32,7 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
           <div className="min-w-0 pr-4">
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.06em]"
+                className="inline-flex items-center gap-1.5 text-[12px] font-black uppercase tracking-[0.06em]"
                 style={{ color: isBet ? PRESENTATION_COLORS.blue : "#2F855A" }}
               >
                 {isBet ? <Flag size={12} aria-hidden="true" /> : <Target size={12} aria-hidden="true" />}
@@ -40,7 +40,7 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
               </span>
               <PresentationStatusBadge status={entity.data.status} />
             </div>
-            <DialogPrimitive.Title className="mt-1.5 text-[18px] font-black leading-tight text-[#111827]">
+            <DialogPrimitive.Title className="mt-1.5 text-[22px] font-black leading-tight text-[#111827]">
               {entity.data.name}
             </DialogPrimitive.Title>
           </div>
@@ -58,8 +58,8 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Description */}
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#717182]">Descripción</h3>
-            <p className="mt-1 text-sm font-medium leading-relaxed text-[#4B5563]">
+            <h3 className="text-[12.5px] font-extrabold uppercase tracking-wider text-[#717182]">Descripción</h3>
+            <p className="mt-1 text-[13px] font-medium leading-relaxed text-[#4B5563]">
               {entity.data.description || "Sin descripción registrada para esta entidad estratégica."}
             </p>
           </div>
@@ -68,14 +68,14 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
           {goal && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-4 sgp-print-avoid">
               <div>
-                <span className="block text-xs font-bold uppercase text-[#717182]">Indicador de Referencia</span>
-                <span className="mt-1 block text-sm font-black text-[#111827]">
+                <span className="block text-[12.5px] font-bold uppercase text-[#717182]">Indicador de Referencia</span>
+                <span className="mt-1 block text-[13px] font-black text-[#111827]">
                   {goal.referenceIndicator || "No especificado"}
                 </span>
               </div>
               <div>
-                <span className="block text-xs font-bold uppercase text-[#717182]">Meta Esperada / Unidad</span>
-                <span className="mt-1 block text-sm font-black text-[#111827]">
+                <span className="block text-[12.5px] font-bold uppercase text-[#717182]">Meta Esperada / Unidad</span>
+                <span className="mt-1 block text-[13px] font-black text-[#111827]">
                   {goal.expectedValue} {goal.measurementUnitName || "unidades"}
                 </span>
               </div>
@@ -83,7 +83,7 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
           )}
 
           {/* Dates / Timeframe */}
-          <div className="flex items-center gap-4 text-xs font-bold text-[#717182]">
+          <div className="flex items-center gap-4 text-[12.5px] font-bold text-[#717182]">
             <div className="flex items-center gap-1.5">
               <Calendar size={14} className="text-[#5454E9]" aria-hidden="true" />
               <span>Vigencia:</span>
@@ -95,44 +95,44 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
 
           {/* KPI Cards Grid */}
           <div className="sgp-print-avoid">
-            <h3 className="mb-3 text-xs font-extrabold uppercase tracking-wider text-[#717182]">
+            <h3 className="mb-3 text-[12.5px] font-extrabold uppercase tracking-wider text-[#717182]">
               KRs e iniciativas registrados
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-4 text-center">
-                <div className="flex items-center justify-center gap-1 text-xs font-extrabold text-[#717182]">
+                <div className="flex items-center justify-center gap-1 text-[12.5px] font-extrabold text-[#717182]">
                   <Target size={14} className="text-[#E9683B]" aria-hidden="true" />
                   <span>Resultados Clave (KRs)</span>
                 </div>
                 <div className="mt-2 text-2xl font-black text-[#E9683B]">
                   {summary?.completedKeyResults ?? 0}
-                  <span className="text-sm font-semibold text-[#717182]">
+                  <span className="text-[13px] font-semibold text-[#717182]">
                     {" "}/ {((summary?.completedKeyResults ?? 0) + (summary?.inProgressKeyResults ?? 0))}
                   </span>
                 </div>
-                <span className="mt-1 block text-[11px] font-bold text-[#5454E9]">
+                <span className="mt-1 block text-[13px] font-bold text-[#5454E9]">
                   {summary?.completedKeyResults ?? 0} completados
                 </span>
-                <span className="block text-[11px] font-semibold text-[#717182]">
+                <span className="block text-[13px] font-semibold text-[#717182]">
                   {summary?.inProgressKeyResults ?? 0} en progreso
                 </span>
               </div>
 
               <div className="rounded-md border border-[#D9DEE8] bg-[#F8FAFC] p-4 text-center">
-                <div className="flex items-center justify-center gap-1 text-xs font-extrabold text-[#717182]">
+                <div className="flex items-center justify-center gap-1 text-[12.5px] font-extrabold text-[#717182]">
                   <Award size={14} className="text-[#E9683B]" aria-hidden="true" />
                   <span>Iniciativas</span>
                 </div>
                 <div className="mt-2 text-2xl font-black text-[#111827]">
                   {summary?.completedProjects ?? 0}
-                  <span className="text-sm font-semibold text-[#717182]">
+                  <span className="text-[13px] font-semibold text-[#717182]">
                     {" "}/ {((summary?.completedProjects ?? 0) + (summary?.inProgressProjects ?? 0))}
                   </span>
                 </div>
-                <span className="mt-1 block text-[11px] font-bold text-[#E9683B]">
+                <span className="mt-1 block text-[13px] font-bold text-[#E9683B]">
                   {summary?.completedProjects ?? 0} finalizadas
                 </span>
-                <span className="block text-[11px] font-semibold text-[#717182]">
+                <span className="block text-[13px] font-semibold text-[#717182]">
                   {summary?.inProgressProjects ?? 0} activas
                 </span>
               </div>
@@ -142,11 +142,11 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
           {/* Historical Periods if available */}
           {summary?.periods && summary.periods.length > 0 && (
             <div className="sgp-print-avoid">
-              <h3 className="mb-2 text-xs font-extrabold uppercase tracking-wider text-[#717182]">
+              <h3 className="mb-2 text-[12.5px] font-extrabold uppercase tracking-wider text-[#717182]">
                 Historial de Ejecución por Periodo
               </h3>
               <div className="overflow-x-auto rounded-md border border-[#D9DEE8]">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-[12.5px]">
                   <thead className="border-b border-[#D9DEE8] bg-[#F8FAFC] font-extrabold text-[#717182]">
                     <tr>
                       <th className="px-3 py-2">Periodo</th>
@@ -202,7 +202,7 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
             <button
               type="button"
               onClick={() => navigate(editRoute)}
-              className="inline-flex min-h-[38px] items-center gap-2 rounded-md px-4 text-[11px] font-extrabold text-white hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9] focus-visible:ring-offset-2"
+              className="inline-flex min-h-[38px] items-center gap-2 rounded-md px-4 text-[13px] font-extrabold text-white hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5454E9] focus-visible:ring-offset-2"
               style={{ backgroundColor: isBet ? PRESENTATION_COLORS.blue : PRESENTATION_COLORS.green }}
             >
               <span>Ir a la gestión detallada</span>

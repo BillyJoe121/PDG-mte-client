@@ -168,10 +168,10 @@ export function PeriodField({ label, value, onChange, options }: { label: string
   );
 }
 
-export function ExportButton({ format, active, disabled, onClick }: { format: "pdf" | "csv"; active: boolean; disabled: boolean; onClick: () => void }) {
+export function ExportButton({ format, active, disabled, onClick, tourId }: { format: "pdf" | "csv"; active: boolean; disabled: boolean; onClick: () => void; tourId?: string }) {
   const Icon = format === "pdf" ? FileText : Download;
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className={DETAIL_BUTTON_CLASS}>
+    <button type="button" onClick={onClick} disabled={disabled} data-tour={tourId} className={DETAIL_BUTTON_CLASS}>
       {active ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
       {format.toUpperCase()}
     </button>

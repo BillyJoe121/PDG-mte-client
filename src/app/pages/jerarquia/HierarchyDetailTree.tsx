@@ -37,7 +37,7 @@ export function HierarchyDetailTree({
   const children = root.children ?? [];
 
   return (
-    <section className="rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
+    <section data-tour="jerarquia-tree" className="rounded-md bg-white p-4" style={{ border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 2px rgba(17,24,39,0.05)" }}>
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <p style={{ color: COLORS.text, fontSize: 13, fontWeight: 900 }}>Contenido jerarquico</p>
@@ -47,7 +47,7 @@ export function HierarchyDetailTree({
         </div>
         <div className="flex flex-col items-end gap-1.5">
           {onCreateChild && createChildLabel && (
-            <button onClick={onCreateChild} className="btn-primary-orange active:scale-95" style={{ fontSize: 11, padding: "5px 10px", gap: 5, minHeight: 24 }}>
+            <button type="button" onClick={onCreateChild} data-tour="jerarquia-tree-create" className="btn-primary-orange active:scale-95" style={{ fontSize: 11, padding: "5px 10px", gap: 5, minHeight: 24 }}>
               <Plus size={11} /> {createChildLabel}
             </button>
           )}
@@ -90,7 +90,7 @@ function HierarchyChildSections({
 }) {
   return (
     <div className="space-y-3">
-      {groupHierarchyNodes(nodes).map((group) => (
+      {groupHierarchyNodes(nodes).map((group, groupIndex) => (
         <div key={group.type} className="space-y-1.5">
           <HierarchySectionTitle type={group.type} depth={depth} />
           <div className="space-y-1.5">
@@ -106,6 +106,7 @@ function HierarchyChildSections({
                   onToggle={onToggle}
                   onManage={onManage}
                   index={childIndex}
+                  tourFirst={depth === 0 && groupIndex === 0 && childIndex === 0}
                 />
               );
             })}
@@ -144,6 +145,7 @@ function TreeNode({
   onToggle,
   onManage,
   index = 0,
+  tourFirst = false,
 }: {
   node: StrategicHierarchyNode;
   nodeKey: string;
@@ -152,6 +154,8 @@ function TreeNode({
   onToggle: (id: string) => void;
   onManage: (node: StrategicHierarchyNode) => void;
   index?: number;
+  /** Marks the first item of the tree for the guided tour. */
+  tourFirst?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const isExpanded = expanded.has(nodeKey);
@@ -217,6 +221,7 @@ function TreeNode({
               <button
                 type="button"
                 onClick={handleManage}
+                data-tour={tourFirst ? "jerarquia-tree-manage" : undefined}
                 className="hierarchy-detail-node__action shrink-0 rounded-md"
                 style={{ fontSize: "11px", fontWeight: 850, padding: "4px 8px", minHeight: 24 }}
               >

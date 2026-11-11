@@ -90,10 +90,10 @@ export function HierarchyToolbar({
             <RefreshCw size={14} aria-hidden="true" />
           </ToolbarButton>
           {canCreate && (
-            <>
-              <ToolbarCreateButton tone="green" tourId="jerarquia-create" onClick={() => onCreate("goal")}>Nueva Meta</ToolbarCreateButton>
+            <div data-tour="jerarquia-create" className="flex flex-wrap items-center gap-2">
+              <ToolbarCreateButton tone="green" onClick={() => onCreate("goal")}>Nueva Meta</ToolbarCreateButton>
               <ToolbarCreateButton tone="blue" onClick={() => onCreate("bet")}>Nueva Apuesta</ToolbarCreateButton>
-            </>
+            </div>
           )}
         </>
       }

@@ -15,7 +15,7 @@ export const PRESENTATION_UI = {
 } as const;
 
 interface PageHeaderProps {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   subtitle?: ReactNode;
   accent?: string;
@@ -23,15 +23,20 @@ interface PageHeaderProps {
   children?: ReactNode;
 }
 
-/** White band with eyebrow, title and subtitle, as in the Dashboard header. */
+/** Compact white band with an optional eyebrow, the title and a one-line subtitle, as in the Dashboard. */
 export function PresentationPageHeader({ eyebrow, title, subtitle, accent = PRESENTATION_UI.blue, actions, children }: PageHeaderProps) {
   return (
-    <div className="bg-white px-4 pb-4 pt-5 sm:px-6" style={{ borderBottom: `1px solid ${PRESENTATION_UI.divider}` }}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="bg-white px-4 py-3 sm:px-5" style={{ borderBottom: `1px solid ${PRESENTATION_UI.border}` }}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p style={{ fontSize: 9, fontWeight: 900, color: accent, textTransform: "uppercase" }}>{eyebrow}</p>
-          <h1 style={{ fontSize: 17, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.15, marginTop: 3 }}>{title}</h1>
-          {subtitle && <p style={{ fontSize: 10.5, color: PRESENTATION_UI.subtle, marginTop: 5 }}>{subtitle}</p>}
+          {eyebrow && (
+            <p className="flex items-center gap-1.5" style={{ fontSize: 10.5, fontWeight: 900, color: accent, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: accent }} aria-hidden="true" />
+              {eyebrow}
+            </p>
+          )}
+          <h1 style={{ fontSize: 19, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.2, marginTop: eyebrow ? 2 : 0 }}>{title}</h1>
+          {subtitle && <p style={{ fontSize: 12, fontWeight: 600, color: PRESENTATION_UI.muted, marginTop: 2, lineHeight: 1.4, maxWidth: 820 }}>{subtitle}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
@@ -49,10 +54,10 @@ export function PresentationStatusBadge({ status }: { status?: string | null }) 
   const color = active ? PRESENTATION_UI.green : PRESENTATION_UI.subtle;
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5"
-      style={{ fontSize: 10, fontWeight: 850, color: active ? "#2F855A" : PRESENTATION_UI.muted, backgroundColor: active ? "#ECF8F1" : "#F3F4F6" }}
+      className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-px"
+      style={{ fontSize: 11, fontWeight: 850, color: active ? "#2F855A" : PRESENTATION_UI.muted, backgroundColor: active ? "#ECF8F1" : "#F3F4F6" }}
     >
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
       {label}
     </span>
   );
@@ -69,24 +74,26 @@ interface PanelProps {
   children?: ReactNode;
 }
 
-/** White panel with an icon, title and subtitle, as the Dashboard panels. */
+/** White panel with a thin border and an uppercase heading, like the panels of the Dashboard. */
 export function PresentationPanel({ title, subtitle, icon, accent = PRESENTATION_UI.blue, actions, className = "", headingLevel = "h2", children }: PanelProps) {
   const Heading = headingLevel;
   return (
-    <section className={`rounded-md bg-white p-4 ${className}`} style={{ border: `1px solid ${PRESENTATION_UI.border}`, boxShadow: PRESENTATION_UI.shadow }}>
-      <div className={`flex flex-wrap items-start justify-between gap-3 ${children ? "mb-4" : ""}`}>
-        <div className="flex min-w-0 items-start gap-3">
+    <section className={`rounded-lg bg-white p-3 sm:p-4 ${className}`} style={{ border: `1px solid ${PRESENTATION_UI.border}` }}>
+      <div
+        className={`flex flex-wrap items-center justify-between gap-2 ${children ? "mb-2.5 pb-2" : ""}`}
+        style={children ? { borderBottom: `1px solid ${PRESENTATION_UI.border}` } : undefined}
+      >
+        <div className="flex min-w-0 items-center gap-2">
           {icon && (
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
-              style={{ backgroundColor: `${accent}14`, color: accent, border: `1px solid ${accent}26` }}
-            >
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${accent}1A`, color: accent }}>
               {icon}
             </div>
           )}
           <div className="min-w-0">
-            <Heading style={{ fontSize: 13, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.15 }}>{title}</Heading>
-            {subtitle && <p style={{ fontSize: 10.5, color: PRESENTATION_UI.muted, marginTop: 3, lineHeight: 1.4 }}>{subtitle}</p>}
+            <Heading style={{ fontSize: 12, fontWeight: 900, color: PRESENTATION_UI.text, lineHeight: 1.2, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              {title}
+            </Heading>
+            {subtitle && <p style={{ fontSize: 11.5, fontWeight: 600, color: PRESENTATION_UI.muted, marginTop: 1, lineHeight: 1.4 }}>{subtitle}</p>}
           </div>
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

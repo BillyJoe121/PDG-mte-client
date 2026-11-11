@@ -32,17 +32,24 @@ function sameRect(a: Rect | null, b: Rect | null) {
 
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
+const targetShown = (target: string | undefined) => {
+  if (!target) return false;
+  const element = document.querySelector(selectorFor(target));
+  return element !== null && visibleRect(element) !== null;
+};
+
 /**
  * Prepares the screen for a step by clicking the given `data-tour` elements in order (switching a
- * view, opening a detail). A leading "?" clicks only if the element is already there.
+ * view, opening a detail). A leading "?" clicks only if the element is already there. A required
+ * click stops waiting once the step's target is on screen: the view it opens is already showing.
  */
-async function runClicks(clicks: string[], cancelled: () => boolean) {
+async function runClicks(clicks: string[], cancelled: () => boolean, target?: string) {
   for (const entry of clicks) {
     const optional = entry.startsWith("?");
     const selector = selectorFor(optional ? entry.slice(1) : entry);
     const startedAt = Date.now();
     let element = document.querySelector<HTMLElement>(selector);
-    while (!element && !optional && Date.now() - startedAt < CLICK_WAIT_MS) {
+    while (!element && !optional && !targetShown(target) && Date.now() - startedAt < CLICK_WAIT_MS) {
       await wait(POLL_MS);
       if (cancelled()) return;
       element = document.querySelector<HTMLElement>(selector);
@@ -59,7 +66,7 @@ async function runClicks(clicks: string[], cancelled: () => boolean) {
  * Finds the element marked `data-tour={target}` once the page is ready, brings it into view and
  * keeps following its box while the layout moves (scroll, resize, menus that expand or collapse).
  */
-export function useTourTarget(target: string | undefined, enabled: boolean, clicks: readonly string[] = []): TourTargetState {
+export function useTourTarget(target: string | undefined, enabled: boolean, clicks: readonly string[] = [], keepShownTarget = false): TourTargetState {
   const [state, setState] = useState<TourTargetState>({ ready: false, rect: null });
   const clickKey = clicks.join("|");
 
@@ -99,7 +106,8 @@ export function useTourTarget(target: string | undefined, enabled: boolean, clic
     };
 
     const start = async () => {
-      await runClicks(clickKey ? clickKey.split("|") : [], cancelled);
+      const keep = keepShownTarget && targetShown(target);
+      await runClicks(clickKey && !keep ? clickKey.split("|") : [], cancelled, target);
       if (stopped) return;
       if (!target) {
         setState({ ready: true, rect: null });
@@ -130,7 +138,7 @@ export function useTourTarget(target: string | undefined, enabled: boolean, clic
       window.clearTimeout(poll);
       cancelAnimationFrame(frame);
     };
-  }, [target, enabled, clickKey]);
+  }, [target, enabled, clickKey, keepShownTarget]);
 
   return state;
 }

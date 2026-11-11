@@ -2,8 +2,8 @@ import { LayoutGrid, Table2 } from "lucide-react";
 import type { ViewMode } from "../hooks/useViewMode";
 
 const OPTIONS = [
-  { value: "cards", label: "Tarjetas", Icon: LayoutGrid },
   { value: "table", label: "Tabla", Icon: Table2 },
+  { value: "cards", label: "Tarjetas", Icon: LayoutGrid },
 ] as const;
 
 const BORDER = "#D9DEE8";
@@ -15,7 +15,7 @@ interface ViewModeToggleProps {
 
 export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
   return (
-    <div role="group" aria-label="Forma de ver" className="flex items-stretch overflow-hidden" style={{ border: `1.5px solid ${BORDER}`, borderRadius: 8, height: 38 }}>
+    <div role="group" aria-label="Forma de ver" data-tour="view-toggle" className="flex items-stretch overflow-hidden" style={{ border: `1.5px solid ${BORDER}`, borderRadius: 8, height: 38 }}>
       {OPTIONS.map(({ value: option, label, Icon }, index) => (
         <button
           key={option}

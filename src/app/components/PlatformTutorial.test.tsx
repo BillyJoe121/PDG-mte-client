@@ -2,10 +2,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { PlatformTutorial } from "./PlatformTutorial";
+import { tourStepsFor } from "./tutorial/tourSteps";
 
-vi.mock("../context/AuthContext", () => ({
-  useAuth: () => ({ usuario: { id: "1", nombre: "Ana", correo: "ana@example.com", rol: "visitor", iniciales: "AN" } }),
-}));
+const { VISITOR } = vi.hoisted(() => ({ VISITOR: { id: "1", nombre: "Ana", correo: "ana@example.com", rol: "visitor" as const, iniciales: "AN" } }));
+
+vi.mock("../context/AuthContext", () => ({ useAuth: () => ({ usuario: VISITOR }) }));
 
 // jsdom has no layout, so every step is shown centered right away.
 vi.mock("./tutorial/useTourTarget", () => ({ useTourTarget: () => ({ ready: true, rect: null }) }));
@@ -33,7 +34,8 @@ describe("PlatformTutorial", () => {
     expect(screen.queryByRole("button", { name: "Cerrar recorrido" })).not.toBeInTheDocument();
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByText("Paso 1 de 21")).toBeInTheDocument();
+    const total = tourStepsFor(VISITOR).length;
+    expect(screen.getByText(`Paso 1 de ${total}`)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
     expect(screen.getByRole("dialog", { name: "Elige el periodo" })).toBeInTheDocument();
@@ -45,7 +47,8 @@ describe("PlatformTutorial", () => {
     fireEvent.click(screen.getByRole("button", { name: "Anterior" }));
     expect(screen.getByTestId("path")).toHaveTextContent("/dashboard");
 
-    for (let i = 0; i < 19; i += 1) fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    // Back on step 2: walk the remaining steps to the last one.
+    for (let i = 0; i < total - 2; i += 1) fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
     expect(screen.getByRole("dialog", { name: "Vuelve cuando quieras" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Finalizar" }));
     expect(onClose).toHaveBeenCalledWith(true);

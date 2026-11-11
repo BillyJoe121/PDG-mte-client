@@ -11,33 +11,13 @@ import { PresentationHeader } from "./presentation/PresentationHeader";
 import { PresentationHub } from "./presentation/PresentationHub";
 import { PresentationSlideDeck } from "./presentation/PresentationSlideDeck";
 import type { PresentationMode } from "./presentation/PresentationTypes";
-import { buildConsolidatedSlides } from "./presentation/PresentationConsolidatedBuilder";
-import { exportGeneralReportCsv, exportSlideDeckCsv, printPresentationView } from "./presentation/presentationExportUtils";
+import { attachBetKeyResults, buildConsolidatedSlides } from "./presentation/PresentationConsolidatedBuilder";
+import { buildExportItems, type ComparisonExportSnapshot } from "./presentation/presentationExportItems";
+import { isButtonActivation, isTextEntry, normalizeKeyboardKey, resolveSlideShortcut } from "./presentation/presentationKeyboard";
+import { useAutoHideControls } from "./presentation/useAutoHideControls";
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "No fue posible cargar la presentación";
-}
-
-function normalizeKeyboardKey(key: string) {
-  return key === " " ? "Space" : key;
-}
-
-// Fields where the arrow keys move the caret or change the value; slide shortcuts stay out of them.
-function isTextEntry(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName) ||
-      target.closest('[contenteditable]:not([contenteditable="false"])') !== null)
-  );
-}
-
-// A focused button keeps Space and Enter for its own activation.
-function isButtonActivation(target: EventTarget | null, key: string) {
-  return (
-    (key === "Space" || key === "Enter") &&
-    target instanceof HTMLElement &&
-    target.closest('button, [role="button"]') !== null
-  );
 }
 
 export function PresentacionDashboard() {
@@ -50,6 +30,7 @@ export function PresentacionDashboard() {
   );
 
   const requestId = useRef(0);
+  const comparisonExportRef = useRef<ComparisonExportSnapshot | null>(null);
   const [data, setData] = useState<PresentationScreenData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -57,6 +38,9 @@ export function PresentacionDashboard() {
   const [error, setError] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const presenting = activeMode === "slides";
+  const { visible: controlsVisible } = useAutoHideControls({ enabled: presenting && !overviewOpen });
 
   // Modal detail state
   const [selectedEntity, setSelectedEntity] = useState<
@@ -109,7 +93,10 @@ export function PresentacionDashboard() {
     const consolidatedSlides = buildConsolidatedSlides(data.consolidatedReport, periodValue);
 
     const coverSlide = baseSlides.find((s) => s.type === "COVER");
-    const otherSlides = baseSlides.filter((s) => s.type !== "COVER");
+    const otherSlides = attachBetKeyResults(
+      baseSlides.filter((s) => s.type !== "COVER"),
+      data.consolidatedReport,
+    );
 
     const combined = coverSlide
       ? [coverSlide, ...consolidatedSlides, ...otherSlides]
@@ -127,6 +114,27 @@ export function PresentacionDashboard() {
   const nextSlide = useCallback(() => setCurrentIndex((idx) => Math.min(idx + 1, lastIndex)), [lastIndex]);
   const prevSlide = useCallback(() => setCurrentIndex((idx) => Math.max(idx - 1, 0)), []);
 
+  const canFullscreen = Boolean(controls?.fullscreenEnabled) && typeof document.documentElement.requestFullscreen === "function";
+
+  const toggleFullscreen = useCallback(async () => {
+    setFullscreenError("");
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch {
+      setFullscreenError("El navegador no permitió activar la pantalla completa.");
+    }
+  }, []);
+
+  // Leaving Presentar closes its layers and gives the screen back.
+  useEffect(() => {
+    if (presenting) return;
+    setOverviewOpen(false);
+    if (document.fullscreenElement && typeof document.exitFullscreen === "function") {
+      void document.exitFullscreen().catch(() => undefined);
+    }
+  }, [presenting]);
+
   // Keyboard navigation
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -137,6 +145,10 @@ export function PresentacionDashboard() {
       if (key === "Escape") {
         // The open detail dialog already handled this Escape and closed itself.
         if (event.defaultPrevented) return;
+        if (overviewOpen) {
+          setOverviewOpen(false);
+          return;
+        }
         if (selectedEntity) {
           setSelectedEntity(null);
           return;
@@ -145,56 +157,36 @@ export function PresentacionDashboard() {
           setActiveMode("hub");
           return;
         }
-        if (!document.fullscreenElement) {
-          navigate("/dashboard");
-          return;
-        }
+        if (!document.fullscreenElement) navigate("/dashboard");
+        return;
       }
 
-      if (activeMode === "slides" && controls?.keyboardNavigationEnabled && slides.length > 0) {
-        if (controls.nextKeys.includes(key)) {
-          event.preventDefault();
-          nextSlide();
-        } else if (controls.previousKeys.includes(key)) {
-          event.preventDefault();
-          prevSlide();
-        } else if (key === "Home") {
-          setCurrentIndex(0);
-        } else if (key === "End") {
-          setCurrentIndex(lastIndex);
-        }
-      }
+      if (!presenting || slides.length === 0) return;
+      const shortcut = resolveSlideShortcut(event, { controls, overviewOpen, canFullscreen });
+      if (!shortcut) return;
+      event.preventDefault();
+      if (shortcut === "next") nextSlide();
+      else if (shortcut === "previous") prevSlide();
+      else if (shortcut === "first") setCurrentIndex(0);
+      else if (shortcut === "last") setCurrentIndex(lastIndex);
+      else if (shortcut === "overview") setOverviewOpen((open) => !open);
+      else void toggleFullscreen();
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeMode, controls, lastIndex, navigate, nextSlide, prevSlide, selectedEntity, slides.length]);
+  }, [activeMode, canFullscreen, controls, lastIndex, navigate, nextSlide, overviewOpen, presenting, prevSlide, selectedEntity, slides.length, toggleFullscreen]);
 
-  const toggleFullscreen = async () => {
-    setFullscreenError("");
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await document.documentElement.requestFullscreen();
-    } catch {
-      setFullscreenError("El navegador no permitió activar la pantalla completa.");
-    }
-  };
-
-  const printActiveView = () => {
-    const subtitle = `Periodo ${periodValue} - Modulo de Trazabilidad Estratégica`;
-    if (activeMode === "general") {
-      printPresentationView("Informe General de Metas y Apuestas", { subtitle, printableSelector: ".presentation-general-print-area" });
-    } else if (activeMode === "compare") {
-      printPresentationView("Comparativa de Desempeño Estratégico", { subtitle, printableSelector: ".presentation-comparison-print-area" });
-    } else if (activeMode === "slides") {
-      printPresentationView(slides[currentIndex]?.title || "Presentación Institucional", {
-        subtitle: `Periodo ${periodValue} - Diapositiva ${currentIndex + 1} de ${slides.length}`,
-        printableSelector: ".presentation-slide-print-area",
-      });
-    } else {
-      printPresentationView("Modo Presentación Estratégica", { subtitle, printableSelector: ".presentation-print-container" });
-    }
-  };
+  const getExportItems = () =>
+    buildExportItems({
+      mode: activeMode,
+      periodName: periodValue,
+      bets: effectiveBets,
+      goals: effectiveGoals,
+      slides,
+      currentIndex,
+      comparison: comparisonExportRef.current,
+    });
 
   if (loading) {
     return <RouteLoading label="Cargando presentación" detail="Preparando los datos del periodo" fullScreen />;
@@ -248,23 +240,17 @@ export function PresentacionDashboard() {
       <PresentationHeader
         title={data.presentation.title || "Modo Presentación Estratégica MSP"}
         activeMode={activeMode}
-        slidePosition={`${currentIndex + 1}/${slides.length}`}
+        immersive={presenting}
+        concealed={presenting && !controlsVisible && !overviewOpen}
         periodValue={periodValue}
         periods={sortedPeriods}
-        fullscreen={fullscreen}
-        canFullscreen={Boolean(controls?.fullscreenEnabled) && typeof document.documentElement.requestFullscreen === "function"}
         onBack={() => navigate("/dashboard")}
         onModeChange={setActiveMode}
         onPeriodChange={(period) => {
           setSelectedPeriod(period);
           void load(period, true);
         }}
-        onPrint={printActiveView}
-        onCsv={() => {
-          if (activeMode === "slides") exportSlideDeckCsv(slides, periodValue);
-          else exportGeneralReportCsv(effectiveBets, effectiveGoals, periodValue);
-        }}
-        onToggleFullscreen={() => void toggleFullscreen()}
+        getExportItems={getExportItems}
       />
 
       {fullscreenError && (
@@ -276,7 +262,7 @@ export function PresentacionDashboard() {
       {/* Main View Area */}
       <div
         className={`presentation-print-container flex-1 min-h-0 flex flex-col ${
-          activeMode === "slides" ? "type-scale-exempt overflow-hidden" : ""
+          presenting ? "type-scale-exempt overflow-hidden print:overflow-visible" : ""
         }`}
       >
         {activeMode === "hub" && (
@@ -284,6 +270,7 @@ export function PresentacionDashboard() {
             periodName={periodValue}
             bets={effectiveBets}
             goals={effectiveGoals}
+            general={data?.consolidatedReport?.general}
             onSelectOption={(option) => setActiveMode(option)}
           />
         )}
@@ -304,6 +291,7 @@ export function PresentacionDashboard() {
             goals={effectiveGoals}
             periodName={periodValue}
             periods={sortedPeriods}
+            exportRef={comparisonExportRef}
             onSelectBet={(b) => setSelectedEntity({ type: "bet", data: b })}
             onSelectGoal={(g) => setSelectedEntity({ type: "goal", data: g })}
           />
@@ -315,7 +303,12 @@ export function PresentacionDashboard() {
             currentIndex={currentIndex}
             periodName={periodValue}
             onIndexChange={(idx) => setCurrentIndex(idx)}
-            onBackToHub={() => setActiveMode("hub")}
+            fullscreen={fullscreen}
+            onToggleFullscreen={canFullscreen ? () => void toggleFullscreen() : undefined}
+            controlsVisible={controlsVisible}
+            overviewOpen={overviewOpen}
+            onToggleOverview={() => setOverviewOpen((open) => !open)}
+            onExit={() => setActiveMode("hub")}
           />
         )}
       </div>

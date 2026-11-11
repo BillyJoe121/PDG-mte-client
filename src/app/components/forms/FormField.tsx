@@ -99,12 +99,14 @@ interface FormActionsProps {
   onCancel: () => void;
   /** For panels without a form element. */
   onSubmit?: () => void;
+  /** `data-tour` of Cancelar, for panels the guided tour closes on their own. */
+  cancelTourId?: string;
 }
 
-export function FormActions({ saving, submitLabel = "Guardar", formId, disabled = false, onCancel, onSubmit }: FormActionsProps) {
+export function FormActions({ saving, submitLabel = "Guardar", formId, disabled = false, onCancel, onSubmit, cancelTourId = "form-cancel" }: FormActionsProps) {
   return (
     <>
-      <button type="button" onClick={onCancel} className={DETAIL_BUTTON_CLASS}>Cancelar</button>
+      <button type="button" onClick={onCancel} data-tour={cancelTourId} className={DETAIL_BUTTON_CLASS}>Cancelar</button>
       <button type={onSubmit ? "button" : "submit"} form={onSubmit ? undefined : formId} onClick={onSubmit} disabled={saving || disabled} className={DETAIL_PRIMARY_BUTTON_CLASS}>
         {saving && <Loader2 size={12} className="animate-spin" aria-hidden="true" />}
         {submitLabel}
