@@ -17,6 +17,25 @@ describe("useViewMode", () => {
     expect(localStorage.getItem("test.view")).toBe("cards");
     expect(renderHook(() => useViewMode("test.view")).result.current[0]).toBe("cards");
   });
+
+  it("falls back to table when storage cannot be read", () => {
+    const spy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    const { result } = renderHook(() => useViewMode("test.view"));
+    expect(result.current[0]).toBe("table");
+    spy.mockRestore();
+  });
+
+  it("keeps the choice for the session when storage cannot be written", () => {
+    const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    const { result } = renderHook(() => useViewMode("test.view"));
+    act(() => result.current[1]("cards"));
+    expect(result.current[0]).toBe("cards");
+    spy.mockRestore();
+  });
 });
 
 describe("ViewModeToggle", () => {

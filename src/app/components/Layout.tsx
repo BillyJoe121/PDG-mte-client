@@ -1,11 +1,17 @@
+import { useEffect } from "react";
 import { Outlet, Navigate, useLocation } from "react-router";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { useAuth } from "../context/AuthContext";
+import { prefetchScreens } from "../routePrefetch";
 
 export function Layout() {
   const { usuario } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    if (usuario) prefetchScreens();
+  }, [usuario]);
 
   if (!usuario) {
     return <Navigate to="/login" replace />;

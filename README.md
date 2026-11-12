@@ -101,7 +101,7 @@ La cobertura usa Vitest con provider `v8`, genera reportes `text`, `json` y `htm
 coverage/index.html
 ```
 
-El umbral configurado para statements, branches, functions y lines es de 90%.
+La cobertura mide todo `src/app` y exige 95% en statements, branches, functions y lines. Solo se excluyen las primitivas de `src/app/components/ui/` que la aplicacion no importa (las usadas, como `select`, `table`, `calendar`, `popover`, `dropdown-menu` y `button`, si se miden); la lista exacta esta en `vite.config.ts`.
 
 Pruebas end-to-end con Playwright:
 
@@ -129,7 +129,9 @@ playwright-report/index.html
 
 ### Integracion continua
 
-`.github/workflows/ci.yml` corre `npm ci`, `npm run typecheck`, `npm run test:run`, las pruebas e2e (`npx playwright install --with-deps chromium` y `npm run test:e2e`) y `npm run build` con Node 24 en Ubuntu 24.04, en cada push y pull request a `develop`. El runner esta fijado en 24.04 porque Playwright 1.60 no tiene Chromium para Ubuntu 26.04. Si todo pasa en un push a `develop`, el job `deploy` llama al webhook de Coolify (ver [Despliegue en Coolify](#despliegue-en-coolify)); si algo falla, no se despliega.
+El repositorio de referencia es el de Bitbucket (`https://pi2tools.icesi.edu.co/bitbucket/scm/PDGPROYEC/pdg-mte-client.git`). El `Jenkinsfile` corre en cada push, dentro de la imagen `mcr.microsoft.com/playwright:v1.60.0-noble` (Node y Chromium de la misma version de Playwright): `npm ci`, `npm run typecheck`, `npm run test:coverage` (umbral de 95%), `npm run test:e2e` y `npm run build:verified` (build y presupuestos de tamano). Solo en `develop` y solo si todo pasa, la etapa `Deploy` llama al webhook de Coolify (ver [Despliegue en Coolify](#despliegue-en-coolify)); si algo falla, no se despliega.
+
+`.github/workflows/ci.yml` se conserva como verificacion del espejo de GitHub (typecheck, cobertura, e2e y build con Node 24 en Ubuntu 24.04, fijado porque Playwright 1.60 no tiene Chromium para 26.04) y ya no despliega.
 
 ## Inicio de sesión
 
@@ -152,23 +154,23 @@ npm run test:all
 
 ## Despliegue en Coolify
 
-El sitio se publica como contenedor en el servidor Coolify de la universidad. El `Dockerfile` compila con Node 24 y sirve `dist/` con nginx (`nginx.conf`): las rutas del cliente, como `/establecer-contrasena?token_hash=...&type=...`, responden con `index.html`, los archivos de `assets/` se cachean y `index.html` no. `/healthz` es el health check del contenedor.
+El sitio se publica como contenedor en el servidor Coolify de la universidad. El `Dockerfile` compila con Node 24 y sirve `dist/` con nginx (`nginx.conf`): las rutas del cliente, como `/establecer-contrasena?token_hash=...&type=...`, responden con `index.html`, los archivos de `assets/` se cachean y `index.html` no. `/healthz` es el health check del contenedor. nginx corre sin root y escucha en el puerto `8080`; todas las respuestas llevan los encabezados de seguridad de `nginx-security-headers.conf`, cuya Content-Security-Policy solo permite llamadas al origen de `VITE_API_URL`.
 
 La direccion de la API se fija al compilar, con el argumento de build `VITE_API_URL` (obligatorio):
 
 ```bash
 docker build --build-arg VITE_API_URL=https://<url-api>/api/v1 -t mte-client .
-docker run --rm -p 8080:80 mte-client
+docker run --rm -p 8080:8080 mte-client
 ```
 
 En Coolify:
 
-1. Nuevo recurso > Application desde el repositorio, rama `develop`, Build Pack "Dockerfile", puerto expuesto `80`.
+1. Nuevo recurso > Application > Private Repository (with deploy key) desde el repositorio de Bitbucket `pdg-mte-client` (URL SSH; la llave publica de Coolify va en Bitbucket como Access key de solo lectura), rama `develop`, Build Pack "Dockerfile", puerto expuesto `8080`.
 2. En Environment Variables, `VITE_API_URL=https://<url-api>/api/v1` marcada como "Build Variable".
 3. Dominio del sitio en Domains. Ese mismo origen va en `MTE_CORS_ALLOWED_ORIGINS` de la API, y `<dominio>/establecer-contrasena` en `MTE_ACCESS_LINK_URL`.
-4. Desactivar "Auto Deploy" y copiar el Deploy Webhook. En GitHub (Settings > Secrets and variables > Actions) crear `COOLIFY_WEBHOOK` con esa URL y `COOLIFY_TOKEN` con un token de API de Coolify. Sin `COOLIFY_WEBHOOK`, CI no despliega.
+4. Desactivar "Auto Deploy" y copiar el Deploy Webhook. En Jenkins (Manage Jenkins > Credentials) crear las credenciales "Secret text" `coolify-client-webhook` con esa URL y `coolify-token` con un token de API de Coolify (el mismo que usa la API).
 
-Si GitHub no alcanza el servidor de la universidad, el job `deploy` falla y se despliega a mano con "Redeploy" en Coolify despues de ver CI en verde. La guia completa, con la API y la base, esta en `docs/despliegue-coolify.md` del repositorio de la API.
+Si Jenkins no alcanza el servidor de Coolify, la etapa `Deploy` falla y se despliega a mano con "Redeploy" en Coolify despues de ver el pipeline en verde. La guia completa, con la API, la base y la configuracion de Jenkins, esta en `docs/despliegue-coolify.md` y `docs/ci.md` del repositorio de la API.
 
 ## Resumen de comandos
 

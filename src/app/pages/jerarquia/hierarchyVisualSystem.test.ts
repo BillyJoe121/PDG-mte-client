@@ -40,4 +40,9 @@ describe("hierarchy visual system", () => {
     expect(getNodeBadgeLabel("GOAL")).toBe("Indicador y meta");
     expect(Object.keys(hierarchyNodeLabel)).not.toContain("OBJECTIVE");
   });
+
+  it("counts nodes from payloads that omit the children list", () => {
+    const sparse = [{ nodeType: "GOAL", id: "1", label: "Meta" }] as unknown as StrategicHierarchyNode[];
+    expect(summarizeHierarchy(sparse).find((item) => item.type === "GOAL")?.count).toBe(1);
+  });
 });
