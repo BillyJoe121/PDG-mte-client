@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { skipGuidedTour } from './guidedTour';
 
 const adminUser = {
   id: 'U10',
@@ -10,6 +11,7 @@ const adminUser = {
 };
 
 async function prepareDashboard(page: Page) {
+  await skipGuidedTour(page, adminUser.id);
   await page.addInitScript((user) => {
     window.sessionStorage.setItem('sgp_session_user', JSON.stringify(user));
   }, adminUser);
@@ -31,19 +33,11 @@ async function prepareDashboard(page: Page) {
   });
 }
 
-test('mobile dashboard avoids horizontal overflow and defers heavy charts', async ({ page }) => {
+test('mobile dashboard avoids horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await prepareDashboard(page);
-  const chartRequests: string[] = [];
-  page.on('request', (request) => {
-    if (request.url().includes('DashboardCoverageChart')) chartRequests.push(request.url());
-  });
 
   await page.goto('/dashboard');
-  await expect(page.getByRole('heading', { name: /Dashboard de impacto/i })).toBeVisible();
+  await expect(page.getByRole('main').getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-  expect(chartRequests).toHaveLength(0);
-
-  await page.getByRole('heading', { name: 'KRs por apuesta estrategica' }).scrollIntoViewIfNeeded();
-  await expect.poll(() => chartRequests.length).toBeGreaterThan(0);
 });

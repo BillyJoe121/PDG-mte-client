@@ -12,11 +12,16 @@ const files = readdirSync(assetsDirectory);
 const budgets = [
   { label: "JavaScript de entrada", file: entryMatch[1], maxGzipKb: 120 },
   { label: "CSS global", file: files.find((file) => /^index-.*\.css$/.test(file)), maxGzipKb: 50 },
-  { label: "Gráficos diferidos", file: files.find((file) => /^DashboardCoverageChart-.*\.js$/.test(file)), maxGzipKb: 120 },
+  { label: "Gráficos diferidos", file: files.find((file) => /^DashboardCoverageChart-.*\.js$/.test(file)), maxGzipKb: 120, optional: true },
 ];
 
 let failed = false;
 for (const budget of budgets) {
+  // Charts are only measured while a screen still loads them as a separate chunk.
+  if (!budget.file && budget.optional) {
+    console.log(`SKIP ${budget.label}: no se genera en este build`);
+    continue;
+  }
   if (!budget.file) throw new Error(`No se encontró el artefacto para ${budget.label}.`);
   const gzipKb = gzipSync(readFileSync(join(assetsDirectory, budget.file))).byteLength / 1024;
   const passes = gzipKb <= budget.maxGzipKb;

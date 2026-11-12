@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { skipGuidedTour } from './guidedTour';
 
 const adminUser = {
   id: 'U10',
@@ -10,6 +11,7 @@ const adminUser = {
 };
 
 async function loginAsAdmin(page: Page) {
+  await skipGuidedTour(page, adminUser.id);
   await page.addInitScript((user) => {
     window.sessionStorage.setItem('sgp_session_user', JSON.stringify(user));
   }, adminUser);

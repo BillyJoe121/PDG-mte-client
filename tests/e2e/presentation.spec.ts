@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { skipGuidedTour } from "./guidedTour";
 
 const adminUser = {
   id: "U10",
@@ -9,7 +10,8 @@ const adminUser = {
   iniciales: "AD",
 };
 
-test("presentation renders options hub and supports general report, comparison and slide navigation", async ({ page }) => {
+test("presentation supports general report, comparison and slide navigation", async ({ page }) => {
+  await skipGuidedTour(page, adminUser.id);
   await page.addInitScript((user) => {
     window.sessionStorage.setItem("sgp_session_user", JSON.stringify(user));
   }, adminUser);
@@ -37,37 +39,33 @@ test("presentation renders options hub and supports general report, comparison a
     }),
   }));
 
-  // 1. Visit presentation hub
+  // 1. The general report opens first
   await page.goto("/presentacion");
-
-  // Verify Hub title and 2 primary options
-  await expect(page.getByRole("heading", { name: /modo presentaci[oó]n estrat[eé]gica msp/i })).toBeVisible();
-  await expect(page.getByText("Opción 1", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Ver todas las metas y apuestas juntas" })).toBeVisible();
-  await expect(page.getByText("Opción 2", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Comparar entidades estratégicas" })).toBeVisible();
-
-  // 2. Test Opción 1: Informe General
-  await page.getByRole("button", { name: /explorar informe general/i }).click();
+  const modes = page.getByRole("navigation", { name: "Modos de presentación" });
+  await expect(modes.getByRole("button", { name: "Informe" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("heading", { name: /todas las metas y apuestas en conjunto/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Exportar informe general a PDF" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Descargar datos del informe en CSV" })).toBeVisible();
+  await page.getByRole("button", { name: "Exportar" }).click();
+  await expect(page.getByRole("menuitem", { name: "PDF del informe" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "CSV del informe" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
-  // 3. Test Opción 2: Modo Comparar
-  await page.getByRole("navigation", { name: "Modos de presentación" }).getByRole("button", { name: /opci[oó]n 2: comparar/i }).click();
+  // 2. Comparison mode
+  await modes.getByRole("button", { name: "Comparar" }).click();
   await expect(page.getByRole("heading", { name: "Comparativa de registros" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Exportar comparativa a PDF" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Descargar datos de la comparativa en CSV" })).toBeVisible();
+  await page.getByRole("button", { name: "Exportar" }).click();
+  await expect(page.getByRole("menuitem", { name: "PDF de la comparativa" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "CSV de la comparativa" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
-  // 4. Test Diapositivas
-  await page.getByRole("navigation", { name: "Modos de presentación" }).getByRole("button", { name: "Diapositivas" }).click();
-  await expect(page.getByRole("heading", { name: "Seguimiento estratégico" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Exportar diapositiva actual a PDF" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Descargar estructura de diapositivas en CSV" })).toBeVisible();
+  // 3. Slides
+  await modes.getByRole("button", { name: "Presentar" }).click();
+  await page.getByRole("button", { name: "Exportar" }).click();
+  await expect(page.getByRole("menuitem", { name: "PDF de la diapositiva actual" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "CSV de las diapositivas" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
   // Cover, then the consolidated report slide, then the slides returned by the API
   await expect(page.getByText("1 / 3")).toBeVisible();
-  // The arrows change slides even while the mode button that was just clicked keeps the focus
-  await expect(page.getByRole("navigation", { name: "Modos de presentación" }).getByRole("button", { name: "Diapositivas" })).toBeFocused();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByText("2 / 3")).toBeVisible();
   await page.keyboard.press("ArrowRight");

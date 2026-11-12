@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { skipGuidedTour } from './guidedTour';
 
 const adminUser = {
   id: 'U10',
@@ -19,6 +20,7 @@ const standardUser = {
 };
 
 async function seedSession(page: Page, user: typeof adminUser | typeof standardUser) {
+  await skipGuidedTour(page, user.id);
   await page.addInitScript((sessionUser) => {
     window.sessionStorage.setItem('sgp_session_user', JSON.stringify(sessionUser));
   }, user);
@@ -26,6 +28,7 @@ async function seedSession(page: Page, user: typeof adminUser | typeof standardU
 
 test.describe('authentication and permissions', () => {
   test('happy path: signs in with email and password through the API', async ({ page }) => {
+    await skipGuidedTour(page, '44');
     await page.route('**/api/v1/**', (route) => route.fulfill({ contentType: 'application/json', body: '[]' }));
     await page.route('**/api/v1/auth/login', async (route) => {
       expect(route.request().headers().authorization).toBeUndefined();
@@ -45,7 +48,7 @@ test.describe('authentication and permissions', () => {
     await page.getByRole('button', { name: /Ingresar al MTE/i }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole('heading', { name: /Dashboard de impacto/i })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem('sgp_access_token'))).toBe('session-token');
     await expect.poll(() => page.evaluate(() => JSON.parse(window.sessionStorage.getItem('sgp_session_user') ?? '{}').token)).toBeUndefined();
   });
@@ -132,6 +135,6 @@ test.describe('authentication and permissions', () => {
     await page.goto('/ruta-inexistente');
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole('heading', { name: /Dashboard de impacto/i })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
   });
 });
