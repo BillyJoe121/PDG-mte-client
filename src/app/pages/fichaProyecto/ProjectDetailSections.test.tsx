@@ -161,6 +161,13 @@ describe("ProjectKeyResultTables", () => {
     expect(screen.getByText("En curso")).toBeInTheDocument();
     expect(screen.getByText("2026-1")).toBeInTheDocument();
   });
+
+  it("shows the code of each goal and bet in bold", () => {
+    render(<ImpactTable impacts={[impact({ goalNames: ["O2 · Producción"], strategicBetNames: ["A1 · Atraer"] })]} />);
+
+    expect(screen.getByText("O2", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("A1", { selector: "strong" })).toBeInTheDocument();
+  });
 });
 
 describe("project fixtures", () => {

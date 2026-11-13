@@ -4,6 +4,7 @@ import { DETAIL_PRIMARY_BUTTON_CLASS } from "./DetailModal";
 import { FORM_CONTROL_CLASS, FORM_LABEL_CLASS } from "./forms/FormField";
 import { Modal, ModalBody, ModalHeader } from "./Modal";
 import type { AccessLinkResponse } from "../services/peopleApi";
+import { MODAL_HELP } from "./modalHelpContent";
 
 interface AccessLinkDialogProps {
   link: AccessLinkResponse | null;
@@ -27,7 +28,7 @@ export function AccessLinkDialog({ link, personName, onClose }: AccessLinkDialog
 
   return (
     <Modal onClose={onClose} size="sm">
-      <ModalHeader title="Enlace de acceso" onClose={onClose} />
+      <ModalHeader title="Enlace de acceso" onClose={onClose} help={MODAL_HELP.accessLink} />
       <ModalBody>
         <p className="text-sm leading-relaxed text-gray-600">
           {link.accountCreated

@@ -4,31 +4,34 @@ import { useAuth } from "../../context/AuthContext";
 import { PlatformTutorial } from "../PlatformTutorial";
 import { StartTutorialContext } from "./tutorialContext";
 import { hasCompletedTutorial, markTutorialCompleted } from "./tutorialStorage";
+import { WelcomeModal } from "./WelcomeModal";
 
 /**
- * Keeps the guided tour above every screen, including the presentation mode that has no app
- * layout, so it survives moving between them.
+ * welcome and help are the two mandatory cards of the first visit; tour is the full guided tour,
+ * started from the help button.
  */
+type Phase = "welcome" | "help" | "tour" | null;
+
 export function TutorialHost() {
   const { usuario } = useAuth();
   const userId = usuario?.id;
-  const [tutorial, setTutorial] = useState<{ open: boolean; mandatory: boolean }>({ open: false, mandatory: false });
+  const [phase, setPhase] = useState<Phase>(null);
 
-  // The first visit of each user in this browser starts the tour, and it must be completed.
   useEffect(() => {
-    if (userId && !hasCompletedTutorial(userId)) setTutorial({ open: true, mandatory: true });
+    if (userId && !hasCompletedTutorial(userId)) setPhase("welcome");
   }, [userId]);
 
-  const start = useCallback(() => setTutorial({ open: true, mandatory: false }), []);
+  const start = useCallback(() => setPhase("tour"), []);
   const close = (finished: boolean) => {
     if (finished && userId) markTutorialCompleted(userId);
-    setTutorial({ open: false, mandatory: false });
+    setPhase(null);
   };
 
   return (
     <StartTutorialContext.Provider value={start}>
       <Outlet />
-      {userId && <PlatformTutorial open={tutorial.open} mandatory={tutorial.mandatory} onClose={close} />}
+      {userId && phase === "welcome" && <WelcomeModal onNext={() => setPhase("help")} />}
+      {userId && <PlatformTutorial open={phase === "help" || phase === "tour"} onboarding={phase === "help"} onClose={close} />}
     </StartTutorialContext.Provider>
   );
 }

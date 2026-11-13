@@ -14,12 +14,23 @@ const search = { indicator: "", initiative: "" };
 function renderHead(props: Partial<Parameters<typeof MatrixHead>[0]> = {}) {
   const onToggle = vi.fn();
   const onSearchChange = vi.fn();
+  const onHoverColumn = vi.fn();
   const utils = render(
     <table>
-      <MatrixHead goals={[column("g1")]} bets={[column("b1")]} activeKey={null} onToggle={onToggle} search={search} onSearchChange={onSearchChange} {...props} />
+      <MatrixHead
+        goals={[column("g1")]}
+        bets={[column("b1")]}
+        activeKey={null}
+        highlightKeys={new Set()}
+        onHoverColumn={onHoverColumn}
+        onToggle={onToggle}
+        search={search}
+        onSearchChange={onSearchChange}
+        {...props}
+      />
     </table>,
   );
-  return { onToggle, onSearchChange, ...utils };
+  return { onToggle, onSearchChange, onHoverColumn, ...utils };
 }
 
 describe("MatrixHead", () => {
@@ -46,9 +57,9 @@ describe("MatrixHead", () => {
     expect(() => callbacks[0]()).not.toThrow();
   });
 
-  it("filters from a column button or its connector label and emphasizes on hover", async () => {
+  it("filters from a column button or its connector label and reports the hovered column", async () => {
     const user = userEvent.setup();
-    const { onToggle } = renderHead({ activeKey: "g1" });
+    const { onToggle, onHoverColumn } = renderHead({ activeKey: "g1" });
 
     await user.click(screen.getByRole("button", { name: "Filtrar por Columna b1" }));
     expect(onToggle).toHaveBeenCalledWith(expect.objectContaining({ key: "b1" }));
@@ -56,7 +67,18 @@ describe("MatrixHead", () => {
     const pressed = screen.getByRole("button", { name: "Filtrar por Columna g1" });
     expect(pressed).toHaveAttribute("aria-pressed", "true");
     await user.hover(pressed);
+    expect(onHoverColumn).toHaveBeenLastCalledWith("g1");
     await user.unhover(pressed);
+    expect(onHoverColumn).toHaveBeenLastCalledWith(null);
+  });
+
+  it("emphasizes the selected column and the highlighted ones, not the rest", () => {
+    renderHead({ goals: [column("g1"), column("g2")], activeKey: "g1", highlightKeys: new Set(["b1"]) });
+    const stroke = (name: string) => screen.getByRole("button", { name }).querySelector("svg")?.getAttribute("stroke-width");
+
+    expect(stroke("Filtrar por Columna g1")).toBe("2.6");
+    expect(stroke("Filtrar por Columna b1")).toBe("2.6");
+    expect(stroke("Filtrar por Columna g2")).toBe("2");
   });
 
   it("reports edits of the indicator and initiative searches", async () => {

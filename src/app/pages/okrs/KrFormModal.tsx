@@ -8,6 +8,7 @@ import type { AcademicPeriod, MeasurementUnit } from "../../services/catalogsApi
 import { loadAcademicPeriods, loadGoals, loadMeasurementUnits, loadStrategicBets } from "../../services/screenDataCache";
 import type { Goal, KeyResult, KeyResultRequest, StrategicBet, StrategyLink } from "../../services/strategicApi";
 import { KrForm } from "./KrForm";
+import { MODAL_HELP } from "../../components/modalHelpContent";
 
 interface KrFormOptions {
   units: MeasurementUnit[];
@@ -71,7 +72,7 @@ export function KrFormModal({ defaults, saving, onClose, onSubmit }: KrFormModal
 
   return (
     <Modal onClose={onClose}>
-      <ModalHeader title="Crear Key Result" onClose={onClose} />
+      <ModalHeader title="Crear Key Result" onClose={onClose} help={MODAL_HELP.keyResultCreate} />
       <ModalBody>
         {options ? (
           <KrForm {...options} formId={formId} hideActions defaults={defaults} initial={null} saving={saving} onCancel={onClose} onSubmit={onSubmit} />

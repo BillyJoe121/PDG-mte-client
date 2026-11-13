@@ -13,9 +13,12 @@ vi.mock("./tutorialStorage", () => ({
   hasCompletedTutorial: () => mocks.completed,
   markTutorialCompleted: mocks.markCompleted,
 }));
+vi.mock("./WelcomeModal", () => ({
+  WelcomeModal: ({ onNext }: { onNext: () => void }) => <button type="button" onClick={onNext}>welcome</button>,
+}));
 vi.mock("../PlatformTutorial", () => ({
-  PlatformTutorial: ({ open, mandatory, onClose }: { open: boolean; mandatory?: boolean; onClose: (finished: boolean) => void }) => (
-    <div data-testid="tour" data-open={String(open)} data-mandatory={String(Boolean(mandatory))}>
+  PlatformTutorial: ({ open, onboarding, onClose }: { open: boolean; onboarding?: boolean; onClose: (finished: boolean) => void }) => (
+    <div data-testid="tour" data-open={String(open)} data-onboarding={String(Boolean(onboarding))}>
       <button type="button" onClick={() => onClose(true)}>finish</button>
       <button type="button" onClick={() => onClose(false)}>dismiss</button>
     </div>
@@ -39,15 +42,20 @@ describe("TutorialHost", () => {
     mocks.markCompleted.mockClear();
   });
 
-  it("opens a mandatory tour on the first visit and records completion on finish", () => {
+  it("goes from the welcome to the help card on the first visit and records completion on finish", () => {
     renderHost();
-    expect(screen.getByTestId("tour")).toHaveAttribute("data-mandatory", "true");
+    expect(screen.getByTestId("tour")).toHaveAttribute("data-open", "false");
+    fireEvent.click(screen.getByText("welcome"));
+    expect(screen.queryByText("welcome")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tour")).toHaveAttribute("data-open", "true");
+    expect(screen.getByTestId("tour")).toHaveAttribute("data-onboarding", "true");
     fireEvent.click(screen.getByText("finish"));
     expect(mocks.markCompleted).toHaveBeenCalledWith("7");
     expect(screen.getByTestId("tour")).toHaveAttribute("data-open", "false");
   });
 
   it("does not record completion when the tour is dismissed", () => {
+    mocks.completed = true;
     renderHost();
     fireEvent.click(screen.getByText("dismiss"));
     expect(mocks.markCompleted).not.toHaveBeenCalled();

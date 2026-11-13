@@ -15,6 +15,7 @@ import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { ConfirmUnlinkModal } from "../fichaProyecto/ConfirmUnlinkModal";
 import { useKeyResultLinkForm } from "../fichaProyecto/KeyResultLinkForm";
 import { errorMessage } from "./proyectosShared";
+import { MODAL_HELP } from "../../components/modalHelpContent";
 
 interface KeyResultLinkModalProps {
   keyResults: KeyResult[];
@@ -54,7 +55,7 @@ export function KeyResultLinkModal({ project, keyResults, onClose, onChanged }: 
 
   return (
     <Modal onClose={onClose}>
-      <ModalHeader title="Vincular Key Result" onClose={onClose}>
+      <ModalHeader title="Vincular Key Result" onClose={onClose} help={MODAL_HELP.keyResultLink}>
         <span className="text-xs text-gray-500" style={{ overflowWrap: "anywhere" }}>{project.name}</span>
       </ModalHeader>
       <ModalBody>

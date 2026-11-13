@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { MODAL_HELP } from "../components/modalHelpContent";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -208,7 +209,7 @@ export function ProjectDetailContent({ projectId, onBack, guard, onOpenInHierarc
 
   return (
     <>
-      <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} tourId="project-close">
+      <DetailTopBar closeLabel={CLOSE_LABEL} onClose={onBack} tourId="project-close" help={MODAL_HELP.initiativeDetail}>
         <DetailBadge tone="initiative">Iniciativa PROY-{String(project.id).padStart(2, "0")}</DetailBadge>
         <DetailBadge>{STATUS_LABELS[project.status]}</DetailBadge>
         <DetailBadge>{TYPE_LABELS[project.type]}</DetailBadge>

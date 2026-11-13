@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { MODAL_HELP } from "../../components/modalHelpContent";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { measurementUnitsApi, type MeasurementUnit } from "../../services/catalogsApi";
@@ -11,6 +12,7 @@ import { keyResultsApi, type KeyResult, type KeyResultRequest } from "../../serv
 import { signalStrategicDataChanged } from "../../utils/strategicDataRefresh";
 import { keyResultLifecycleAction, lifecycleLabel } from "../../utils/strategicLifecycle";
 import { KrEditPanel } from "./KrFormModal";
+import { StrategyLinkNames } from "../../components/StrategyLinkNames";
 import { LinkInitiativesPanel } from "./LinkInitiativesPanel";
 import { KeyResultProgressForm } from "./KeyResultProgressForm";
 import { KeyResultProgressHistory } from "./KeyResultProgressHistory";
@@ -92,8 +94,6 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
     void load();
   }, [keyResultId]);
 
-  const goalNames = useMemo(() => joinLinkNames(keyResult?.goals), [keyResult]);
-  const strategicBetNames = useMemo(() => joinLinkNames(keyResult?.strategicBets), [keyResult]);
   const declaredWeightSum = links[0]?.totalWeightForKeyResult ?? links.reduce((sum, link) => sum + link.contributionWeight, 0);
   const declaredWeightsExceeded = declaredWeightSum > 100;
   const lifecycleAction = keyResult ? keyResultLifecycleAction(keyResult.status ?? "ACTIVO") : null;
@@ -220,7 +220,7 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
 
   return (
     <Modal label="Detalle de KR" size="lg" onClose={requestClose}>
-      <DetailTopBar closeLabel="Cerrar detalle de KR" onClose={requestClose} tourId="kr-close">
+      <DetailTopBar closeLabel="Cerrar detalle de KR" onClose={requestClose} tourId="kr-close" help={MODAL_HELP.keyResultDetail}>
         {keyResult && (
           <>
             <DetailBadge tone="keyResult">Key Result #{keyResult.id}</DetailBadge>
@@ -298,8 +298,8 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
               <div className="grid grid-cols-1 divide-y divide-gray-200 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
                 <DetailSection title="Datos del KR" tourId="kr-data">
                   <DetailFields>
-                    <DetailField label="Metas">{goalNames}</DetailField>
-                    <DetailField label="Apuestas">{strategicBetNames}</DetailField>
+                    <DetailField label="Metas"><StrategyLinkNames names={(keyResult.goals ?? []).map((link) => link.name)} empty="Sin vínculo" /></DetailField>
+                    <DetailField label="Apuestas"><StrategyLinkNames names={(keyResult.strategicBets ?? []).map((link) => link.name)} empty="Sin vínculo" /></DetailField>
                     <DetailField label="Periodo">{keyResult.academicPeriodName ?? "Sin periodo"}</DetailField>
                     <DetailField label="Métrica">{keyResult.metric}</DetailField>
                     <DetailField label="Iniciativas"><LinkedNames count={links.length} names={links.map((link) => link.projectName ?? `Iniciativa ${link.projectId ?? ""}`.trim())} /></DetailField>
@@ -348,9 +348,4 @@ function formatArchivedSince(archivedAt?: string | null) {
   if (!archivedAt) return "";
   const date = new Date(archivedAt);
   return Number.isNaN(date.getTime()) ? "" : ` desde el ${date.toLocaleDateString("es-CO")}`;
-}
-
-function joinLinkNames(links?: Array<{ name: string }>) {
-  const names = (links ?? []).map((link) => link.name).filter(Boolean);
-  return names.length ? names.join(", ") : "Sin vínculo";
 }
