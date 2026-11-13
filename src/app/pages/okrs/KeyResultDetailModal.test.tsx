@@ -198,7 +198,7 @@ describe("KeyResultDetailModal archive", () => {
 
   it("warns instead of opening the dialog when the KR still has linked initiatives", async () => {
     const user = userEvent.setup();
-    mocks.links.mockResolvedValue([{ id: 1, active: true, contributionWeight: 40, totalWeightForKeyResult: 40 }]);
+    mocks.links.mockResolvedValue([{ id: 1, active: true }]);
     renderModal();
 
     await user.click(await screen.findByRole("button", { name: "Archivar" }));

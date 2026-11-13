@@ -4,7 +4,6 @@ import { DETAIL_BUTTON_CLASS, DetailSection } from "../../components/DetailModal
 import { FormActions } from "../../components/forms/FormField";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../components/Modal";
 import {
-  contributionTypeLabel,
   projectKeyResultLinksApi,
   type ProjectKeyResultLinkResponse,
   type ProjectResponse,
@@ -67,7 +66,7 @@ export function KeyResultLinkModal({ project, keyResults, onClose, onChanged }: 
                   <li key={link.linkId} className="flex items-center gap-3 px-3 py-2">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-[#111827]" style={{ overflowWrap: "anywhere" }}>{link.keyResultName || `KR ${link.keyResultId}`}</p>
-                      <p className="mt-0.5 text-xs text-gray-500">{link.contributionWeight}% - {contributionTypeLabel[link.contributionType]} - {link.active ? "Activo" : "Inactivo"}</p>
+                      <p className="mt-0.5 text-xs text-gray-500">{link.active ? "Activo" : "Inactivo"}</p>
                     </div>
                     <button
                       type="button"
@@ -78,10 +77,6 @@ export function KeyResultLinkModal({ project, keyResults, onClose, onChanged }: 
                         projectName: project.name,
                         keyResultId: link.keyResultId,
                         keyResultDescription: link.keyResultDescription,
-                        contributionWeight: link.contributionWeight,
-                        contributionType: link.contributionType,
-                        totalWeightForKeyResult: 0,
-                        overweightWarning: false,
                         active: link.active,
                         createdAt: "",
                       })}

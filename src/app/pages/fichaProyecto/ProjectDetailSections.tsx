@@ -5,7 +5,6 @@ import {
   DetailEmpty,
   DetailField,
   DetailFields,
-  DetailNotice,
   DetailSection,
   DetailTable,
 } from "../../components/DetailModal";
@@ -41,12 +40,6 @@ export function SummarySection({
 
   return (
     <>
-      {detail.kpis.overweightWarning && (
-        <div className="px-5 py-4">
-          <DetailNotice>La suma de pesos asociados supera el 100%. Revisa los Key Results vinculados para ajustar la contribución declarada.</DetailNotice>
-        </div>
-      )}
-
       <DetailSection
         title="Avance global"
         action={<span className="text-xs text-gray-500">{latestEntry ? `Último registro: ${formatDate(latestEntry.createdAt)}` : "Sin registros de avance todavía."}</span>}
@@ -60,12 +53,11 @@ export function SummarySection({
         <DetailFields>
           <DetailField label="Registros de avance">{detail.kpis.progressEntries}</DetailField>
           <DetailField label="KRs vinculados"><LinkedNames count={detail.kpis.linkedKeyResults} names={keyResultNames} /></DetailField>
-          <DetailField label="Peso declarado">{detail.kpis.declaredContributionWeight}%</DetailField>
           {latestEntry && <DetailField label="Último comentario">{latestEntry.comment}</DetailField>}
         </DetailFields>
       </DetailSection>
 
-      <DetailSection title="Vínculos con KRs" hint="Pesos declarados en la cadena de contribución activa.">
+      <DetailSection title="Vínculos con KRs">
         {!chain || chain.impacts.length === 0 ? (
           <DetailEmpty>{NO_CHAIN_TEXT}</DetailEmpty>
         ) : (
@@ -102,14 +94,12 @@ export function KeyResultsSection({
   chain,
   detail,
   onLink,
-  onEditLink,
   onUnlink,
 }: {
   canManageLinks: boolean;
   chain?: ImpactChain | null;
   detail: ProjectDetailResponse;
   onLink: () => void;
-  onEditLink: (link: ProjectKeyResultLinkResponse) => void;
   onUnlink: (link: ProjectKeyResultLinkResponse) => void;
 }) {
   return (
@@ -121,7 +111,7 @@ export function KeyResultsSection({
         {detail.linkedKeyResults.length === 0 ? (
           <DetailEmpty>Esta iniciativa aún no tiene Key Results vinculados.</DetailEmpty>
         ) : (
-          <LinkedKeyResultsTable canManage={canManageLinks} chain={chain} links={detail.linkedKeyResults} onEditLink={onEditLink} onUnlink={onUnlink} />
+          <LinkedKeyResultsTable canManage={canManageLinks} chain={chain} links={detail.linkedKeyResults} onUnlink={onUnlink} />
         )}
       </DetailSection>
 

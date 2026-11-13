@@ -13,8 +13,6 @@ const impact = (overrides: Partial<ImpactChain["impacts"][number]> = {}): Impact
   keyResultDescription: "Permanencia",
   goalNames: ["Graduación oportuna"],
   strategicBetNames: ["Apuesta digital"],
-  contributionWeight: 40,
-  contributionType: "DIRECTA",
   projectCompleted: false,
   period: "2026-1",
   ...overrides,
@@ -44,22 +42,22 @@ describe("SummarySection", () => {
     expect(screen.queryByText(/supera el 100%/)).not.toBeInTheDocument();
   });
 
-  it("shows the latest record, the linked names and the weight warning", () => {
+  it("shows the latest record, the linked names without weights", () => {
     const detail = makeDetail({
       history: [
         makeEntry({ id: 1, comment: "Antiguo", createdAt: "2026-01-10T10:00:00Z" }),
         makeEntry({ id: 2, comment: "Reciente", createdAt: "2026-04-10T10:00:00Z" }),
       ],
-      kpis: { progressEntries: 2, linkedKeyResults: 1, declaredContributionWeight: 140, completed: false, overweightWarning: true },
+      kpis: { progressEntries: 2, linkedKeyResults: 1, completed: false },
     });
     render(<SummarySection chain={chainOf([impact()])} detail={detail} keyResultNames={["Permanencia"]} progressColor="#5454E9" project={detail.project} />);
 
-    expect(screen.getByText(/supera el 100%/)).toBeInTheDocument();
+    expect(screen.queryByText(/supera el 100%/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Peso declarado")).not.toBeInTheDocument();
     expect(screen.getByText("Reciente")).toBeInTheDocument();
     expect(screen.queryByText("Antiguo")).not.toBeInTheDocument();
     expect(screen.getByText(/Último registro:/)).toBeInTheDocument();
     expect(screen.getByRole("listitem")).toHaveTextContent("Permanencia");
-    expect(screen.getByText("140%")).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Cadena de contribución de la iniciativa" })).toBeInTheDocument();
   });
 
@@ -90,7 +88,7 @@ describe("HistorySection", () => {
 });
 
 describe("KeyResultsSection", () => {
-  const handlers = () => ({ onLink: vi.fn(), onEditLink: vi.fn(), onUnlink: vi.fn() });
+  const handlers = () => ({ onLink: vi.fn(), onUnlink: vi.fn() });
 
   it("invites to link when the initiative has none", async () => {
     const actions = handlers();
@@ -110,19 +108,18 @@ describe("KeyResultsSection", () => {
 
   it("lists the links with their actions", async () => {
     const actions = handlers();
-    const link = makeLink({ overweightWarning: true, totalWeightForKeyResult: 130 });
+    const link = makeLink();
     const detail = makeDetail({ linkedKeyResults: [link, makeLink({ id: 2, keyResultId: 12, keyResultDescription: "Otro", active: false })] });
     const user = userEvent.setup();
     render(<MemoryRouter><KeyResultsSection canManageLinks chain={chainOf([impact()])} detail={detail} {...actions} /><Where /></MemoryRouter>);
 
-    expect(screen.getByText("Los pesos declarados para este KR suman 130%, más de 100 %.")).toBeInTheDocument();
+    expect(screen.queryByText(/más de 100/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: /Peso|Tipo/ })).not.toBeInTheDocument();
     expect(screen.getAllByText("Graduación oportuna, Apuesta digital", { selector: "td" }).length).toBeGreaterThan(0);
     expect(screen.getByText("Inactivo")).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: "Gestionar peso" })[0]);
     await user.click(screen.getAllByRole("button", { name: "Desvincular" })[0]);
     await user.click(screen.getAllByRole("button", { name: "Ir al KR" })[0]);
-    expect(actions.onEditLink).toHaveBeenCalledWith(link);
     expect(actions.onUnlink).toHaveBeenCalledWith(link);
     expect(screen.getByLabelText("ubicacion")).toHaveTextContent("/krs?keyResultId=11");
   });
@@ -138,11 +135,11 @@ describe("ProjectKeyResultTables", () => {
   it("hides management actions for read-only users and shows a dash without strategy", () => {
     render(
       <MemoryRouter>
-        <LinkedKeyResultsTable canManage={false} chain={null} links={[makeLink()]} onEditLink={vi.fn()} onUnlink={vi.fn()} />
+        <LinkedKeyResultsTable canManage={false} chain={null} links={[makeLink()]} onUnlink={vi.fn()} />
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole("button", { name: "Gestionar peso" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Desvincular" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ir al KR" })).toBeInTheDocument();
     expect(screen.getByText("—")).toBeInTheDocument();
   });

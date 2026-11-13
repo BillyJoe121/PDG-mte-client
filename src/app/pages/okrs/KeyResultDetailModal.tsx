@@ -94,8 +94,6 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
     void load();
   }, [keyResultId]);
 
-  const declaredWeightSum = links[0]?.totalWeightForKeyResult ?? links.reduce((sum, link) => sum + link.contributionWeight, 0);
-  const declaredWeightsExceeded = declaredWeightSum > 100;
   const lifecycleAction = keyResult ? keyResultLifecycleAction(keyResult.status ?? "ACTIVO") : null;
   const keyResultArchived = keyResult?.archived === true;
   const keyResultClosed = keyResult?.status === "CERRADO";
@@ -250,9 +248,6 @@ export function KeyResultDetailModal({ keyResultId, canEdit, onClose, onChanged,
               <DetailHeading title={keyResult.name} description={keyResult.description}>
                 {keyResultArchived && (
                   <DetailNotice>Este KR está archivado{formatArchivedSince(keyResult.archivedAt)}. No admite cambios hasta que lo restaures.</DetailNotice>
-                )}
-                {declaredWeightsExceeded && (
-                  <DetailNotice>Los pesos declarados por las iniciativas vinculadas suman más de 100 %. Revisa los vínculos de este KR.</DetailNotice>
                 )}
               </DetailHeading>
 

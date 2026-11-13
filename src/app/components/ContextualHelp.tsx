@@ -58,7 +58,7 @@ const helpByRoute: Array<{ match: (pathname: string) => boolean; content: HelpCo
       steps: [
         "Usa los filtros y la búsqueda para encontrar la iniciativa.",
         "Abre la ficha para actualizar fechas, responsables, estado y vínculos con KRs.",
-        "Al vincular un KR, valida el peso y el tipo de contribución antes de guardar.",
+        "Al vincular un KR, revisa que sea el Key Result correcto antes de guardar.",
       ],
       tip: "Las fechas y períodos se validan antes de guardar; el cierre real no puede ser anterior al inicio.",
     },

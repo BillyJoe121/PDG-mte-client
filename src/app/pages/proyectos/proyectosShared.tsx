@@ -1,4 +1,4 @@
-import type { ContributionType, ProjectStatus, ProjectType } from "../../services/projectsApi";
+import type { ProjectStatus, ProjectType } from "../../services/projectsApi";
 
 export const COLORS = {
   blue: "#5454E9",
@@ -26,12 +26,6 @@ export const TYPE_OPTIONS: { value: ProjectType | "todos"; label: string }[] = [
   { value: "INVESTIGACION", label: "Investigacion" },
   { value: "EXTENSION", label: "Extension" },
   { value: "MACROPROYECTO", label: "Macroproyecto" },
-];
-
-export const CONTRIBUTION_OPTIONS: { value: ContributionType; label: string }[] = [
-  { value: "DIRECTA", label: "Directa" },
-  { value: "INDIRECTA", label: "Indirecta" },
-  { value: "SOPORTE", label: "Soporte" },
 ];
 
 export function statusLabel(status: ProjectStatus) {

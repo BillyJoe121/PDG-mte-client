@@ -1,6 +1,6 @@
 import type React from "react";
 import type { Rol } from "../../context/AuthContext";
-import type { ContributionType, ProjectStatus } from "../../services/projectsApi";
+import type { ProjectStatus } from "../../services/projectsApi";
 
 export const COLORS = {
   blue: "#5454E9",
@@ -20,12 +20,6 @@ export const STATUS_LABELS: Record<ProjectStatus, string> = {
   SUSPENDIDO: "Suspendido",
   ARCHIVADO: "Archivado",
 };
-
-export const CONTRIBUTION_TYPES: { value: ContributionType; label: string }[] = [
-  { value: "DIRECTA", label: "Directa" },
-  { value: "INDIRECTA", label: "Indirecta" },
-  { value: "SOPORTE", label: "Soporte" },
-];
 
 export function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;

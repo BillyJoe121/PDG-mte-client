@@ -111,6 +111,56 @@ describe("PresentationSlideView bodies", () => {
   });
 });
 
+describe("initiatives of bet and goal slides", () => {
+  const withItems = (id: number, name: string, progress: string, items: { id: number; name: string; globalProgress: number | null; status: string }[]) => ({
+    ...kr(id, name, ["Transformación educativa"], progress),
+    linkedProjectItems: items,
+  });
+  const itemsReport = {
+    ...report,
+    keyResultRanking: [
+      withItems(1, "KR uno", "30", [{ id: 11, name: "Iniciativa media", globalProgress: 50, status: "ACTIVO" }, { id: 12, name: "Iniciativa sin dato", globalProgress: null, status: "BORRADOR" }]),
+      withItems(2, "KR dos", "80", [{ id: 11, name: "Iniciativa media", globalProgress: 50, status: "ACTIVO" }, { id: 13, name: "Iniciativa alta", globalProgress: 95, status: "FINALIZADO" }]),
+    ],
+  } as unknown as ConsolidatedReport;
+
+  it("lists the initiatives of the bet once each, ordered by their recorded progress", () => {
+    const [linked] = attachBetKeyResults([bet], itemsReport);
+    render(<PresentationSlideView slide={linked} periodName="2026-1" />);
+    expect(screen.getByText("La apuesta Transformación educativa tiene 2 KRs")).toBeInTheDocument();
+    const section = screen.getByRole("region", { name: "Iniciativas vinculadas a esta apuesta" });
+    const names = within(section).getAllByRole("listitem").map((row) => within(row).getByText(/^Iniciativa/).textContent);
+    expect(names).toEqual(["Iniciativa alta", "Iniciativa media", "Iniciativa sin dato"]);
+    expect(within(section).getByText("95%")).toBeInTheDocument();
+    expect(within(section).getByText("Sin registro")).toBeInTheDocument();
+    expect(within(section).getAllByText(/^Avance registrado/)).toHaveLength(3);
+    const krs = within(screen.getByRole("region", { name: "KRs vinculados a esta apuesta" })).getAllByRole("listitem");
+    expect(krs.map((row) => within(row).getByText(/^KR /).textContent)).toEqual(["KR dos", "KR uno"]);
+  });
+
+  it("never shows an aggregated progress for the bet or the goal", () => {
+    const goal = { id: 9, name: "O1", executionSummary: { summaryText: "", completedKeyResults: 1, inProgressKeyResults: 1, completedProjects: 0, inProgressProjects: 2, periods: [] } } as unknown as Goal;
+    const goalReport = { ...itemsReport, keyResultRanking: itemsReport.keyResultRanking.map((row) => ({ ...row, goalNames: ["O1"] })) } as ConsolidatedReport;
+    const [betSlide] = attachBetKeyResults([bet], itemsReport);
+    const [goalSlide] = insertGoalSlides([], [goal], goalReport);
+    for (const slide of [betSlide, goalSlide]) {
+      const { container, unmount } = render(<PresentationSlideView slide={slide} periodName="2026-1" />);
+      expect(container.textContent).not.toMatch(/avanzad/i);
+      // The only percentages are the ones recorded on each KR (80, 30) and each initiative (95, 50).
+      expect(container.textContent?.match(/\d+(\.\d+)?\s?%/g)).toEqual(["80%", "30%", "95%", "50%"]);
+      unmount();
+    }
+    render(<PresentationSlideView slide={goalSlide} periodName="2026-1" />);
+    expect(screen.getByText("La meta O1 tiene 2 KRs")).toBeInTheDocument();
+  });
+
+  it("says so when the KRs have no linked initiatives", () => {
+    const [linked] = attachBetKeyResults([bet], report);
+    render(<PresentationSlideView slide={linked} periodName="2026-1" />);
+    expect(screen.getByText("Sin iniciativas vinculadas en el informe del corte")).toBeInTheDocument();
+  });
+});
+
 describe("goal slides", () => {
   const goal = {
     id: 4,

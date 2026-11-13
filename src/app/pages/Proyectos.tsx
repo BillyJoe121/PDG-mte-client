@@ -242,8 +242,6 @@ function getProjectSearchText(project: ProjectResponse) {
     link.keyResultId,
     link.keyResultName,
     link.keyResultDescription,
-    link.contributionType,
-    link.contributionWeight,
   ].filter(Boolean).join(" ")).join(" ");
 
   return [

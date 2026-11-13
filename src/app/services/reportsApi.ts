@@ -22,6 +22,14 @@ export interface DepartmentReport {
   closedKeyResults: number;
 }
 
+/** Initiative linked to a ranked KR, with the progress its own team recorded (informative only). */
+export interface LinkedProjectItem {
+  id: number;
+  name: string;
+  globalProgress: number | null;
+  status: string;
+}
+
 /** Key result with the progress percentage recorded manually by its owner. */
 export interface KeyResultRanking {
   keyResultId: number;
@@ -31,6 +39,8 @@ export interface KeyResultRanking {
   period: string;
   progressPercentage: string;
   linkedProjects: number;
+  /** Initiatives linked to the KR; older reports may leave it out. */
+  linkedProjectItems?: LinkedProjectItem[] | null;
 }
 
 export interface PeriodComparison {

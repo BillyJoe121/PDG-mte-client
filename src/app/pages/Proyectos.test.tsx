@@ -86,8 +86,8 @@ const second: ProjectResponse = {
   type: "GRADO",
   tutors: ["Luis Pérez"],
   linkedKeyResults: [
-    { linkId: 9, keyResultId: 5, keyResultName: "Retención estudiantil", keyResultDescription: "", contributionWeight: 40, contributionType: "DIRECTA", active: true },
-    { linkId: 10, keyResultId: 6, keyResultName: "", keyResultDescription: "", contributionWeight: 0, contributionType: "SOPORTE", active: false },
+    { linkId: 9, keyResultId: 5, keyResultName: "Retención estudiantil", keyResultDescription: "", active: true },
+    { linkId: 10, keyResultId: 6, keyResultName: "", keyResultDescription: "", active: false },
   ],
 };
 

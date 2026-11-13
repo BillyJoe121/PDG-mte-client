@@ -1,9 +1,12 @@
 import { CheckCircle2, Clock3, Flag, FileText } from "lucide-react";
-import type { KeyResultRanking, PresentationSlide } from "../../services/reportsApi";
+import type { ProjectStatus } from "../../services/projectsApi";
+import type { KeyResultRanking, LinkedProjectItem, PresentationSlide } from "../../services/reportsApi";
 import { formatMeasure } from "../../utils/measureFormat";
 import { PRESENTATION_UI } from "./PresentationLayout";
 import { formatCount, PanelHeading, ProgressBarRow, SlideEmptyState, SplitBar, strategyText } from "./PresentationConsolidatedSlideParts";
 import { ScrollPanel } from "./PresentationSlidePager";
+import { statusLabel } from "../proyectos/proyectosShared";
+import { linkedInitiativesOf } from "./recordedProgress";
 
 /* Bodies of the slides returned by the API, drawn at 1920×1080. Only recorded figures are shown. */
 
@@ -83,19 +86,14 @@ export function CoverBody({ slide }: { slide: PresentationSlide }) {
   );
 }
 
-/** Linked KRs of a bet or goal slide; a long list scrolls inside the card. */
+/** Linked KRs of a bet or goal slide, ordered by the progress recorded on each KR; a long list scrolls inside the card. */
 function LinkedKeyResults({ keyResults, owner }: { keyResults: KeyResultRanking[]; owner: string }) {
   const heading = <PanelHeading title="KRs vinculados" aside={keyResults.length ? `${formatCount(keyResults.length)} KRs` : undefined} />;
   if (!keyResults.length) {
     return (
       <>
         {heading}
-        <div className="rounded-xl" style={{ border: "3px dashed #C9CFDB", backgroundColor: PRESENTATION_UI.surface, padding: "32px 40px" }}>
-          <p style={{ fontSize: 26, fontWeight: 600, color: PRESENTATION_UI.text }}>Sin KRs vinculados en el informe del corte</p>
-          <p style={{ fontSize: 22, fontWeight: 500, color: PRESENTATION_UI.muted, marginTop: 8, lineHeight: 1.45 }}>
-            {`Vincula los KRs a ${owner} y registra su avance para verlos aquí.`}
-          </p>
-        </div>
+        <EmptyPanel title="Sin KRs vinculados en el informe del corte" text={`Vincula los KRs a ${owner} y registra su avance para verlos aquí.`} />
       </>
     );
   }
@@ -116,11 +114,52 @@ function LinkedKeyResults({ keyResults, owner }: { keyResults: KeyResultRanking[
   );
 }
 
+function EmptyPanel({ title, text: body }: { title: string; text: string }) {
+  return (
+    <div className="rounded-xl" style={{ border: "3px dashed #C9CFDB", backgroundColor: PRESENTATION_UI.surface, padding: "32px 40px" }}>
+      <p style={{ fontSize: 26, fontWeight: 600, color: PRESENTATION_UI.text }}>{title}</p>
+      <p style={{ fontSize: 22, fontWeight: 500, color: PRESENTATION_UI.muted, marginTop: 8, lineHeight: 1.45 }}>{body}</p>
+    </div>
+  );
+}
+
+/** Initiatives linked to the KRs of the slide, each with the progress its own team recorded. */
+function LinkedInitiatives({ initiatives, owner }: { initiatives: LinkedProjectItem[]; owner: string }) {
+  const heading = <PanelHeading title="Iniciativas vinculadas" aside={initiatives.length ? `${formatCount(initiatives.length)} iniciativas` : undefined} />;
+  if (!initiatives.length) {
+    return (
+      <>
+        {heading}
+        <EmptyPanel title="Sin iniciativas vinculadas en el informe del corte" text={`Vincula iniciativas a los KRs de ${owner} para verlas aquí.`} />
+      </>
+    );
+  }
+  return (
+    <ScrollPanel heading={heading} label="Lista de iniciativas vinculadas">
+      <ol className="flex flex-col gap-5">
+        {initiatives.map((item) => (
+          <ProgressBarRow
+            key={item.id}
+            label={item.name}
+            detail={item.status ? `Avance registrado · ${statusLabel(item.status as ProjectStatus)}` : "Avance registrado"}
+            value={typeof item.globalProgress === "number" && Number.isFinite(item.globalProgress) ? item.globalProgress : null}
+            color={PRESENTATION_UI.blue}
+          />
+        ))}
+      </ol>
+    </ScrollPanel>
+  );
+}
+
 function total(...values: (number | null)[]) {
   return values.reduce<number>((sum, value) => sum + (value ?? 0), 0);
 }
 
-/** Bet and goal slides: recorded counts on the left, the linked KRs on the right. */
+/**
+ * Bet and goal slides: how many KRs the bet or goal has and its recorded counts on the left;
+ * its KRs and its initiatives on the right, each ordered by its own recorded progress.
+ * No aggregated progress is shown for the bet or goal itself.
+ */
 function StrategyBody({ slide, kind }: { slide: PresentationSlide; kind: "bet" | "goal" }) {
   const content = slide.content ?? {};
   const summary = isRecord(content.executionSummary) ? content.executionSummary : content;
@@ -134,6 +173,8 @@ function StrategyBody({ slide, kind }: { slide: PresentationSlide; kind: "bet" |
   const unit = text(content, "measurementUnitName");
   const indicator = text(content, "referenceIndicator");
   const owner = kind === "bet" ? "esta apuesta" : "esta meta";
+  const initiatives = linkedInitiativesOf(linked);
+  const krCount = `${formatCount(linked.length)} ${linked.length === 1 ? "KR" : "KRs"}`;
 
   if (completed === null && inProgress === null && completedProjects === null && inProgressProjects === null && !linked.length && expected === null) {
     return (
@@ -147,6 +188,9 @@ function StrategyBody({ slide, kind }: { slide: PresentationSlide; kind: "bet" |
   return (
     <div className="grid h-full min-h-0 gap-16" style={{ gridTemplateColumns: "560px minmax(0,1fr)" }}>
       <div className="flex min-w-0 flex-col gap-10">
+        <p style={{ fontSize: 30, fontWeight: 600, lineHeight: 1.3, color: PRESENTATION_UI.text }}>
+          {`${kind === "bet" ? "La apuesta" : "La meta"} ${slide.title} tiene ${krCount}`}
+        </p>
         {expected !== null && (
           <div className="rounded-xl" style={{ border: `2px solid ${PRESENTATION_UI.border}`, borderTop: `8px solid ${PRESENTATION_UI.blue}`, padding: "24px 28px" }}>
             <p style={{ fontSize: 20, fontWeight: 600, color: PRESENTATION_UI.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>Valor esperado</p>
@@ -180,9 +224,14 @@ function StrategyBody({ slide, kind }: { slide: PresentationSlide; kind: "bet" |
           <p className="line-clamp-4" style={{ fontSize: 22, fontWeight: 500, color: "#374151", lineHeight: 1.45 }}>{summaryText}</p>
         )}
       </div>
-      <section className="flex min-h-0 min-w-0 flex-col" aria-label={`KRs vinculados a ${owner}`}>
-        <LinkedKeyResults keyResults={linked} owner={owner} />
-      </section>
+      <div className="grid min-h-0 min-w-0 gap-10" style={{ gridTemplateRows: "minmax(0,1fr) minmax(0,1fr)" }}>
+        <section className="flex min-h-0 min-w-0 flex-col" aria-label={`KRs vinculados a ${owner}`}>
+          <LinkedKeyResults keyResults={linked} owner={owner} />
+        </section>
+        <section className="flex min-h-0 min-w-0 flex-col" aria-label={`Iniciativas vinculadas a ${owner}`}>
+          <LinkedInitiatives initiatives={initiatives} owner={owner} />
+        </section>
+      </div>
     </div>
   );
 }
