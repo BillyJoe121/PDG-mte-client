@@ -90,7 +90,7 @@ export function DetailFields({ children }: { children: ReactNode }) {
 
 export function DetailField({ label, stacked = false, tourId, children }: { label: string; stacked?: boolean; tourId?: string; children: ReactNode }) {
   return (
-    <div data-tour={tourId} className={`grid items-baseline py-2 first:pt-0 last:pb-0 ${stacked ? "grid-cols-1 gap-1" : "grid-cols-[120px_minmax(0,1fr)] gap-3"}`}>
+    <div data-tour={tourId} className={`grid items-baseline first:pt-0 last:pb-0 ${stacked ? "grid-cols-1 gap-0.5 py-1.5" : "grid-cols-[120px_minmax(0,1fr)] gap-3 py-2"}`}>
       <dt className="text-[9px] font-extrabold uppercase tracking-wide text-gray-500">{label}</dt>
       <dd className="text-sm leading-snug text-[#111827]" style={{ overflowWrap: "anywhere" }}>{children}</dd>
     </div>
