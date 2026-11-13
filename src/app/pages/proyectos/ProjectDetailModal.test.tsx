@@ -61,7 +61,7 @@ const project: ProjectResponse = {
 
 const detail: ProjectDetailResponse = {
   project,
-  kpis: { progressEntries: 0, linkedKeyResults: 0, declaredContributionWeight: 0, completed: false, overweightWarning: false },
+  kpis: { progressEntries: 0, linkedKeyResults: 0, completed: false },
   history: [],
   linkedKeyResults: [],
   contributionChain: { projectId: 7, projectName: project.name, globalProgress: 40, status: "ACTIVO", impacts: [] },
@@ -106,7 +106,8 @@ describe("ProjectDetailModal edit mode", () => {
     const { user } = renderDetail();
     await user.click(await screen.findByRole("button", { name: "Vincular KR" }));
 
-    expect(await screen.findByLabelText("Peso de contribución")).toBeInTheDocument();
+    expect(await screen.findByRole("combobox", { name: "Key Result" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Peso de contribución")).not.toBeInTheDocument();
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
   });
 
@@ -193,8 +194,8 @@ describe("ProjectDetailModal links", () => {
     project: { ...project, plannerUrl: "https://tasks.office.com/plan/7" },
     kpis: { ...detail.kpis, linkedKeyResults: 1 },
     linkedKeyResults: [
-      { id: 1, projectId: 7, keyResultId: 11, keyResultDescription: "Permanencia", contributionWeight: 40, active: true },
-      { id: 2, projectId: 7, keyResultId: 12, keyResultDescription: "Inactivo", contributionWeight: 10, active: false },
+      { id: 1, projectId: 7, keyResultId: 11, keyResultDescription: "Permanencia", active: true },
+      { id: 2, projectId: 7, keyResultId: 12, keyResultDescription: "Inactivo", active: false },
     ] as ProjectDetailResponse["linkedKeyResults"],
   };
 

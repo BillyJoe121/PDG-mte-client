@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getErrorMessage, sortByRecordedProgress } from "./recordedProgress";
+import { getErrorMessage, linkedInitiativesOf, sortByRecordedProgress } from "./recordedProgress";
 
 describe("getErrorMessage", () => {
   it("reads the message of errors and message-like objects, with a generic fallback", () => {
@@ -32,5 +32,21 @@ describe("sortByRecordedProgress", () => {
       { id: "c", progressPercentage: 1 },
     ];
     expect(sortByRecordedProgress(rows)[0].id).toBe("c");
+  });
+});
+
+describe("linkedInitiativesOf", () => {
+  const item = (id: number, name: string, globalProgress: number | null) => ({ id, name, globalProgress, status: "ACTIVO" });
+
+  it("lists each initiative once, highest recorded progress first, without a record last, then by name", () => {
+    const rows = linkedInitiativesOf([
+      { linkedProjectItems: [item(1, "Beta", 40), item(2, "Sin dato", null)] },
+      { linkedProjectItems: [item(1, "Beta", 40), item(3, "Alfa", 40), item(4, "Gamma", 90)] },
+    ]);
+    expect(rows.map((row) => row.id)).toEqual([4, 3, 1, 2]);
+  });
+
+  it("treats a missing or null list as empty", () => {
+    expect(linkedInitiativesOf([{}, { linkedProjectItems: null }])).toEqual([]);
   });
 });

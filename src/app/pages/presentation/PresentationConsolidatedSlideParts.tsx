@@ -52,15 +52,15 @@ export function StatTile({ label, value, note, color, icon, size = "md" }: {
   );
 }
 
-/** Horizontal bar of the progress a responsible person recorded on a KR. */
+/** Horizontal bar of the progress a responsible person recorded; `null` means nothing was recorded. */
 export function ProgressBarRow({ rank, label, detail, value, color = PRESENTATION_UI.blue }: {
   rank?: number;
   label: string;
   detail?: string;
-  value: string | number;
+  value: string | number | null;
   color?: string;
 }) {
-  const width = boundedPercent(value);
+  const width = value === null ? 0 : boundedPercent(value);
   return (
     <li className="grid items-center gap-x-8" style={{ gridTemplateColumns: rank === undefined ? "minmax(0,1fr) 120px" : "48px minmax(0,1fr) 120px" }}>
       {rank !== undefined && (
@@ -75,7 +75,9 @@ export function ProgressBarRow({ rank, label, detail, value, color = PRESENTATIO
           <div className="h-full rounded-full" style={{ width: `${width}%`, backgroundColor: color }} />
         </div>
       </div>
-      <span className="text-right" style={{ fontSize: 32, fontWeight: 700, color: PRESENTATION_UI.text }}>{formatPercent(value)}</span>
+      <span className="text-right" style={{ fontSize: value === null ? 20 : 32, fontWeight: 700, color: value === null ? PRESENTATION_UI.muted : PRESENTATION_UI.text }}>
+        {value === null ? "Sin registro" : formatPercent(value)}
+      </span>
     </li>
   );
 }

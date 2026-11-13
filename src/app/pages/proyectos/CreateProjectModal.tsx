@@ -11,14 +11,13 @@ import { PlannerUrlField } from "../../components/planner/PlannerUrlField";
 import {
   projectsApi,
   validateProjectSchedule,
-  type ContributionType,
   type ProjectKeyResultDraftRequest,
   type ProjectRequest,
   type ProjectStatus,
   type ProjectType,
 } from "../../services/projectsApi";
 import { parseTutors } from "../fichaProyecto/projectDetailUi";
-import { CONTRIBUTION_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, errorMessage } from "./proyectosShared";
+import { STATUS_OPTIONS, TYPE_OPTIONS, errorMessage } from "./proyectosShared";
 import { MODAL_HELP } from "../../components/modalHelpContent";
 
 interface CreateProjectModalProps {
@@ -71,15 +70,9 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
       if (current.some((link) => link.keyResultId === keyResultId)) {
         return current.filter((link) => link.keyResultId !== keyResultId);
       }
-      return [...current, { keyResultId, contributionWeight: 30, contributionType: "DIRECTA" }];
+      return [...current, { keyResultId }];
     });
     setErrors((current) => ({ ...current, keyResults: "" }));
-  };
-
-  const updateLink = (keyResultId: number, changes: Partial<ProjectKeyResultDraftRequest>) => {
-    setKrLinks((current) =>
-      current.map((link) => link.keyResultId === keyResultId ? { ...link, ...changes } : link),
-    );
   };
 
   const validate = () => {
@@ -93,9 +86,7 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
     if (parseTutors(form.tutors).length === 0) next.tutors = "Ingresa al menos un tutor.";
     const plannerError = validatePlannerUrl(form.plannerUrl);
     if (plannerError) next.plannerUrl = plannerError;
-    const invalidLink = krLinks.some((link) => !link.keyResultId || link.contributionWeight < 0 || link.contributionWeight > 100 || !link.contributionType);
     if (krLinks.length === 0) next.keyResults = "Selecciona al menos un Key Result.";
-    else if (invalidLink) next.keyResults = "Cada vinculo KR debe tener peso entre 0 y 100 y tipo de contribucion.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -211,8 +202,7 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
               ) : (
                 <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
                   {keyResults.map((kr) => {
-                    const link = krLinks.find((item) => item.keyResultId === kr.id);
-                    const selected = Boolean(link);
+                    const selected = krLinks.some((item) => item.keyResultId === kr.id);
                     return (
                       <div key={kr.id} className={`rounded-md border p-3 ${selected ? "border-[#5454E9] bg-gray-50" : "border-gray-200 bg-white"}`}>
                         <div className="flex items-start gap-3">
@@ -242,25 +232,6 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
                             </button>
                           )}
                         </div>
-                        {selected && link && (
-                          <div className="ml-8 mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <input
-                              type="number"
-                              min={0}
-                              max={100}
-                              aria-label={`Peso de contribución KR ${kr.id}`}
-                              value={link.contributionWeight}
-                              onChange={(event) => updateLink(kr.id, { contributionWeight: Math.max(0, Math.min(100, Number(event.target.value))) })}
-                              className={FORM_CONTROL_CLASS}
-                            />
-                            <FormSelect
-                              label={`Tipo de contribución KR ${kr.id}`}
-                              value={link.contributionType}
-                              options={CONTRIBUTION_OPTIONS}
-                              onChange={(value) => updateLink(kr.id, { contributionType: value as ContributionType })}
-                            />
-                          </div>
-                        )}
                       </div>
                     );
                   })}

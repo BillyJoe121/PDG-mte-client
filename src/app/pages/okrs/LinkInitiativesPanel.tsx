@@ -2,16 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { DetailBody } from "../../components/DetailModal";
-import { FORM_CONTROL_CLASS, FormActions, FormField, FormSelect, FormTopBar } from "../../components/forms/FormField";
+import { FormActions, FormField, FormTopBar } from "../../components/forms/FormField";
 import { useDirtyReport } from "../../hooks/useDiscardGuard";
 import {
   projectKeyResultLinksApi,
   projectsApi,
   validateProjectKeyResultLink,
-  type ContributionType,
   type ProjectResponse,
 } from "../../services/projectsApi";
-import { CONTRIBUTION_TYPES, errorMessage } from "../fichaProyecto/projectDetailShared";
+import { errorMessage } from "../fichaProyecto/projectDetailShared";
 
 interface LinkInitiativesPanelProps {
   keyResultId: number;
@@ -23,15 +22,13 @@ interface LinkInitiativesPanelProps {
   onSaved: () => Promise<void>;
 }
 
-/** Edit mode of the KR detail: links one or several initiatives to the KR with the same weight and type. */
+/** Edit mode of the KR detail: links one or several initiatives to the KR. */
 export function LinkInitiativesPanel({ keyResultId, linkedProjectIds, onCancel, onDirtyChange, onSaved }: LinkInitiativesPanelProps) {
   const [projects, setProjects] = useState<ProjectResponse[] | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [search, setSearch] = useState("");
-  const [weight, setWeight] = useState(30);
-  const [contributionType, setContributionType] = useState<ContributionType>("DIRECTA");
   const [saving, setSaving] = useState(false);
-  useDirtyReport({ selected, weight, contributionType }, onDirtyChange);
+  useDirtyReport({ selected }, onDirtyChange);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +63,7 @@ export function LinkInitiativesPanel({ keyResultId, linkedProjectIds, onCancel, 
       toast.error("Selecciona al menos una iniciativa.");
       return;
     }
-    const validation = validateProjectKeyResultLink({ projectId: selected[0], keyResultId, contributionWeight: weight, contributionType });
+    const validation = validateProjectKeyResultLink({ projectId: selected[0], keyResultId });
     if (validation) {
       toast.error(validation);
       return;
@@ -74,12 +71,10 @@ export function LinkInitiativesPanel({ keyResultId, linkedProjectIds, onCancel, 
     setSaving(true);
     const failed: string[] = [];
     let created = 0;
-    let overweightTotal: number | null = null;
     for (const projectId of selected) {
       try {
-        const link = await projectKeyResultLinksApi.create({ projectId, keyResultId, contributionWeight: weight, contributionType });
+        await projectKeyResultLinksApi.create({ projectId, keyResultId });
         created += 1;
-        if (link.overweightWarning) overweightTotal = link.totalWeightForKeyResult;
       } catch (error) {
         const name = projects?.find((project) => project.id === projectId)?.name ?? `Iniciativa ${projectId}`;
         failed.push(`${name}: ${errorMessage(error)}`);
@@ -88,11 +83,7 @@ export function LinkInitiativesPanel({ keyResultId, linkedProjectIds, onCancel, 
     setSaving(false);
     failed.forEach((message) => toast.error(message));
     if (!created) return;
-    if (overweightTotal !== null) {
-      toast.warning(`Los pesos son declarativos. La suma actual es ${overweightTotal}%.`);
-    } else {
-      toast.success(created === 1 ? "Iniciativa vinculada." : `${created} iniciativas vinculadas.`);
-    }
+    toast.success(created === 1 ? "Iniciativa vinculada." : `${created} iniciativas vinculadas.`);
     await onSaved();
   };
 
@@ -105,7 +96,7 @@ export function LinkInitiativesPanel({ keyResultId, linkedProjectIds, onCancel, 
       </FormTopBar>
       <DetailBody>
         <div className="space-y-4 p-5">
-          <FormField label="Iniciativas" group hint="Marca una o varias; todas quedan con el mismo peso y tipo.">
+          <FormField label="Iniciativas" group hint="Marca una o varias.">
             <div className="flex min-h-[38px] items-center gap-2 rounded-md border border-gray-300 px-2.5 focus-within:border-[#5454E9]">
               <Search size={14} className="flex-shrink-0 text-gray-500" aria-hidden="true" />
               <input
@@ -145,14 +136,6 @@ export function LinkInitiativesPanel({ keyResultId, linkedProjectIds, onCancel, 
             </div>
             {selected.length > 0 && <span className="mt-1 block text-xs font-bold text-[#5454E9]">{selected.length} seleccionada{selected.length === 1 ? "" : "s"}</span>}
           </FormField>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="Peso de contribución">
-              <input type="number" min={0} max={100} value={weight} onChange={(event) => setWeight(Math.max(0, Math.min(100, Number(event.target.value))))} className={FORM_CONTROL_CLASS} />
-            </FormField>
-            <FormField label="Tipo">
-              <FormSelect label="Tipo" value={contributionType} options={CONTRIBUTION_TYPES} onChange={(value) => setContributionType(value as ContributionType)} />
-            </FormField>
-          </div>
         </div>
       </DetailBody>
     </>

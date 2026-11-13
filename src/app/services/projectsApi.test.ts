@@ -45,7 +45,7 @@ describe("projects APIs", () => {
       startPeriod: "2026-1",
       endPeriod: "2026-2",
       tutors: ["Tutora A"],
-      keyResultLinks: [{ keyResultId: 10, contributionWeight: 40, contributionType: "DIRECTA" as const }],
+      keyResultLinks: [{ keyResultId: 10 }],
     };
 
     await projectsApi.list({ search: "analitica", status: "ACTIVO", type: "INVESTIGACION", departmentId: 1, period: "2026-2" });
@@ -86,20 +86,16 @@ describe("projects APIs", () => {
 
   it("calls project-key-result link endpoints", async () => {
     await projectKeyResultLinksApi.list({ projectId: 1, keyResultId: 10 });
-    await projectKeyResultLinksApi.create({ projectId: 1, keyResultId: 10, contributionWeight: 35, contributionType: "SOPORTE" });
-    await projectKeyResultLinksApi.update(7, { contributionWeight: 55, contributionType: "INDIRECTA" });
+    await projectKeyResultLinksApi.create({ projectId: 1, keyResultId: 10 });
     await projectKeyResultLinksApi.remove(7);
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, `${baseUrl}/project-key-result-links?projectId=1&keyResultId=10`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(2, `${baseUrl}/project-key-result-links`, expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ projectId: 1, keyResultId: 10, contributionWeight: 35, contributionType: "SOPORTE" }),
+      body: JSON.stringify({ projectId: 1, keyResultId: 10 }),
     }));
-    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/project-key-result-links/7`, expect.objectContaining({
-      method: "PATCH",
-      body: JSON.stringify({ contributionWeight: 55, contributionType: "INDIRECTA" }),
-    }));
-    expect(fetchMock).toHaveBeenNthCalledWith(4, `${baseUrl}/project-key-result-links/7`, expect.objectContaining({ method: "DELETE" }));
+    expect(projectKeyResultLinksApi).not.toHaveProperty("update");
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${baseUrl}/project-key-result-links/7`, expect.objectContaining({ method: "DELETE" }));
   });
 
   it("calls the project responsibility endpoints", async () => {
@@ -120,18 +116,14 @@ describe("projects APIs", () => {
   });
 
   it.each([
-    ["missing project", { projectId: 0, keyResultId: 10, contributionWeight: 20, contributionType: "DIRECTA" as const }, "Selecciona una iniciativa."],
-    ["missing key result", { projectId: 1, keyResultId: 0, contributionWeight: 20, contributionType: "DIRECTA" as const }, "Selecciona un Key Result."],
-    ["negative weight", { projectId: 1, keyResultId: 10, contributionWeight: -1, contributionType: "DIRECTA" as const }, "El peso debe estar entre 0 y 100."],
-    ["overweight", { projectId: 1, keyResultId: 10, contributionWeight: 101, contributionType: "DIRECTA" as const }, "El peso debe estar entre 0 y 100."],
-    ["missing contribution type", { projectId: 1, keyResultId: 10, contributionWeight: 20, contributionType: "" as never }, "Selecciona el tipo de contribucion."],
+    ["missing project", { projectId: 0, keyResultId: 10 }, "Selecciona una iniciativa."],
+    ["missing key result", { projectId: 1, keyResultId: 0 }, "Selecciona un Key Result."],
   ])("validates project-key-result links: %s", (_caseName, payload, expected) => {
     expect(validateProjectKeyResultLink(payload)).toBe(expected);
   });
 
-  it("accepts project-key-result links at the inclusive weight boundaries", () => {
-    expect(validateProjectKeyResultLink({ projectId: 1, keyResultId: 10, contributionWeight: 0, contributionType: "INDIRECTA" })).toBeNull();
-    expect(validateProjectKeyResultLink({ projectId: 1, keyResultId: 10, contributionWeight: 100, contributionType: "SOPORTE" })).toBeNull();
+  it("accepts a project-key-result link with an initiative and a Key Result", () => {
+    expect(validateProjectKeyResultLink({ projectId: 1, keyResultId: 10 })).toBeNull();
   });
 
   it.each([

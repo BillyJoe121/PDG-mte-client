@@ -75,7 +75,7 @@ describe("KeyResultDetailModal links", () => {
     Object.values(mocks).forEach((mock) => mock.mockReset());
     mocks.get.mockResolvedValue({ ...activeKr, goals: [{ id: 3, name: "Graduación oportuna" }] });
     mocks.links.mockResolvedValue([
-      { id: 1, projectId: 7, projectName: "Laboratorio abierto", active: true, contributionWeight: 40, totalWeightForKeyResult: 40 },
+      { id: 1, projectId: 7, projectName: "Laboratorio abierto", active: true },
     ]);
     mocks.units.mockResolvedValue([]);
     mocks.records.mockResolvedValue([]);

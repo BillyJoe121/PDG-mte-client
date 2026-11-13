@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { KeyResult } from "../../services/strategicApi";
@@ -10,7 +10,7 @@ const keyResults = [
 ] as unknown as KeyResult[];
 
 describe("CreateProjectModal key result links", () => {
-  it("changes the weight of one selected key result without touching the other", async () => {
+  it("selects several key results without asking for a weight", async () => {
     const user = userEvent.setup();
     render(
       <CreateProjectModal
@@ -24,10 +24,8 @@ describe("CreateProjectModal key result links", () => {
 
     await user.click(screen.getByRole("checkbox", { name: "Seleccionar KR 11" }));
     await user.click(screen.getByRole("checkbox", { name: "Seleccionar KR 12" }));
-    const [first, second] = screen.getAllByRole("spinbutton");
-    fireEvent.change(second, { target: { value: "60" } });
-
-    expect(first).toHaveValue(30);
-    expect(second).toHaveValue(60);
+    expect(screen.getByRole("checkbox", { name: "Seleccionar KR 11" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("checkbox", { name: "Seleccionar KR 12" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
   });
 });

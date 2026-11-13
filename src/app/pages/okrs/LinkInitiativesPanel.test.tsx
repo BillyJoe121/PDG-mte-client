@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { installRadixSelectPolyfills } from "../../../test/radixSelect";
@@ -45,7 +45,7 @@ describe("LinkInitiativesPanel", () => {
   beforeAll(installRadixSelectPolyfills);
   beforeEach(() => {
     mocks.list.mockReset().mockResolvedValue(projects);
-    mocks.create.mockReset().mockResolvedValue({ overweightWarning: false, totalWeightForKeyResult: 30 });
+    mocks.create.mockReset().mockResolvedValue({ id: 1 });
     Object.values(mocks).forEach((fn) => fn.mockClear());
   });
 
@@ -125,32 +125,17 @@ describe("LinkInitiativesPanel", () => {
     await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
   });
 
-  it("links one initiative with the chosen weight and type", async () => {
+  it("links one initiative with only the project and the KR", async () => {
     const user = userEvent.setup();
     const { onSaved } = setup();
     await user.click(await screen.findByRole("checkbox", { name: /Plataforma virtual/ }));
-    const weight = screen.getByRole("spinbutton");
-    await user.clear(weight);
-    await user.type(weight, "45");
-    await user.click(screen.getByRole("combobox", { name: "Tipo" }));
-    await user.click(await screen.findByRole("option", { name: "Soporte" }));
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Tipo" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Guardar vínculo" }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(mocks.create).toHaveBeenCalledWith({ projectId: 1, keyResultId: 9, contributionWeight: 45, contributionType: "SOPORTE" });
+    expect(mocks.create).toHaveBeenCalledWith({ projectId: 1, keyResultId: 9 });
     expect(mocks.success).toHaveBeenCalledWith("Iniciativa vinculada.");
-  });
-
-  it("keeps the weight between 0 and 100", async () => {
-    const user = userEvent.setup();
-    setup();
-    await screen.findByText("Plataforma virtual");
-    const weight = screen.getByRole("spinbutton");
-    await user.clear(weight);
-    await user.type(weight, "250");
-    expect(weight).toHaveValue(100);
-    fireEvent.change(weight, { target: { value: "-5" } });
-    expect(weight).toHaveValue(0);
   });
 
   it("links several initiatives and announces the total", async () => {
@@ -165,20 +150,8 @@ describe("LinkInitiativesPanel", () => {
     expect(mocks.success).toHaveBeenCalledWith("2 iniciativas vinculadas.");
   });
 
-  it("warns when the declared weights exceed the total instead of announcing success", async () => {
-    mocks.create.mockResolvedValue({ overweightWarning: true, totalWeightForKeyResult: 130 });
-    const user = userEvent.setup();
-    const { onSaved } = setup();
-    await user.click(await screen.findByRole("checkbox", { name: /Plataforma virtual/ }));
-    await user.click(screen.getByRole("button", { name: "Guardar vínculo" }));
-
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(mocks.warning).toHaveBeenCalledWith("Los pesos son declarativos. La suma actual es 130%.");
-    expect(mocks.success).not.toHaveBeenCalled();
-  });
-
   it("reports which links failed and still finishes when some succeeded", async () => {
-    mocks.create.mockResolvedValueOnce({ overweightWarning: false }).mockRejectedValueOnce(new Error("Ya existe el vínculo"));
+    mocks.create.mockResolvedValueOnce({ id: 1 }).mockRejectedValueOnce(new Error("Ya existe el vínculo"));
     const user = userEvent.setup();
     const { onSaved } = setup();
     await user.click(await screen.findByRole("checkbox", { name: /Plataforma virtual/ }));

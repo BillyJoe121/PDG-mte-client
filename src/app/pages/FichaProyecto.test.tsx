@@ -169,15 +169,12 @@ describe("ProjectDetailContent", () => {
     expect(screen.queryByRole("dialog", { name: "Desvincular Key Result" })).not.toBeInTheDocument();
   });
 
-  it("manages the weight of a link in the same detail and returns after saving", async () => {
+  it("offers no weight management for a link", async () => {
     const { user } = setup();
     await user.click(await screen.findByRole("tab", { name: /Key Results/ }));
-    await user.click((await screen.findAllByRole("button", { name: "Gestionar peso" }))[0]);
 
-    expect(await screen.findByRole("heading", { name: "Gestionar peso" })).toBeInTheDocument();
-    expect(screen.getByRole("spinbutton")).toHaveValue(40);
-    await user.click(screen.getByRole("button", { name: "Cancelar" }));
-    expect(await screen.findByRole("tab", { name: /Key Results/ })).toBeInTheDocument();
+    expect((await screen.findAllByRole("button", { name: "Desvincular" })).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Gestionar peso" })).not.toBeInTheDocument();
   });
 
   it("links a new key result from the key results tab", async () => {
@@ -204,7 +201,7 @@ describe("ProjectDetailContent", () => {
 
   it("names a key result without a catalog entry by its description or number", async () => {
     mocks.load.mockResolvedValue({
-      ...screenData(makeDetail({ kpis: { progressEntries: 0, linkedKeyResults: 2, declaredContributionWeight: 80, completed: false, overweightWarning: false }, linkedKeyResults: [makeLink({ keyResultId: 90, keyResultDescription: "Descripción propia" }), makeLink({ id: 2, keyResultId: 91, keyResultDescription: "" })] })),
+      ...screenData(makeDetail({ kpis: { progressEntries: 0, linkedKeyResults: 2, completed: false }, linkedKeyResults: [makeLink({ keyResultId: 90, keyResultDescription: "Descripción propia" }), makeLink({ id: 2, keyResultId: 91, keyResultDescription: "" })] })),
       keyResults: [],
     });
     setup();

@@ -97,12 +97,7 @@ describe("CreateProjectModal", () => {
 
     await user.click(screen.getByRole("checkbox", { name: "Seleccionar KR 11" }));
     expect(screen.getByText("1 seleccionado(s)")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Peso de contribución KR 11"), { target: { value: "250" } });
-    expect(screen.getByLabelText("Peso de contribución KR 11")).toHaveValue(100);
-    fireEvent.change(screen.getByLabelText("Peso de contribución KR 11"), { target: { value: "-5" } });
-    expect(screen.getByLabelText("Peso de contribución KR 11")).toHaveValue(0);
-    fireEvent.change(screen.getByLabelText("Peso de contribución KR 11"), { target: { value: "55" } });
-    await chooseOption(user, "Tipo de contribución KR 11", "Soporte");
+    expect(screen.queryByLabelText("Peso de contribución KR 11")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Crear Iniciativa" }));
 
@@ -118,7 +113,7 @@ describe("CreateProjectModal", () => {
       startDate: "2026-02-01",
       endDate: "2026-06-01",
       tutors: ["Ana Ruiz", "Luis Pérez"],
-      keyResultLinks: [{ keyResultId: 11, contributionWeight: 55, contributionType: "SOPORTE" }],
+      keyResultLinks: [{ keyResultId: 11 }],
     }));
     expect(toast.success).toHaveBeenCalledWith("Iniciativa creada correctamente.");
     expect(onCreated).toHaveBeenCalledWith(77);
@@ -141,7 +136,7 @@ describe("CreateProjectModal", () => {
     await user.click(screen.getByRole("button", { name: "Quitar KR 11" }));
 
     expect(screen.getByText("0 seleccionado(s)")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Peso de contribución KR 11")).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Seleccionar KR 11" })).toHaveAttribute("aria-checked", "false");
   });
 
   it("rejects an end period earlier than the start period", async () => {

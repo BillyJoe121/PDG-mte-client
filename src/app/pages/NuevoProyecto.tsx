@@ -11,7 +11,6 @@ import { normalizePlannerUrl, validatePlannerUrl } from "../services/plannerServ
 import {
   projectsApi,
   validateProjectSchedule,
-  type ContributionType,
   type ProjectKeyResultDraftRequest,
   type ProjectRequest,
   type ProjectStatus,
@@ -37,12 +36,6 @@ const STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
   { value: "ACTIVO", label: "Activo" },
   { value: "SUSPENDIDO", label: "Suspendido" },
   { value: "ARCHIVADO", label: "Archivado" },
-];
-
-const CONTRIBUTION_TYPES: { value: ContributionType; label: string }[] = [
-  { value: "DIRECTA", label: "Directa" },
-  { value: "INDIRECTA", label: "Indirecta" },
-  { value: "SOPORTE", label: "Soporte" },
 ];
 
 type Errors = Partial<Record<"name" | "description" | "departmentId" | "startPeriod" | "tutors" | "keyResults" | "plannerUrl", string>>;
@@ -125,15 +118,9 @@ export function NuevoProyecto() {
       if (current.some((link) => link.keyResultId === keyResultId)) {
         return current.filter((link) => link.keyResultId !== keyResultId);
       }
-      return [...current, { keyResultId, contributionWeight: 30, contributionType: "DIRECTA" }];
+      return [...current, { keyResultId }];
     });
     setErrors((current) => ({ ...current, keyResults: "" }));
-  };
-
-  const updateLink = (keyResultId: number, changes: Partial<ProjectKeyResultDraftRequest>) => {
-    setKrLinks((current) =>
-      current.map((link) => link.keyResultId === keyResultId ? { ...link, ...changes } : link),
-    );
   };
 
   const validate = () => {
@@ -147,14 +134,7 @@ export function NuevoProyecto() {
     if (parseTutors(form.tutors).length === 0) next.tutors = "Ingresa al menos un tutor.";
     const plannerError = validatePlannerUrl(form.plannerUrl);
     if (plannerError) next.plannerUrl = plannerError;
-    const invalidLink = krLinks.some((link) =>
-      !link.keyResultId ||
-      link.contributionWeight < 0 ||
-      link.contributionWeight > 100 ||
-      !link.contributionType
-    );
     if (krLinks.length === 0) next.keyResults = "Selecciona al menos un Key Result.";
-    else if (invalidLink) next.keyResults = "Cada vinculo KR debe tener peso entre 0 y 100 y tipo de contribucion.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -312,7 +292,7 @@ export function NuevoProyecto() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 style={{ fontSize: 11, fontWeight: 750, color: "#111827", textTransform: "uppercase", borderBottom: "1px solid #D9DEE8", paddingBottom: 8 }}>Key Results *</h2>
-                <p style={{ fontSize: 10.5, color: "#717182", marginTop: 8 }}>Selecciona al menos un KR. El primero que elijas queda como KR principal de la iniciativa; puedes vincular mas con su peso y tipo de contribucion.</p>
+                <p style={{ fontSize: 10.5, color: "#717182", marginTop: 8 }}>Selecciona al menos un KR. El primero que elijas queda como KR principal de la iniciativa; puedes vincular mas.</p>
               </div>
               <span style={{ fontSize: 10.5, fontWeight: 900, color: COLORS.orange }}>{krLinks.length} seleccionado(s)</span>
             </div>
@@ -323,8 +303,7 @@ export function NuevoProyecto() {
             ) : (
               <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
                 {keyResults.map((kr) => {
-                  const link = krLinks.find((item) => item.keyResultId === kr.id);
-                  const selected = !!link;
+                  const selected = krLinks.some((item) => item.keyResultId === kr.id);
                   return (
                     <div key={kr.id} className="rounded-lg p-3" style={{ border: `1.5px solid ${selected ? COLORS.orange : "#E5E7EB"}`, backgroundColor: selected ? "#FDF0EB" : "#FAFAFA" }}>
                       <div className="flex items-start gap-3">
@@ -339,20 +318,6 @@ export function NuevoProyecto() {
                           <p style={{ fontSize: 10.5, color: "#717182", marginTop: 2 }}>{kr.metric}</p>
                         </div>
                       </div>
-                      {selected && link && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 ml-8">
-                          <div>
-                            <label style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>Peso</label>
-                            <input type="number" min={0} max={100} value={link.contributionWeight} onChange={(event) => updateLink(kr.id, { contributionWeight: Math.max(0, Math.min(100, Number(event.target.value))) })} style={{ width: "100%", marginTop: 4, padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: 10.5 }} />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase" }}>Tipo de contribucion</label>
-                            <select value={link.contributionType} onChange={(event) => updateLink(kr.id, { contributionType: event.target.value as ContributionType })} style={{ width: "100%", marginTop: 4, padding: "8px 10px", border: "1.5px solid #000", borderRadius: 6, fontSize: 10.5, backgroundColor: "#fff" }}>
-                              {CONTRIBUTION_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-                            </select>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}

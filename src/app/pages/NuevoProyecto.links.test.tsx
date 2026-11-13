@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,7 +36,7 @@ describe("NuevoProyecto key result links", () => {
     mocks.create.mockResolvedValue({ id: 99 });
   });
 
-  it("edits only the link being changed when several key results are selected", async () => {
+  it("sends only the key result of each selected link", async () => {
     render(<MemoryRouter><NuevoProyecto /></MemoryRouter>);
     const user = userEvent.setup();
     await screen.findByText("KR uno");
@@ -47,18 +47,11 @@ describe("NuevoProyecto key result links", () => {
     await user.click(screen.getByRole("button", { name: "Seleccionar KR 11" }));
     await user.click(screen.getByRole("button", { name: "Seleccionar KR 12" }));
 
-    const [first, second] = screen.getAllByRole("spinbutton");
-    fireEvent.change(second, { target: { value: "250" } });
-    fireEvent.change(first, { target: { value: "-5" } });
-    expect(second).toHaveValue(100);
-    expect(first).toHaveValue(0);
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Crear iniciativa/ }));
 
     await waitFor(() => expect(mocks.create).toHaveBeenCalled());
-    expect(mocks.create.mock.calls[0][0].keyResultLinks).toEqual([
-      expect.objectContaining({ keyResultId: 11, contributionWeight: 0 }),
-      expect.objectContaining({ keyResultId: 12, contributionWeight: 100 }),
-    ]);
+    expect(mocks.create.mock.calls[0][0].keyResultLinks).toEqual([{ keyResultId: 11 }, { keyResultId: 12 }]);
   });
 });

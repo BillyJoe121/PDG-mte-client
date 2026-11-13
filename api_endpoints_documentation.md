@@ -216,7 +216,7 @@ Administra los proyectos académicos, su progreso y su vinculación con los Resu
 | **`PATCH`** | `/api/v1/projects/{id}/status` | Cambia el estado del proyecto (Ej: *APPROVED*, *IN_PROGRESS*, *COMPLETED*). | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA` |
 | **`POST`** | `/api/v1/projects/{id}/progress` | Registra una nueva entrada de avance / progreso porcentual. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO`, `PROFESOR` |
 | **`GET`** | `/api/v1/projects/{id}/history` | Lista la bitácora de avances reportados. | Autenticado |
-| **`GET`** | `/api/v1/projects/{id}/impact-chain` | Muestra la cadena de impacto (a qué KRs, Metas y Apuestas aporta y con qué peso). | Autenticado |
+| **`GET`** | `/api/v1/projects/{id}/impact-chain` | Muestra la cadena de impacto (a qué KRs, Metas y Apuestas está vinculado). | Autenticado |
 | **`GET`** | `/api/v1/projects/{id}/contribution-chain`| Equivalente a `/impact-chain` para análisis de contribución. | Autenticado |
 | **`GET`** | `/api/v1/projects/{id}/teachers` | Lista los docentes asignados al proyecto. | Autenticado |
 | **`POST`** | `/api/v1/projects/{id}/teachers` | Asigna un docente con un rol y fecha de ingreso al proyecto. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
@@ -235,12 +235,12 @@ Administra los proyectos académicos, su progreso y su vinculación con los Resu
 ---
 
 #### B. Enlaces Proyecto-KR (`ProjectKeyResultLinkController`)
-Establece y remueve el porcentaje de aporte que hace un proyecto a un resultado clave.
+Crea y remueve el vínculo entre un proyecto y un resultado clave. El vínculo no tiene peso ni tipo de contribución.
 * **Base URL:** `/api/v1/project-key-result-links`
 
 | Método | Ruta | Descripción | Acceso / Parámetros |
 |:---|:---|:---|:---|
-| **`POST`** | `/api/v1/project-key-result-links` | Vincula un proyecto a un KR especificando el tipo de contribución y peso. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
+| **`POST`** | `/api/v1/project-key-result-links` | Vincula un proyecto a un KR. | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
 | **`GET`** | `/api/v1/project-key-result-links` | Lista los enlaces existentes. Filtra por `projectId` o `keyResultId`. | Autenticado |
 | **`DELETE`** | `/api/v1/project-key-result-links/{id}`| Elimina la vinculación del proyecto con el KR (desvinculación). | `ADMIN`, `DECANO`, `DIRECTOR_ESCUELA`, `JEFE_DPTO` |
 
@@ -248,9 +248,7 @@ Establece y remueve el porcentaje de aporte que hace un proyecto a un resultado 
   ```json
   {
     "projectId": "Long (Requerido)",
-    "keyResultId": "Long (Requerido)",
-    "contributionWeight": "BigDecimal (0.00 a 100.00, Requerido)",
-    "contributionType": "ContributionType (DIRECT o INDIRECT, Requerido)"
+    "keyResultId": "Long (Requerido)"
   }
   ```
 

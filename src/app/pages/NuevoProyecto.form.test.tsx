@@ -118,14 +118,7 @@ describe("NuevoProyecto form", () => {
 
     await user.click(screen.getByRole("button", { name: "Seleccionar KR 11" }));
     expect(screen.getByText("1 seleccionado(s)")).toBeInTheDocument();
-    const weight = screen.getByRole("spinbutton");
-    expect(weight).toHaveValue(30);
-    fireEvent.change(weight, { target: { value: "250" } });
-    expect(weight).toHaveValue(100);
-    fireEvent.change(weight, { target: { value: "-3" } });
-    expect(weight).toHaveValue(0);
-    fireEvent.change(weight, { target: { value: "60" } });
-    await user.selectOptions(screen.getAllByRole("combobox")[4], "SOPORTE");
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
     await submit(user);
 
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
@@ -140,7 +133,7 @@ describe("NuevoProyecto form", () => {
       startDate: "2026-02-01",
       endDate: "2026-06-01",
       tutors: ["Ana Ruiz", "Luis Pérez"],
-      keyResultLinks: [{ keyResultId: 11, contributionWeight: 60, contributionType: "SOPORTE" }],
+      keyResultLinks: [{ keyResultId: 11 }],
       plannerUrl: "https://tasks.office.com/plan/7",
     });
     expect(toast.success).toHaveBeenCalledWith("Iniciativa creada correctamente.");

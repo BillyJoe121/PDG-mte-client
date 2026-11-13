@@ -21,7 +21,7 @@ export const MODAL_HELP = {
     actions: [
       { label: "Resumen / Historial / Key Results", effect: "Cambian la sección que ves. No modifican nada." },
       { label: "Ver en Meta / Ver en Apuesta", effect: "Abre la jerarquía filtrada en la Meta o Apuesta relacionada." },
-      { label: "Vincular KR", effect: "Asocia la iniciativa a un Key Result con un peso y un tipo de contribución (Directa o Indirecta)." },
+      { label: "Vincular KR", effect: "Asocia la iniciativa a un Key Result. El avance de la iniciativa no cambia el del KR." },
       { label: "Estado", effect: "Cambia el estado de la iniciativa. Finalizado no admite más cambios de estado; Suspendido se puede reactivar." },
       { label: "Responsables", effect: "Define quiénes responden por la iniciativa." },
       { label: "Editar iniciativa", effect: "Cambia nombre, descripción, tipo, departamento, periodos, fechas y tutores." },
@@ -49,8 +49,6 @@ export const MODAL_HELP = {
   keyResultLink: {
     purpose: "Gestiona a qué Key Results aporta esta iniciativa.",
     actions: [
-      { label: "Peso", effect: "Porcentaje con el que la iniciativa contribuye al KR. Si los pesos de un KR suman más de 100 %, se avisa en su detalle." },
-      { label: "Tipo de contribución", effect: "Directa si la iniciativa mueve el indicador; Indirecta si lo apoya." },
       { label: "Guardar vínculo", effect: "Crea el vínculo con el KR elegido." },
       { label: "Desvincular", effect: "Desactiva el vínculo después de confirmarlo. La iniciativa deja de aportar a ese KR." },
     ],

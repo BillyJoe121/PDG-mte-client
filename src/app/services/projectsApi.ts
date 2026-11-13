@@ -13,21 +13,9 @@ export type ProjectStatus =
   | "SUSPENDIDO"
   | "ARCHIVADO";
 
-export type ContributionType =
-  | "DIRECTA"
-  | "INDIRECTA"
-  | "SOPORTE";
-
-export const contributionTypeLabel: Record<ContributionType, string> = {
-  DIRECTA: "Directa",
-  INDIRECTA: "Indirecta",
-  SOPORTE: "Soporte",
-};
-
+/** KR to link while creating an initiative. */
 export interface ProjectKeyResultDraftRequest {
   keyResultId: number;
-  contributionWeight: number;
-  contributionType: ContributionType;
 }
 
 export interface ProjectRequest {
@@ -66,8 +54,6 @@ export interface LinkedKeyResult {
   keyResultId: number;
   keyResultName: string;
   keyResultDescription: string;
-  contributionWeight: number;
-  contributionType: ContributionType;
   active: boolean;
 }
 
@@ -116,9 +102,7 @@ export interface ProjectProgressResponse {
 export interface ProjectKpis {
   progressEntries: number;
   linkedKeyResults: number;
-  declaredContributionWeight: number;
   completed: boolean;
-  overweightWarning: boolean;
 }
 
 export interface ImpactChainItem {
@@ -127,8 +111,6 @@ export interface ImpactChainItem {
   keyResultDescription: string;
   goalNames: string[];
   strategicBetNames: string[];
-  contributionWeight: number;
-  contributionType: ContributionType;
   projectCompleted: boolean;
   period?: string | null;
 }
@@ -144,14 +126,7 @@ export interface ImpactChain {
 export interface ProjectKeyResultLinkRequest {
   projectId: number;
   keyResultId: number;
-  contributionWeight: number;
-  contributionType: ContributionType;
 }
-
-export type ProjectKeyResultLinkUpdateRequest = Pick<
-  ProjectKeyResultLinkRequest,
-  "contributionWeight" | "contributionType"
->;
 
 export interface ProjectKeyResultLinkResponse {
   id: number;
@@ -159,10 +134,6 @@ export interface ProjectKeyResultLinkResponse {
   projectName: string | null;
   keyResultId: number;
   keyResultDescription: string;
-  contributionWeight: number;
-  contributionType: ContributionType;
-  totalWeightForKeyResult: number;
-  overweightWarning: boolean;
   active: boolean;
   createdAt: string;
 }
@@ -221,10 +192,6 @@ function query(params?: Record<string, number | string | undefined>) {
 export function validateProjectKeyResultLink(payload: ProjectKeyResultLinkRequest) {
   if (!payload.projectId) return "Selecciona una iniciativa.";
   if (!payload.keyResultId) return "Selecciona un Key Result.";
-  if (payload.contributionWeight < 0 || payload.contributionWeight > 100) {
-    return "El peso debe estar entre 0 y 100.";
-  }
-  if (!payload.contributionType) return "Selecciona el tipo de contribucion.";
   return null;
 }
 
@@ -326,12 +293,6 @@ export const projectKeyResultLinksApi = {
   create: (payload: ProjectKeyResultLinkRequest) =>
     api<ProjectKeyResultLinkResponse>("/project-key-result-links", {
       method: "POST",
-      body: JSON.stringify(payload),
-    }),
-
-  update: (id: number, payload: ProjectKeyResultLinkUpdateRequest) =>
-    api<ProjectKeyResultLinkResponse>(`/project-key-result-links/${id}`, {
-      method: "PATCH",
       body: JSON.stringify(payload),
     }),
 

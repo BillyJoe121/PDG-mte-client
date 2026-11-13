@@ -23,7 +23,6 @@ import { signalStrategicDataChanged } from "../utils/strategicDataRefresh";
 import {
   projectKeyResultLinksApi,
   projectsApi,
-  type ContributionType,
   type ImpactChain,
   type ProjectDetailResponse,
   type ProjectKeyResultLinkResponse,
@@ -71,12 +70,6 @@ export function ProjectDetailContent({ projectId, onBack, guard, onOpenInHierarc
   const [savingStatus, setSavingStatus] = useState(false);
   const [error, setError] = useState("");
   const [panel, setPanel] = useState<ProjectPanel | null>(null);
-  const [editLinkData, setEditLinkData] = useState<{
-    linkId: number;
-    keyResultId: string;
-    weight: number;
-    contributionType: ContributionType;
-  } | null>(null);
   const [unlinkTarget, setUnlinkTarget] = useState<ProjectKeyResultLinkResponse | null>(null);
 
   /** `silent` keeps an open panel mounted while its data reloads. */
@@ -100,7 +93,6 @@ export function ProjectDetailContent({ projectId, onBack, guard, onOpenInHierarc
 
   const closePanel = () => {
     setPanel(null);
-    setEditLinkData(null);
   };
   const cancelPanel = () => guard.run(closePanel);
   const reloadAndClosePanel = async () => {
@@ -128,7 +120,6 @@ export function ProjectDetailContent({ projectId, onBack, guard, onOpenInHierarc
   const linkedGoal = linkedKeyResults.find(({ keyResult }) => keyResult?.goals?.length)?.keyResult?.goals[0];
   const linkedBet = linkedKeyResults.find(({ keyResult }) => keyResult?.strategicBets?.length)?.keyResult?.strategicBets[0];
   const openLinkPanel = () => {
-    setEditLinkData(null);
     setPanel("link");
   };
   const viewMotion = reduceMotion ? { initial: false } : {
@@ -232,10 +223,6 @@ export function ProjectDetailContent({ projectId, onBack, guard, onOpenInHierarc
         <LinkKeyResultPanel
           project={project}
           keyResults={keyResults}
-          editingLinkId={editLinkData?.linkId}
-          initialKeyResultId={editLinkData?.keyResultId}
-          initialWeight={editLinkData?.weight}
-          initialContributionType={editLinkData?.contributionType}
           onCancel={cancelPanel}
           onDirtyChange={guard.setDirty}
           onSaved={reloadAndClosePanel}
@@ -311,15 +298,6 @@ export function ProjectDetailContent({ projectId, onBack, guard, onOpenInHierarc
                       chain={chain}
                       detail={detail}
                       onLink={openLinkPanel}
-                      onEditLink={(link) => {
-                        setEditLinkData({
-                          linkId: link.id,
-                          keyResultId: String(link.keyResultId),
-                          weight: link.contributionWeight,
-                          contributionType: link.contributionType,
-                        });
-                        setPanel("link");
-                      }}
                       onUnlink={(link) => setUnlinkTarget(link)}
                     />
                   </motion.div>

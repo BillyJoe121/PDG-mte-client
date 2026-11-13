@@ -145,7 +145,7 @@ describe("KeyResultDetailModal missing data and archive edge cases", () => {
 
   it("ignores links without an initiative when offering initiatives to link", async () => {
     const user = userEvent.setup();
-    mocks.links.mockResolvedValue([{ id: 2, projectId: null, active: true, contributionWeight: 10 }]);
+    mocks.links.mockResolvedValue([{ id: 2, projectId: null, active: true }]);
     mocks.projects.mockResolvedValue([{ id: 8, name: "Semillero", status: "ACTIVO", departmentName: "Ing", startPeriod: "2026-1", linkedKeyResults: [] }]);
     renderModal();
     await user.click(await screen.findByRole("button", { name: "Vincular iniciativas" }));

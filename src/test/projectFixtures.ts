@@ -38,10 +38,6 @@ export function makeLink(overrides: Partial<ProjectKeyResultLinkResponse> = {}):
     projectName: "Laboratorio abierto",
     keyResultId: 11,
     keyResultDescription: "Permanencia",
-    contributionWeight: 40,
-    contributionType: "DIRECTA",
-    totalWeightForKeyResult: 40,
-    overweightWarning: false,
     active: true,
     createdAt: "2026-01-01T00:00:00Z",
     ...overrides,
@@ -64,7 +60,7 @@ export function makeDetail(overrides: Partial<ProjectDetailResponse> = {}): Proj
   const project = overrides.project ?? makeProject();
   return {
     project,
-    kpis: { progressEntries: 0, linkedKeyResults: 0, declaredContributionWeight: 0, completed: false, overweightWarning: false },
+    kpis: { progressEntries: 0, linkedKeyResults: 0, completed: false },
     history: [],
     linkedKeyResults: [],
     contributionChain: { projectId: project.id, projectName: project.name, globalProgress: project.globalProgress, status: project.status, impacts: [] },

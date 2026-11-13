@@ -133,16 +133,16 @@ describe("KeyResultDetailModal loading and saving failures", () => {
 });
 
 describe("KeyResultDetailModal data summary", () => {
-  it("sums the declared weights when the API gives no total and warns above 100", async () => {
+  it("lists the active initiatives without any weight warning", async () => {
     mocks.links.mockResolvedValue([
-      { id: 1, projectId: 7, projectName: "Laboratorio abierto", active: true, contributionWeight: 70 },
-      { id: 2, projectId: null, active: true, contributionWeight: 60 },
-      { id: 3, projectId: 9, projectName: "Retirado", active: false, contributionWeight: 90 },
+      { id: 1, projectId: 7, projectName: "Laboratorio abierto", active: true },
+      { id: 2, projectId: null, active: true },
+      { id: 3, projectId: 9, projectName: "Retirado", active: false },
     ]);
     renderModal();
 
-    expect(await screen.findByText(/suman más de 100 %/)).toBeInTheDocument();
-    expect(screen.getByText(/Laboratorio abierto/)).toBeInTheDocument();
+    expect(await screen.findByText(/Laboratorio abierto/)).toBeInTheDocument();
+    expect(screen.queryByText(/suman más de 100 %/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Retirado/)).not.toBeInTheDocument();
   });
 

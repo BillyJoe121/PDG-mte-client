@@ -70,14 +70,14 @@ describe("KeyResultDetailModal initiatives", () => {
     mocks.get.mockResolvedValue(kr);
     mocks.records.mockResolvedValue([]);
     mocks.units.mockResolvedValue([]);
-    mocks.links.mockResolvedValue([{ id: 1, projectId: 7, projectName: "Laboratorio abierto", active: true, contributionWeight: 40, totalWeightForKeyResult: 40 }]);
+    mocks.links.mockResolvedValue([{ id: 1, projectId: 7, projectName: "Laboratorio abierto", active: true }]);
     mocks.projects.mockResolvedValue([
       project(7, "Laboratorio abierto"),
       project(8, "Semillero de datos"),
       project(9, "Mentorías de primer año"),
       project(10, "Programa archivado", "ARCHIVADO"),
     ]);
-    mocks.createLink.mockImplementation(async (body) => ({ id: 100 + body.projectId, ...body, overweightWarning: false, totalWeightForKeyResult: 70 }));
+    mocks.createLink.mockImplementation(async (body) => ({ id: 100 + body.projectId, ...body }));
   });
 
   it("links several initiatives at once, offering only the ones not linked or archived", async () => {
@@ -96,8 +96,8 @@ describe("KeyResultDetailModal initiatives", () => {
     await user.click(screen.getByRole("button", { name: "Vincular 2 iniciativas" }));
 
     await waitFor(() => expect(mocks.createLink).toHaveBeenCalledTimes(2));
-    expect(mocks.createLink).toHaveBeenCalledWith({ projectId: 8, keyResultId: 5, contributionWeight: 30, contributionType: "DIRECTA" });
-    expect(mocks.createLink).toHaveBeenCalledWith({ projectId: 9, keyResultId: 5, contributionWeight: 30, contributionType: "DIRECTA" });
+    expect(mocks.createLink).toHaveBeenCalledWith({ projectId: 8, keyResultId: 5 });
+    expect(mocks.createLink).toHaveBeenCalledWith({ projectId: 9, keyResultId: 5 });
     expect(mocks.toastSuccess).toHaveBeenCalledWith("2 iniciativas vinculadas.");
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     expect(await screen.findByRole("button", { name: "Vincular iniciativas" })).toBeInTheDocument();
