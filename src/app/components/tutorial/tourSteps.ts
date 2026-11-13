@@ -28,6 +28,15 @@ export interface TourStep {
   permission?: PermissionAction;
 }
 
+/** Last step of the tour and, on the first visit, the card shown after the welcome. */
+export const HELP_STEP: TourStep = {
+  id: "help",
+  route: "/dashboard",
+  target: "help",
+  title: "Aquí está la ayuda",
+  body: "Cuando necesites ayuda o una guía, este botón abre el recorrido completo de la plataforma y la ayuda de la pantalla en la que estés.",
+};
+
 export const tourSteps: TourStep[] = [
   {
     id: "welcome",
@@ -131,13 +140,7 @@ export const tourSteps: TourStep[] = [
     title: "Periodo y exportación",
     body: "Cambia el periodo que se presenta y abre Exportar para llevar la vista activa a PDF o sus datos a CSV. En Presentar también descargas todos los departamentos y el avance de cada KR.",
   },
-  {
-    id: "help",
-    route: "/dashboard",
-    target: "help",
-    title: "Vuelve cuando quieras",
-    body: "Este botón de ayuda abre de nuevo el recorrido y la ayuda de la pantalla en la que estés.",
-  },
+  HELP_STEP,
 ];
 
 /** Steps the user can follow with their permissions, in tour order. */

@@ -51,18 +51,25 @@ describe("hierarchy matrix", () => {
     expect(visibleMatrixColumns(matrix, "arbol").goals).toHaveLength(1);
   });
 
-  it("puts the longest names on the outer edges so they take the top rows", () => {
+  it("orders columns by their code: O goals before P goals, bets by number, uncoded names last", () => {
     const matrix = buildHierarchyMatrix([
-      node("GOAL", "1", "Corta"),
-      node("GOAL", "2", "Meta con nombre largo"),
-      node("GOAL", "3", "Mediana meta"),
-      node("STRATEGIC_BET", "1", "Apuesta con nombre largo"),
-      node("STRATEGIC_BET", "2", "Breve"),
+      node("GOAL", "1", "P2 · Saber Pro"),
+      node("GOAL", "2", "O10 · Décima"),
+      node("GOAL", "3", "Sin código"),
+      node("GOAL", "4", "P1 · Crecimiento"),
+      node("GOAL", "5", "O2 · Producción"),
+      node("GOAL", "6", "Antes sin código"),
+      node("GOAL", "7", "O1 · Alianzas"),
+      node("STRATEGIC_BET", "1", "A3 · Vincular"),
+      node("STRATEGIC_BET", "2", "A1 · Atraer"),
+      node("STRATEGIC_BET", "3", "A2 · Experiencias"),
     ]);
     const { goals, bets } = visibleMatrixColumns(matrix, "arbol");
 
-    expect(goals.map((column) => column.label)).toEqual(["Meta con nombre largo", "Mediana meta", "Corta"]);
-    expect(bets.map((column) => column.label)).toEqual(["Breve", "Apuesta con nombre largo"]);
+    expect(goals.map((column) => column.label)).toEqual([
+      "O1 · Alianzas", "O2 · Producción", "O10 · Décima", "P1 · Crecimiento", "P2 · Saber Pro", "Antes sin código", "Sin código",
+    ]);
+    expect(bets.map((column) => column.label)).toEqual(["A1 · Atraer", "A2 · Experiencias", "A3 · Vincular"]);
   });
 
   it("drops rows without a link to the visible columns", () => {

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { DETAIL_BUTTON_CLASS } from "../../components/DetailModal";
 import { Modal, ModalBody, ModalHeader } from "../../components/Modal";
 import { goalsApi, strategicBetsApi, type Goal, type StrategicBet } from "../../services/strategicApi";
+import { MODAL_HELP } from "../../components/modalHelpContent";
 
 interface ArchivedStrategyModalProps {
   canManageStrategy: boolean;
@@ -59,7 +60,7 @@ export function ArchivedStrategyModal({ canManageStrategy, onClose, onChanged }:
 
   return (
     <Modal onClose={onClose}>
-      <ModalHeader title="Elementos archivados" closeLabel="Cerrar archivo" onClose={onClose}>
+      <ModalHeader title="Elementos archivados" closeLabel="Cerrar archivo" onClose={onClose} help={MODAL_HELP.archivedStrategy}>
         <span className="text-xs text-gray-500">La restauracion conserva relaciones e historial.</span>
       </ModalHeader>
       <ModalBody>

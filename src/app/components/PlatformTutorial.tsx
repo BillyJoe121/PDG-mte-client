@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { DETAIL_BUTTON_CLASS, DETAIL_PRIMARY_BUTTON_CLASS } from "./DetailModal";
 import { placeTourCard, type Size } from "./tutorial/tourPlacement";
-import { tourStepsFor } from "./tutorial/tourSteps";
+import { HELP_STEP, tourStepsFor } from "./tutorial/tourSteps";
 import { useTourTarget } from "./tutorial/useTourTarget";
 
 const CARD_WIDTH = 300;
@@ -14,16 +14,19 @@ const Z_INDEX = 1100;
 
 interface PlatformTutorialProps {
   open: boolean;
-  /** First visit: the tour cannot be closed before Finalizar. */
-  mandatory?: boolean;
-  /** `finished` is true when the user reached Finalizar. */
+  /**
+   * First visit, after the welcome: only the help button card, on the current screen, and it
+   * cannot be closed before Entendido.
+   */
+  onboarding?: boolean;
+  /** `finished` is true when the user reached the last button. */
   onClose: (finished: boolean) => void;
 }
 
 /** Guided tour: a small card next to each control it explains, moving through the screens. */
-export function PlatformTutorial({ open, mandatory = false, onClose }: PlatformTutorialProps) {
+export function PlatformTutorial({ open, onboarding = false, onClose }: PlatformTutorialProps) {
   const { usuario } = useAuth();
-  const steps = useMemo(() => tourStepsFor(usuario), [usuario]);
+  const steps = useMemo(() => (onboarding ? [{ ...HELP_STEP, route: undefined }] : tourStepsFor(usuario)), [onboarding, usuario]);
   const [index, setIndex] = useState(0);
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -72,7 +75,7 @@ export function PlatformTutorial({ open, mandatory = false, onClose }: PlatformT
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       event.stopPropagation();
-      if (!mandatory) onClose(false);
+      if (!onboarding) onClose(false);
       return;
     }
     if (event.key !== "Tab") return;
@@ -124,8 +127,8 @@ export function PlatformTutorial({ open, mandatory = false, onClose }: PlatformT
           style={{ zIndex: Z_INDEX + 1, top: position.top, left: position.left, width: CARD_WIDTH, maxWidth: `calc(100vw - 24px)` }}
         >
           <div className="flex items-start justify-between gap-2">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5454E9]">Paso {index + 1} de {steps.length}</p>
-            {!mandatory && (
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5454E9]">{onboarding ? "Antes de empezar" : `Paso ${index + 1} de ${steps.length}`}</p>
+            {!onboarding && (
               <button type="button" onClick={() => onClose(false)} aria-label="Cerrar recorrido" className="-mr-1 -mt-1 rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-black">
                 <X size={14} aria-hidden="true" />
               </button>
@@ -133,17 +136,20 @@ export function PlatformTutorial({ open, mandatory = false, onClose }: PlatformT
           </div>
           <h2 id={titleId} className="mt-1 text-sm font-bold text-[#111827]">{step.title}</h2>
           <p id={bodyId} className="mt-1.5 text-[13px] leading-5 text-gray-600">{step.body}</p>
-          {mandatory && isFirst && <p className="mt-2 text-[11px] text-gray-500">Completa el recorrido para empezar a usar la plataforma.</p>}
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
-            <div className="h-full bg-[#5454E9] transition-all" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-2">
-            <button type="button" onClick={previous} disabled={isFirst} className={DETAIL_BUTTON_CLASS}>
-              <ArrowLeft size={13} aria-hidden="true" />
-              Anterior
-            </button>
+          {!onboarding && (
+            <div className="mt-3 h-1 overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
+              <div className="h-full bg-[#5454E9] transition-all" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
+            </div>
+          )}
+          <div className={`mt-3 flex items-center gap-2 ${onboarding ? "justify-end" : "justify-between"}`}>
+            {!onboarding && (
+              <button type="button" onClick={previous} disabled={isFirst} className={DETAIL_BUTTON_CLASS}>
+                <ArrowLeft size={13} aria-hidden="true" />
+                Anterior
+              </button>
+            )}
             <button type="button" onClick={next} className={DETAIL_PRIMARY_BUTTON_CLASS}>
-              {isLast ? "Finalizar" : "Siguiente"}
+              {onboarding ? "Entendido" : isLast ? "Finalizar" : "Siguiente"}
               {!isLast && <ArrowRight size={13} aria-hidden="true" />}
             </button>
           </div>

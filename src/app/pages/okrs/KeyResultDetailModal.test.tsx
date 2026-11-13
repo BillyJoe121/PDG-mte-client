@@ -78,6 +78,14 @@ function renderModal(canEdit = true) {
 describe("KeyResultDetailModal edit mode", () => {
   const linkedKr: KeyResult = { ...activeKr, academicPeriodId: 4, goals: [{ id: 3, name: "Graduación oportuna" }] };
 
+  it("shows the code of each linked goal and bet in bold", async () => {
+    mocks.get.mockResolvedValue({ ...linkedKr, goals: [{ id: 3, name: "O1 · Graduación oportuna" }], strategicBets: [{ id: 2, name: "A4 · Vincular" }] });
+    renderModal();
+
+    expect(await screen.findByText("O1", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("A4", { selector: "strong" })).toBeInTheDocument();
+  });
+
   async function openEditMode() {
     const user = userEvent.setup();
     const handlers = renderModal();

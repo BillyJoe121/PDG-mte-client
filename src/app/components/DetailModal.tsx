@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { ModalHelpButton, ModalHelpPanel, useModalHelp, type ModalHelpContent } from "./ModalHelp";
 
 /** Pieces shared by the key result and initiative detail modals. */
 export const DETAIL_BUTTON_CLASS = "inline-flex h-[38px] flex-shrink-0 items-center justify-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 text-sm font-bold text-[#111827] hover:bg-gray-50 disabled:opacity-60";
@@ -26,14 +27,21 @@ const BADGE_TONES = {
 } as const;
 
 /** Stays in place while the body scrolls, so closing is always within reach. */
-export function DetailTopBar({ closeLabel, onClose, tourId, children }: { closeLabel: string; onClose: () => void; tourId?: string; children?: ReactNode }) {
+export function DetailTopBar({ closeLabel, onClose, tourId, help, children }: { closeLabel: string; onClose: () => void; tourId?: string; help?: ModalHelpContent; children?: ReactNode }) {
+  const helpState = useModalHelp();
   return (
-    <div className="flex min-h-[52px] flex-shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-5 py-2">
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5">{children}</div>
-      <button type="button" onClick={onClose} aria-label={closeLabel} data-tour={tourId} className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">
-        <X size={15} aria-hidden="true" />
-      </button>
-    </div>
+    <>
+      <div className="flex min-h-[52px] flex-shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-5 py-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">{children}</div>
+        <div className="flex flex-shrink-0 items-center gap-1.5">
+          {help && <ModalHelpButton open={helpState.open} panelId={helpState.panelId} onToggle={helpState.toggle} />}
+          <button type="button" onClick={onClose} aria-label={closeLabel} data-tour={tourId} className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">
+            <X size={15} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+      {help && helpState.open && <ModalHelpPanel id={helpState.panelId} content={help} onClose={helpState.close} />}
+    </>
   );
 }
 

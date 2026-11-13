@@ -19,6 +19,7 @@ import {
 } from "../../services/projectsApi";
 import { parseTutors } from "../fichaProyecto/projectDetailUi";
 import { CONTRIBUTION_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, errorMessage } from "./proyectosShared";
+import { MODAL_HELP } from "../../components/modalHelpContent";
 
 interface CreateProjectModalProps {
   departments: Department[];
@@ -133,7 +134,7 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
 
   return (
     <Modal size="lg" onClose={onClose}>
-      <ModalHeader title="Nueva Iniciativa" onClose={onClose} />
+      <ModalHeader title="Nueva Iniciativa" onClose={onClose} help={MODAL_HELP.initiativeCreate} />
       <ModalBody>
         <form id={formId} onSubmit={submit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2"><RequiredFieldsNote /></div>

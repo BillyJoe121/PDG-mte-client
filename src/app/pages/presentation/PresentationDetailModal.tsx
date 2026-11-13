@@ -3,6 +3,8 @@ import { useNavigate } from "react-router";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Award, Calendar, Download, ExternalLink, Flag, Printer, Target, X } from "lucide-react";
 import { Modal } from "../../components/Modal";
+import { ModalHelpButton, ModalHelpPanel, useModalHelp } from "../../components/ModalHelp";
+import { MODAL_HELP } from "../../components/modalHelpContent";
 import { ToolbarButton } from "../../components/ScreenToolbar";
 import { PresentationStatusBadge } from "./PresentationLayout";
 import type { Goal, StrategicBet } from "../../services/strategicApi";
@@ -17,6 +19,7 @@ interface Props {
 
 export function PresentationDetailModal({ entity, onClose }: Props) {
   const navigate = useNavigate();
+  const help = useModalHelp();
 
   if (!entity) return null;
 
@@ -46,6 +49,8 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
               {entity.data.name}
             </DialogPrimitive.Title>
           </div>
+          <div className="flex shrink-0 items-center gap-1.5 sgp-screen-only">
+          <ModalHelpButton open={help.open} panelId={help.panelId} onToggle={help.toggle} />
           <button
             type="button"
             onClick={onClose}
@@ -54,7 +59,13 @@ export function PresentationDetailModal({ entity, onClose }: Props) {
           >
             <X size={18} aria-hidden="true" />
           </button>
+          </div>
         </div>
+        {help.open && (
+          <div className="sgp-screen-only">
+            <ModalHelpPanel id={help.panelId} content={MODAL_HELP.presentationDetail} onClose={help.close} />
+          </div>
+        )}
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">

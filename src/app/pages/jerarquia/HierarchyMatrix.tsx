@@ -7,10 +7,19 @@ import { COLORS, type View } from "./hierarchyPageModel";
 import type { HierarchyMatrixFocus } from "./hierarchyTableLink";
 import { BET_COLOR, CELL_BORDER, GOAL_COLOR, MatrixHead } from "./HierarchyMatrixHeader";
 
-function LinkCell({ row, column, rowSpan, color }: { row: MatrixRow; column: MatrixColumn; rowSpan: number; color: string }) {
+interface LinkCellProps {
+  row: MatrixRow;
+  column: MatrixColumn;
+  rowSpan: number;
+  color: string;
+  /** The column is selected or under the pointer, so its cells get a light tint. */
+  tinted: boolean;
+}
+
+function LinkCell({ row, column, rowSpan, color, tinted }: LinkCellProps) {
   const linked = row.columnKeys.has(column.key);
   return (
-    <td rowSpan={rowSpan} style={{ borderBottom: CELL_BORDER, borderRight: CELL_BORDER, textAlign: "center", verticalAlign: "middle" }}>
+    <td rowSpan={rowSpan} style={{ borderBottom: CELL_BORDER, borderRight: CELL_BORDER, textAlign: "center", verticalAlign: "middle", backgroundColor: tinted ? `${color}0F` : undefined }}>
       {linked && (
         <>
           <span aria-hidden="true" className="inline-flex items-center justify-center rounded-full" style={{ width: 18, height: 18, backgroundColor: color, color: "#FFFFFF" }}>
@@ -49,6 +58,8 @@ interface HierarchyMatrixProps {
 export function HierarchyMatrix({ tree, view, onOpenNode, onOpenRoot, initialFocus }: HierarchyMatrixProps) {
   const [columnKey, setColumnKey] = useState<string | null>(initialFocus?.columnKey ?? null);
   const [search, setSearch] = useState<MatrixSearch>(initialFocus?.search ?? { indicator: "", initiative: "" });
+  const [hoverColumnKey, setHoverColumnKey] = useState<string | null>(null);
+  const [hoverRowId, setHoverRowId] = useState<string | null>(null);
   const matrix = useMemo(() => buildHierarchyMatrix(tree), [tree]);
   const { goals, bets } = visibleMatrixColumns(matrix, view);
   const columns = [...goals, ...bets];
@@ -56,6 +67,12 @@ export function HierarchyMatrix({ tree, view, onOpenNode, onOpenRoot, initialFoc
   const rows = filterMatrixRows(matrix.rows, columns, activeColumn?.key ?? null, search);
   const searching = Boolean(search.indicator.trim() || search.initiative.trim());
   const totalColumns = columns.length + 3;
+  // The tour opens the first initiative of the table, which may sit below KR rows without any.
+  const tourInitiativeRow = rows.findIndex((row) => row.initiatives.length > 0);
+  const hoverRow = rows.find((row) => row.node.id === hoverRowId);
+  const highlightKeys = new Set([activeColumn?.key, hoverColumnKey, ...(hoverRow?.columnKeys ?? [])].filter((key): key is string => Boolean(key)));
+  const tinted = (column: MatrixColumn) => column.key === activeColumn?.key || column.key === hoverColumnKey;
+  const leaveRow = (rowId: string) => setHoverRowId((current) => (current === rowId ? null : current));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -65,7 +82,7 @@ export function HierarchyMatrix({ tree, view, onOpenNode, onOpenRoot, initialFoc
           <button type="button" onClick={() => onOpenRoot(activeColumn.node)} className="inline-flex min-h-[32px] items-center rounded-md px-2.5" style={{ border: `1px solid ${COLORS.border}`, fontWeight: 800 }}>
             Ver detalle
           </button>
-          <button type="button" onClick={() => setColumnKey(null)} className="inline-flex min-h-[32px] items-center gap-1 rounded-md px-2.5" style={{ border: `1px solid ${COLORS.border}`, fontWeight: 800 }}>
+          <button type="button" onClick={() => setColumnKey(null)} className="inline-flex min-h-[32px] items-center gap-1 rounded-md px-2.5" style={{ border: "1px solid #DC2626", backgroundColor: "#FEF2F2", color: "#B91C1C", fontWeight: 800 }}>
             <X size={12} aria-hidden="true" /> Quitar filtro
           </button>
         </div>
@@ -87,6 +104,8 @@ export function HierarchyMatrix({ tree, view, onOpenNode, onOpenRoot, initialFoc
               goals={goals}
               bets={bets}
               activeKey={activeColumn?.key ?? null}
+              highlightKeys={highlightKeys}
+              onHoverColumn={setHoverColumnKey}
               onToggle={(column) => setColumnKey(column.key === activeColumn?.key ? null : column.key)}
               search={search}
               onSearchChange={setSearch}
@@ -104,9 +123,16 @@ export function HierarchyMatrix({ tree, view, onOpenNode, onOpenRoot, initialFoc
               const rowSpan = Math.max(row.initiatives.length, 1);
               const [firstInitiative, ...otherInitiatives] = row.initiatives;
               return (
-                <tbody key={row.node.id}>
+                <tbody
+                  key={row.node.id}
+                  onMouseEnter={() => setHoverRowId(row.node.id)}
+                  onMouseLeave={() => leaveRow(row.node.id)}
+                  onFocus={() => setHoverRowId(row.node.id)}
+                  onBlur={() => leaveRow(row.node.id)}
+                  style={{ backgroundColor: row === hoverRow ? "#F9FAFB" : undefined }}
+                >
                   <tr>
-                    {goals.map((column) => <LinkCell key={column.key} row={row} column={column} rowSpan={rowSpan} color={GOAL_COLOR} />)}
+                    {goals.map((column) => <LinkCell key={column.key} row={row} column={column} rowSpan={rowSpan} color={GOAL_COLOR} tinted={tinted(column)} />)}
                     <th rowSpan={rowSpan} scope="rowgroup" style={{ padding: "7px 10px", textAlign: "left", verticalAlign: "top", borderBottom: CELL_BORDER, borderRight: CELL_BORDER, fontWeight: 800, color: COLORS.gray, whiteSpace: "nowrap" }}>
                       {keyResultCode(row.node)}
                     </th>
@@ -115,8 +141,8 @@ export function HierarchyMatrix({ tree, view, onOpenNode, onOpenRoot, initialFoc
                         {row.node.label}
                       </button>
                     </td>
-                    <InitiativeCell initiative={firstInitiative} onOpen={onOpenNode} tourId={rowIndex === 0 ? "jerarquia-initiative" : undefined} />
-                    {bets.map((column) => <LinkCell key={column.key} row={row} column={column} rowSpan={rowSpan} color={BET_COLOR} />)}
+                    <InitiativeCell initiative={firstInitiative} onOpen={onOpenNode} tourId={rowIndex === tourInitiativeRow ? "jerarquia-initiative" : undefined} />
+                    {bets.map((column) => <LinkCell key={column.key} row={row} column={column} rowSpan={rowSpan} color={BET_COLOR} tinted={tinted(column)} />)}
                   </tr>
                   {otherInitiatives.map((initiative) => (
                     <tr key={initiative.id}>

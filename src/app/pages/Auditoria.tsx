@@ -5,6 +5,7 @@ import { Modal, ModalBody, ModalHeader } from "../components/Modal";
 import { PageTabs, TabButton, TOOLBAR_SELECT_CLASS } from "../components/PageToolbar";
 import { downloadCSV, getDateStamp } from "../utils/exportUtils";
 import { ACTION_OPTIONS, ENTITY_OPTIONS, labelAction, labelEntity } from "./auditoria/auditLabels";
+import { MODAL_HELP } from "../components/modalHelpContent";
 
 const TOOLBAR_INPUT_CLASS = "h-[38px] rounded-md border border-gray-300 bg-white px-2 text-xs text-[#111827]";
 const TOOLBAR_BUTTON_CLASS = "inline-flex h-[38px] items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 text-sm font-bold";
@@ -249,7 +250,7 @@ export function Auditoria() {
 
       {selected && (
         <Modal size="lg" onClose={() => setSelected(null)}>
-          <ModalHeader title="Detalle del evento" closeLabel="Cerrar detalle" onClose={() => setSelected(null)}>
+          <ModalHeader title="Detalle del evento" closeLabel="Cerrar detalle" onClose={() => setSelected(null)} help={MODAL_HELP.auditEvent}>
             <span className="text-xs text-gray-500">Evento #{selected.id}</span>
           </ModalHeader>
           <ModalBody>

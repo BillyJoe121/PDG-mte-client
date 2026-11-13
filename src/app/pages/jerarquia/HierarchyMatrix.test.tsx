@@ -43,6 +43,15 @@ describe("HierarchyMatrix", () => {
     expect(within(region).getAllByText("Vinculado a Meta de permanencia larga")).toHaveLength(2);
   });
 
+  it("marks for the tour the first initiative of the table, even below key results without any", () => {
+    const empty: Node = { nodeType: "KEY_RESULT", id: "0", label: "Sin iniciativas aún", children: [] };
+    const { container } = setup({ tree: [{ ...goal, children: [empty, kr1] }] });
+    expect(container.querySelector('[data-tour="jerarquia-kr"]')).toHaveTextContent("Sin iniciativas aún");
+    const marked = container.querySelectorAll('[data-tour="jerarquia-initiative"]');
+    expect(marked).toHaveLength(1);
+    expect(marked[0]).toHaveTextContent("Tutorías");
+  });
+
   it("opens key results and initiatives", async () => {
     const user = userEvent.setup();
     const { onOpenNode } = setup();
@@ -71,6 +80,26 @@ describe("HierarchyMatrix", () => {
     await user.click(screen.getByRole("button", { name: "Filtrar por Apuesta" }));
     await user.click(screen.getByRole("button", { name: "Filtrar por Apuesta" }));
     expect(screen.queryByText(/Filtrando por/)).not.toBeInTheDocument();
+  });
+
+  it("highlights the goals and bets of the hovered key result row, and the hovered column", async () => {
+    const user = userEvent.setup();
+    setup();
+    const stroke = (name: string) => screen.getByRole("button", { name }).querySelector("svg")?.getAttribute("stroke-width");
+
+    // Graduación is linked only to the goal.
+    await user.hover(screen.getByRole("button", { name: "Graduación" }));
+    expect(stroke("Filtrar por Meta de permanencia larga")).toBe("2.6");
+    expect(stroke("Filtrar por Apuesta")).toBe("2");
+
+    // An initiative row belongs to its key result, linked to both.
+    await user.hover(screen.getByRole("button", { name: /PROY-11 Becas/ }));
+    expect(stroke("Filtrar por Apuesta")).toBe("2.6");
+
+    await user.unhover(screen.getByRole("button", { name: /PROY-11 Becas/ }));
+    await user.hover(screen.getByRole("button", { name: "Filtrar por Apuesta" }));
+    expect(stroke("Filtrar por Apuesta")).toBe("2.6");
+    expect(stroke("Filtrar por Meta de permanencia larga")).toBe("2");
   });
 
   it("filters from the diagonal label buttons too", async () => {

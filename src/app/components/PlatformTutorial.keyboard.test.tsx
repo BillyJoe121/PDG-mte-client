@@ -14,11 +14,11 @@ vi.mock("./tutorial/useTourTarget", () => ({
   useTourTarget: (...args: unknown[]) => { mocks.targetArgs(...args); return mocks.target; },
 }));
 
-function renderTour(props: { open?: boolean; mandatory?: boolean; path?: string } = {}) {
+function renderTour(props: { open?: boolean; path?: string } = {}) {
   const onClose = vi.fn();
   const utils = render(
     <MemoryRouter initialEntries={[props.path ?? "/proyectos"]}>
-      <PlatformTutorial open={props.open ?? true} mandatory={props.mandatory} onClose={onClose} />
+      <PlatformTutorial open={props.open ?? true} onClose={onClose} />
     </MemoryRouter>,
   );
   return { onClose, ...utils };

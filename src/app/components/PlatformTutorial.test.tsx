@@ -15,25 +15,21 @@ function CurrentPath() {
   return <span data-testid="path">{useLocation().pathname}</span>;
 }
 
-function renderTour(mandatory: boolean) {
+function renderTour(onboarding = false) {
   const onClose = vi.fn();
   render(
     <MemoryRouter initialEntries={["/proyectos"]}>
       <CurrentPath />
-      <PlatformTutorial open mandatory={mandatory} onClose={onClose} />
+      <PlatformTutorial open onboarding={onboarding} onClose={onClose} />
     </MemoryRouter>,
   );
   return onClose;
 }
 
 describe("PlatformTutorial", () => {
-  it("cannot be skipped the first time and moves through the screens until Finalizar", () => {
-    const onClose = renderTour(true);
-    const dialog = screen.getByRole("dialog", { name: "Bienvenido a MTE" });
-
-    expect(screen.queryByRole("button", { name: "Cerrar recorrido" })).not.toBeInTheDocument();
-    fireEvent.keyDown(dialog, { key: "Escape" });
-    expect(onClose).not.toHaveBeenCalled();
+  it("moves through the screens until Finalizar", () => {
+    const onClose = renderTour();
+    expect(screen.getByRole("dialog", { name: "Bienvenido a MTE" })).toBeInTheDocument();
     const total = tourStepsFor(VISITOR).length;
     expect(screen.getByText(`Paso 1 de ${total}`)).toBeInTheDocument();
 
@@ -49,13 +45,26 @@ describe("PlatformTutorial", () => {
 
     // Back on step 2: walk the remaining steps to the last one.
     for (let i = 0; i < total - 2; i += 1) fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
-    expect(screen.getByRole("dialog", { name: "Vuelve cuando quieras" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Aquí está la ayuda" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Finalizar" }));
     expect(onClose).toHaveBeenCalledWith(true);
   });
 
+  it("on the first visit shows only the help button card, on the current screen, and cannot be skipped", () => {
+    const onClose = renderTour(true);
+    const dialog = screen.getByRole("dialog", { name: "Aquí está la ayuda" });
+    expect(screen.getByText("Antes de empezar")).toBeInTheDocument();
+    expect(screen.getByTestId("path")).toHaveTextContent("/proyectos");
+    expect(screen.queryByRole("button", { name: "Cerrar recorrido" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Anterior" })).not.toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Entendido" }));
+    expect(onClose).toHaveBeenCalledWith(true);
+  });
+
   it("can be closed when opened from the help button", () => {
-    const onClose = renderTour(false);
+    const onClose = renderTour();
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     expect(onClose).toHaveBeenLastCalledWith(false);
     fireEvent.click(screen.getByRole("button", { name: "Cerrar recorrido" }));

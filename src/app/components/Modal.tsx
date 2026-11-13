@@ -2,6 +2,7 @@ import { useRef, useState, type ReactNode } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { motion, useReducedMotion } from "motion/react";
 import { DetailTopBar } from "./DetailModal";
+import type { ModalHelpContent } from "./ModalHelp";
 import { isGuidedTourOpen } from "./tutorial/guidedTour";
 
 const SIZES = {
@@ -83,9 +84,9 @@ export function ModalTitle({ children }: { children: ReactNode }) {
   return <DialogPrimitive.Title className="text-[13px] font-bold leading-snug text-[#111827]" style={{ overflowWrap: "anywhere" }}>{children}</DialogPrimitive.Title>;
 }
 
-export function ModalHeader({ title, closeLabel = "Cerrar modal", onClose, children }: { title: string; closeLabel?: string; onClose: () => void; children?: ReactNode }) {
+export function ModalHeader({ title, closeLabel = "Cerrar modal", onClose, help, children }: { title: string; closeLabel?: string; onClose: () => void; help?: ModalHelpContent; children?: ReactNode }) {
   return (
-    <DetailTopBar closeLabel={closeLabel} onClose={onClose}>
+    <DetailTopBar closeLabel={closeLabel} onClose={onClose} help={help}>
       <ModalTitle>{title}</ModalTitle>
       {children}
     </DetailTopBar>

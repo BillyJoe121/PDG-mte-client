@@ -47,16 +47,28 @@ export function buildHierarchyMatrix(tree: StrategicHierarchyNode[]): HierarchyM
   return { goals, bets, rows: sortedRows };
 }
 
-const byLabelLength = (a: MatrixColumn, b: MatrixColumn) => a.label.length - b.label.length;
+const CODE_PATTERN = /^([A-Za-z]+)(\d+)\b/;
 
-/**
- * The header stacks the labels with the outermost column on top, so the longest names go to the
- * outer edges: goals from longest to shortest (left to right) and bets the other way round.
- */
+/** Code at the start of a goal or bet name, e.g. "O1 · Alianzas" gives O and 1. */
+export function strategyCode(label: string) {
+  const match = CODE_PATTERN.exec(label.trim());
+  return match ? { letter: match[1].toUpperCase(), number: Number(match[2]) } : null;
+}
+
+/** By code letter (O before P), then number (A2 before A10); names without a code go last, by name. */
+function byCode(a: MatrixColumn, b: MatrixColumn) {
+  const codeA = strategyCode(a.label);
+  const codeB = strategyCode(b.label);
+  if (codeA && codeB) return codeA.letter.localeCompare(codeB.letter) || codeA.number - codeB.number;
+  if (codeA || codeB) return codeA ? -1 : 1;
+  return a.label.localeCompare(b.label, "es");
+}
+
+/** Goals and bets read left to right in code order: O1, O2… then P1…; A1, A2… */
 export function visibleMatrixColumns({ goals, bets }: HierarchyMatrixData, view: View) {
   return {
-    goals: view === "apuestas" ? [] : [...goals].sort((a, b) => byLabelLength(b, a)),
-    bets: view === "metas" ? [] : [...bets].sort(byLabelLength),
+    goals: view === "apuestas" ? [] : [...goals].sort(byCode),
+    bets: view === "metas" ? [] : [...bets].sort(byCode),
   };
 }
 

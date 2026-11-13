@@ -11,6 +11,7 @@ import { hasPermission } from "../security/permissions";
 import { directoryUsersApi, type AccessLinkResponse, type DirectoryAccessRole, type DirectoryUser, type DirectoryUserRequest } from "../services/peopleApi";
 import { departmentsApi, schoolsApi, type Department, type School } from "../services/strategicApi";
 import { downloadCSV, getDateStamp } from "../utils/exportUtils";
+import { MODAL_HELP } from "../components/modalHelpContent";
 
 const ROLE_LABELS: Record<DirectoryAccessRole, string> = {
   ADMIN: "Administrador",
@@ -285,7 +286,7 @@ function UserDialog({ user, departments, onClose, onSaved }: { user: DirectoryUs
   };
   return (
     <Modal size="sm" onClose={onClose}>
-      <ModalHeader title={user ? "Editar usuario" : "Nuevo usuario"} onClose={onClose} />
+      <ModalHeader title={user ? "Editar usuario" : "Nuevo usuario"} onClose={onClose} help={MODAL_HELP.userForm} />
       <ModalBody>
         <form id={formId} onSubmit={submit} noValidate className="space-y-4">
           <FormField label="Nombre">
@@ -342,7 +343,7 @@ function DepartmentDialog({ department, schools, onClose, onSaved }: { departmen
   };
   return (
     <Modal size="sm" onClose={onClose}>
-      <ModalHeader title={department ? "Editar departamento" : "Nuevo departamento"} onClose={onClose} />
+      <ModalHeader title={department ? "Editar departamento" : "Nuevo departamento"} onClose={onClose} help={MODAL_HELP.departmentForm} />
       <ModalBody>
         <form id={formId} onSubmit={submit} noValidate className="space-y-4">
           <FormField label="Nombre">

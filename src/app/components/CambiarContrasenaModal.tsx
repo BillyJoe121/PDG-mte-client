@@ -9,6 +9,7 @@ import {
   passwordProblem,
 } from "./auth/AuthField";
 import { authApi, authErrorMessage } from "../services/authApi";
+import { MODAL_HELP } from "./modalHelpContent";
 
 interface CambiarContrasenaModalProps {
   open: boolean;
@@ -72,7 +73,7 @@ export function CambiarContrasenaModal({ open, onOpenChange }: CambiarContrasena
 
   return (
     <Modal size="sm" onClose={() => handleOpenChange(false)}>
-      <ModalHeader title="Cambiar contraseña" onClose={() => handleOpenChange(false)} />
+      <ModalHeader title="Cambiar contraseña" onClose={() => handleOpenChange(false)} help={MODAL_HELP.changePassword} />
       <ModalBody>
         <p className="text-sm leading-relaxed text-gray-600">
           Confirma tu contraseña actual y define una nueva.

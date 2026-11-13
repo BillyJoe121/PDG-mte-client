@@ -1,6 +1,7 @@
 import { ExternalLink, Scale, Unlink } from "lucide-react";
 import { useNavigate } from "react-router";
 import { DETAIL_TABLE_CELL_CLASS, DetailBadge, DetailIconButton, DetailTable } from "../../components/DetailModal";
+import { StrategyLinkNames } from "../../components/StrategyLinkNames";
 import {
   contributionTypeLabel,
   type ImpactChain,
@@ -12,10 +13,13 @@ type ImpactItem = ImpactChain["impacts"][number];
 const LINKED_COLUMNS = ["Key Result", "Metas y apuestas", "Peso declarado", "Tipo", "Suma en el KR", "Estado", "Acciones"];
 const IMPACT_COLUMNS = ["Metas y apuestas", "Key Result", "Peso", "Tipo", "Periodo", "Iniciativa"];
 
+function impactStrategyNames(impact?: Pick<ImpactItem, "goalNames" | "strategicBetNames">) {
+  return impact ? [...(impact.goalNames ?? []), ...(impact.strategicBetNames ?? [])] : [];
+}
+
 /** Metas y Apuestas a las que aporta un KR dentro de la cadena de impacto. */
 export function impactStrategyLabel(impact?: Pick<ImpactItem, "goalNames" | "strategicBetNames">) {
-  if (!impact) return "";
-  return [...(impact.goalNames ?? []), ...(impact.strategicBetNames ?? [])].filter(Boolean).join(", ");
+  return impactStrategyNames(impact).filter(Boolean).join(", ");
 }
 
 interface LinkedKeyResultsTableProps {
@@ -40,7 +44,7 @@ export function LinkedKeyResultsTable({ canManage, chain, links, onEditLink, onU
               <span className="mt-1 block font-bold text-amber-800">Los pesos declarados para este KR suman {link.totalWeightForKeyResult}%, más de 100 %.</span>
             )}
           </td>
-          <td className={`${DETAIL_TABLE_CELL_CLASS} min-w-[140px]`}>{impactStrategyLabel(chain?.impacts.find((impact) => impact.linkId === link.id)) || "—"}</td>
+          <td className={`${DETAIL_TABLE_CELL_CLASS} min-w-[140px]`}><StrategyLinkNames names={impactStrategyNames(chain?.impacts.find((impact) => impact.linkId === link.id))} empty="—" /></td>
           <td className={`${DETAIL_TABLE_CELL_CLASS} whitespace-nowrap`}>{link.contributionWeight}%</td>
           <td className={`${DETAIL_TABLE_CELL_CLASS} whitespace-nowrap`}>{contributionTypeLabel[link.contributionType]}</td>
           <td className={`${DETAIL_TABLE_CELL_CLASS} whitespace-nowrap`}>{link.totalWeightForKeyResult}%</td>
@@ -73,7 +77,7 @@ export function ImpactTable({ impacts }: { impacts: ImpactItem[] }) {
     <DetailTable label="Cadena de contribución de la iniciativa" columns={IMPACT_COLUMNS}>
       {impacts.map((impact) => (
         <tr key={impact.linkId}>
-          <td className={`${DETAIL_TABLE_CELL_CLASS} min-w-[160px] font-bold`}>{impactStrategyLabel(impact) || "Sin Meta ni Apuesta"}</td>
+          <td className={`${DETAIL_TABLE_CELL_CLASS} min-w-[160px]`}><StrategyLinkNames names={impactStrategyNames(impact)} empty="Sin Meta ni Apuesta" /></td>
           <td className={`${DETAIL_TABLE_CELL_CLASS} min-w-[160px]`}>{impact.keyResultDescription}</td>
           <td className={`${DETAIL_TABLE_CELL_CLASS} whitespace-nowrap`}>{impact.contributionWeight}%</td>
           <td className={`${DETAIL_TABLE_CELL_CLASS} whitespace-nowrap`}>{contributionTypeLabel[impact.contributionType]}</td>

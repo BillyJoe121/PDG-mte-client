@@ -78,18 +78,20 @@ interface MatrixHeadProps {
   goals: MatrixColumn[];
   bets: MatrixColumn[];
   activeKey: string | null;
+  /** Columns shown emphasized: the selected one, the hovered one and those linked to the hovered KR. */
+  highlightKeys: ReadonlySet<string>;
+  onHoverColumn: (key: string | null) => void;
   onToggle: (column: MatrixColumn) => void;
   search: MatrixSearch;
   onSearchChange: (search: MatrixSearch) => void;
 }
 
-export function MatrixHead({ goals, bets, activeKey, onToggle, search, onSearchChange }: MatrixHeadProps) {
+export function MatrixHead({ goals, bets, activeKey, highlightKeys, onHoverColumn, onToggle, search, onSearchChange }: MatrixHeadProps) {
   const bandRef = useRef<HTMLDivElement>(null);
   const cellRefs = useRef(new Map<string, HTMLElement>());
   const krRef = useRef<HTMLTableCellElement>(null);
   const initiativesRef = useRef<HTMLTableCellElement>(null);
   const [layout, setLayout] = useState<Layout | null>(null);
-  const [hoverKey, setHoverKey] = useState<string | null>(null);
   const height = labelBandHeight(goals.length, bets.length);
   const columnSignature = [...goals, ...bets].map((column) => column.key).join("|");
 
@@ -126,6 +128,7 @@ export function MatrixHead({ goals, bets, activeKey, onToggle, search, onSearchC
 
   const columnCell = (column: MatrixColumn, side: Side) => {
     const active = column.key === activeKey;
+    const emphasized = active || highlightKeys.has(column.key);
     const color = side === "goal" ? GOAL_COLOR : BET_COLOR;
     const Icon = side === "goal" ? Target : Compass;
     return (
@@ -144,12 +147,14 @@ export function MatrixHead({ goals, bets, activeKey, onToggle, search, onSearchC
           aria-label={`Filtrar por ${column.label}`}
           title={column.label}
           onClick={() => onToggle(column)}
-          onMouseEnter={() => setHoverKey(column.key)}
-          onMouseLeave={() => setHoverKey(null)}
+          onMouseEnter={() => onHoverColumn(column.key)}
+          onMouseLeave={() => onHoverColumn(null)}
+          onFocus={() => onHoverColumn(column.key)}
+          onBlur={() => onHoverColumn(null)}
           className="flex w-full items-center justify-center"
-          style={{ height: 30, backgroundColor: active ? `${color}1F` : "transparent", color }}
+          style={{ height: 30, backgroundColor: emphasized ? `${color}1F` : "transparent", color }}
         >
-          <Icon size={15} strokeWidth={active ? 2.6 : 2} aria-hidden="true" />
+          <Icon size={15} strokeWidth={emphasized ? 2.6 : 2} aria-hidden="true" />
         </button>
       </th>
     );
@@ -164,7 +169,7 @@ export function MatrixHead({ goals, bets, activeKey, onToggle, search, onSearchC
             {bets.length > 0 && <GroupTitle text="Apuestas" color={BET_COLOR} align="right" />}
             <svg width="100%" height={height} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
               {connectors.map(({ column, side, path }) => {
-                const emphasized = column.key === activeKey || column.key === hoverKey;
+                const emphasized = column.key === activeKey || highlightKeys.has(column.key);
                 return (
                   <path
                     key={column.key}
@@ -180,7 +185,7 @@ export function MatrixHead({ goals, bets, activeKey, onToggle, search, onSearchC
             </svg>
             {connectors.map(({ column, side, labelX, labelY, maxWidth }) => {
               const active = column.key === activeKey;
-              const emphasized = active || column.key === hoverKey;
+              const emphasized = active || highlightKeys.has(column.key);
               const color = side === "goal" ? GOAL_COLOR : BET_COLOR;
               return (
                 <button
@@ -189,8 +194,8 @@ export function MatrixHead({ goals, bets, activeKey, onToggle, search, onSearchC
                   tabIndex={-1}
                   title={column.label}
                   onClick={() => onToggle(column)}
-                  onMouseEnter={() => setHoverKey(column.key)}
-                  onMouseLeave={() => setHoverKey(null)}
+                  onMouseEnter={() => onHoverColumn(column.key)}
+                  onMouseLeave={() => onHoverColumn(null)}
                   style={{
                     position: "absolute",
                     top: labelY - 9,

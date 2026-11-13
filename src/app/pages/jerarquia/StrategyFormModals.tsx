@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useId, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { FORM_CONTROL_CLASS, FormActions, FormField, FormSelect, RequiredFieldsNote } from "../../components/forms/FormField";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../components/Modal";
+import type { ModalHelpContent } from "../../components/ModalHelp";
+import { MODAL_HELP } from "../../components/modalHelpContent";
 import { measurementUnitsApi, type MeasurementUnit } from "../../services/catalogsApi";
 import { getGoalValueInput, validateGoalForm, type GoalFormErrors, type GoalFormValues } from "../../utils/goalForm";
 import { goalsApi, strategicBetsApi, type Goal, type StrategicBet } from "../../services/strategicApi";
@@ -11,9 +13,10 @@ type SharedField = "name" | "description" | "startDate" | "endDate";
 type BetFormErrors = Partial<Record<"name" | "description" | "endDate", string>>;
 
 /** One modal for creating and editing: the form lives in the body and its actions stay in the footer. */
-function StrategyFormFrame({ title, submitLabel, saving, onClose, onSubmit, children }: {
+function StrategyFormFrame({ title, submitLabel, help, saving, onClose, onSubmit, children }: {
   title: string;
   submitLabel: string;
+  help: ModalHelpContent;
   saving: boolean;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -23,7 +26,7 @@ function StrategyFormFrame({ title, submitLabel, saving, onClose, onSubmit, chil
 
   return (
     <Modal onClose={onClose}>
-      <ModalHeader title={title} onClose={onClose} />
+      <ModalHeader title={title} onClose={onClose} help={help} />
       <ModalBody>
         <form id={formId} onSubmit={onSubmit} className="space-y-4"><RequiredFieldsNote />{children}</form>
       </ModalBody>
@@ -130,6 +133,7 @@ export function StrategicBetFormModal(props: StrategicBetFormModalProps) {
     <StrategyFormFrame
       title={bet ? "Editar Apuesta Estrategica" : "Nueva Apuesta Estrategica"}
       submitLabel={bet ? "Guardar cambios" : "Crear Apuesta"}
+      help={MODAL_HELP.betForm}
       saving={saving}
       onClose={onClose}
       onSubmit={submit}
@@ -219,6 +223,7 @@ export function GoalFormModal(props: GoalFormModalProps) {
     <StrategyFormFrame
       title={goal ? "Editar Meta Institucional" : "Nueva Meta Institucional"}
       submitLabel={goal ? "Guardar cambios" : "Crear Meta"}
+      help={MODAL_HELP.goalForm}
       saving={saving || loading}
       onClose={onClose}
       onSubmit={submit}
