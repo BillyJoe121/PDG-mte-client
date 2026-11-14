@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { AlertCircle, ArrowLeft, BookOpen, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { hasPermission } from "../security/permissions";
 import { measurementUnitsApi, type MeasurementUnit } from "../services/catalogsApi";
 import { goalsApi } from "../services/strategicApi";
 import { getGoalValueInput, validateGoalForm, type GoalFormErrors, type GoalFormValues } from "../utils/goalForm";
@@ -16,7 +17,7 @@ const COLORS = {
 export function NuevaMeta() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const canCreate = usuario?.rol === "admin";
+  const canCreate = hasPermission(usuario, "jerarquia.manage");
   const [units, setUnits] = useState<MeasurementUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

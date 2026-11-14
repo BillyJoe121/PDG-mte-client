@@ -231,13 +231,13 @@ describe("ProjectDetailContent", () => {
       expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    it("lets a contributor only record progress", async () => {
+    it("lets a contributor edit, link and record progress without changing the status", async () => {
       mocks.rol = "contributor";
       setup();
 
       expect(await screen.findByRole("button", { name: "Registrar avance" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Editar iniciativa" })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Vincular KR" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Editar iniciativa" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Vincular KR" })).toBeInTheDocument();
       expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     });
 

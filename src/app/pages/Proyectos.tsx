@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence, motion, useReducedMotion, type MotionProps } from "motion/react";
 import { Loader2, Target } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { hasPermission } from "../security/permissions";
+import { canChooseInitialStatus } from "./fichaProyecto/projectDetailShared";
 import { useGlobalFilters } from "../context/FiltersContext";
 import { useViewMode } from "../hooks/useViewMode";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
@@ -52,7 +54,8 @@ export function Proyectos() {
     return Number.isFinite(projectId) && projectId > 0 ? projectId : null;
   });
 
-  const canCreate = usuario?.rol === "admin";
+  const canCreate = hasPermission(usuario, "proyectos.create");
+  const canLink = hasPermission(usuario, "proyectos.link");
 
   const loadProjects = async (options?: { force?: boolean; silent?: boolean }) => {
     if (!options?.silent) {
@@ -174,7 +177,7 @@ export function Proyectos() {
             <motion.div key="table" {...viewMotion}>
               <ProjectTable
                 projects={visibleProjects}
-                canManage={Boolean(canCreate)}
+                canManage={canLink}
                 onOpen={(project) => openProject(project.id)}
                 onLink={setLinkProject}
               />
@@ -185,7 +188,7 @@ export function Proyectos() {
                 <ProjectCardView
                   key={project.id}
                   project={project}
-                  canManage={Boolean(canCreate)}
+                  canManage={canLink}
                   index={index}
                   onLink={() => setLinkProject(project)}
                   onOpen={() => openProject(project.id)}
@@ -202,6 +205,7 @@ export function Proyectos() {
             departments={departments}
             periods={periods}
             keyResults={keyResults}
+            canChooseStatus={canChooseInitialStatus(usuario?.rol)}
             onClose={() => setCreatingProject(false)}
             onCreated={async (projectId) => {
               setCreatingProject(false);

@@ -58,6 +58,21 @@ describe("RegisterProgressPanel", () => {
     expect(screen.getByText("62.5%")).toBeInTheDocument();
   });
 
+  it("replaces the zero instead of keeping it in front of the typed number", async () => {
+    const user = userEvent.setup();
+    render(<RegisterProgressPanel project={makeProject({ globalProgress: 0 })} onCancel={vi.fn()} onDirtyChange={vi.fn()} onSaved={vi.fn()} />);
+    const number = screen.getByLabelText("Avance global (%)") as HTMLInputElement;
+
+    await user.type(number, "10");
+    expect(number.value).toBe("10");
+    expect(screen.getByText("10%")).toBeInTheDocument();
+
+    // Leaving the field empty brings back the last valid value.
+    await user.clear(number);
+    await user.tab();
+    expect(number.value).toBe("10");
+  });
+
   it("saves the progress with the milestones as a list", async () => {
     const { onSaved, onDirtyChange, user } = setup();
     fireEvent.change(screen.getByLabelText("Avance global (%)"), { target: { value: "75" } });

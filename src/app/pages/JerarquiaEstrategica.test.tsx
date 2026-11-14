@@ -192,11 +192,11 @@ describe("JerarquiaEstrategica", () => {
     expect(screen.queryByRole("region", { name: /Matriz de Metas/ })).not.toBeInTheDocument();
   });
 
-  it("hides creation for managers while keeping Archivados", async () => {
+  it("lets managers create goals and bets and see Archivados", async () => {
     mocks.role.current = "manager";
     renderAt();
     await screen.findByRole("region", { name: /Matriz de Metas/ });
-    expect(screen.queryByRole("button", { name: "Nueva Meta" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nueva Meta" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Archivados" })).toBeInTheDocument();
   });
 

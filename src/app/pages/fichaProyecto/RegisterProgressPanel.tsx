@@ -20,11 +20,34 @@ interface RegisterProgressPanelProps {
 /** Records initiative progress inside the detail, as the key result detail does. */
 export function RegisterProgressPanel({ project, onCancel, onDirtyChange, onSaved }: RegisterProgressPanelProps) {
   const [progressPercent, setProgressPercent] = useState(project.globalProgress);
+  // The typed text is kept apart so the field never shows a leading zero such as "010".
+  const [percentText, setPercentText] = useState(String(project.globalProgress));
   const [comment, setComment] = useState("");
   const [milestones, setMilestones] = useState<string[]>([""]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   useDirtyReport({ progressPercent, comment, milestones }, onDirtyChange);
+
+  const updatePercent = (value: number) => {
+    const next = Math.max(0, Math.min(100, value));
+    setProgressPercent(next);
+    setPercentText(String(next));
+  };
+
+  const typePercent = (raw: string) => {
+    const text = raw.replace(/^0+(?=\d)/, "");
+    const value = Number(text);
+    if (text === "" || !Number.isFinite(value)) {
+      setPercentText(text);
+      return;
+    }
+    if (value < 0 || value > 100) {
+      updatePercent(value);
+      return;
+    }
+    setPercentText(text);
+    setProgressPercent(value);
+  };
 
   const updateMilestone = (index: number, value: string) => {
     setMilestones((current) => current.map((milestone, currentIndex) => currentIndex === index ? value : milestone));
@@ -81,8 +104,8 @@ export function RegisterProgressPanel({ project, onCancel, onDirtyChange, onSave
               <span className="text-[13px] font-bold text-[#111827]">{progressPercent}%</span>
             </div>
             <div className="mt-2 flex items-center gap-3">
-              <input aria-label="Avance global (control deslizante)" type="range" min={0} max={100} step={0.5} value={progressPercent} onChange={(event) => setProgressPercent(Number(event.target.value))} className="min-w-0 flex-1 accent-[#5454E9]" />
-              <input aria-label="Avance global (%)" type="number" min={0} max={100} step={0.5} value={progressPercent} onChange={(event) => setProgressPercent(Math.max(0, Math.min(100, Number(event.target.value))))} className={`${FORM_CONTROL_CLASS} !w-20`} />
+              <input aria-label="Avance global (control deslizante)" type="range" min={0} max={100} step={0.5} value={progressPercent} onChange={(event) => updatePercent(Number(event.target.value))} className="min-w-0 flex-1 accent-[#5454E9]" />
+              <input aria-label="Avance global (%)" type="number" min={0} max={100} step={0.5} value={percentText} onChange={(event) => typePercent(event.target.value)} onBlur={() => setPercentText(String(progressPercent))} className={`${FORM_CONTROL_CLASS} !w-20`} />
             </div>
           </div>
           <FormField label="Comentario" required>

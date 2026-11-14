@@ -72,18 +72,25 @@ export function HierarchyMatrix({ tree, view, onOpenNode, onOpenRoot, initialFoc
   const hoverRow = rows.find((row) => row.node.id === hoverRowId);
   const highlightKeys = new Set([activeColumn?.key, hoverColumnKey, ...(hoverRow?.columnKeys ?? [])].filter((key): key is string => Boolean(key)));
   const tinted = (column: MatrixColumn) => column.key === activeColumn?.key || column.key === hoverColumnKey;
+  // Clearing also empties the indicator and initiative searches, not only the column filter.
+  const clearFilters = () => {
+    setColumnKey(null);
+    setSearch({ indicator: "", initiative: "" });
+  };
   const leaveRow = (rowId: string) => setHoverRowId((current) => (current === rowId ? null : current));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      {activeColumn && (
+      {(activeColumn || searching) && (
         <div className="flex min-h-[32px] flex-shrink-0 flex-wrap items-center gap-2" style={{ fontSize: 11, color: "#374151" }}>
-          <span style={{ fontWeight: 800, color: COLORS.blue }}>Filtrando por: {activeColumn.label}</span>
-          <button type="button" onClick={() => onOpenRoot(activeColumn.node)} className="inline-flex min-h-[32px] items-center rounded-md px-2.5" style={{ border: `1px solid ${COLORS.border}`, fontWeight: 800 }}>
-            Ver detalle
-          </button>
-          <button type="button" onClick={() => setColumnKey(null)} className="inline-flex min-h-[32px] items-center gap-1 rounded-md px-2.5" style={{ border: "1px solid #DC2626", backgroundColor: "#FEF2F2", color: "#B91C1C", fontWeight: 800 }}>
-            <X size={12} aria-hidden="true" /> Quitar filtro
+          <span style={{ fontWeight: 800, color: COLORS.blue }}>{activeColumn ? `Filtrando por: ${activeColumn.label}` : "Búsqueda activa"}</span>
+          {activeColumn && (
+            <button type="button" onClick={() => onOpenRoot(activeColumn.node)} className="inline-flex min-h-[32px] items-center rounded-md px-2.5" style={{ border: `1px solid ${COLORS.border}`, fontWeight: 800 }}>
+              Ver detalle
+            </button>
+          )}
+          <button type="button" onClick={clearFilters} className="inline-flex min-h-[32px] items-center gap-1 rounded-md px-2.5" style={{ border: "1px solid #DC2626", backgroundColor: "#FEF2F2", color: "#B91C1C", fontWeight: 800 }}>
+            <X size={12} aria-hidden="true" /> {activeColumn && searching ? "Quitar filtros" : "Quitar filtro"}
           </button>
         </div>
       )}

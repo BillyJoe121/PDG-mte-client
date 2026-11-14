@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { hasPermission } from "../security/permissions";
 import { useStrategicDataRefresh } from "../hooks/useStrategicDataRefresh";
 import { useViewMode } from "../hooks/useViewMode";
 import { useCompactSidebar } from "../components/sidebarCompact";
@@ -45,8 +46,8 @@ export function JerarquiaEstrategica() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { usuario } = useAuth();
   const reduceMotion = useReducedMotion();
-  const canCreate = usuario?.rol === "admin";
-  const canManageKeyResults = usuario?.rol === "admin" || usuario?.rol === "manager";
+  const canCreate = hasPermission(usuario, "jerarquia.manage");
+  const canManageKeyResults = hasPermission(usuario, "okrs.manage");
   const [view, setView] = useState<View>("arbol");
   const [viewMode, setViewMode] = useViewMode("mte.viewMode.hierarchy");
   const [period, setPeriod] = useState("");

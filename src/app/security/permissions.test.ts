@@ -33,16 +33,32 @@ describe('permissions', () => {
     expect(hasPermission(baseUser, 'usuarios.manage')).toBe(false);
   });
 
-  it('limits contributors to consultation and project progress', () => {
+  it('lets contributors create, edit and link initiatives but not manage strategy', () => {
     const contributor = { ...baseUser, rol: 'contributor' as const };
+    const fromApi = {
+      ...contributor,
+      roles: ['CONTRIBUTOR'],
+      capabilities: ['viewDashboard', 'viewStrategy', 'viewProjects', 'createProjects', 'updateProjects', 'registerProjectProgress', 'linkProjectsToKeyResults'],
+    };
 
-    expect(hasPermission(contributor, 'dashboard.view')).toBe(true);
-    expect(hasPermission(contributor, 'proyectos.view')).toBe(true);
-    expect(hasPermission(contributor, 'proyectos.progress')).toBe(true);
-    expect(hasPermission(contributor, 'proyectos.create')).toBe(false);
-    expect(hasPermission(contributor, 'proyectos.manage')).toBe(false);
-    expect(hasPermission(contributor, 'proyectos.link')).toBe(false);
-    expect(hasPermission(contributor, 'okrs.manage')).toBe(false);
+    for (const user of [contributor, fromApi]) {
+      expect(hasPermission(user, 'dashboard.view')).toBe(true);
+      expect(hasPermission(user, 'proyectos.view')).toBe(true);
+      expect(hasPermission(user, 'proyectos.progress')).toBe(true);
+      expect(hasPermission(user, 'proyectos.create')).toBe(true);
+      expect(hasPermission(user, 'proyectos.manage')).toBe(true);
+      expect(hasPermission(user, 'proyectos.link')).toBe(true);
+      expect(hasPermission(user, 'okrs.manage')).toBe(false);
+      expect(hasPermission(user, 'jerarquia.manage')).toBe(false);
+    }
+  });
+
+  it('lets managers create goals and bets from the backend capabilities', () => {
+    const manager = { ...baseUser, roles: ['MANAGER'], capabilities: ['manageStrategicBets', 'manageGoals', 'manageKeyResults', 'createProjects'] };
+
+    expect(hasPermission(manager, 'jerarquia.manage')).toBe(true);
+    expect(hasPermission(manager, 'okrs.manage')).toBe(true);
+    expect(hasPermission(manager, 'proyectos.create')).toBe(true);
   });
 
   it('keeps visitors read-only, with or without backend capabilities', () => {

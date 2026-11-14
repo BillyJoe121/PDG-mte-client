@@ -21,7 +21,7 @@ const keyResults = [
   { id: 12, name: "", description: "Retención de estudiantes", metric: "Tasa", goals: [], strategicBets: [] },
 ] as unknown as KeyResult[];
 
-function setup(overrides: { departments?: never; periods?: never; keyResults?: KeyResult[] } = {}) {
+function setup(overrides: { departments?: never; periods?: never; keyResults?: KeyResult[]; canChooseStatus?: boolean } = {}) {
   const onClose = vi.fn();
   const onCreated = vi.fn().mockResolvedValue(undefined);
   render(
@@ -31,6 +31,7 @@ function setup(overrides: { departments?: never; periods?: never; keyResults?: K
       keyResults={overrides.keyResults ?? keyResults}
       onClose={onClose}
       onCreated={onCreated}
+      canChooseStatus={overrides.canChooseStatus}
     />,
   );
   return { onClose, onCreated, user: userEvent.setup() };
@@ -117,6 +118,17 @@ describe("CreateProjectModal", () => {
     }));
     expect(toast.success).toHaveBeenCalledWith("Iniciativa creada correctamente.");
     expect(onCreated).toHaveBeenCalledWith(77);
+  });
+
+  it("creates as BORRADOR without offering the status to roles that cannot change it", async () => {
+    const { onCreated, user } = setup({ canChooseStatus: false });
+    expect(screen.queryByText("Estado inicial")).not.toBeInTheDocument();
+    await fillRequired(user);
+    await user.click(screen.getByRole("checkbox", { name: "Seleccionar KR 11" }));
+    await user.click(screen.getByRole("button", { name: "Crear Iniciativa" }));
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(mocks.create.mock.calls[0][0]).toMatchObject({ status: "BORRADOR" });
   });
 
   it("sends no end period or dates when they stay undefined", async () => {

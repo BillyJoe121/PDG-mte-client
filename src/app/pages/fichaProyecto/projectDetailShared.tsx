@@ -63,6 +63,11 @@ export function availableStatusTransitions(role: Rol | undefined, current: Proje
   return transitions[current];
 }
 
+/** Creating in a status other than BORRADOR is itself a status change, so only roles that manage status choose it. */
+export function canChooseInitialStatus(role: Rol | undefined) {
+  return availableStatusTransitions(role, "BORRADOR").length > 0;
+}
+
 export function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3">

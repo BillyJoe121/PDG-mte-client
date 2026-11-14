@@ -134,6 +134,27 @@ describe("HierarchyMatrix", () => {
     expect(screen.getByText("No hay KR ni iniciativas que coincidan con la búsqueda.")).toBeInTheDocument();
   });
 
+  it("clears the column filter and both searches together", async () => {
+    const user = userEvent.setup();
+    setup();
+    const indicator = screen.getByRole("searchbox", { name: "Buscar en Indicador" });
+    const initiatives = screen.getByRole("searchbox", { name: "Buscar en Iniciativas" });
+
+    await user.type(initiatives, "becas");
+    expect(screen.getByText("Búsqueda activa")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Quitar filtro" }));
+    expect(initiatives).toHaveValue("");
+
+    await user.click(screen.getByRole("button", { name: "Filtrar por Apuesta" }));
+    await user.type(indicator, "reten");
+    await user.type(initiatives, "tutor");
+    await user.click(screen.getByRole("button", { name: "Quitar filtros" }));
+    expect(indicator).toHaveValue("");
+    expect(initiatives).toHaveValue("");
+    expect(screen.queryByText(/Filtrando por/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Graduación" })).toBeInTheDocument();
+  });
+
   it("starts from the given focus", () => {
     setup({ initialFocus: { columnKey: "STRATEGIC_BET:7", search: { indicator: "", initiative: "tutor" } } });
     expect(screen.getByText("Filtrando por: Apuesta")).toBeInTheDocument();

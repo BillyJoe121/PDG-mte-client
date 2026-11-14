@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { AlertCircle, ArrowLeft, Flag, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { hasPermission } from "../security/permissions";
 import { strategicBetsApi } from "../services/strategicApi";
 
 const COLORS = {
@@ -16,7 +17,7 @@ type Errors = Partial<Record<"name" | "description" | "endDate", string>>;
 export function NuevaApuesta() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const canCreate = usuario?.rol === "admin";
+  const canCreate = hasPermission(usuario, "jerarquia.manage");
   const [form, setForm] = useState({ name: "", description: "", startDate: "", endDate: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);

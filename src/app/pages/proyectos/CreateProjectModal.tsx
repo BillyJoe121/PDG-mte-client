@@ -26,11 +26,13 @@ interface CreateProjectModalProps {
   periods: AcademicPeriod[];
   onClose: () => void;
   onCreated: (projectId: number) => Promise<void> | void;
+  /** Without status permission the initiative is created as BORRADOR. */
+  canChooseStatus?: boolean;
 }
 
 type Errors = Partial<Record<"name" | "description" | "departmentId" | "startPeriod" | "tutors" | "keyResults" | "plannerUrl", string>>;
 
-export function CreateProjectModal({ departments, keyResults: availableKeyResults, periods, onClose, onCreated }: CreateProjectModalProps) {
+export function CreateProjectModal({ departments, keyResults: availableKeyResults, periods, onClose, onCreated, canChooseStatus = true }: CreateProjectModalProps) {
   const formId = useId();
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
@@ -156,14 +158,16 @@ export function CreateProjectModal({ departments, keyResults: availableKeyResult
               onChange={(value) => setField("departmentId", value)}
             />
           </FormField>
-          <FormField label="Estado inicial">
-            <FormSelect
-              label="Estado inicial"
-              value={form.status}
-              options={STATUS_OPTIONS.filter((option) => option.value !== "todos").map((option) => ({ value: option.value, label: option.label }))}
-              onChange={(value) => setField("status", value as ProjectStatus)}
-            />
-          </FormField>
+          {canChooseStatus && (
+            <FormField label="Estado inicial">
+              <FormSelect
+                label="Estado inicial"
+                value={form.status}
+                options={STATUS_OPTIONS.filter((option) => option.value !== "todos").map((option) => ({ value: option.value, label: option.label }))}
+                onChange={(value) => setField("status", value as ProjectStatus)}
+              />
+            </FormField>
+          )}
           <FormField label="Tutores" required error={errors.tutors}>
             <input value={form.tutors} onChange={(event) => setField("tutors", event.target.value)} placeholder="Tutora A, Tutor B" aria-invalid={Boolean(errors.tutors)} className={FORM_CONTROL_CLASS} />
           </FormField>

@@ -209,7 +209,7 @@ export function KRs() {
                 </button>
               </span>
             ))}
-            <button type="button" onClick={() => setQuery({ drilldown: {} })} style={{ color: COLORS.gray, fontSize: 11, fontWeight: 850, textDecoration: "underline" }}>
+            <button type="button" onClick={() => setQuery({ q: "", status: "", drilldown: {} })} style={{ color: COLORS.gray, fontSize: 11, fontWeight: 850, textDecoration: "underline" }}>
               Quitar filtros
             </button>
             {drilldown.department && (

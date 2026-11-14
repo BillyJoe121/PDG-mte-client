@@ -4,6 +4,8 @@ import { ArrowLeft, Check, FolderKanban, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { PlannerUrlField } from "../components/planner/PlannerUrlField";
 import { useAuth } from "../context/AuthContext";
+import { hasPermission } from "../security/permissions";
+import { canChooseInitialStatus } from "./fichaProyecto/projectDetailShared";
 import { departmentsApi, keyResultsApi, type Department, type KeyResult } from "../services/strategicApi";
 import { toKeyResultOptions } from "../utils/keyResultOptions";
 import { academicPeriodsApi, type AcademicPeriod } from "../services/catalogsApi";
@@ -77,7 +79,8 @@ export function NuevoProyecto() {
   });
   const [krLinks, setKrLinks] = useState<ProjectKeyResultDraftRequest[]>([]);
 
-  const canCreate = !!usuario;
+  const canCreate = hasPermission(usuario, "proyectos.create");
+  const canChooseStatus = canChooseInitialStatus(usuario?.rol);
 
   useEffect(() => {
     async function loadCatalogs() {
@@ -240,12 +243,14 @@ export function NuevoProyecto() {
                 </select>
                 {errors.departmentId && <p style={{ fontSize: 10.5, color: COLORS.orange, marginTop: 4 }}>{errors.departmentId}</p>}
               </div>
-              <div>
-                <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Estado inicial</label>
-                <select value={form.status} onChange={(event) => setField("status", event.target.value as ProjectStatus)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 10.5, backgroundColor: "#fff" }}>
-                  {STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
-                </select>
-              </div>
+              {canChooseStatus && (
+                <div>
+                  <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Estado inicial</label>
+                  <select value={form.status} onChange={(event) => setField("status", event.target.value as ProjectStatus)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 6, fontSize: 10.5, backgroundColor: "#fff" }}>
+                    {STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={{ fontSize: 10.5, fontWeight: 850, textTransform: "uppercase" }}>Tutores *</label>
                 <input value={form.tutors} onChange={(event) => setField("tutors", event.target.value)} placeholder="Tutora A, Tutor B" style={{ width: "100%", marginTop: 6, padding: "10px 12px", border: `1.5px solid ${errors.tutors ? COLORS.orange : "#E5E7EB"}`, borderRadius: 6, fontSize: 10.5 }} />

@@ -55,7 +55,7 @@ describe("NuevaMeta", () => {
     vi.mocked(toast.error).mockClear();
   });
 
-  it("restricts access to administrators and lets others go back", async () => {
+  it("restricts access to roles that manage strategy and lets others go back", async () => {
     mocks.role.current = "visitor";
     const user = userEvent.setup();
     renderPage();

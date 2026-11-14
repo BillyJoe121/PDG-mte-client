@@ -58,7 +58,10 @@ const rolePermissions: Record<Rol, PermissionAction[]> = {
     "jerarquia.view",
     "okrs.view",
     "proyectos.view",
+    "proyectos.create",
+    "proyectos.manage",
     "proyectos.progress",
+    "proyectos.link",
   ],
   visitor: [
     "dashboard.view",
